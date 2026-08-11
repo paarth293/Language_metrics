@@ -1,0 +1,297 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Manrope:wght@300..800&family=Caveat:wght@400..700&display=swap");
+
+@import "tailwindcss";
+
+/* ── Custom theme tokens for Tailwind v4 ──────────────────────────────── */
+@theme {
+  --color-navy: #16223f;
+  --color-navy-2: #1e2f52;
+  --color-navy-light: #2a3f6f;
+  --color-gold: #c7982f;
+  --color-gold-soft: #d8b45e;
+  --color-gold-pale: #edd99a;
+  --color-gold-dark: #a07820;
+  --color-cream: #f8f4ea;
+  --color-cream-2: #f2ecdd;
+  --color-cream-3: #ebe3cc;
+  --color-ink: #16223f;
+  --color-muted: #5a6478;
+
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "Manrope", system-ui, sans-serif;
+  --font-script: "Caveat", cursive;
+
+  --shadow-navy-sm: 0 4px 20px -4px rgba(22, 34, 63, 0.2);
+  --shadow-navy-md: 0 8px 40px -8px rgba(22, 34, 63, 0.3);
+  --shadow-navy-lg: 0 20px 60px -20px rgba(22, 34, 63, 0.5);
+  --shadow-gold-glow: 0 0 30px rgba(199, 152, 47, 0.3);
+
+  --animate-float-drift: floatDrift 6s ease-in-out infinite;
+  --animate-marquee: marqueeMove 34s linear infinite;
+  --animate-fade-up: fadeUp 0.6s ease forwards;
+  --animate-pulse-gold: pulseGold 2s ease-in-out infinite;
+  --animate-spin-slow: spin 8s linear infinite;
+}
+
+/* ── Design CSS Variables (legacy usage) ─────────────────────────────── */
+:root {
+  --navy: #16223f;
+  --navy-2: #1e2f52;
+  --navy-light: #2a3f6f;
+  --gold: #c7982f;
+  --gold-soft: #d8b45e;
+  --gold-pale: #edd99a;
+  --cream: #f8f4ea;
+  --cream-2: #f2ecdd;
+  --cream-3: #ebe3cc;
+  --ink: #16223f;
+  --muted: #5a6478;
+  --radius: 12px;
+}
+
+/* ── Keyframes ───────────────────────────────────────────────────────── */
+@keyframes floatDrift {
+  0%   { transform: translateZ(0) rotate(-2deg); }
+  50%  { transform: translate3d(18px, -34px, 0) rotate(2deg); }
+  100% { transform: translateZ(0) rotate(-2deg); }
+}
+@keyframes marqueeMove {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulseGold {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(199, 152, 47, 0.4); }
+  50%       { box-shadow: 0 0 0 12px rgba(199, 152, 47, 0); }
+}
+
+/* ── Base Reset ─────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--cream);
+  color: var(--ink);
+  font-family: Manrope, system-ui, sans-serif;
+  margin: 0;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: var(--gold);
+  color: #fff;
+}
+
+/* ── Typography helpers ─────────────────────────────────────────────── */
+.font-display {
+  font-family: Fraunces, Georgia, serif;
+}
+.font-script {
+  font-family: Caveat, cursive;
+}
+.font-body {
+  font-family: Manrope, sans-serif;
+}
+
+/* ── Floating background words ──────────────────────────────────────── */
+.floating-layer {
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: fixed;
+  z-index: 0;
+}
+
+.floating-word {
+  animation-iteration-count: infinite;
+  animation-name: floatDrift;
+  animation-timing-function: ease-in-out;
+  color: var(--navy);
+  font-family: Caveat, cursive;
+  opacity: 0.07;
+  position: absolute;
+  white-space: nowrap;
+  will-change: transform, opacity;
+}
+
+/* ── Marquee ─────────────────────────────────────────────────────────── */
+.marquee-track {
+  animation: marqueeMove 34s linear infinite;
+  display: flex;
+  width: max-content;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────── */
+.btn-primary {
+  background: var(--navy);
+  border-radius: 999px;
+  color: var(--cream);
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.35s ease,
+    background-color 0.35s ease;
+}
+.btn-primary:hover {
+  background: var(--navy-2);
+  box-shadow: 0 18px 40px -18px rgba(22, 34, 63, 0.7);
+  transform: translateY(-3px);
+}
+
+/* ── Accessibility: visible keyboard focus ──────────────────────────────── */
+.btn-primary:focus-visible,
+.btn-gold:focus-visible,
+.btn-outline:focus-visible,
+.btn-outline-cream:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(199, 152, 47, 0.45);
+}
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.btn-gold {
+  background: var(--gold);
+  border-radius: 999px;
+  color: #fff;
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.35s ease;
+}
+.btn-gold:hover {
+  box-shadow: 0 18px 40px -18px rgba(199, 152, 47, 0.8);
+  transform: translateY(-3px);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1.5px solid rgba(22, 34, 63, 0.25);
+  border-radius: 999px;
+  color: var(--navy);
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 0.35s ease,
+    background-color 0.35s ease;
+}
+.btn-outline:hover {
+  background: rgba(199, 152, 47, 0.06);
+  border-color: var(--gold);
+  transform: translateY(-3px);
+}
+
+.btn-outline-cream {
+  background: transparent;
+  border: 1.5px solid rgba(248, 244, 234, 0.35);
+  border-radius: 999px;
+  color: var(--cream);
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 0.35s ease,
+    background-color 0.35s ease;
+}
+.btn-outline-cream:hover {
+  background: rgba(248, 244, 234, 0.1);
+  border-color: var(--gold-soft);
+  transform: translateY(-3px);
+}
+
+/* ── Cards ─────────────────────────────────────────────────────────── */
+.lang-card {
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.5s ease,
+    border-color 0.5s ease;
+}
+.lang-card:hover {
+  border-color: var(--gold);
+  box-shadow: 0 30px 60px -30px rgba(22, 34, 63, 0.4);
+  transform: translateY(-8px);
+}
+
+.glass-card {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  background: rgba(248, 244, 234, 0.7);
+  border: 1px solid rgba(199, 152, 47, 0.15);
+  border-radius: 20px;
+}
+
+.glass-dark {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  background: rgba(22, 34, 63, 0.6);
+  border: 1px solid rgba(248, 244, 234, 0.1);
+  border-radius: 20px;
+}
+
+/* ── Eyebrow decoration ─────────────────────────────────────────────── */
+.eyebrow-line {
+  background: var(--gold);
+  display: inline-block;
+  height: 1.5px;
+  width: 32px;
+}
+
+/* ── Gradient text ─────────────────────────────────────────────────── */
+.text-gradient-gold {
+  background: linear-gradient(135deg, #c7982f, #edd99a, #c7982f);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ── Input styles ─────────────────────────────────────────────────── */
+.input-field {
+  background: rgba(248, 244, 234, 0.6);
+  border: 1.5px solid rgba(22, 34, 63, 0.15);
+  border-radius: var(--radius);
+  color: var(--ink);
+  font-family: Manrope, sans-serif;
+  outline: none;
+  padding: 0.875rem 1rem;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  width: 100%;
+  font-size: 0.9375rem;
+}
+.input-field:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(199, 152, 47, 0.12);
+}
+.input-field::placeholder {
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--cream-2); }
+::-webkit-scrollbar-thumb { background: rgba(22, 34, 63, 0.2); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+
+/* ── Shadow utils ───────────────────────────────────────────────────── */
+.shadow-navy-sm { box-shadow: 0 4px 20px -4px rgba(22, 34, 63, 0.2); }
+.shadow-navy-md { box-shadow: 0 8px 40px -8px rgba(22, 34, 63, 0.3); }
+.shadow-navy-lg { box-shadow: 0 20px 60px -20px rgba(22, 34, 63, 0.5); }
+.shadow-gold-glow { box-shadow: 0 0 30px rgba(199, 152, 47, 0.3); }
+
+/* ── Color utilities using CSS vars ─────────────────────────────────── */
+.bg-navy { background-color: var(--navy); }
+.bg-navy-2 { background-color: var(--navy-2); }
+.bg-cream { background-color: var(--cream); }
+.bg-cream-2 { background-color: var(--cream-2); }
+.text-navy { color: var(--navy); }
+.text-cream { color: var(--cream); }
+.text-gold { color: var(--gold); }
+.text-muted { color: var(--muted); }
+.border-navy\/8 { border-color: rgba(22,34,63,0.08); }
+.border-navy\/10 { border-color: rgba(22,34,63,0.10); }
+.border-cream\/8 { border-color: rgba(248,244,234,0.08); }
+.border-cream\/10 { border-color: rgba(248,244,234,0.10); }
