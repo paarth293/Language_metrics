@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Language Metrics
+
+A production-oriented language learning & teaching platform built with Next.js (App Router), Prisma, PostgreSQL, and Tailwind CSS.
+
+## Architecture & Directory Structure
+
+The project strictly follows a standard `src/` modular layout:
+
+```text
+src/
+├── app/                  # Next.js App Router (Layouts, Pages, & Thin API Routes)
+│   ├── (public)/         # Public marketing pages & layout
+│   ├── (student)/        # Student dashboard & guarded views
+│   ├── (teacher)/        # Teacher dashboard & registration forms
+│   ├── (admin)/          # Admin panel & verification queue
+│   └── api/              # Thin Next.js Route Handlers (Calls Services)
+├── components/           # UI components
+│   ├── home/             # Marketing home sections
+│   ├── layout/           # Global Navbar & Footer
+│   ├── shared/           # Auth & shared context components
+│   └── ui/               # Reusable atomic UI components (StatusBadge, etc.)
+├── hooks/                # Custom React hooks (e.g., useAuth)
+├── lib/                  # Infrastructure (Prisma DB client, JWT Auth, API client)
+├── services/             # Core business logic layer (Auth, Student, Teacher, Admin services)
+├── types/                # Core TypeScript interfaces & types
+└── validators/           # Zod validation schemas
+```
 
 ## Getting Started
 
-First, run the development server:
+### 1. Environment Setup
+
+Copy `.env.example` to `.env` and fill in your database & secret configurations:
+
+```bash
+cp .env.example .env
+```
+
+### 2. Install Dependencies & Generate Prisma Client
+
+```bash
+npm install
+npx prisma generate
+```
+
+### 3. Database Migration & Seeding
+
+Run migrations to set up your PostgreSQL schema:
+
+```bash
+npx prisma db push
+```
+
+### 4. Run Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to view the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Core Features & System Roles
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Student Role**: Browse teachers, register, book demo sessions, and manage student profile.
+- **Teacher Role**: Apply with experience credentials and certificates, view verification status, manage teaching dashboard.
+- **Admin Role**: Review pending teacher verification applications, approve/reject candidates.
