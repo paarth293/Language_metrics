@@ -25,7 +25,7 @@ export default function Hero() {
   };
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20 bg-bg text-text">
+    <section className="relative min-h-[100dvh] flex flex-col overflow-hidden pt-32 pb-32 bg-bg text-text">
       {/* Aurora Mesh Gradient Background */}
       <div className="absolute inset-0 z-0">
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-gold/10 blur-[100px] animate-pulse-gold mix-blend-multiply dark:mix-blend-screen" />
@@ -44,7 +44,7 @@ export default function Hero() {
         <span className="absolute bottom-[40%] right-[15%] font-script text-5xl text-navy dark:text-gold-soft animate-float-drift" style={{ animationDelay: "1.5s" }}>Namaste</span>
       </motion.div>
 
-      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 w-full flex flex-col lg:flex-row items-center gap-16">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 w-full flex flex-col lg:flex-row items-center gap-16 my-auto">
         
         {/* Left / Center Content */}
         <div className="flex-1 text-center lg:text-left pt-16 lg:pt-0">
@@ -95,15 +95,15 @@ export default function Hero() {
             initial="hidden" 
             animate="visible" 
             variants={fadeUpVariant}
-            className="flex flex-nowrap items-center justify-center lg:justify-start gap-x-6 gap-y-3 text-sm font-medium text-text-subtle"
+            className="flex flex-wrap items-center justify-center lg:justify-start gap-x-6 gap-y-3 text-sm font-medium text-text-subtle"
           >
-            <div className="flex items-center gap-2 whitespace-nowrap"><ShieldCheck className="w-4 h-4 text-success shrink-0" /> Verified Teachers</div>
+            <div className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-success shrink-0" /> Verified Teachers</div>
             <div className="h-4 w-px bg-border hidden sm:block" />
-            <div className="flex items-center gap-2 whitespace-nowrap"><Video className="w-4 h-4 text-accent shrink-0" /> Custom Video</div>
+            <div className="flex items-center gap-2"><Video className="w-4 h-4 text-accent shrink-0" /> Custom Video</div>
             <div className="h-4 w-px bg-border hidden sm:block" />
-            <div className="flex items-center gap-2 whitespace-nowrap"><CreditCard className="w-4 h-4 text-gold shrink-0" /> Secure Payments</div>
+            <div className="flex items-center gap-2"><CreditCard className="w-4 h-4 text-gold shrink-0" /> Secure Payments</div>
             <div className="h-4 w-px bg-border hidden sm:block" />
-            <div className="flex items-center gap-2 whitespace-nowrap"><Star className="w-4 h-4 text-gold fill-gold shrink-0" /> Rated 4.9/5</div>
+            <div className="flex items-center gap-2"><Star className="w-4 h-4 text-gold fill-gold shrink-0" /> Rated 4.9/5</div>
           </motion.div>
         </div>
 
