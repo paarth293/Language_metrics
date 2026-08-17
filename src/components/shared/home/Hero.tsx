@@ -95,15 +95,15 @@ export default function Hero() {
             initial="hidden" 
             animate="visible" 
             variants={fadeUpVariant}
-            className="flex flex-wrap items-center justify-center lg:justify-start gap-x-6 gap-y-3 text-sm font-medium text-text-subtle"
+            className="flex flex-nowrap items-center justify-center lg:justify-start gap-x-6 gap-y-3 text-sm font-medium text-text-subtle overflow-x-auto hide-scrollbar max-w-full pb-2"
           >
-            <div className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-success shrink-0" /> Verified Teachers</div>
-            <div className="h-4 w-px bg-border hidden sm:block" />
-            <div className="flex items-center gap-2"><Video className="w-4 h-4 text-accent shrink-0" /> Custom Video</div>
-            <div className="h-4 w-px bg-border hidden sm:block" />
-            <div className="flex items-center gap-2"><CreditCard className="w-4 h-4 text-gold shrink-0" /> Secure Payments</div>
-            <div className="h-4 w-px bg-border hidden sm:block" />
-            <div className="flex items-center gap-2"><Star className="w-4 h-4 text-gold fill-gold shrink-0" /> Rated 4.9/5</div>
+            <div className="flex items-center gap-2 whitespace-nowrap"><ShieldCheck className="w-4 h-4 text-success shrink-0" /> Verified Teachers</div>
+            <div className="h-4 w-px bg-border hidden sm:block shrink-0" />
+            <div className="flex items-center gap-2 whitespace-nowrap"><Video className="w-4 h-4 text-accent shrink-0" /> Custom Video</div>
+            <div className="h-4 w-px bg-border hidden sm:block shrink-0" />
+            <div className="flex items-center gap-2 whitespace-nowrap"><CreditCard className="w-4 h-4 text-gold shrink-0" /> Secure Payments</div>
+            <div className="h-4 w-px bg-border hidden sm:block shrink-0" />
+            <div className="flex items-center gap-2 whitespace-nowrap"><Star className="w-4 h-4 text-gold fill-gold shrink-0" /> Rated 4.9/5</div>
           </motion.div>
         </div>
 
