@@ -1,137 +1,126 @@
 "use client";
 
-import { useRef } from "react";
-import { motion, useInView } from "framer-motion";
-import { Video, Coins, CreditCard, Lock, MessageSquare, Bell } from "lucide-react";
+import React from "react";
+import { ShieldCheck, Video, Wallet, Clock, Star } from "lucide-react";
+import { motion } from "framer-motion";
 
 const features = [
   {
     icon: Video,
-    title: "Custom Video Platform",
-    description:
-      "Live 1-on-1 classes powered by LiveKit — no Google Meet, Zoom, or Jio Meet. Full control, auto-recording, screen sharing.",
-    tag: "Powered by LiveKit",
-    accent: "gold",
+    title: "Custom LiveKit Video",
+    description: "No external links or confusing software. Join high-quality, low-latency video classes directly in your browser with built-in chat and screen sharing.",
+    color: "text-accent",
+    bg: "bg-accent/10",
+    span: 2,
   },
   {
-    icon: Coins,
-    title: "Teacher Coin System",
-    description:
-      "Freshers earn free coins on approval. Teachers use coins to reach out to prospective students and grow their practice.",
-    tag: "Unique to Language Metrics",
-    accent: "navy",
+    icon: ShieldCheck,
+    title: "Verified Teachers",
+    description: "Every teacher is manually vetted for proficiency and teaching ability before they can accept bookings.",
+    color: "text-gold",
+    bg: "bg-gold/10",
+    span: 1,
   },
   {
-    icon: CreditCard,
-    title: "Seamless Payments",
-    description:
-      "UPI, card, and net banking via Razorpay. ₹49 demo classes to test chemistry before committing to full courses.",
-    tag: "Razorpay Powered",
-    accent: "gold",
+    icon: Wallet,
+    title: "Global Coin Wallet",
+    description: "Say goodbye to currency conversion math. Buy coins once and spend them on any teacher, anywhere.",
+    color: "text-success",
+    bg: "bg-success/10",
+    span: 1,
   },
   {
-    icon: Lock,
-    title: "Verified Teachers Only",
-    description:
-      "Every teacher goes through document review, language proficiency testing, and admin interview before going live.",
-    tag: "Multi-step Verification",
-    accent: "navy",
+    icon: Clock,
+    title: "Timezone Smart",
+    description: "We handle the time math. You see every teacher&apos;s availability automatically translated to your local timezone.",
+    color: "text-info",
+    bg: "bg-info/10",
+    span: 1,
   },
   {
-    icon: MessageSquare,
-    title: "In-App 1-on-1 Chat",
-    description:
-      "Private messaging between student and teacher — share notes, PDFs, Drive links. No personal contact info exposed.",
-    tag: "Privacy First",
-    accent: "gold",
-  },
-  {
-    icon: Bell,
-    title: "Smart Notifications",
-    description:
-      "Push notifications for booking confirmations, class reminders, and teacher approval updates — never miss a session.",
-    tag: "Real-time Alerts",
-    accent: "navy",
+    icon: Star,
+    title: "Honest Ratings",
+    description: "Only students who have completed a paid class can leave a review, ensuring absolute trust in our ratings.",
+    color: "text-warning",
+    bg: "bg-warning/10",
+    span: 1,
   },
 ];
 
-export default function Features() {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
+const containerVariants = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.1 },
+  },
+};
 
+const itemVariants = {
+  hidden: { opacity: 0, y: 32, scale: 0.97 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.5 },
+  },
+};
+
+export default function Features() {
   return (
-    <section className="py-24 bg-navy overflow-hidden" ref={ref}>
-      <div className="max-w-[1240px] mx-auto px-6">
-        {/* Header */}
+    <section className="py-28 bg-bg">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6 }}
           className="text-center mb-16"
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.6 }}
         >
-          <div className="inline-flex items-center gap-2 mb-4">
-            <span className="eyebrow-line" />
-            <span className="font-script text-gold text-xl">What makes us different</span>
-            <span className="eyebrow-line" />
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-accent/30 bg-accent/5 text-accent text-xs font-semibold uppercase tracking-widest mb-6">
+            Platform Features
           </div>
-          <h2
-            className="font-display font-bold text-cream mb-4"
-            style={{ fontSize: "clamp(30px, 4vw, 50px)" }}
-          >
-            Everything You Need to Learn
+          <h2 className="font-display text-3xl md:text-5xl font-bold text-text mb-5 leading-tight">
+            Everything you need to master a language
           </h2>
-          <p className="text-cream/50 text-lg max-w-xl mx-auto">
-            From custom video to verified teachers — we&apos;ve built a complete platform just for language learning.
+          <p className="text-lg text-text-muted max-w-2xl mx-auto">
+            A premium, end-to-end platform built specifically for real-time human connection.
           </p>
         </motion.div>
 
-        {/* Feature grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {features.map((feature, i) => (
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-3 gap-6"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-80px" }}
+          variants={containerVariants}
+        >
+          {features.map((feature, idx) => (
             <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 32 }}
-              animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.5, delay: i * 0.08 }}
-              className="glass-dark p-6 group hover:border-gold/30 transition-all duration-300 hover:-translate-y-1"
+              key={idx}
+              variants={itemVariants}
+              whileHover={{ y: -6, transition: { duration: 0.25 } }}
+              className={`relative group rounded-2xl overflow-hidden border border-border bg-surface p-8 shadow-sm hover:shadow-lg hover:border-border-strong transition-all duration-300 cursor-default ${feature.span === 2 ? 'md:col-span-2' : ''}`}
             >
-              {/* Icon */}
-              <div
-                className={`w-12 h-12 rounded-xl flex items-center justify-center mb-5 transition-transform duration-300 group-hover:scale-110 ${
-                  feature.accent === "gold"
-                    ? "bg-gold/15 border border-gold/20"
-                    : "bg-cream/5 border border-cream/10"
-                }`}
-              >
-                <feature.icon
-                  className={`w-6 h-6 ${
-                    feature.accent === "gold" ? "text-gold" : "text-cream/70"
-                  }`}
-                />
-              </div>
+              {/* Gradient overlay on hover */}
+              <div className={`absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-${feature.color.replace('text-', '')}/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
 
-              {/* Tag */}
-              <div className="inline-flex items-center mb-3">
-                <span
-                  className={`text-[11px] font-semibold uppercase tracking-widest px-2.5 py-1 rounded-full ${
-                    feature.accent === "gold"
-                      ? "text-gold bg-gold/10"
-                      : "text-cream/50 bg-cream/5"
-                  }`}
+              <div className="relative z-10">
+                <motion.div
+                  whileHover={{ rotate: 8, scale: 1.1 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                  className={`w-12 h-12 rounded-xl ${feature.bg} flex items-center justify-center ${feature.color} mb-6`}
                 >
-                  {feature.tag}
-                </span>
+                  <feature.icon className="w-6 h-6" />
+                </motion.div>
+                <h3 className={`${feature.span === 2 ? 'text-2xl' : 'text-xl'} font-bold text-text mb-3 group-hover:text-gold transition-colors duration-300`}>
+                  {feature.title}
+                </h3>
+                <p className="text-text-muted leading-relaxed">
+                  {feature.description}
+                </p>
               </div>
-
-              <h3 className="font-display font-semibold text-cream text-xl mb-2">
-                {feature.title}
-              </h3>
-              <p className="text-cream/50 text-[14px] leading-relaxed">
-                {feature.description}
-              </p>
             </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

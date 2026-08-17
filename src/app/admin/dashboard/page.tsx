@@ -58,6 +58,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (isLoading || !user || user.role !== "ADMIN") return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, [user, isLoading, load]);
 

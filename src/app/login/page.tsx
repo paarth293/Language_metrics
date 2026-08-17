@@ -1,277 +1,86 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Globe, ArrowRight, AlertCircle } from "lucide-react";
-import { authApi } from "@/lib/api";
-import { useAuth } from "@/hooks/use-auth";
+import { AuthLayout } from "@/components/layout/AuthLayout";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
 
 export default function LoginPage() {
-  const { login, user, isLoading } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-
-  // Already signed in? Send them to the right dashboard.
-  useEffect(() => {
-    if (isLoading || !user) return;
-    if (user.role === "TEACHER") router.replace("/teacher/dashboard");
-    else if (user.role === "ADMIN") router.replace("/admin/dashboard");
-    else router.replace("/student/dashboard");
-  }, [user, isLoading, router]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setSubmitting(true);
-    try {
-      const res = await authApi.login(email, password);
-      login(res.data.token, res.data.user);
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { message?: string } } };
-      setError(axiosErr.response?.data?.message || "Invalid credentials. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
+    setIsLoading(true);
+    // Simulate auth API call
+    setTimeout(() => {
+      setIsLoading(false);
+      router.push("/student/discover"); // Demo redirect
+    }, 1000);
   };
 
   return (
-    <div className="min-h-screen bg-cream flex">
-      {/* Left panel — decorative */}
-      <div className="hidden lg:flex lg:w-1/2 bg-navy relative overflow-hidden flex-col items-center justify-center p-12">
-        {/* Background grid */}
-        <div
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage: "radial-gradient(circle, #f8f4ea0a 1px, transparent 1px)",
-            backgroundSize: "28px 28px",
-          }}
-        />
-        {/* Gold orb */}
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-80 h-80 bg-gold/10 rounded-full blur-3xl pointer-events-none" />
+    <AuthLayout>
+      <div className="mb-8 text-center sm:text-left">
+        <h1 className="font-display text-3xl font-bold text-text mb-2">Welcome back</h1>
+        <p className="text-text-muted">Sign in to your account to continue</p>
+      </div>
 
-        {/* Floating words */}
-        {["Bonjour", "こんにちは", "Hola", "Namaste", "Ciao", "Merhaba"].map(
-          (word, i) => (
-            <motion.span
-              key={i}
-              className="font-script text-cream absolute opacity-[0.07]"
-              style={{
-                fontSize: `${1.2 + (i % 3) * 0.4}rem`,
-                left: `${10 + (i * 15) % 70}%`,
-                top: `${15 + (i * 13) % 70}%`,
-              }}
-              animate={{ y: [0, -16, 0], rotate: [-2, 2, -2] }}
-              transition={{
-                duration: 5 + i,
-                delay: i * 0.5,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            >
-              {word}
-            </motion.span>
-          )
-        )}
-
-        {/* Content */}
-        <div className="relative z-10 text-center max-w-sm">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-          >
-            <div className="w-16 h-16 bg-navy-2 border border-cream/10 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-              <Globe className="w-8 h-8 text-gold" />
-            </div>
-            <h2 className="font-display font-bold text-cream text-3xl mb-4">
-              Welcome back to{" "}
-              <span className="text-gradient-gold italic">Language Metrics</span>
-            </h2>
-            <p className="text-cream/50 text-[15px] leading-relaxed">
-              Your verified language teachers are waiting. Pick up where you left off.
-            </p>
-
-            {/* Testimonial */}
-            <div className="mt-10 glass-dark p-5 rounded-2xl text-left">
-              <p className="text-cream/70 text-[14px] italic mb-3">
-                &ldquo;I went from zero to conversational French in 3 months. The teacher verification process really shows — my teacher was exceptional.&rdquo;
-              </p>
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gold to-gold-soft flex items-center justify-center text-white text-xs font-bold">
-                  A
-                </div>
-                <div>
-                  <div className="text-cream text-[13px] font-semibold">Ananya R.</div>
-                  <div className="text-cream/40 text-[11px]">French Student</div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-text">Email address</label>
+          <Input 
+            type="email" 
+            placeholder="name@example.com" 
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required 
+          />
         </div>
-      </div>
 
-      {/* Right panel — form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 md:p-12">
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6 }}
-          className="w-full max-w-md"
-        >
-          {/* Logo (mobile) */}
-          <Link href="/" className="flex items-center gap-2 mb-8 lg:hidden">
-            <div className="w-8 h-8 rounded-lg bg-navy flex items-center justify-center">
-              <Globe className="w-4 h-4 text-gold" />
-            </div>
-            <span className="font-display font-semibold text-navy text-[16px]">
-              Language Metrics
-            </span>
-          </Link>
-
-          <div className="mb-8">
-            <h1 className="font-display font-bold text-navy text-3xl mb-2">
-              Sign in
-            </h1>
-            <p className="text-navy/60 text-[15px]">
-              Don&apos;t have an account?{" "}
-              <Link
-                href="/register/student"
-                className="text-gold font-semibold hover:underline"
-              >
-                Get started free
-              </Link>
-            </p>
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-text">Password</label>
+            <Link href="/forgot-password" className="text-sm font-medium text-gold hover:text-gold-dark transition-colors">
+              Forgot password?
+            </Link>
           </div>
+          <Input 
+            type="password" 
+            placeholder="••••••••" 
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required 
+          />
+        </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5" id="login-form">
-            {/* Error */}
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-2.5 bg-red-50 border border-red-200 rounded-xl px-4 py-3"
-              >
-                <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-                <p className="text-red-600 text-[14px]">{error}</p>
-              </motion.div>
-            )}
+        <div className="flex items-center gap-2">
+          <input type="checkbox" id="remember" className="rounded border-border bg-surface-inset text-gold focus:ring-gold" />
+          <label htmlFor="remember" className="text-sm text-text-muted cursor-pointer">Remember me for 30 days</label>
+        </div>
 
-            {/* Email */}
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-[13px] font-semibold text-navy/70 mb-1.5"
-              >
-                Email address
-              </label>
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="input-field"
-              />
-            </div>
+        <Button type="submit" variant="primary" className="w-full mt-2" disabled={isLoading}>
+          {isLoading ? "Signing in..." : "Sign in"}
+        </Button>
 
-            {/* Password */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label
-                  htmlFor="password"
-                  className="block text-[13px] font-semibold text-navy/70"
-                >
-                  Password
-                </label>
-                <a
-                  href="#"
-                  className="text-[13px] text-gold hover:underline font-medium"
-                >
-                  Forgot password?
-                </a>
-              </div>
-              <div className="relative">
-                <input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="input-field pr-11"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-navy/40 hover:text-navy transition-colors"
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-            </div>
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
+          <div className="relative flex justify-center text-sm"><span className="bg-bg px-2 text-text-muted">Or continue with</span></div>
+        </div>
 
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={submitting}
-              className="btn-primary w-full py-3.5 text-[15px] font-semibold flex items-center justify-center gap-2 group disabled:opacity-60"
-              id="login-submit"
-            >
-              {submitting ? (
-                <div className="w-5 h-5 border-2 border-cream/30 border-t-cream rounded-full animate-spin" />
-              ) : (
-                <>
-                  Sign in
-                  <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
-                </>
-              )}
-            </button>
-          </form>
+        <Button type="button" variant="outline" className="w-full flex items-center justify-center gap-2 bg-surface">
+          <svg className="h-5 w-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/><path d="M1 1h22v22H1z" fill="none"/></svg>
+          Google
+        </Button>
+      </form>
 
-          {/* Divider */}
-          <div className="my-7 flex items-center gap-3">
-            <div className="flex-1 h-px bg-navy/10" />
-            <span className="text-[12px] text-navy/40 font-medium">OR</span>
-            <div className="flex-1 h-px bg-navy/10" />
-          </div>
-
-          {/* Role register links */}
-          <div className="space-y-3">
-            <p className="text-[13px] text-navy/50 text-center mb-4">
-              Register as a different role:
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <Link
-                href="/register/student"
-                className="btn-outline py-3 text-[13px] font-semibold text-center"
-                id="go-student-register"
-              >
-                Student
-              </Link>
-              <Link
-                href="/register/teacher"
-                className="btn-outline py-3 text-[13px] font-semibold text-center"
-                id="go-teacher-register"
-              >
-                Teacher
-              </Link>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    </div>
+      <p className="mt-8 text-center text-sm text-text-muted">
+        Don&apos;t have an account? <Link href="/register/student" className="font-medium text-gold hover:underline">Sign up</Link>
+      </p>
+    </AuthLayout>
   );
 }

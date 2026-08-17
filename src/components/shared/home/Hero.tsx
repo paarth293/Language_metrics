@@ -1,167 +1,162 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { motion } from "framer-motion";
+import React from "react";
 import Link from "next/link";
-import { ArrowRight, Star, ShieldCheck, Video } from "lucide-react";
-
-const floatingWords = [
-  { word: "Bonjour", x: "8%", y: "18%", delay: 0, size: "text-2xl" },
-  { word: "こんにちは", x: "72%", y: "12%", delay: 1.5, size: "text-xl" },
-  { word: "Hola", x: "88%", y: "45%", delay: 0.8, size: "text-3xl" },
-  { word: "Namaste", x: "5%", y: "65%", delay: 2.2, size: "text-xl" },
-  { word: "Ciao", x: "80%", y: "72%", delay: 0.4, size: "text-2xl" },
-  { word: "Merhaba", x: "15%", y: "85%", delay: 1.8, size: "text-lg" },
-  { word: "你好", x: "55%", y: "80%", delay: 1.1, size: "text-3xl" },
-  { word: "Salut", x: "42%", y: "10%", delay: 2.5, size: "text-xl" },
-  { word: "Shalom", x: "65%", y: "60%", delay: 0.2, size: "text-lg" },
-  { word: "Olá", x: "30%", y: "92%", delay: 1.6, size: "text-2xl" },
-];
-
-const trustBadges = [
-  { icon: ShieldCheck, label: "Verified Teachers" },
-  { icon: Video, label: "Custom Video Platform" },
-  { icon: Star, label: "Rated 4.9 / 5" },
-];
+import { motion, useScroll, useTransform } from "framer-motion";
+import { ChevronDown, Star, ShieldCheck, Video, CreditCard } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Avatar } from "@/components/ui/Avatar";
 
 export default function Hero() {
-  return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-cream pt-[74px]">
-      {/* Background grid */}
-      <div
-        className="absolute inset-0 opacity-40"
-        style={{
-          backgroundImage: "radial-gradient(circle, #16223f0f 1px, transparent 1px)",
-          backgroundSize: "28px 28px",
-        }}
-      />
+  const { scrollY } = useScroll();
+  const y1 = useTransform(scrollY, [0, 1000], [0, -150]);
+  const y2 = useTransform(scrollY, [0, 1000], [0, -250]);
 
-      {/* Floating language words */}
-      <div className="floating-layer" aria-hidden="true">
-        {floatingWords.map((item, i) => (
-          <motion.span
-            key={i}
-            className={`floating-word font-script ${item.size}`}
-            style={{ left: item.x, top: item.y }}
-            animate={{
-              y: [0, -20, 0],
-              rotate: [-2, 2, -2],
-              opacity: [0.06, 0.1, 0.06],
-            }}
-            transition={{
-              duration: 6 + i * 0.4,
-              delay: item.delay,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          >
-            {item.word}
-          </motion.span>
-        ))}
+  const fadeUpVariant = {
+    hidden: { opacity: 0, y: 24 },
+    visible: (i: number) => ({
+      opacity: 1,
+      y: 0,
+      transition: {
+        delay: i * 0.1,
+        duration: 0.6,
+      },
+    }),
+  };
+
+  return (
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20 bg-bg text-text">
+      {/* Aurora Mesh Gradient Background */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-gold/10 blur-[100px] animate-pulse-gold mix-blend-multiply dark:mix-blend-screen" />
+        <div className="absolute top-[20%] right-[-10%] w-[40%] h-[40%] rounded-full bg-accent/10 blur-[120px] mix-blend-multiply dark:mix-blend-screen" />
+        <div className="absolute bottom-[-20%] left-[20%] w-[60%] h-[60%] rounded-full bg-navy/5 dark:bg-navy/30 blur-[150px] mix-blend-multiply dark:mix-blend-screen" />
       </div>
 
-      {/* Gradient orbs */}
-      <div className="absolute top-20 left-1/4 w-96 h-96 bg-gold/5 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-20 right-1/4 w-96 h-96 bg-navy/5 rounded-full blur-3xl pointer-events-none" />
+      {/* Grain / Noise Texture (via CSS radial gradient fallback if image not present, keeping it simple here) */}
+      <div className="absolute inset-0 z-0 opacity-20 mix-blend-overlay pointer-events-none bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-surface to-transparent" />
 
-      {/* Content */}
-      <div className="relative z-10 max-w-[900px] mx-auto px-6 text-center">
-        {/* Eyebrow */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="inline-flex items-center gap-2 mb-6"
-        >
-          <span className="eyebrow-line" />
-          <span className="font-script text-gold text-xl">
-            Learn any language, with real experts
-          </span>
-          <span className="eyebrow-line" />
-        </motion.div>
+      {/* Floating Script Words (Parallax) */}
+      <motion.div style={{ y: y2 }} className="absolute inset-0 z-0 pointer-events-none select-none opacity-20">
+        <span className="absolute top-[20%] left-[15%] font-script text-4xl text-gold animate-float-drift">Bonjour</span>
+        <span className="absolute top-[30%] right-[20%] font-script text-5xl text-accent animate-float-drift" style={{ animationDelay: "1s" }}>你好</span>
+        <span className="absolute bottom-[25%] left-[25%] font-script text-4xl text-text-muted animate-float-drift" style={{ animationDelay: "2s" }}>Hola</span>
+        <span className="absolute bottom-[40%] right-[15%] font-script text-5xl text-navy dark:text-gold-soft animate-float-drift" style={{ animationDelay: "1.5s" }}>Namaste</span>
+      </motion.div>
 
-        {/* Headline */}
-        <motion.h1
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.1 }}
-          className="font-display text-navy leading-[1.05] tracking-tight mb-6"
-          style={{ fontSize: "clamp(42px, 6vw, 82px)", fontWeight: 700 }}
-        >
-          Find Your Perfect{" "}
-          <span className="text-gradient-gold italic">Language Teacher</span>
-          <br />
-          in Minutes
-        </motion.h1>
-
-        {/* Sub */}
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="text-navy/60 text-lg md:text-xl leading-relaxed max-w-2xl mx-auto mb-10"
-        >
-          Connect with verified language professionals for live 1-on-1 classes
-          via our custom video platform — no third-party tools, full control.
-        </motion.p>
-
-        {/* CTAs */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12"
-        >
-          <Link
-            href="/register/student"
-            id="hero-student-cta"
-            className="btn-primary px-8 py-4 text-[15px] font-semibold flex items-center gap-2 group"
+      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 w-full flex flex-col lg:flex-row items-center gap-16">
+        
+        {/* Left / Center Content */}
+        <div className="flex-1 text-center lg:text-left pt-16 lg:pt-0">
+          <motion.div custom={0} initial="hidden" animate="visible" variants={fadeUpVariant}>
+            <span className="font-script text-2xl text-gold mb-4 inline-block tracking-wider">
+              Scholar, reimagined.
+            </span>
+          </motion.div>
+          
+          <motion.h1 
+            custom={1} 
+            initial="hidden" 
+            animate="visible" 
+            variants={fadeUpVariant}
+            className="font-display text-[clamp(2.75rem,6vw,5rem)] font-semibold leading-[1.05] tracking-tight mb-6 text-balance"
           >
-            Find a Teacher
-            <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
-          </Link>
-          <Link
-            href="/register/teacher"
-            id="hero-teacher-cta"
-            className="btn-outline px-8 py-4 text-[15px] font-semibold"
+            Find your perfect language teacher — <span className="bg-gradient-to-r from-gold to-accent bg-clip-text text-transparent">and actually book them in minutes.</span>
+          </motion.h1>
+          
+          <motion.p 
+            custom={2} 
+            initial="hidden" 
+            animate="visible" 
+            variants={fadeUpVariant}
+            className="text-lg md:text-xl text-text-muted mb-10 text-balance max-w-2xl mx-auto lg:mx-0"
           >
-            Teach on Language Metrics
-          </Link>
-        </motion.div>
+            Connect with verified language professionals for 1-on-1 live classes. Pay with our secure coin wallet and learn without borders.
+          </motion.p>
+          
+          <motion.div 
+            custom={3} 
+            initial="hidden" 
+            animate="visible" 
+            variants={fadeUpVariant}
+            className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 mb-16"
+          >
+            <Button asChild variant="gold" size="lg" className="w-full sm:w-auto text-lg shadow-glow-gold">
+              <Link href="/register/student">Find a Teacher</Link>
+            </Button>
+            <Button asChild variant="outline" size="lg" className="w-full sm:w-auto text-lg bg-surface/50 backdrop-blur-md">
+              <Link href="/register/teacher">Teach on Language Metrics</Link>
+            </Button>
+          </motion.div>
 
-        {/* Trust badges */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.5 }}
-          className="flex flex-wrap items-center justify-center gap-6"
+          {/* Trust Row */}
+          <motion.div 
+            custom={4} 
+            initial="hidden" 
+            animate="visible" 
+            variants={fadeUpVariant}
+            className="flex flex-nowrap items-center justify-center lg:justify-start gap-x-6 gap-y-3 text-sm font-medium text-text-subtle"
+          >
+            <div className="flex items-center gap-2 whitespace-nowrap"><ShieldCheck className="w-4 h-4 text-success shrink-0" /> Verified Teachers</div>
+            <div className="h-4 w-px bg-border hidden sm:block" />
+            <div className="flex items-center gap-2 whitespace-nowrap"><Video className="w-4 h-4 text-accent shrink-0" /> Custom Video</div>
+            <div className="h-4 w-px bg-border hidden sm:block" />
+            <div className="flex items-center gap-2 whitespace-nowrap"><CreditCard className="w-4 h-4 text-gold shrink-0" /> Secure Payments</div>
+            <div className="h-4 w-px bg-border hidden sm:block" />
+            <div className="flex items-center gap-2 whitespace-nowrap"><Star className="w-4 h-4 text-gold fill-gold shrink-0" /> Rated 4.9/5</div>
+          </motion.div>
+        </div>
+
+        {/* Right Content - Floating Glass "Proof" Card */}
+        <motion.div 
+          style={{ y: y1 }}
+          className="hidden lg:block relative flex-1"
         >
-          {trustBadges.map((badge, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <badge.icon className="w-4 h-4 text-gold" />
-              <span className="text-[13px] font-medium text-navy/60">
-                {badge.label}
-              </span>
+          <div className="absolute inset-0 bg-gradient-to-tr from-gold/20 to-transparent rounded-[2rem] blur-2xl transform rotate-3" />
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9, rotate: -5 }} 
+            animate={{ opacity: 1, scale: 1, rotate: 0 }} 
+            transition={{ duration: 0.8, delay: 0.5, ease: [0.2, 0.8, 0.2, 1] }}
+            className="relative bg-surface/60 backdrop-blur-xl border border-border-strong rounded-[2rem] p-6 shadow-2xl max-w-sm ml-auto"
+          >
+            <div className="flex items-center gap-4 mb-6">
+              <Avatar src="https://i.pravatar.cc/150?u=a042581f4e29026704d" size="lg" online={true} />
+              <div>
+                <div className="font-semibold text-lg">Amélie Dupont</div>
+                <div className="flex items-center gap-1 text-sm text-text-muted">
+                  <span title="France">🇫🇷</span> French · Native
+                </div>
+              </div>
             </div>
-          ))}
+            
+            <div className="bg-surface-inset rounded-xl p-4 mb-4 border border-border">
+              <div className="text-sm font-medium mb-1">Upcoming Demo Class</div>
+              <div className="text-2xl font-display font-semibold mb-2">Starts in <span className="text-accent animate-pulse">10 min</span></div>
+              <div className="flex justify-between items-center text-sm text-text-muted">
+                <span>Today, 14:00 (Local)</span>
+                <span className="font-semibold text-text flex items-center gap-1">
+                  <span className="text-gold">🪙</span> 49
+                </span>
+              </div>
+            </div>
+            
+            <Button variant="primary" className="w-full flex gap-2 items-center justify-center">
+              <Video className="w-4 h-4" /> Join Live Classroom
+            </Button>
+          </motion.div>
         </motion.div>
+
       </div>
 
       {/* Scroll indicator */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+      <motion.div 
+        initial={{ opacity: 0 }} 
+        animate={{ opacity: 1 }} 
+        transition={{ delay: 1.5, duration: 1 }}
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center text-text-subtle animate-bounce"
       >
-        <span className="text-[12px] font-medium text-navy/40 tracking-widest uppercase">
-          Scroll
-        </span>
-        <motion.div
-          animate={{ y: [0, 6, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
-          className="w-px h-8 bg-gradient-to-b from-gold/50 to-transparent"
-        />
+        <span className="text-xs font-medium tracking-widest uppercase mb-2">Scroll</span>
+        <ChevronDown className="w-5 h-5 text-gold" />
       </motion.div>
     </section>
   );

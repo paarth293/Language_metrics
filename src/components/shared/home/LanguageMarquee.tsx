@@ -1,84 +1,77 @@
 "use client";
 
+import React from "react";
+import Link from "next/link";
+import { motion } from "framer-motion";
+
 const languages = [
-  { name: "English", flag: "🇬🇧", learners: "12,400+" },
-  { name: "Hindi", flag: "🇮🇳", learners: "8,200+" },
-  { name: "Spanish", flag: "🇪🇸", learners: "6,800+" },
-  { name: "French", flag: "🇫🇷", learners: "5,100+" },
-  { name: "German", flag: "🇩🇪", learners: "3,900+" },
-  { name: "Japanese", flag: "🇯🇵", learners: "3,400+" },
-  { name: "Mandarin", flag: "🇨🇳", learners: "2,800+" },
-  { name: "Arabic", flag: "🇸🇦", learners: "2,100+" },
-  { name: "Korean", flag: "🇰🇷", learners: "1,900+" },
-  { name: "Italian", flag: "🇮🇹", learners: "1,700+" },
-  { name: "Portuguese", flag: "🇧🇷", learners: "1,500+" },
-  { name: "Russian", flag: "🇷🇺", learners: "1,200+" },
-  { name: "Turkish", flag: "🇹🇷", learners: "980+" },
-  { name: "Dutch", flag: "🇳🇱", learners: "760+" },
+  { name: "English", flag: "🇬🇧" },
+  { name: "Spanish", flag: "🇪🇸" },
+  { name: "French", flag: "🇫🇷" },
+  { name: "German", flag: "🇩🇪" },
+  { name: "Italian", flag: "🇮🇹" },
+  { name: "Portuguese", flag: "🇵🇹" },
+  { name: "Chinese", flag: "🇨🇳" },
+  { name: "Japanese", flag: "🇯🇵" },
+  { name: "Korean", flag: "🇰🇷" },
+  { name: "Hindi", flag: "🇮🇳" },
+  { name: "Arabic", flag: "🇸🇦" },
+  { name: "Russian", flag: "🇷🇺" },
 ];
 
-function LanguageChip({ name, flag, learners }: { name: string; flag: string; learners: string }) {
-  return (
-    <div className="flex items-center gap-3 bg-cream border border-navy/10 rounded-2xl px-5 py-3 mx-3 shrink-0 hover:border-gold/40 hover:shadow-navy-sm transition-all duration-300 group cursor-default">
-      <span className="text-2xl">{flag}</span>
-      <div>
-        <div className="text-[14px] font-semibold text-navy group-hover:text-navy">
-          {name}
-        </div>
-        <div className="text-[11px] text-navy/40 font-medium">
-          {learners} learners
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function LanguageMarquee() {
-  const doubled = [...languages, ...languages];
+  const repeatedLanguages = [...languages, ...languages, ...languages];
 
   return (
-    <section id="students" className="py-20 bg-cream overflow-hidden">
-      <div className="max-w-[1240px] mx-auto px-6 mb-10 text-center">
-        <div className="inline-flex items-center gap-2 mb-4">
-          <span className="eyebrow-line" />
-          <span className="font-script text-gold text-xl">42 languages available</span>
-          <span className="eyebrow-line" />
+    <section className="py-16 overflow-hidden bg-bg">
+      <motion.div
+        className="mx-auto max-w-7xl px-4 mb-10 text-center"
+        initial={{ opacity: 0, y: 16 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.5 }}
+      >
+        <h3 className="text-sm font-semibold text-text-muted uppercase tracking-widest">
+          Learn any of our 45+ supported languages
+        </h3>
+      </motion.div>
+
+      <div className="relative flex w-full overflow-hidden group">
+        <div className="absolute left-0 top-0 z-10 h-full w-32 bg-gradient-to-r from-bg to-transparent" />
+
+        <div className="flex animate-marquee group-hover:[animation-play-state:paused] whitespace-nowrap">
+          {repeatedLanguages.map((lang, idx) => (
+            <Link
+              key={`${lang.name}-${idx}`}
+              href={`/discover?lang=${lang.name.toLowerCase()}`}
+              className="flex items-center gap-2.5 px-6 py-3 mx-2 rounded-xl border border-border bg-surface text-text shadow-sm hover:border-gold hover:shadow-md hover:-translate-y-0.5 transition-all duration-300"
+            >
+              <span className="text-xl">{lang.flag}</span>
+              <span className="font-medium text-sm">{lang.name}</span>
+            </Link>
+          ))}
         </div>
-        <h2
-          className="font-display font-bold text-navy"
-          style={{ fontSize: "clamp(28px, 4vw, 48px)" }}
-        >
-          Learn Any Language You Love
-        </h2>
+
+        <div className="absolute right-0 top-0 z-10 h-full w-32 bg-gradient-to-l from-bg to-transparent" />
       </div>
 
-      {/* Marquee row 1 */}
-      <div className="relative mb-4">
-        <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-cream to-transparent z-10 pointer-events-none" />
-        <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-cream to-transparent z-10 pointer-events-none" />
-        <div className="overflow-hidden py-2">
-          <div className="marquee-track">
-            {doubled.map((lang, i) => (
-              <LanguageChip key={i} {...lang} />
-            ))}
-          </div>
-        </div>
-      </div>
+      <div className="relative flex w-full overflow-hidden mt-4 group">
+        <div className="absolute left-0 top-0 z-10 h-full w-32 bg-gradient-to-r from-bg to-transparent" />
 
-      {/* Marquee row 2 (reversed) */}
-      <div className="relative">
-        <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-cream to-transparent z-10 pointer-events-none" />
-        <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-cream to-transparent z-10 pointer-events-none" />
-        <div className="overflow-hidden py-2">
-          <div
-            className="flex w-max"
-            style={{ animation: "marqueeMove 50s linear infinite reverse" }}
-          >
-            {doubled.map((lang, i) => (
-              <LanguageChip key={i} {...lang} />
-            ))}
-          </div>
+        <div className="flex animate-marquee group-hover:[animation-play-state:paused] whitespace-nowrap" style={{ animationDirection: "reverse" }}>
+          {repeatedLanguages.slice().reverse().map((lang, idx) => (
+            <Link
+              key={`rev-${lang.name}-${idx}`}
+              href={`/discover?lang=${lang.name.toLowerCase()}`}
+              className="flex items-center gap-2.5 px-6 py-3 mx-2 rounded-xl border border-border bg-surface text-text shadow-sm hover:border-gold hover:shadow-md hover:-translate-y-0.5 transition-all duration-300"
+            >
+              <span className="text-xl">{lang.flag}</span>
+              <span className="font-medium text-sm">{lang.name}</span>
+            </Link>
+          ))}
         </div>
+
+        <div className="absolute right-0 top-0 z-10 h-full w-32 bg-gradient-to-l from-bg to-transparent" />
       </div>
     </section>
   );

@@ -1,194 +1,202 @@
 "use client";
 
-import { useRef } from "react";
-import { motion, useInView } from "framer-motion";
-import { Check, Zap } from "lucide-react";
-import Link from "next/link";
+import React, { useState } from "react";
+import { Check, HelpCircle, ChevronDown, Sparkles } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/Button";
 
-const plans = [
+const packages = [
   {
-    name: "Demo Class",
-    price: "₹49",
-    period: "one-time",
-    description: "Try before you commit. One 30-minute session with any teacher.",
-    features: [
-      "1 live session (30 min)",
-      "Any language, any teacher",
-      "Custom video platform",
-      "Non-refundable",
-    ],
-    cta: "Book a Demo",
-    href: "/register/student",
-    highlighted: false,
-    badge: null,
+    name: "Starter",
+    coins: 500,
+    price: "₹500",
+    bonus: 0,
+    popular: false,
+    description: "Perfect for trying your first class",
   },
   {
-    name: "Hourly Sessions",
-    price: "₹400–₹1,200",
-    period: "per hour",
-    description: "Flexible, pay-as-you-go sessions. Book when you need them.",
-    features: [
-      "1-on-1 live class",
-      "Session recording (optional)",
-      "In-app chat & notes",
-      "Cancel 24hr before",
-    ],
-    cta: "Start Learning",
-    href: "/register/student",
-    highlighted: true,
-    badge: "Most Popular",
+    name: "Learner",
+    coins: 1050,
+    price: "₹1,000",
+    bonus: 50,
+    popular: true,
+    description: "Best value for regular learners",
   },
   {
-    name: "Full Course",
-    price: "Custom",
-    period: "per course",
-    description: "Structured curriculum packages designed by your teacher.",
-    features: [
-      "Multi-week curriculum",
-      "Progress tracking",
-      "Homework & assignments",
-      "Certificate on completion",
-    ],
-    cta: "Explore Courses",
-    href: "/register/student",
-    highlighted: false,
-    badge: null,
+    name: "Fluency",
+    coins: 2750,
+    price: "₹2,500",
+    bonus: 250,
+    popular: false,
+    description: "For committed language enthusiasts",
   },
 ];
 
+const faqs = [
+  {
+    q: "How do coins work?",
+    a: "Coins are our universal platform currency. You buy coins with your local currency and spend them to book classes with any teacher. 1 coin = ₹1.",
+  },
+  {
+    q: "What happens if a teacher cancels?",
+    a: "If a teacher cancels, 100% of the coins are instantly refunded to your wallet. If you cancel more than 12 hours in advance, you also get a full refund.",
+  },
+  {
+    q: "Can I take a trial class?",
+    a: "Yes! Most teachers offer a 30-minute demo class for a deeply discounted rate (often around 49 coins) so you can see if they are a good fit.",
+  },
+];
+
+const containerVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.12 } },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 32 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5 },
+  },
+};
+
 export default function Pricing() {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   return (
-    <section id="pricing" className="py-24 bg-cream-2 overflow-hidden" ref={ref}>
-      <div className="max-w-[1240px] mx-auto px-6">
-        {/* Header */}
+    <section id="pricing" className="py-28 bg-bg">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
+          className="text-center mb-16"
           initial={{ opacity: 0, y: 24 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-14"
         >
-          <div className="inline-flex items-center gap-2 mb-4">
-            <span className="eyebrow-line" />
-            <span className="font-script text-gold text-xl">Transparent pricing</span>
-            <span className="eyebrow-line" />
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-success/30 bg-success/5 text-success text-xs font-semibold uppercase tracking-widest mb-6">
+            <Sparkles className="w-3.5 h-3.5" /> Transparent Pricing
           </div>
-          <h2
-            className="font-display font-bold text-navy mb-4"
-            style={{ fontSize: "clamp(30px, 4vw, 50px)" }}
-          >
-            Start for ₹49
+          <h2 className="font-display text-3xl md:text-5xl font-bold text-text mb-5 leading-tight">
+            Simple, upfront pricing
           </h2>
-          <p className="text-navy/60 text-lg max-w-xl mx-auto">
-            No subscriptions. Pay only for what you book. Teacher rates vary by
-            experience and language.
+          <p className="text-lg text-text-muted max-w-2xl mx-auto">
+            Top up your wallet with coins, then spend them on classes. No subscriptions, no hidden fees.
           </p>
         </motion.div>
 
-        {/* Plans */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {plans.map((plan, i) => (
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto mb-24"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-80px" }}
+          variants={containerVariants}
+        >
+          {packages.map((pkg, idx) => (
             <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 32 }}
-              animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.5, delay: i * 0.1 }}
-              className={`relative rounded-2xl p-7 flex flex-col ${
-                plan.highlighted
-                  ? "bg-navy text-cream border-2 border-gold/40 shadow-navy-lg"
-                  : "bg-cream border border-navy/10"
+              key={idx}
+              variants={cardVariants}
+              whileHover={{ y: -6, transition: { duration: 0.25 } }}
+              className={`relative flex flex-col rounded-2xl border bg-surface p-8 shadow-sm transition-all duration-300 hover:shadow-lg group ${
+                pkg.popular ? 'border-gold ring-2 ring-gold/20 shadow-glow-gold' : 'border-border hover:border-border-strong'
               }`}
             >
-              {/* Badge */}
-              {plan.badge && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className="bg-gold text-white text-[11px] font-bold px-3 py-1 rounded-full flex items-center gap-1">
-                    <Zap className="w-3 h-3" />
-                    {plan.badge}
-                  </span>
+              {pkg.popular && (
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gold text-white text-xs font-bold px-5 py-1.5 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1.5">
+                  <Sparkles className="w-3 h-3" /> Most Popular
                 </div>
               )}
 
               <div className="mb-6">
-                <h3
-                  className={`font-display font-semibold text-xl mb-1 ${
-                    plan.highlighted ? "text-cream" : "text-navy"
-                  }`}
-                >
-                  {plan.name}
-                </h3>
-                <div className="flex items-baseline gap-1.5 mb-2">
-                  <span
-                    className={`font-display font-bold ${
-                      plan.highlighted ? "text-cream" : "text-navy"
-                    }`}
-                    style={{ fontSize: "2rem" }}
-                  >
-                    {plan.price}
-                  </span>
-                  <span
-                    className={`text-[13px] ${
-                      plan.highlighted ? "text-cream/50" : "text-navy/50"
-                    }`}
-                  >
-                    {plan.period}
-                  </span>
+                <h3 className="text-lg font-semibold text-text mb-1">{pkg.name}</h3>
+                <p className="text-sm text-text-muted mb-4">{pkg.description}</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-display font-bold text-text group-hover:text-gold transition-colors duration-300">{pkg.price}</span>
                 </div>
-                <p
-                  className={`text-[14px] leading-relaxed ${
-                    plan.highlighted ? "text-cream/60" : "text-navy/60"
-                  }`}
-                >
-                  {plan.description}
-                </p>
               </div>
 
-              <ul className="space-y-3 mb-8 flex-1">
-                {plan.features.map((feature, j) => (
-                  <li key={j} className="flex items-center gap-2.5">
-                    <div
-                      className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
-                        plan.highlighted ? "bg-gold/20" : "bg-gold/15"
-                      }`}
-                    >
-                      <Check className="w-2.5 h-2.5 text-gold" />
-                    </div>
-                    <span
-                      className={`text-[14px] ${
-                        plan.highlighted ? "text-cream/80" : "text-navy/70"
-                      }`}
-                    >
-                      {feature}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <div className="flex-1 space-y-4 mb-8">
+                <div className="flex items-center gap-3">
+                  <div className="bg-gold/10 p-1.5 rounded-full"><Check className="w-4 h-4 text-gold" /></div>
+                  <span className="text-text font-medium flex items-center gap-1">
+                    <span className="text-gold">🪙</span> {pkg.coins} Coins
+                  </span>
+                </div>
+                {pkg.bonus > 0 && (
+                  <div className="flex items-center gap-3">
+                    <div className="bg-success/10 p-1.5 rounded-full"><Check className="w-4 h-4 text-success" /></div>
+                    <span className="text-success text-sm font-semibold">+{pkg.bonus} Bonus Coins</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-3">
+                  <div className="bg-surface-inset p-1.5 rounded-full"><Check className="w-4 h-4 text-text-muted" /></div>
+                  <span className="text-text-muted text-sm">Never expires</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="bg-surface-inset p-1.5 rounded-full"><Check className="w-4 h-4 text-text-muted" /></div>
+                  <span className="text-text-muted text-sm">Instant refund on cancellation</span>
+                </div>
+              </div>
 
-              <Link
-                href={plan.href}
-                className={`text-center py-3.5 px-6 rounded-full text-[14px] font-semibold transition-all duration-300 ${
-                  plan.highlighted
-                    ? "btn-gold"
-                    : "btn-outline"
-                }`}
-              >
-                {plan.cta}
-              </Link>
+              <Button variant={pkg.popular ? "gold" : "outline"} className="w-full">
+                Buy Coins
+              </Button>
             </motion.div>
           ))}
-        </div>
+        </motion.div>
 
-        {/* Note */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={inView ? { opacity: 1 } : {}}
-          transition={{ delay: 0.5 }}
-          className="text-center text-[13px] text-navy/40 mt-8"
+        {/* FAQ Section */}
+        <motion.div
+          className="max-w-3xl mx-auto"
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.6 }}
         >
-          Platform commission: 30% · Payments via Razorpay (UPI, Card, Net Banking)
-        </motion.p>
+          <div className="flex items-center gap-3 mb-8 justify-center">
+            <HelpCircle className="w-6 h-6 text-gold" />
+            <h3 className="text-2xl font-display font-bold text-text">Frequently Asked Questions</h3>
+          </div>
+
+          <div className="space-y-3">
+            {faqs.map((faq, idx) => (
+              <div
+                key={idx}
+                className={`border rounded-xl bg-surface overflow-hidden transition-all duration-300 ${
+                  openFaq === idx ? 'border-gold/40 shadow-sm' : 'border-border hover:border-gold/30'
+                }`}
+              >
+                <button
+                  className="w-full text-left px-6 py-5 flex items-center justify-between focus:outline-none group"
+                  onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
+                >
+                  <span className="font-semibold text-text group-hover:text-gold transition-colors duration-200">{faq.q}</span>
+                  <motion.div
+                    animate={{ rotate: openFaq === idx ? 180 : 0 }}
+                    transition={{ duration: 0.25 }}
+                  >
+                    <ChevronDown className="w-5 h-5 text-text-muted" />
+                  </motion.div>
+                </button>
+                <AnimatePresence>
+                  {openFaq === idx && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-6 pb-5 text-text-muted leading-relaxed border-t border-border pt-4">
+                        {faq.a}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ))}
+          </div>
+        </motion.div>
       </div>
     </section>
   );

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Fraunces, Manrope, Caveat } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-client";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -19,7 +20,7 @@ const manrope = Manrope({
 
 const caveat = Caveat({
   subsets: ["latin"],
-  variable: "--font-caveat",
+  variable: "--font-script",
   weight: ["400", "500", "600", "700"],
   display: "swap",
 });
@@ -38,6 +39,21 @@ export const metadata: Metadata = {
   },
 };
 
+const themeScript = `
+  (function() {
+    try {
+      var stored = localStorage.getItem('lm-theme');
+      var theme = stored || 'auto';
+      if (theme === 'auto') {
+        var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.setAttribute('data-theme', systemDark ? 'dark' : 'light');
+      } else {
+        document.documentElement.setAttribute('data-theme', theme);
+      }
+    } catch (e) {}
+  })();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -47,10 +63,16 @@ export default function RootLayout({
     <html
       lang="en"
       data-scroll-behavior="smooth"
+      suppressHydrationWarning
       className={`${fraunces.variable} ${manrope.variable} ${caveat.variable}`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="font-body antialiased">
-        <AuthProvider>{children}</AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

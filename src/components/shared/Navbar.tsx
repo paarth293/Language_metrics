@@ -1,187 +1,103 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Menu, X, Globe, LayoutDashboard, LogOut } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "@/hooks/use-auth";
-
-const navLinks = [
-  { label: "For Students", href: "#students" },
-  { label: "For Teachers", href: "#teachers" },
-  { label: "How It Works", href: "#how-it-works" },
-  { label: "Pricing", href: "#pricing" },
-];
-
-function dashboardPath(role: string) {
-  if (role === "TEACHER") return "/teacher/dashboard";
-  if (role === "ADMIN") return "/admin/dashboard";
-  return "/student/dashboard";
-}
+import { BookOpen, Sun, Moon, Monitor, Menu, X } from "lucide-react";
+import { useTheme } from "@/components/ThemeProvider";
+import { Button } from "@/components/ui/Button";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const { user, logout } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const toggleTheme = () => {
+    if (theme === "light") setTheme("dark");
+    else if (theme === "dark") setTheme("auto");
+    else setTheme("light");
+  };
+
   return (
-    <>
-      <motion.header
-        initial={{ y: -80, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6, ease: [0.2, 0.8, 0.2, 1] }}
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled
-            ? "backdrop-blur-md bg-cream/90 shadow-navy-sm"
-            : "bg-transparent"
-        }`}
-      >
-        <div className="max-w-[1240px] mx-auto px-6 h-[74px] flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl bg-navy flex items-center justify-center shadow-navy-sm transition-transform duration-300 group-hover:-rotate-6">
-              <Globe className="w-5 h-5 text-gold" />
-            </div>
-            <span className="font-display font-semibold text-navy text-[17px] tracking-tight">
-              Language Metrics
-            </span>
-          </Link>
+    <header
+      className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
+        scrolled ? "bg-surface/80 backdrop-blur-md shadow-sm border-b border-border" : "bg-transparent"
+      }`}
+    >
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <Link href="/" className="flex items-center gap-2 text-xl font-display font-bold text-text">
+          <BookOpen className="h-7 w-7 text-gold" />
+          <span>Language Metrics</span>
+        </Link>
 
-          {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                className="px-4 py-2 text-[14px] font-medium text-navy/70 hover:text-navy rounded-full hover:bg-navy/5 transition-colors duration-200"
-              >
-                {link.label}
-              </a>
-            ))}
-          </nav>
+        {/* Desktop Nav */}
+        <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-text-muted">
+          <Link href="#students" className="hover:text-text transition-colors">For Students</Link>
+          <Link href="#teachers" className="hover:text-text transition-colors">For Teachers</Link>
+          <Link href="#how-it-works" className="hover:text-text transition-colors">How It Works</Link>
+          <Link href="#pricing" className="hover:text-text transition-colors">Pricing</Link>
+        </nav>
 
-          {/* Desktop CTA */}
-          <div className="hidden md:flex items-center gap-3">
-            {user ? (
-              <>
-                <Link
-                  href={dashboardPath(user.role)}
-                  className="flex items-center gap-2 px-5 py-2 text-[14px] font-semibold text-navy hover:text-gold transition-colors duration-200"
-                >
-                  <LayoutDashboard className="w-4 h-4" />
-                  Dashboard
-                </Link>
-                <button
-                  onClick={logout}
-                  className="btn-primary flex items-center gap-2 px-5 py-2.5 text-[14px] font-semibold"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Sign out
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/login"
-                  className="px-5 py-2 text-[14px] font-semibold text-navy hover:text-gold transition-colors duration-200"
-                >
-                  Sign in
-                </Link>
-                <Link
-                  href="/register/student"
-                  className="btn-primary px-5 py-2.5 text-[14px] font-semibold"
-                >
-                  Get Started
-                </Link>
-              </>
-            )}
-          </div>
-
-          {/* Mobile menu button */}
-          <button
-            onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden p-2 rounded-lg hover:bg-navy/5 transition-colors"
-            aria-label="Toggle menu"
+        <div className="hidden md:flex items-center gap-4">
+          <button 
+            onClick={toggleTheme}
+            className="rounded-full p-2 text-text-muted hover:bg-surface-inset hover:text-text transition-colors"
           >
-            {mobileOpen ? (
-              <X className="w-5 h-5 text-navy" />
-            ) : (
-              <Menu className="w-5 h-5 text-navy" />
-            )}
+            {theme === "light" && <Sun className="h-5 w-5" />}
+            {theme === "dark" && <Moon className="h-5 w-5" />}
+            {theme === "auto" && <Monitor className="h-5 w-5" />}
           </button>
+          
+          <Link href="/login" className="text-sm font-medium text-text hover:text-gold transition-colors">
+            Sign in
+          </Link>
+          <Button asChild variant="gold">
+            <Link href="/register/student">Get Started</Link>
+          </Button>
         </div>
-      </motion.header>
 
-      {/* Mobile menu */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            className="fixed top-[74px] inset-x-0 z-40 backdrop-blur-md bg-cream/95 border-b border-navy/10 px-6 py-4 md:hidden"
-          >
-            <nav className="flex flex-col gap-1 mb-4">
-              {navLinks.map((link) => (
-                <a
-                  key={link.label}
-                  href={link.href}
-                  onClick={() => setMobileOpen(false)}
-                  className="px-4 py-3 text-[15px] font-medium text-navy/80 hover:text-navy hover:bg-navy/5 rounded-xl transition-colors"
-                >
-                  {link.label}
-                </a>
-              ))}
-            </nav>
-            <div className="flex flex-col gap-2">
-              {user ? (
-                <>
-                  <Link
-                    href={dashboardPath(user.role)}
-                    onClick={() => setMobileOpen(false)}
-                    className="btn-outline px-5 py-3 text-[14px] font-semibold text-center"
-                  >
-                    Dashboard
-                  </Link>
-                  <button
-                    onClick={() => {
-                      setMobileOpen(false);
-                      logout();
-                    }}
-                    className="btn-primary px-5 py-3 text-[14px] font-semibold text-center"
-                  >
-                    Sign out
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link
-                    href="/login"
-                    onClick={() => setMobileOpen(false)}
-                    className="btn-outline px-5 py-3 text-[14px] font-semibold text-center"
-                  >
-                    Sign in
-                  </Link>
-                  <Link
-                    href="/register/student"
-                    onClick={() => setMobileOpen(false)}
-                    className="btn-primary px-5 py-3 text-[14px] font-semibold text-center"
-                  >
-                    Get Started Free
-                  </Link>
-                </>
-              )}
+        {/* Mobile Toggle */}
+        <button 
+          className="md:hidden p-2 text-text" 
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        >
+          {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        </button>
+      </div>
+
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <div className="absolute inset-x-0 top-16 bg-surface shadow-lg border-b border-border md:hidden">
+          <div className="flex flex-col space-y-4 px-4 py-6">
+            <Link href="#students" className="text-text hover:text-gold" onClick={() => setMobileMenuOpen(false)}>For Students</Link>
+            <Link href="#teachers" className="text-text hover:text-gold" onClick={() => setMobileMenuOpen(false)}>For Teachers</Link>
+            <Link href="#how-it-works" className="text-text hover:text-gold" onClick={() => setMobileMenuOpen(false)}>How It Works</Link>
+            <Link href="#pricing" className="text-text hover:text-gold" onClick={() => setMobileMenuOpen(false)}>Pricing</Link>
+            
+            <div className="pt-4 border-t border-border flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <span className="text-text">Theme</span>
+                <button onClick={toggleTheme} className="p-2 bg-surface-inset rounded-full text-text">
+                  {theme === "light" && <Sun className="h-5 w-5" />}
+                  {theme === "dark" && <Moon className="h-5 w-5" />}
+                  {theme === "auto" && <Monitor className="h-5 w-5" />}
+                </button>
+              </div>
+              <Button asChild variant="outline" className="w-full justify-center">
+                <Link href="/login" onClick={() => setMobileMenuOpen(false)}>Sign in</Link>
+              </Button>
+              <Button asChild variant="gold" className="w-full justify-center">
+                <Link href="/register/student" onClick={() => setMobileMenuOpen(false)}>Get Started</Link>
+              </Button>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
+          </div>
+        </div>
+      )}
+    </header>
   );
 }

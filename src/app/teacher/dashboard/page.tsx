@@ -1,161 +1,149 @@
 "use client";
 
-import { useAuth } from "@/hooks/use-auth";
-import { teacherApi } from "@/lib/api";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { Globe, Clock, DollarSign, Coins, Users, CheckCircle, AlertCircle, CheckCircle2, XCircle, LogOut } from "lucide-react";
+import React from "react";
 import Link from "next/link";
-import StatusBadge from "@/components/ui/StatusBadge";
-import type { VerificationStatus } from "@/types";
+import { Video, Star, Users, ArrowUpRight, TrendingUp, Calendar } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Avatar } from "@/components/ui/Avatar";
+import { Badge } from "@/components/ui/Badge";
 
-interface TeacherProfile {
-  id: string;
-  experienceType: string;
-  status: VerificationStatus;
-  user: { name: string; email: string; createdAt: string };
-}
+const upcomingClasses = [
+  {
+    id: "bk_125",
+    student: "Alex Student",
+    avatar: "https://i.pravatar.cc/150?u=alex",
+    level: "Beginner (A1)",
+    date: "Today",
+    time: "14:00 - 14:30",
+    status: "starts_soon",
+  },
+  {
+    id: "bk_127",
+    student: "Sarah J.",
+    avatar: "https://i.pravatar.cc/150?u=sarah",
+    level: "Intermediate (B1)",
+    date: "Today",
+    time: "16:00 - 17:00",
+    status: "confirmed",
+  }
+];
 
 export default function TeacherDashboard() {
-  const { user, logout, isLoading } = useAuth();
-  const router = useRouter();
-  const [teacher, setTeacher] = useState<TeacherProfile | null>(null);
-  const [loadingProfile, setLoadingProfile] = useState(true);
-
-  useEffect(() => {
-    if (!isLoading && (!user || user.role !== "TEACHER")) router.push("/login");
-  }, [user, isLoading, router]);
-
-  useEffect(() => {
-    if (isLoading || !user || user.role !== "TEACHER") return;
-    teacherApi.getProfile()
-      .then((res) => setTeacher(res.data.teacher))
-      .catch(() => setTeacher(null))
-      .finally(() => setLoadingProfile(false));
-  }, [user, isLoading]);
-
-  if (isLoading || !user) {
-    return <div className="min-h-screen bg-cream flex items-center justify-center"><div className="w-8 h-8 border-2 border-navy/20 border-t-navy rounded-full animate-spin" /></div>;
-  }
-
-  const status: VerificationStatus = teacher?.status ?? "pending";
-
   return (
-    <div className="min-h-screen bg-cream-2">
-      <div className="fixed left-0 top-0 bottom-0 w-64 bg-navy flex-col hidden lg:flex z-30">
-        <div className="p-6 border-b border-cream/8">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-navy-2 border border-cream/10 flex items-center justify-center"><Globe className="w-4 h-4 text-gold" /></div>
-            <span className="font-display font-semibold text-cream text-[15px]">Language Metrics</span>
-          </Link>
-        </div>
-        <nav className="flex-1 p-4 space-y-1">
-          {[
-            { icon: CheckCircle, label: "Dashboard", active: true },
-            { icon: Clock, label: "Schedule", active: false },
-            { icon: Users, label: "My Students", active: false },
-            { icon: DollarSign, label: "Earnings", active: false },
-            { icon: Coins, label: "Coins", active: false },
-          ].map((item, i) => (
-            <button key={i} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-medium transition-colors ${item.active ? "bg-gold/15 text-gold" : "text-cream/50 hover:text-cream hover:bg-cream/5"}`}>
-              <item.icon className="w-4 h-4" />{item.label}
-            </button>
-          ))}
-        </nav>
-        <div className="p-4 border-t border-cream/8">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-9 h-9 rounded-xl bg-gold/20 flex items-center justify-center"><span className="text-gold font-bold text-[14px]">{user.name.charAt(0)}</span></div>
-            <div className="flex-1 min-w-0">
-              <div className="text-cream text-[13px] font-semibold truncate">{user.name}</div>
-              <div className="text-cream/40 text-[11px]">Teacher</div>
-            </div>
-          </div>
-          <button onClick={logout} className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-[13px] text-cream/50 hover:text-cream hover:bg-cream/5 transition-colors">
-            <LogOut className="w-4 h-4" />Sign out
-          </button>
-        </div>
+    <div className="flex flex-col h-full gap-8">
+      {/* Welcome Header */}
+      <div>
+        <h1 className="font-display text-3xl font-bold text-text mb-2">Welcome back, Elena!</h1>
+        <p className="text-text-muted">Here is what is happening with your teaching business today.</p>
       </div>
 
-      <div className="lg:ml-64 p-6 md:p-8">
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="font-display font-bold text-navy text-3xl mb-1">Teacher Dashboard</h1>
-            <p className="text-navy/60">Hello, {user.name.split(" ")[0]}! Here&apos;s your overview.</p>
-          </div>
-          {!loadingProfile && <StatusBadge status={status} className="mt-1" />}
-        </motion.div>
-
-        {!loadingProfile && status === "pending" && (
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-            className="bg-gold/10 border border-gold/30 rounded-2xl p-5 mb-6 flex items-start gap-4">
-            <AlertCircle className="w-5 h-5 text-gold shrink-0 mt-0.5" />
-            <div>
-              <div className="font-semibold text-navy mb-1">Verification Pending</div>
-              <p className="text-[14px] text-navy/70">Your application is under review. Our admin team will verify your documents and schedule a language proficiency interview. You&apos;ll be notified within 2–3 business days.</p>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 text-text-muted mb-2 font-medium">
+              <TrendingUp className="w-5 h-5 text-gold" /> This Month
             </div>
-          </motion.div>
-        )}
-
-        {!loadingProfile && status === "approved" && (
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-            className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 mb-6 flex items-start gap-4">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-            <div>
-              <div className="font-semibold text-navy mb-1">You&apos;re verified — welcome aboard!</div>
-              <p className="text-[14px] text-navy/70">Your documents have been approved. Set up your availability and rates to start receiving bookings from students.</p>
+            <div className="text-3xl font-bold text-text flex items-center gap-1">
+              <span className="text-gold">🪙</span> 12,450
             </div>
-          </motion.div>
-        )}
-
-        {!loadingProfile && status === "rejected" && (
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-            className="bg-red-50 border border-red-200 rounded-2xl p-5 mb-6 flex items-start gap-4">
-            <XCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-            <div>
-              <div className="font-semibold text-navy mb-1">Application not approved</div>
-              <p className="text-[14px] text-navy/70">Unfortunately your application didn&apos;t pass verification this time. No registration fee has been charged. Please contact support if you&apos;d like to re-apply with updated documents.</p>
+            <div className="text-sm text-success flex items-center gap-1 mt-2">
+              <ArrowUpRight className="w-4 h-4" /> +15% vs last month
             </div>
-          </motion.div>
-        )}
+          </CardContent>
+        </Card>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {[
-            { label: "Total Earnings", value: "₹0", icon: DollarSign },
-            { label: "Classes Taught", value: "0", icon: CheckCircle },
-            { label: "Coin Balance", value: "0", icon: Coins },
-            { label: "Active Students", value: "0", icon: Users },
-          ].map((stat, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: i * 0.08 }}
-              className="bg-cream border border-navy/8 rounded-2xl p-5">
-              <div className="w-10 h-10 rounded-xl bg-navy/5 flex items-center justify-center mb-3">
-                <stat.icon className="w-5 h-5 text-gold" />
-              </div>
-              <div className="font-display font-bold text-navy text-2xl mb-0.5">{stat.value}</div>
-              <div className="text-[12px] text-navy/50">{stat.label}</div>
-            </motion.div>
-          ))}
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 text-text-muted mb-2 font-medium">
+              <Video className="w-5 h-5 text-accent" /> Classes Taught
+            </div>
+            <div className="text-3xl font-bold text-text">42</div>
+            <div className="text-sm text-text-muted mt-2">12 hours total</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 text-text-muted mb-2 font-medium">
+              <Users className="w-5 h-5 text-success" /> Active Students
+            </div>
+            <div className="text-3xl font-bold text-text">18</div>
+            <div className="text-sm text-success flex items-center gap-1 mt-2">
+              <ArrowUpRight className="w-4 h-4" /> +3 new students
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 text-text-muted mb-2 font-medium">
+              <Star className="w-5 h-5 text-gold fill-gold" /> Average Rating
+            </div>
+            <div className="text-3xl font-bold text-text">4.95</div>
+            <div className="text-sm text-text-muted mt-2">Based on 142 reviews</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Upcoming Schedule */}
+      <div className="flex-1">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-text flex items-center gap-2">
+            <Calendar className="w-5 h-5" /> Today&apos;s Schedule
+          </h2>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/teacher/schedule">View Full Schedule</Link>
+          </Button>
         </div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="bg-navy rounded-2xl p-8">
-          <h2 className="font-display font-bold text-cream text-2xl mb-6">What happens next?</h2>
-          <div className="space-y-4">
-            {[
-              { step: "01", title: "Document Review", desc: "Admin reviews your education qualification and language proficiency certificate." },
-              { step: "02", title: "Language Interview", desc: "A scheduled call to verify your language proficiency level." },
-              { step: "03", title: "Approval & Activation", desc: "On approval, ₹399 fee is charged and your profile goes live." },
-              { step: "04", title: "Start Teaching", desc: "Students find you, book demo classes, and your teaching journey begins!" },
-            ].map((item, i) => (
-              <div key={i} className="flex items-start gap-4">
-                <span className="font-display font-bold text-gold text-2xl w-12 shrink-0">{item.step}</span>
-                <div>
-                  <div className="font-semibold text-cream mb-0.5">{item.title}</div>
-                  <div className="text-cream/50 text-[14px]">{item.desc}</div>
+        <div className="space-y-4">
+          {upcomingClasses.map((cls) => (
+            <Card key={cls.id} className={`overflow-hidden transition-all ${cls.status === 'starts_soon' ? 'border-accent shadow-md shadow-accent/10' : ''}`}>
+              <CardContent className="p-0 sm:flex items-center">
+                {/* Left info */}
+                <div className="p-6 flex-1 flex flex-col sm:flex-row gap-6 items-start sm:items-center">
+                  <Avatar src={cls.avatar} size="lg" online={cls.status === 'starts_soon'} />
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-bold text-lg text-text">{cls.student}</h3>
+                      <Badge variant="success" className="text-[10px] uppercase py-0">{cls.level}</Badge>
+                    </div>
+                    <div className="text-text-muted flex items-center gap-2">
+                      <span className="font-medium text-text">{cls.date}</span> • {cls.time} (Local)
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </motion.div>
+
+                {/* Right Actions */}
+                <div className={`p-6 sm:border-l border-border flex flex-col gap-3 min-w-[200px] ${
+                  cls.status === 'starts_soon' ? 'bg-accent/5' : 'bg-surface-inset/30'
+                }`}>
+                  {cls.status === 'starts_soon' ? (
+                    <>
+                      <div className="text-xs font-semibold text-accent uppercase tracking-wider text-center animate-pulse">
+                        Starts in 10 min
+                      </div>
+                      <Button asChild variant="primary" className="w-full bg-accent hover:bg-accent/90 shadow-glow-blue flex gap-2">
+                        <Link href={`/session/${cls.id}`}><Video className="w-4 h-4" /> Start Class</Link>
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button variant="primary" className="w-full" disabled>
+                        Start (Opens 10m before)
+                      </Button>
+                      <Button variant="outline" size="sm" className="w-full">
+                        View Profile & Notes
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     </div>
   );
