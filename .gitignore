@@ -1,8 +1,11 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# =============================================================================
+# Language Metrics — .gitignore
+# Industry-standard patterns for a Next.js + Prisma + PostgreSQL production repo
+# =============================================================================
 
-# dependencies
-/node_modules
-/.pnp
+# ── Dependencies ──────────────────────────────────────────────────────────────
+node_modules/
+.pnp
 .pnp.*
 .yarn/*
 !.yarn/patches
@@ -10,32 +13,86 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
+# ── Next.js build output ──────────────────────────────────────────────────────
+.next/
+out/
+build/
+dist/
 
-# next.js
-/.next/
-/out/
+# ── Prisma generated client (regenerated via `npx prisma generate`) ───────────
+prisma/generated/
 
-# production
-/build
+# ── Environment & secrets ──────────────────────────────────────────────────────
+# Never commit ANY .env file except the safe example template
+.env
+.env.*
+!.env.example
 
-# misc
+# ── OS generated files ─────────────────────────────────────────────────────────
 .DS_Store
-*.pem
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
 
-# debug
+# ── Editor & IDE ───────────────────────────────────────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
+*~
+
+# ── Testing & coverage ─────────────────────────────────────────────────────────
+/coverage
+.nyc_output
+test-results/
+playwright-report/
+playwright/.cache/
+
+# ── Logs ───────────────────────────────────────────────────────────────────────
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+lerna-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
-
-# vercel
-.vercel
-
-# typescript
+# ── TypeScript ─────────────────────────────────────────────────────────────────
 *.tsbuildinfo
 next-env.d.ts
+
+# ── Deployment ─────────────────────────────────────────────────────────────────
+.vercel
+.netlify
+
+# ── Certificates & keys ────────────────────────────────────────────────────────
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+
+# ── Internal documentation (not for contributors, lives in private wiki) ───────
+docs/internal/
+
+# ── AI agent instruction files (tooling-only, not for contributors) ────────────
+AGENTS.md
+CLAUDE.md
+
+# ── Misc ───────────────────────────────────────────────────────────────────────
+*.tgz
+*.tar.gz
+.cache/
+.parcel-cache/
+.turbo/
