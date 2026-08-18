@@ -3,7 +3,8 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { X, BookOpen } from "lucide-react";
+import { X } from "lucide-react";
+import { Logo } from "@/components/ui/Logo";
 import { cn } from "@/lib/cn";
 import { NavItem } from "./AppShell";
 
@@ -25,11 +26,8 @@ export function Sidebar({ navItems, isOpen, onClose }: SidebarProps) {
     >
       {/* Logo */}
       <div className="flex h-16 items-center justify-between px-6 border-b border-border">
-        <Link href="/" className="flex items-center gap-2.5 text-xl font-display font-semibold text-text group">
-          <div className="w-8 h-8 rounded-lg bg-gold/10 flex items-center justify-center group-hover:bg-gold/20 transition-colors">
-            <BookOpen className="h-4.5 w-4.5 text-gold" />
-          </div>
-          <span>LM</span>
+        <Link href="/" className="flex items-center" aria-label="Language Metrics — home">
+          <Logo variant="mark" size={40} />
         </Link>
         <button className="lg:hidden text-text-muted hover:text-text transition-colors" onClick={onClose}>
           <X className="h-5 w-5" />

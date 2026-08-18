@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { BookOpen, Sun, Moon, Monitor, Menu, X } from "lucide-react";
+import { Sun, Moon, Monitor, Menu, X } from "lucide-react";
+import { Logo } from "@/components/ui/Logo";
 import { useTheme } from "@/components/ThemeProvider";
 import { Button } from "@/components/ui/Button";
 
@@ -30,9 +31,8 @@ export default function Navbar() {
       }`}
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center gap-2 text-xl font-display font-bold text-text">
-          <BookOpen className="h-7 w-7 text-gold" />
-          <span>Language Metrics</span>
+        <Link href="/" className="flex items-center" aria-label="Language Metrics — home">
+          <Logo variant="full" size={44} />
         </Link>
 
         {/* Desktop Nav */}

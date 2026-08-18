@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ChevronDown, Star, ShieldCheck, Video, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -112,6 +113,7 @@ export default function Hero() {
           style={{ y: y1 }}
           className="hidden lg:block relative flex-1"
         >
+
           <div className="absolute inset-0 bg-gradient-to-tr from-gold/20 to-transparent rounded-[2rem] blur-2xl transform rotate-3" />
           <motion.div 
             initial={{ opacity: 0, scale: 0.9, rotate: -5 }} 

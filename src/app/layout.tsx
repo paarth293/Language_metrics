@@ -31,11 +31,23 @@ export const metadata: Metadata = {
     "Connect with verified language professionals for 1-on-1 live classes. Learn any language with expert teachers via our custom video platform.",
   keywords:
     "language learning, online language classes, language teacher, 1-on-1 tutoring, live language lessons",
+  icons: {
+    icon: "/brand/logo-full.png",
+    apple: "/brand/logo-full.png",
+  },
   openGraph: {
     title: "Language Metrics — Find Your Perfect Language Teacher",
     description:
       "Connect with verified language professionals for 1-on-1 live classes.",
     type: "website",
+    images: [
+      {
+        url: "/brand/logo-full.png",
+        width: 1254,
+        height: 1254,
+        alt: "Language Metrics",
+      },
+    ],
   },
 };
 
