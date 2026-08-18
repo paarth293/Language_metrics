@@ -7,6 +7,9 @@
   --color-gold-soft: var(--brand-gold-soft);
   --color-gold-pale: var(--brand-gold-pale);
   --color-navy: var(--brand-navy);
+  --color-navy-2: var(--brand-navy-2);
+  --color-cream: var(--brand-cream);
+  --color-cream-2: var(--brand-cream-2);
   --color-accent: var(--brand-accent-2);
   
   /* semantic */
@@ -60,10 +63,9 @@
   --text: #16223f;
   --text-muted: #5a6478;
   --text-subtle: #8a93a6;
-  --brand-gold: #c7982f;
-  --brand-gold-soft: #d8b45e;
-  --brand-gold-pale: #edd99a;
-  --brand-navy: #16223f;
+  --brand-gold: #c7982f; --brand-gold-soft: #d8b45e; --brand-gold-pale: #edd99a;
+  --brand-navy: #16223f; --brand-navy-2: #1e2f57;
+  --brand-cream: #f8f4ea; --brand-cream-2: #f2ecdd;
   --brand-accent-2: #3b6bdb;
   --success: #0f9d6b;
   --warning: #c7982f;
@@ -88,9 +90,9 @@
   --text: #f3efe4;
   --text-muted: #9aa6bd;
   --text-subtle: #6b7688;
-  --brand-gold: #e0b24a;
-  --brand-gold-soft: #f0cf7e;
-  --brand-gold-pale: #4a3d1a;
+  --brand-gold: #e0b24a; --brand-gold-soft: #f0cf7e; --brand-gold-pale: #4a3d1a;
+  --brand-navy: #16223f; --brand-navy-2: #1a2d55;
+  --brand-cream: #f8f4ea; --brand-cream-2: #f2ecdd;
   --brand-accent-2: #5a86f5;
   --success: #34d399;
   --warning: #e0b24a;

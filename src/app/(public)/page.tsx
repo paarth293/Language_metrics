@@ -5,6 +5,7 @@ import HowItWorks from "@/components/shared/home/HowItWorks";
 import Features from "@/components/shared/home/Features";
 import TeacherSpotlight from "@/components/shared/home/TeacherSpotlight";
 import Pricing from "@/components/shared/home/Pricing";
+import Mission from "@/components/shared/home/Mission";
 import CTASection from "@/components/shared/home/CTASection";
 
 export default function HomePage() {
@@ -17,6 +18,7 @@ export default function HomePage() {
       <Features />
       <TeacherSpotlight />
       <Pricing />
+      <Mission />
       <CTASection />
     </main>
   );

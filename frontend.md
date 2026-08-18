@@ -542,4 +542,100 @@ A scripted "golden path" that proves the whole product, runnable on seeded data:
 - [ ] Fonts via `next/font`; images via `next/image`; heavy modules code-split.
 - [ ] Booking, wallet, and live-call flows demoable end-to-end on seed data.
 - [ ] Theme choice + auth state persist correctly; no flash of wrong theme.
+- [ ] Owner-supplied **logo** replaces the placeholder icon in every chrome surface (nav, footer, sidebar, auth, favicon, OG), rendering correctly in **light and dark**.
+- [ ] Owner-supplied **hero/illustration imagery** integrated via `next/image` (optimized, responsive, theme-aware) in the approved placements.
+
+---
+
+## 22. Brand assets & owner-supplied imagery — integration plan
+
+The owner supplied three raw assets (currently sitting in the repo **parent** folder `E:/language_metrics/`, outside the Next.js app). This section is the complete plan for bringing them into the frontend. **No code or asset move has been made yet — this section is the spec only.**
+
+### 22.1 Asset inventory (as received)
+
+| File | Type / size | What it is | Primary role |
+|---|---|---|---|
+| `image2.png` | PNG · 1254×1254 · ~1.2 MB | **Official logo.** Navy + gold emblem: globe cradled by an open book with speech bubbles (`你好`, `Bonjour`, `नमस्ते`, `Hola`, `こんにちは`) and a feather quill, over the wordmark **LANGUAGE METRICS** and tagline **"WHERE LANGUAGES CONNECT PEOPLE."** | The brand logo — replaces the placeholder `BookOpen` lucide icon everywhere. |
+| `image1.png` | PNG · 1264×848 (landscape) | **Hero/mission banner.** Watercolour world-map background, central speech bubble with open book + laurel, floating language words (Bonjour, Namaste, Hola, Ciao, こんにちは) and cultural tile motifs, headline "Global Language Learning — Connecting the World Through Words." | Wide decorative art: auth branded panel, marketing mission/CTA band. |
+| `image1.jpg` | JPG · 1024×1024 (square) | **Globe illustration.** A globe woven from navy + gold ribbons, ringed by script speech bubbles, with an open book below releasing birds. Cleaner, more iconographic than `image1.png`. | Square hero-side illustration / "connecting the world" section art. |
+
+> **Note on backgrounds:** both the logo and the two illustrations are composed on a **near-white ivory** field. They sit naturally on the light theme (`--bg #f8f4ea`) but will look like a bright card floating on the dark theme (`--bg #0d1424`). Dark-mode handling is specified per placement in §22.4–22.5.
+
+### 22.2 Where assets will live (repo)
+
+Move/import the raws into the app's `public/` under a dedicated brand folder (keeps `next/image` local + zero remote-pattern config):
+
 ```
+public/brand/
+├── logo-full.png          # from image2.png — emblem + wordmark + tagline
+├── logo-full-dark.png     # inverted/ivory wordmark variant for dark theme (see §22.4)
+├── logo-mark.svg|png      # emblem only (globe+book+bubbles), square — for favicon/sidebar/compact
+├── logo-wordmark.svg      # optional: re-drawn "LANGUAGE METRICS" as themeable SVG text
+├── og-cover.png           # 1200×630 social card built from logo + image1.png
+├── hero-globe.jpg         # from image1.jpg (square globe illustration)
+└── mission-banner.png     # from image1.png (landscape banner)
+public/favicon.ico         # regenerated from logo-mark (multi-size)
+public/apple-touch-icon.png
+```
+
+**Processing tasks (asset prep, before wiring):**
+1. **Trim & pad** the logo to remove excess ivory whitespace so it optically aligns in a 32–40px nav slot.
+2. **Extract the emblem** (globe+book, no text) as `logo-mark` for square/compact contexts (favicon, sidebar chip, mobile). The compact "L + globe + book" monogram seen at the top of `image1.png` is a good reference for a simplified mark.
+3. **Dark variant** `logo-full-dark.png`: the navy wordmark is invisible on dark bg — produce a version with an ivory/`--cream` wordmark + tagline (emblem gold/navy stays legible). Ideally re-draw the wordmark as **SVG text in `currentColor`** so it themes for free; PNG variant is the pragmatic fallback.
+4. **Compress**: run the PNGs through lossless optimization; the 1.2 MB logo must ship as a small trimmed asset. Generate an OG card at exactly 1200×630.
+
+### 22.3 Rendering approach (global rules)
+
+- Render all brand art through **`next/image`** (local import → automatic AVIF/WebP, responsive `sizes`, blur placeholder). Local `public/` assets need **no** `remotePatterns` change in `next.config.ts`.
+- The **above-the-fold logo** (nav) and any **LCP hero image** get `priority`; everything else stays lazy.
+- Always provide meaningful `alt` (logo: `"Language Metrics"`; decorative illustrations: `alt=""` + `aria-hidden` when purely atmospheric — see §15).
+- Give each `next/image` explicit `width`/`height` (or `fill` + sized parent) to preserve **CLS < 0.05**.
+
+### 22.4 Logo integration — a shared `<Logo>` component
+
+Create `src/components/ui/Logo.tsx` (a small `"use client"`-free component where possible) with props `variant="full" | "mark"` and `size`. It internally swaps light/dark sources. Then replace the four hand-rolled `BookOpen`+text lockups:
+
+| File (current) | Line ref | Change |
+|---|---|---|
+| `src/components/shared/Navbar.tsx` | `Navbar.tsx:33-36` | Replace `<BookOpen/> + <span>Language Metrics</span>` with `<Logo variant="full" />` (mark-only under `sm`). Over the transparent hero the logo must stay legible → use light-on-transparent handling. |
+| `src/components/shared/Footer.tsx` | `Footer.tsx:13-16` | Replace lockup with `<Logo variant="full" />`; footer sits on `--surface`, so standard variant + dark swap applies. |
+| `src/components/layout/AuthLayout.tsx` | `AuthLayout.tsx:23-26` | Replace `<BookOpen/> + "LM"` with `<Logo variant="mark" />` (or full — space allows). |
+| `src/components/layout/Sidebar.tsx` | `Sidebar.tsx:28-33` | Replace the gold chip + `BookOpen` + "LM" with `<Logo variant="mark" />`; when the sidebar is expanded show `variant="full"`, collapsed show `mark`. |
+
+**Dark-mode logo strategy** (pick one, in order of preference):
+1. **Themed SVG** — re-draw emblem + wordmark as SVG using `fill="currentColor"`/token colors so it flips automatically. Best quality + smallest bytes. *(preferred long-term)*
+2. **`<picture>` / source swap** — `logo-full.png` for light, `logo-full-dark.png` for dark, selected by the existing `data-theme` attribute (CSS `display` toggle) or by reading `useTheme()`. *(pragmatic, ships now)*
+3. **Neutral brand chip** — set the logo inside a small rounded ivory container so the navy wordmark always has an ivory field. Simplest, but adds a visible "sticker" look — use only if variants aren't produced.
+
+### 22.5 Illustration/imagery placements
+
+1. **Hero (`src/components/shared/home/Hero.tsx`)** — the right column currently renders a synthetic glass "proof" card (`Hero.tsx:110-147`). Plan: introduce **`hero-globe.jpg`** (square, from `image1.jpg`) as a layered illustration *behind/beside* the proof card — subtle parallax (`useTransform` already wired at `Hero.tsx:11-13`), soft mask/feather edges to blend into `--bg`, and reduced opacity in dark mode (`dark:opacity-80` + `mix-blend`). Keep the glass card in front so the product UI still leads. Give it `priority` only if it becomes the LCP element; otherwise the headline stays LCP.
+2. **Auth branded panel (`AuthLayout.tsx:45-64`)** — the right navy panel currently uses a remote `transparenttextures` pattern + CSS orbs. Plan: replace/augment with **`mission-banner.png`** (`image1.png`) as a `next/image` `fill` background at low opacity over the navy gradient, so auth screens carry real brand art. Removes the external `transparenttextures.com` dependency (can then drop that host from `next.config.ts:10`).
+3. **CTA band (`src/components/shared/home/CTASection.tsx`)** — optional full-bleed **`mission-banner.png`** behind the navy/gradient CTA (`CTASection.tsx:9-13`) with a dark scrim for text contrast; brighter in dark mode per §7.3.
+4. **About/Mission section (new, optional)** — if an "About/mission" block is added to the landing page, **`hero-globe.jpg`** pairs well beside the "Connecting the world through words" copy, echoing the owner's banner language.
+5. **OG/meta** — add `og-cover.png` to `layout.tsx` metadata (`layout.tsx:34-39` `openGraph.images`) and set `icons` (favicon/apple-touch) from the new mark. Regenerate `src/app/favicon.ico` from `logo-mark`.
+
+### 22.6 Config, metadata & cleanup touchpoints
+
+- `next.config.ts` — local assets need no change; **may remove** `www.transparenttextures.com` from `images.remotePatterns` (`next.config.ts:10`) once the auth panel no longer uses it.
+- `src/app/layout.tsx` — add `metadata.openGraph.images` + `metadata.icons` pointing at the new brand assets; keep `next/font` setup unchanged.
+- Replace default `src/app/favicon.ico` with the mark-derived icon; add `apple-touch-icon.png`.
+- Search-and-verify there are no other `BookOpen`-as-logo usages before finalizing (`import { BookOpen }` appears in Navbar/Footer/AuthLayout/Sidebar today).
+
+### 22.7 Accessibility & performance for these assets
+
+- **Alt text:** logo → `"Language Metrics"`; decorative globe/banner → empty `alt` + `aria-hidden` so screen readers skip atmosphere (per §15).
+- **Contrast:** any text over `mission-banner.png` / `hero-globe.jpg` must keep WCAG AA — apply a navy/ivory scrim, never rely on the raw image.
+- **Budget:** trimmed + compressed brand assets only; the raw 1.2 MB logo must not ship as-is. `next/image` handles format/size; set correct `sizes` so mobile pulls small variants. Preserve **LCP < 2.0s / CLS < 0.05** (§16).
+- **Reduced motion:** hero illustration parallax honors `prefers-reduced-motion` (fades only), consistent with §14.
+
+### 22.8 Build order for the brand pass
+
+1. Prep + place assets in `public/brand/` (trim, extract mark, dark variant, OG, favicon).
+2. Build `<Logo>` primitive with light/dark handling.
+3. Swap the four chrome lockups (Navbar → Footer → AuthLayout → Sidebar).
+4. Wire metadata/favicon/OG in `layout.tsx`.
+5. Integrate illustrations (Auth panel → Hero → CTA), each with theme + a11y handling.
+6. Remove now-unused `BookOpen` logo imports + the `transparenttextures` remote host.
+
+> Reminder: per the owner's instruction, **do not commit any of these changes to GitHub yet.** This document is the agreed plan; implementation and commits follow separately.

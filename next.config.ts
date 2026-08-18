@@ -7,7 +7,6 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "i.pravatar.cc" },
       { protocol: "https", hostname: "avatars.githubusercontent.com" },
-      { protocol: "https", hostname: "www.transparenttextures.com" },
     ],
     formats: ["image/avif", "image/webp"],
   },

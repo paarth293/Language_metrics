@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { BookOpen } from "lucide-react";
+import { Logo } from "@/components/ui/Logo";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 
@@ -10,9 +10,8 @@ export default function Footer() {
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-12 md:grid-cols-4 lg:gap-8">
           <div className="space-y-4">
-            <Link href="/" className="flex items-center gap-2 text-xl font-display font-bold">
-              <BookOpen className="h-6 w-6 text-gold" />
-              <span>Language Metrics</span>
+            <Link href="/" className="inline-flex" aria-label="Language Metrics — home">
+              <Logo variant="full" size={40} />
             </Link>
             <p className="text-sm text-text-muted text-balance">
               Find your perfect language teacher and actually book them in minutes. Learn naturally with 1-on-1 live video classes.
