@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { AuthService } from "@/services/auth-service";
-import { registerStudentSchema } from "@/validators/auth";
+import { AuthService } from "@/features/auth/services/auth-service";
+import { registerStudentSchema } from "@/features/auth/validators/auth";
 
 /**
  * POST /api/auth/register/student

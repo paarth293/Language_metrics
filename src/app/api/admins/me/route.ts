@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
-import { AdminService } from "@/services/admin-service";
+import { AdminService } from "@/features/admin/services/admin-service";
 
 /**
  * GET /api/admins/me

@@ -1,12 +1,12 @@
-import Hero from "@/components/shared/home/Hero";
-import StatsBar from "@/components/shared/home/StatsBar";
-import LanguageMarquee from "@/components/shared/home/LanguageMarquee";
-import HowItWorks from "@/components/shared/home/HowItWorks";
-import Features from "@/components/shared/home/Features";
-import TeacherSpotlight from "@/components/shared/home/TeacherSpotlight";
-import Pricing from "@/components/shared/home/Pricing";
-import Mission from "@/components/shared/home/Mission";
-import CTASection from "@/components/shared/home/CTASection";
+import Hero from "@/features/home/components/Hero";
+import StatsBar from "@/features/home/components/StatsBar";
+import LanguageMarquee from "@/features/home/components/LanguageMarquee";
+import HowItWorks from "@/features/home/components/HowItWorks";
+import Features from "@/features/home/components/Features";
+import TeacherSpotlight from "@/features/home/components/TeacherSpotlight";
+import Pricing from "@/features/home/components/Pricing";
+import Mission from "@/features/home/components/Mission";
+import CTASection from "@/features/home/components/CTASection";
 
 export default function HomePage() {
   return (

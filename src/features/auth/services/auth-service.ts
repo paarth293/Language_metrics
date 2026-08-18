@@ -1,8 +1,13 @@
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { signToken } from "@/lib/auth";
-import type { LoginInput, RegisterStudentInput, RegisterTeacherInput } from "@/validators/auth";
+import { loginSchema, registerStudentSchema, registerTeacherSchema } from "@/features/auth/validators/auth";
 import type { User } from "@/types";
+import type { z } from "zod";
+
+type LoginInput = z.infer<typeof loginSchema>;
+type RegisterStudentInput = z.infer<typeof registerStudentSchema>;
+type RegisterTeacherInput = z.infer<typeof registerTeacherSchema>;
 
 export class AuthService {
   static async login(data: LoginInput): Promise<{ token: string; user: User } | null> {
