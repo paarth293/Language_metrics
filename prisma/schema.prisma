@@ -8,52 +8,453 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model User {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  passwordHash String
-  role         Role
-  createdAt    DateTime @default(now())
+// ==========================================
+// 1. CORE USER & PROFILES
+// ==========================================
 
-  student Student?
-  teacher Teacher?
-  admin   Admin?
-}
-
-enum Role {
+enum UserRole {
   STUDENT
   TEACHER
   ADMIN
 }
 
-model Student {
-  id               String @id @default(cuid())
-  userId           String @unique
+/// RLS: Public read, self write. Admins full access.
+/// Read/Write: Auth webhook writes new users. All apps read.
+model User {
+  id        String   @id @db.Uuid // Matches Supabase auth.users.id
+  role      UserRole
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  studentProfile StudentProfile?
+  teacherProfile TeacherProfile?
+
+  // Relations
+  sentMessages     ChatMessage[]     @relation("SentMessages")
+  receivedMessages ChatMessage[]     @relation("ReceivedMessages")
+  coinTransactions CoinTransaction[]
+  payments         Payment[]
+  notifications    Notification[]
+  adminLogs        AdminAuditLog[]
+}
+
+enum ProficiencyLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+/// RLS: Public read. Self write.
+/// Read/Write: Student app reads/writes. Teacher/Admin apps read.
+model StudentProfile {
+  userId String @id @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name             String
   languageToLearn  String
-  proficiencyLevel String @default("beginner")
+  proficiencyLevel ProficiencyLevel
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Relations
+  bookings Booking[]
+  reviews  Review[]
 }
 
-model Teacher {
-  id             String        @id @default(cuid())
-  userId         String        @unique
-  experienceType String
-  status         TeacherStatus @default(pending)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+enum TeacherExperienceLevel {
+  FRESHER
+  EXPERIENCED
 }
 
-enum TeacherStatus {
-  pending
-  approved
-  rejected
+enum VerificationStatus {
+  PENDING
+  INTERVIEW_SCHEDULED
+  APPROVED
+  REJECTED
 }
 
-model Admin {
-  id     String @id @default(cuid())
-  userId String @unique
+/// RLS: Public read (only approved/active fields). Self write.
+/// Read/Write: Teacher app reads/writes. Student app reads. Admin app reads/writes (approvals).
+model TeacherProfile {
+  userId String @id @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  gender          String?
+  bio             String?
+  experienceLevel TeacherExperienceLevel
+  status          VerificationStatus     @default(PENDING)
+
+  language     String?
+  demoVideoUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  documents    TeacherDocument[]
+  interviews   Interview[]
+  rates        TeacherRate[]
+  availability AvailabilitySlot[]
+  bookings     Booking[]
+  payouts      Payout[]
+  reviews      Review[]
+
+  @@index([language, status])
+}
+
+// ==========================================
+// 2. TEACHER VERIFICATION WORKFLOW
+// ==========================================
+
+enum DocumentType {
+  EDUCATION
+  LANGUAGE_CERTIFICATE
+  EXPERIENCE_LETTER
+  OTHER
+}
+
+enum DocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// RLS: Owner read/write. Admin read/write. Student no access.
+/// Read/Write: Teacher app writes. Admin app reads/updates status.
+model TeacherDocument {
+  id        String         @id @default(uuid()) @db.Uuid
+  teacherId String         @db.Uuid
+  teacher   TeacherProfile @relation(fields: [teacherId], references: [userId], onDelete: Cascade)
+
+  type   DocumentType
+  url    String
+  status DocumentStatus @default(PENDING)
+  notes  String? // Admin rejection notes
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum InterviewStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+/// RLS: Owner read. Admin read/write.
+/// Read/Write: Admin app creates/updates. Teacher app reads.
+model Interview {
+  id        String         @id @default(uuid()) @db.Uuid
+  teacherId String         @db.Uuid
+  teacher   TeacherProfile @relation(fields: [teacherId], references: [userId], onDelete: Cascade)
+
+  scheduledAt DateTime
+  status      InterviewStatus @default(SCHEDULED)
+  meetingLink String?
+  notes       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ==========================================
+// 3. COIN SYSTEM (LEDGER)
+// ==========================================
+
+enum CoinTransactionType {
+  PURCHASE // Bought coins with real money
+  BONUS // Sign-up bonus (Fresher)
+  SPEND // Spent to message student
+  REFUND // Admin manual refund
+}
+
+/// RLS: Owner read. Service role only write (via edge functions).
+/// Read/Write: Teacher/Admin apps read. Backend/Webhook writes.
+model CoinTransaction {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type        CoinTransactionType
+  amount      Int // Positive = credit, Negative = spend
+  description String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// ==========================================
+// 4. TEACHER AVAILABILITY & RATES
+// ==========================================
+
+/// RLS: Public read. Owner write.
+/// Read/Write: Teacher app writes. Student app reads for booking.
+model AvailabilitySlot {
+  id        String         @id @default(uuid()) @db.Uuid
+  teacherId String         @db.Uuid
+  teacher   TeacherProfile @relation(fields: [teacherId], references: [userId], onDelete: Cascade)
+
+  dayOfWeek Int // 0 (Sunday) to 6 (Saturday)
+  startTime String // HH:mm format
+  endTime   String // HH:mm format
+
+  @@index([teacherId, dayOfWeek])
+}
+
+enum RateType {
+  HOURLY
+  COURSE
+}
+
+/// RLS: Public read. Owner write.
+/// Read/Write: Teacher app writes. Student app reads.
+model TeacherRate {
+  id        String         @id @default(uuid()) @db.Uuid
+  teacherId String         @db.Uuid
+  teacher   TeacherProfile @relation(fields: [teacherId], references: [userId], onDelete: Cascade)
+
+  type   RateType
+  amount Int // In paise
+
+  @@unique([teacherId, type])
+}
+
+// ==========================================
+// 5. BOOKINGS & CLASS SESSIONS
+// ==========================================
+
+enum BookingType {
+  DEMO
+  HOURLY
+  COURSE
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+/// RLS: Participants read. Service role only write (created via payment webhook).
+/// Read/Write: Student/Teacher apps read. Backend writes.
+model Booking {
+  id        String         @id @default(uuid()) @db.Uuid
+  studentId String         @db.Uuid
+  student   StudentProfile @relation(fields: [studentId], references: [userId])
+
+  teacherId String         @db.Uuid
+  teacher   TeacherProfile @relation(fields: [teacherId], references: [userId])
+
+  type   BookingType
+  status BookingStatus @default(PENDING)
+
+  // Financial Snapshots (in paise)
+  amountPaid       Int // Total paid by student
+  commissionPct    Int // Platform commission percentage at the time (e.g., 30 for 30%)
+  commissionAmount Int // Actual cut taken by platform
+  teacherEarnings  Int // Amount going to teacher
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions ClassSession[]
+  payments Payment[]
+  review   Review?
+
+  @@index([studentId, status])
+  @@index([teacherId, status])
+}
+
+enum SessionStatus {
+  SCHEDULED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+/// RLS: Participants read. Backend updates status/recording.
+/// Read/Write: Student/Teacher apps read. Backend writes (LiveKit webhook).
+model ClassSession {
+  id        String  @id @default(uuid()) @db.Uuid
+  bookingId String  @db.Uuid
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  scheduledStart DateTime
+  scheduledEnd   DateTime
+
+  actualStart DateTime?
+  actualEnd   DateTime?
+
+  status SessionStatus @default(SCHEDULED)
+
+  recordingUrl    String?
+  isRecordingPaid Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([bookingId])
+  @@index([scheduledStart])
+}
+
+// ==========================================
+// 6. PAYMENTS & PAYOUTS
+// ==========================================
+
+enum PaymentType {
+  BOOKING
+  COIN_PURCHASE
+  REGISTRATION_FEE
+  RECORDING_FEE
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+/// RLS: Owner read. Service role only write (payment gateway webhooks).
+/// Read/Write: Admin app reads all. User apps read own. Backend writes.
+model Payment {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id])
+
+  bookingId String?  @db.Uuid // Optional, if linked to a booking
+  booking   Booking? @relation(fields: [bookingId], references: [id])
+
+  type   PaymentType
+  amount Int // In paise
+  status PaymentStatus @default(PENDING)
+
+  razorpayOrderId   String? @unique
+  razorpayPaymentId String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+}
+
+/// RLS: Owner read. Admin read/write.
+/// Read/Write: Teacher app reads. Admin app reads/writes.
+model Payout {
+  id        String         @id @default(uuid()) @db.Uuid
+  teacherId String         @db.Uuid
+  teacher   TeacherProfile @relation(fields: [teacherId], references: [userId])
+
+  amount Int // In paise
+  status PayoutStatus @default(PENDING)
+
+  periodStart    DateTime
+  periodEnd      DateTime
+  transactionRef String? // Bank/transfer ref
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ==========================================
+// 7. CHAT, REVIEWS, NOTIFICATIONS
+// ==========================================
+
+/// RLS: Sender/Receiver read/write. Admin read (moderation).
+/// Read/Write: Student/Teacher apps read/write. Admin app reads.
+model ChatMessage {
+  id String @id @default(uuid()) @db.Uuid
+
+  senderId String @db.Uuid
+  sender   User   @relation("SentMessages", fields: [senderId], references: [id])
+
+  receiverId String @db.Uuid
+  receiver   User   @relation("ReceivedMessages", fields: [receiverId], references: [id])
+
+  content       String
+  attachmentUrl String?
+
+  autoDeleteAt DateTime // Calculated from PlatformSetting
+  createdAt    DateTime @default(now())
+
+  @@index([senderId, receiverId])
+  @@index([autoDeleteAt])
+}
+
+/// RLS: Public read. Owner (Student) write.
+/// Read/Write: Student app writes. Teacher app reads.
+model Review {
+  id        String  @id @default(uuid()) @db.Uuid
+  bookingId String  @unique @db.Uuid
+  booking   Booking @relation(fields: [bookingId], references: [id])
+
+  studentId String         @db.Uuid
+  student   StudentProfile @relation(fields: [studentId], references: [userId])
+
+  teacherId String         @db.Uuid
+  teacher   TeacherProfile @relation(fields: [teacherId], references: [userId])
+
+  rating  Int // 1 to 5
+  comment String?
+
+  createdAt DateTime @default(now())
+
+  @@index([teacherId, rating])
+}
+
+enum NotificationType {
+  SYSTEM
+  BOOKING_UPDATE
+  PAYMENT_UPDATE
+  CHAT_MESSAGE
+  VERIFICATION_UPDATE
+}
+
+/// RLS: Owner read/write.
+/// Read/Write: All apps read own. Backend creates.
+model Notification {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type    NotificationType
+  title   String
+  message String
+  isRead  Boolean          @default(false)
+
+  createdAt DateTime @default(now())
+}
+
+// ==========================================
+// 8. ADMIN SETTINGS & AUDIT
+// ==========================================
+
+/// RLS: Public read. Admin only write.
+/// Read/Write: Admin app writes. All apps read.
+model PlatformSetting {
+  key         String   @id // e.g., 'COMMISSION_PCT', 'REGISTRATION_FEE'
+  value       String // Stored as string, parsed to Int/JSON as needed
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
+/// RLS: Admin only read/write.
+/// Read/Write: Admin app reads. Admin app / Backend writes.
+model AdminAuditLog {
+  id      String @id @default(uuid()) @db.Uuid
+  adminId String @db.Uuid
+  admin   User   @relation(fields: [adminId], references: [id])
+
+  action   String // e.g., 'APPROVE_TEACHER', 'CHANGE_SETTING'
+  targetId String // e.g., teacherId or setting key
+  details  String? // JSON string
+
+  createdAt DateTime @default(now())
 }
