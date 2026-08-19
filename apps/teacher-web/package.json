@@ -1,20 +1,14 @@
 {
-  "name": "language-learning-platform",
-  "version": "1.0.0",
+  "name": "language_metrics",
+  "version": "0.1.0",
   "private": true,
-  "workspaces": [
-    "apps/*"
-  ],
   "scripts": {
-    "dev": "npm run dev --workspaces --if-present",
-    "build": "npm run build --workspaces --if-present",
-    "lint": "npm run lint --workspaces --if-present",
-    "setup": "husky",
-    "postinstall": "npm run postinstall --workspaces --if-present",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "postinstall": "prisma generate",
     "db:seed": "node --env-file=.env prisma/seed.mjs"
-  },
-  "prisma": {
-    "seed": "node --env-file=.env prisma/seed.mjs"
   },
   "dependencies": {
     "@prisma/client": "^5.16.1",
@@ -40,15 +34,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.0",
-    "husky": "^9.1.4",
-    "lint-staged": "^15.2.8",
     "prisma": "^5.16.1",
     "tailwindcss": "^4",
     "typescript": "^5"
-  },
-  "lint-staged": {
-    "apps/teacher-web/**/*.{js,jsx,ts,tsx}": [
-      "eslint --config apps/teacher-web/eslint.config.mjs --fix"
-    ]
   }
 }
