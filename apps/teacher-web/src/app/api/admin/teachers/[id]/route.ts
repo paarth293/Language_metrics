@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { TeacherService } from "@/features/teacher/services/teacher-service";
-import type { TeacherStatus } from "@prisma/client";
+import type { VerificationStatus } from "@prisma/client";
 
-const ACTIONABLE_STATUSES: TeacherStatus[] = ["approved", "rejected", "pending"];
+const ACTIONABLE_STATUSES: VerificationStatus[] = ["APPROVED", "REJECTED", "PENDING"];
 
 /**
  * PATCH /api/admin/teachers/[id]
- * Body: { status: "approved" | "rejected" | "pending" }
+ * Body: { status: "APPROVED" | "REJECTED" | "PENDING" }
  * Updates a teacher's verification status. Admin only.
  */
 export async function PATCH(
@@ -21,11 +21,11 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const status = body?.status as TeacherStatus | undefined;
+    const status = body?.status?.toUpperCase() as VerificationStatus | undefined;
 
     if (!status || !ACTIONABLE_STATUSES.includes(status)) {
       return NextResponse.json(
-        { message: "A valid status (approved, rejected, or pending) is required." },
+        { message: "A valid status (APPROVED, REJECTED, or PENDING) is required." },
         { status: 400 }
       );
     }
