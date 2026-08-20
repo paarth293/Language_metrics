@@ -45,7 +45,7 @@ export default function Hero() {
       </motion.div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 w-full flex flex-col lg:flex-row items-center gap-16 my-auto">
-        
+
         {/* Left / Center Content */}
         <div className="flex-1 text-center lg:text-left pt-16 lg:pt-0">
           <motion.div custom={0} initial="hidden" animate="visible" variants={fadeUpVariant}>
@@ -53,34 +53,31 @@ export default function Hero() {
               Language learning, reimagined.
             </span>
           </motion.div>
-          
-          <motion.h1 
-            custom={1} 
-            initial="hidden" 
-            animate="visible" 
+
+          <motion.h1
+            custom={1}
+            initial="hidden"
+            animate="visible"
             variants={fadeUpVariant}
             className="font-display text-[clamp(2.75rem,6vw,5rem)] font-semibold leading-[1.05] tracking-tight mb-6 text-balance"
           >
-            Find a verified language teacher —{" "}
-            <span className="bg-gradient-to-r from-gold to-accent bg-clip-text text-transparent">
-              book 1-on-1 classes in minutes.
-            </span>
+            A place to find a language teacher who's actually been checked out.
           </motion.h1>
-          
-          <motion.p 
-            custom={2} 
-            initial="hidden" 
-            animate="visible" 
+
+          <motion.p
+            custom={2}
+            initial="hidden"
+            animate="visible"
             variants={fadeUpVariant}
             className="text-lg md:text-xl text-text-muted mb-10 text-balance max-w-2xl mx-auto lg:mx-0"
           >
-            Connect with manually verified language professionals. Book hourly sessions or full courses, and attend live classes through our custom-built video classroom — no Google Meet, no Zoom, no third-party redirects.
+            Language Metrics is a global language learning platform connecting students with verified language professionals. Discover new languages, explore cultures, and build meaningful connections across the world.
           </motion.p>
-          
-          <motion.div 
-            custom={3} 
-            initial="hidden" 
-            animate="visible" 
+
+          <motion.div
+            custom={3}
+            initial="hidden"
+            animate="visible"
             variants={fadeUpVariant}
             className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 mb-16"
           >
@@ -93,10 +90,10 @@ export default function Hero() {
           </motion.div>
 
           {/* Trust Row */}
-          <motion.div 
-            custom={4} 
-            initial="hidden" 
-            animate="visible" 
+          <motion.div
+            custom={4}
+            initial="hidden"
+            animate="visible"
             variants={fadeUpVariant}
             className="flex flex-nowrap items-center justify-center lg:justify-start gap-x-6 gap-y-3 text-sm font-medium text-text-subtle overflow-x-auto hide-scrollbar max-w-full pb-2"
           >
@@ -111,14 +108,14 @@ export default function Hero() {
         </div>
 
         {/* Right Content - Floating Glass "Proof" Card */}
-        <motion.div 
+        <motion.div
           style={{ y: y1 }}
           className="hidden lg:block relative flex-1"
         >
           <div className="absolute inset-0 bg-gradient-to-tr from-gold/20 to-transparent rounded-[2rem] blur-2xl transform rotate-3" />
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9, rotate: -5 }} 
-            animate={{ opacity: 1, scale: 1, rotate: 0 }} 
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, rotate: -5 }}
+            animate={{ opacity: 1, scale: 1, rotate: 0 }}
             transition={{ duration: 0.8, delay: 0.5, ease: [0.2, 0.8, 0.2, 1] }}
             className="relative bg-surface/60 backdrop-blur-xl border border-border-strong rounded-[2rem] p-6 shadow-2xl max-w-sm ml-auto"
           >
@@ -131,7 +128,7 @@ export default function Hero() {
                 </div>
               </div>
             </div>
-            
+
             <div className="bg-surface-inset rounded-xl p-4 mb-4 border border-border">
               <div className="text-sm font-medium mb-1">Upcoming Demo Class</div>
               <div className="text-2xl font-display font-semibold mb-2">Starts in <span className="text-accent animate-pulse">10 min</span></div>
@@ -142,7 +139,7 @@ export default function Hero() {
                 </span>
               </div>
             </div>
-            
+
             <div className="text-xs text-text-subtle text-center mb-3 flex items-center justify-center gap-1">
               <ShieldCheck className="w-3 h-3 text-success" />
               Class runs on our custom, private video system
@@ -157,9 +154,9 @@ export default function Hero() {
       </div>
 
       {/* Scroll indicator */}
-      <motion.div 
-        initial={{ opacity: 0 }} 
-        animate={{ opacity: 1 }} 
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         transition={{ delay: 1.5, duration: 1 }}
         className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center text-text-subtle animate-bounce"
       >
