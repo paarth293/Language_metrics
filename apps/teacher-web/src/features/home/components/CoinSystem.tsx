@@ -2,22 +2,22 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { Coins, Zap, ArrowRight } from "lucide-react";
+import { Coins, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
 
 const coinPerks = [
   {
     label: "1 Coin = ₹1",
-    detail: "Simple, transparent rate. Buy any amount.",
+    detail: "Simple, transparent rate. Buy any amount with no hidden charges.",
   },
   {
     label: "50 Coins per Outreach",
-    detail: "Use coins to contact students who haven't booked yet.",
+    detail: "Use coins to contact students who haven't booked a session yet.",
   },
   {
-    label: "399 Free Coins for Freshers",
-    detail: "One-time bonus credited automatically on account activation — equal to the registration fee.",
+    label: "Direct Student Access",
+    detail: "Reach out to prospective students directly from your teacher dashboard.",
   },
 ];
 
@@ -32,21 +32,28 @@ export default function CoinSystem() {
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.65 }}
         >
-          <div className="flex flex-col lg:flex-row items-center gap-0">
+          <div className="flex flex-col lg:flex-row items-stretch gap-0">
 
-            {/* Left: coin badge illustration */}
-            <div className="w-full lg:w-2/5 bg-gradient-to-br from-gold/10 via-surface to-surface border-b lg:border-b-0 lg:border-r border-border p-10 lg:p-14 flex flex-col items-center justify-center text-center">
-              <div className="w-20 h-20 rounded-full bg-gold/15 flex items-center justify-center mb-5 shadow-lg ring-4 ring-gold/10">
+            {/* Left: coin badge & summary card */}
+            <div className="w-full lg:w-2/5 bg-gradient-to-br from-gold/10 via-surface to-surface border-b lg:border-b-0 lg:border-r border-border p-10 lg:p-12 flex flex-col items-center justify-center text-center">
+              <div className="w-20 h-20 rounded-2xl bg-gold/15 border border-gold/20 flex items-center justify-center mb-6 shadow-sm">
                 <Coins className="w-10 h-10 text-gold" />
               </div>
-              <h3 className="font-display text-2xl font-bold text-text mb-2">Teacher Coin System</h3>
-              <p className="text-text-muted text-sm max-w-xs">
-                Fresher teachers get free credit to start reaching students right away — no upfront spend needed.
+              <h3 className="font-display text-2xl font-bold text-text mb-3">Teacher Coin System</h3>
+              <p className="text-text-muted text-sm leading-relaxed max-w-xs mb-6">
+                Simple, transparent coin credit system to start reaching interested students right away.
               </p>
 
-              <div className="mt-6 inline-flex items-center gap-2 bg-gold/10 border border-gold/20 text-gold text-sm font-semibold px-4 py-2 rounded-full">
-                <Zap className="w-4 h-4" />
-                399 Free Coins on Signup
+              {/* Bottom stat highlights to balance height */}
+              <div className="w-full max-w-xs grid grid-cols-2 gap-3 pt-6 border-t border-border/60">
+                <div className="bg-surface/80 border border-border/80 rounded-xl p-3 text-center">
+                  <p className="font-display text-xl font-bold text-gold">₹249</p>
+                  <p className="text-[11px] font-medium text-text-muted uppercase tracking-wider">One-Time Fee</p>
+                </div>
+                <div className="bg-surface/80 border border-border/80 rounded-xl p-3 text-center">
+                  <p className="font-display text-xl font-bold text-gold">50</p>
+                  <p className="text-[11px] font-medium text-text-muted uppercase tracking-wider">Coins / Message</p>
+                </div>
               </div>
             </div>
 

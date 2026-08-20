@@ -27,7 +27,7 @@ const steps = [
     icon: ShieldCheck,
     title: "Admin Review & Approval",
     description:
-      "Our team manually reviews all submitted documents. If the verification passes, the teacher pays a one-time registration fee of ₹399 and their account is activated. Rejected applications are not charged.",
+      "Our team manually reviews all submitted documents. Once verified, teachers pay a one-time registration fee of ₹249 upon account activation. Rejected applications are not charged.",
     color: "text-success",
     bg: "bg-success/10",
     step: "03",
