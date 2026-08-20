@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 const features = [
   {
     icon: Video,
-    title: "Custom LiveKit Video",
+    title: "Custom Video",
     description: "No external links or confusing software. Join high-quality, low-latency video classes directly in your browser with built-in chat and screen sharing.",
     color: "text-accent",
     bg: "bg-accent/10",
