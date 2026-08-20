@@ -26,7 +26,7 @@ export default function StatsBar() {
   return (
     <section className="py-12 border-y border-border bg-surface-2" ref={ref}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 divide-x divide-border">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:divide-x md:divide-border">
           {stats.map((stat, i) => (
             <motion.div
               key={i}

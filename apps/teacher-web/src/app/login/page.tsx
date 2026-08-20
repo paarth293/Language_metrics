@@ -6,20 +6,40 @@ import { useRouter } from "next/navigation";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { loginSchema } from "@/features/auth/validators/auth";
+
+type FieldErrors = Partial<Record<"email" | "password", string>>;
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setServerError(null);
+
+    // ── Client-side Zod validation ───────────────────────────────────────────
+    const result = loginSchema.safeParse({ email, password });
+    if (!result.success) {
+      const errors: FieldErrors = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as keyof FieldErrors;
+        if (!errors[field]) errors[field] = issue.message;
+      }
+      setFieldErrors(errors);
+      return;
+    }
+    setFieldErrors({});
+
     setIsLoading(true);
     // Simulate auth API call
     setTimeout(() => {
       setIsLoading(false);
-      router.push("/student/discover"); // Demo redirect
+      router.push("/student/discover");
     }, 1000);
   };
 
@@ -30,16 +50,26 @@ export default function LoginPage() {
         <p className="text-text-muted">Sign in to your account to continue</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      {serverError && (
+        <div className="mb-4 px-4 py-3 rounded-lg bg-danger/10 border border-danger/30 text-danger text-sm">
+          {serverError}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <div className="space-y-1">
           <label className="text-sm font-medium text-text">Email address</label>
-          <Input 
-            type="email" 
-            placeholder="name@example.com" 
+          <Input
+            type="email"
+            placeholder="name@example.com"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required 
+            onChange={(e) => { setEmail(e.target.value); setFieldErrors((prev) => ({ ...prev, email: undefined })); }}
+            aria-invalid={!!fieldErrors.email}
+            className={fieldErrors.email ? "border-danger focus:ring-danger" : ""}
           />
+          {fieldErrors.email && (
+            <p className="text-xs text-danger mt-1">{fieldErrors.email}</p>
+          )}
         </div>
 
         <div className="space-y-1">
@@ -49,13 +79,17 @@ export default function LoginPage() {
               Forgot password?
             </Link>
           </div>
-          <Input 
-            type="password" 
-            placeholder="••••••••" 
+          <Input
+            type="password"
+            placeholder="••••••••"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required 
+            onChange={(e) => { setPassword(e.target.value); setFieldErrors((prev) => ({ ...prev, password: undefined })); }}
+            aria-invalid={!!fieldErrors.password}
+            className={fieldErrors.password ? "border-danger focus:ring-danger" : ""}
           />
+          {fieldErrors.password && (
+            <p className="text-xs text-danger mt-1">{fieldErrors.password}</p>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
