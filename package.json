@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev -w language_metrics\" \"npm run dev -w admin-panel\"",
+    "dev": "npm run dev -w language_metrics",
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "setup": "husky",
