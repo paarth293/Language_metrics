@@ -1,46 +1,51 @@
 "use client";
 
 import React from "react";
-import { ShieldCheck, Video, Wallet, Clock, Star } from "lucide-react";
+import { SlidersHorizontal, Lock, MessageSquare, Video, Clock, BookOpen } from "lucide-react";
 import { motion } from "framer-motion";
 
 const features = [
   {
-    icon: Video,
-    title: "Custom Video",
-    description: "No external links or confusing software. Join high-quality, low-latency video classes directly in your browser with built-in chat and screen sharing.",
+    icon: SlidersHorizontal,
+    title: "Smart Teacher Discovery",
+    description:
+      "Filter teachers by language, hourly budget, availability, teacher gender preference, and experience level (Fresher or Experienced) — all in one place.",
     color: "text-accent",
     bg: "bg-accent/10",
     span: 2,
   },
   {
-    icon: ShieldCheck,
-    title: "Verified Teachers",
-    description: "Every teacher is manually vetted for proficiency and teaching ability before they can accept bookings.",
+    icon: Lock,
+    title: "Private by Design",
+    description:
+      "No phone numbers. No email addresses. Teacher contact info is never visible to students — keeping every interaction safe and on-platform.",
     color: "text-gold",
     bg: "bg-gold/10",
     span: 1,
   },
   {
-    icon: Wallet,
-    title: "Global Coin Wallet",
-    description: "Say goodbye to currency conversion math. Buy coins once and spend them on any teacher, anywhere.",
+    icon: MessageSquare,
+    title: "1-on-1 In-App Chat",
+    description:
+      "Chat directly with your teacher inside the platform. Share notes, PDFs, worksheets, and Google Drive links — all in one thread.",
     color: "text-success",
     bg: "bg-success/10",
     span: 1,
   },
   {
     icon: Clock,
-    title: "Timezone Smart",
-    description: "We handle the time math. You see every teacher&apos;s availability automatically translated to your local timezone.",
+    title: "Timezone-Smart Scheduling",
+    description:
+      "We translate every teacher's availability into your local timezone automatically, so scheduling is always confusion-free.",
     color: "text-info",
     bg: "bg-info/10",
     span: 1,
   },
   {
-    icon: Star,
-    title: "Honest Ratings",
-    description: "Only students who have completed a paid class can leave a review, ensuring absolute trust in our ratings.",
+    icon: BookOpen,
+    title: "Class Recordings",
+    description:
+      "All classes are recorded automatically. Students can request access to their own recordings as an optional add-on subscription.",
     color: "text-warning",
     bg: "bg-warning/10",
     span: 1,
@@ -79,10 +84,10 @@ export default function Features() {
             Platform Features
           </div>
           <h2 className="font-display text-3xl md:text-5xl font-bold text-text mb-5 leading-tight">
-            Everything you need to master a language
+            Built for real language learning
           </h2>
           <p className="text-lg text-text-muted max-w-2xl mx-auto">
-            A premium, end-to-end platform built specifically for real-time human connection.
+            Everything a student needs — from discovering the right teacher to managing their entire learning journey — on one secure platform.
           </p>
         </motion.div>
 
@@ -98,10 +103,10 @@ export default function Features() {
               key={idx}
               variants={itemVariants}
               whileHover={{ y: -6, transition: { duration: 0.25 } }}
-              className={`relative group rounded-2xl overflow-hidden border border-border bg-surface p-8 shadow-sm hover:shadow-lg hover:border-border-strong transition-all duration-300 cursor-default ${feature.span === 2 ? 'md:col-span-2' : ''}`}
+              className={`relative group rounded-2xl overflow-hidden border border-border bg-surface p-8 shadow-sm hover:shadow-lg hover:border-border-strong transition-all duration-300 cursor-default ${feature.span === 2 ? "md:col-span-2" : ""}`}
             >
               {/* Gradient overlay on hover */}
-              <div className={`absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-${feature.color.replace('text-', '')}/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+              <div className={`absolute inset-0 bg-gradient-to-br from-transparent via-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
 
               <div className="relative z-10">
                 <motion.div
@@ -111,7 +116,7 @@ export default function Features() {
                 >
                   <feature.icon className="w-6 h-6" />
                 </motion.div>
-                <h3 className={`${feature.span === 2 ? 'text-2xl' : 'text-xl'} font-bold text-text mb-3 group-hover:text-gold transition-colors duration-300`}>
+                <h3 className={`${feature.span === 2 ? "text-2xl" : "text-xl"} font-bold text-text mb-3 group-hover:text-gold transition-colors duration-300`}>
                   {feature.title}
                 </h3>
                 <p className="text-text-muted leading-relaxed">

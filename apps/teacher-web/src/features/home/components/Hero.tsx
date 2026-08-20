@@ -2,9 +2,8 @@
 
 import React from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { ChevronDown, Star, ShieldCheck, Video, CreditCard } from "lucide-react";
+import { ChevronDown, Star, ShieldCheck, Video, Lock } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 
@@ -34,7 +33,7 @@ export default function Hero() {
         <div className="absolute bottom-[-20%] left-[20%] w-[60%] h-[60%] rounded-full bg-navy/5 dark:bg-navy/30 blur-[150px] mix-blend-multiply dark:mix-blend-screen" />
       </div>
 
-      {/* Grain / Noise Texture (via CSS radial gradient fallback if image not present, keeping it simple here) */}
+      {/* Grain / Noise Texture */}
       <div className="absolute inset-0 z-0 opacity-20 mix-blend-overlay pointer-events-none bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-surface to-transparent" />
 
       {/* Floating Script Words (Parallax) */}
@@ -51,7 +50,7 @@ export default function Hero() {
         <div className="flex-1 text-center lg:text-left pt-16 lg:pt-0">
           <motion.div custom={0} initial="hidden" animate="visible" variants={fadeUpVariant}>
             <span className="font-script text-2xl text-gold mb-4 inline-block tracking-wider">
-              Scholar, reimagined.
+              Language learning, reimagined.
             </span>
           </motion.div>
           
@@ -62,7 +61,10 @@ export default function Hero() {
             variants={fadeUpVariant}
             className="font-display text-[clamp(2.75rem,6vw,5rem)] font-semibold leading-[1.05] tracking-tight mb-6 text-balance"
           >
-            Find your perfect language teacher — <span className="bg-gradient-to-r from-gold to-accent bg-clip-text text-transparent">and actually book them in minutes.</span>
+            Find a verified language teacher —{" "}
+            <span className="bg-gradient-to-r from-gold to-accent bg-clip-text text-transparent">
+              book 1-on-1 classes in minutes.
+            </span>
           </motion.h1>
           
           <motion.p 
@@ -72,7 +74,7 @@ export default function Hero() {
             variants={fadeUpVariant}
             className="text-lg md:text-xl text-text-muted mb-10 text-balance max-w-2xl mx-auto lg:mx-0"
           >
-            Connect with verified language professionals for 1-on-1 live classes. Pay with our secure coin wallet and learn without borders.
+            Connect with manually verified language professionals. Book hourly sessions or full courses, and attend live classes through our custom-built video classroom — no Google Meet, no Zoom, no third-party redirects.
           </motion.p>
           
           <motion.div 
@@ -86,7 +88,7 @@ export default function Hero() {
               <Link href="/register/student">Find a Teacher</Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="w-full sm:w-auto text-lg bg-surface/50 backdrop-blur-md">
-              <Link href="/register/teacher">Teach on Language Metrics</Link>
+              <Link href="/register/teacher">Apply to Teach</Link>
             </Button>
           </motion.div>
 
@@ -100,9 +102,9 @@ export default function Hero() {
           >
             <div className="flex items-center gap-2 whitespace-nowrap"><ShieldCheck className="w-4 h-4 text-success shrink-0" /> Verified Teachers</div>
             <div className="h-4 w-px bg-border hidden sm:block shrink-0" />
-            <div className="flex items-center gap-2 whitespace-nowrap"><Video className="w-4 h-4 text-accent shrink-0" /> Custom Video</div>
+            <div className="flex items-center gap-2 whitespace-nowrap"><Video className="w-4 h-4 text-accent shrink-0" /> Custom Live Classroom</div>
             <div className="h-4 w-px bg-border hidden sm:block shrink-0" />
-            <div className="flex items-center gap-2 whitespace-nowrap"><CreditCard className="w-4 h-4 text-gold shrink-0" /> Secure Payments</div>
+            <div className="flex items-center gap-2 whitespace-nowrap"><Lock className="w-4 h-4 text-gold shrink-0" /> No Contact Info Shared</div>
             <div className="h-4 w-px bg-border hidden sm:block shrink-0" />
             <div className="flex items-center gap-2 whitespace-nowrap"><Star className="w-4 h-4 text-gold fill-gold shrink-0" /> Rated 4.9/5</div>
           </motion.div>
@@ -113,7 +115,6 @@ export default function Hero() {
           style={{ y: y1 }}
           className="hidden lg:block relative flex-1"
         >
-
           <div className="absolute inset-0 bg-gradient-to-tr from-gold/20 to-transparent rounded-[2rem] blur-2xl transform rotate-3" />
           <motion.div 
             initial={{ opacity: 0, scale: 0.9, rotate: -5 }} 
@@ -126,7 +127,7 @@ export default function Hero() {
               <div>
                 <div className="font-semibold text-lg">Amélie Dupont</div>
                 <div className="flex items-center gap-1 text-sm text-text-muted">
-                  <span title="France">🇫🇷</span> French · Native
+                  <span title="France">🇫🇷</span> French · Experienced Teacher
                 </div>
               </div>
             </div>
@@ -137,11 +138,16 @@ export default function Hero() {
               <div className="flex justify-between items-center text-sm text-text-muted">
                 <span>Today, 14:00 (Local)</span>
                 <span className="font-semibold text-text flex items-center gap-1">
-                  <span className="text-gold">🪙</span> 49
+                  ₹49
                 </span>
               </div>
             </div>
             
+            <div className="text-xs text-text-subtle text-center mb-3 flex items-center justify-center gap-1">
+              <ShieldCheck className="w-3 h-3 text-success" />
+              Class runs on our custom, private video system
+            </div>
+
             <Button variant="primary" className="w-full flex gap-2 items-center justify-center">
               <Video className="w-4 h-4" /> Join Live Classroom
             </Button>
