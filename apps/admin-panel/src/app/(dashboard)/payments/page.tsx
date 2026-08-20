@@ -69,8 +69,8 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { q
                       {payment.id.split('-')[0].toUpperCase()}
                     </td>
                     <td className="py-3.5 px-5">
-                      <p className="text-[13px] font-medium text-white">{payment.user.name}</p>
-                      <p className="text-[11px] text-gray-500">{payment.user.email}</p>
+                      <p className="text-[13px] font-medium text-white">{payment.user.email}</p>
+                      <p className="text-[11px] text-gray-500">{payment.user.role}</p>
                     </td>
                     <td className="py-3.5 px-5 text-[13px] text-white">{(payment.amount / 100).toFixed(2)}</td>
                     <td className="py-3.5 px-5 text-[13px] text-indigo-400">{(lmShare / 100).toFixed(2)}</td>
