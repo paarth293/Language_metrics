@@ -1,10 +1,40 @@
 import { db } from "@repo/database";
-import { MoreHorizontal } from "lucide-react";
+import { requireAdmin } from "@/lib/guards";
+import { MoreHorizontal, Search, Filter } from "lucide-react";
+import Link from "next/link";
+import { Prisma } from "@prisma/client";
 
 export const dynamic = 'force-dynamic';
 
-export default async function TeachersPage() {
+export default async function TeachersPage({
+  searchParams,
+}: {
+  searchParams: { filter?: string; q?: string };
+}) {
+  await requireAdmin();
+
+  // Resolve search parameters for Next 15 compatible way
+  const filter = searchParams.filter || "all";
+  const q = searchParams.q || "";
+
+  // Build the query where clause
+  let whereClause: Prisma.TeacherProfileWhereInput = {};
+
+  if (q) {
+    whereClause.name = { contains: q, mode: "insensitive" };
+  }
+
+  if (filter === "pending") {
+    whereClause.status = "PENDING";
+  } else if (filter === "suspended") {
+    // Assuming you have a suspended status, or we map it
+    // Wait, the schema has: PENDING, INTERVIEW_SCHEDULED, APPROVED, REJECTED.
+    // Suspended might be an overarching User status or a new Teacher status. Let's use REJECTED as a placeholder for suspended for now.
+    whereClause.status = "REJECTED";
+  }
+
   const teachers = await db.teacherProfile.findMany({
+    where: whereClause,
     include: { user: true },
     orderBy: { createdAt: 'desc' }
   });
@@ -14,18 +44,48 @@ export default async function TeachersPage() {
     border: "1px solid var(--lm-border2)",
   };
 
+  const activeTabStyle = "border-b-2 border-indigo-500 text-indigo-400 font-medium";
+  const inactiveTabStyle = "text-gray-400 hover:text-gray-300 transition-colors";
+
   return (
     <div className="p-7 space-y-6 pb-10">
-      {/* Breadcrumb */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-[13px]">
-          <span style={{ color: "var(--lm-text)" }} className="font-semibold">Dashboard</span>
-          <span style={{ color: "var(--lm-text-subtle)" }}>/</span>
-          <span style={{ color: "var(--lm-text-muted)" }}>Verification</span>
+      {/* Breadcrumb & Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white mb-1">Teacher Management</h1>
+          <div className="flex items-center gap-2 text-[13px]">
+            <span style={{ color: "var(--lm-text)" }} className="font-semibold">Dashboard</span>
+            <span style={{ color: "var(--lm-text-subtle)" }}>/</span>
+            <span style={{ color: "var(--lm-text-muted)" }}>Teachers</span>
+          </div>
         </div>
-        <button style={{ color: "var(--lm-text-subtle)" }}>
-          <MoreHorizontal size={16} />
-        </button>
+      </div>
+
+      {/* Tabs & Search */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b" style={{ borderColor: "var(--lm-border2)" }}>
+        <div className="flex gap-6 text-sm">
+          <Link href="/teachers?filter=all" className={`pb-3 px-1 ${filter === 'all' ? activeTabStyle : inactiveTabStyle}`}>
+            All Teachers
+          </Link>
+          <Link href="/teachers?filter=pending" className={`pb-3 px-1 ${filter === 'pending' ? activeTabStyle : inactiveTabStyle}`}>
+            Pending Approval
+          </Link>
+          <Link href="/teachers?filter=suspended" className={`pb-3 px-1 ${filter === 'suspended' ? activeTabStyle : inactiveTabStyle}`}>
+            Suspended / Rejected
+          </Link>
+        </div>
+        
+        <form className="pb-2 flex items-center relative">
+          <Search size={16} className="absolute left-3 text-gray-500" />
+          <input 
+            type="text" 
+            name="q"
+            defaultValue={q}
+            placeholder="Search teachers..." 
+            className="pl-9 pr-4 py-1.5 text-sm rounded bg-gray-800 border border-gray-700 text-white focus:outline-none focus:border-indigo-500"
+          />
+          <input type="hidden" name="filter" value={filter} />
+        </form>
       </div>
 
       {/* Table */}
@@ -79,24 +139,27 @@ export default async function TeachersPage() {
                       <span style={{ background: "var(--lm-ok-bg)", color: "var(--lm-ok)", border: "1px solid rgba(16,185,129,0.25)" }}
                         className="px-2 py-0.5 rounded text-[11px] font-medium">Approved</span>
                     )}
-                    {teacher.status === 'REJECTED' && (
+                    {(teacher.status === 'REJECTED' || teacher.status === 'INTERVIEW_SCHEDULED') && (
                       <span style={{ background: "var(--lm-err-bg)", color: "var(--lm-err)", border: "1px solid rgba(239,68,68,0.25)" }}
-                        className="px-2 py-0.5 rounded text-[11px] font-medium">Rejected</span>
+                        className="px-2 py-0.5 rounded text-[11px] font-medium">
+                        {teacher.status === 'REJECTED' ? 'Rejected' : 'Interview'}
+                      </span>
                     )}
                   </td>
                   <td className="py-3.5 px-5 text-right">
-                    <button
+                    <Link
+                      href={`/teachers/${teacher.userId}`}
                       style={{ border: "1px solid var(--lm-border2)", color: "var(--lm-text-muted)" }}
-                      className="px-3 py-1 rounded text-[12px] font-medium hover:bg-gray-700 hover:text-white transition-colors">
-                      Manage
-                    </button>
+                      className="inline-block px-3 py-1 rounded text-[12px] font-medium hover:bg-gray-700 hover:text-white transition-colors">
+                      View Profile
+                    </Link>
                   </td>
                 </tr>
               ))}
               {teachers.length === 0 && (
                 <tr>
                   <td colSpan={4} className="py-14 text-center">
-                    <p style={{ color: "var(--lm-text-muted)" }} className="text-[13px]">No teacher applications found.</p>
+                    <p style={{ color: "var(--lm-text-muted)" }} className="text-[13px]">No teachers found.</p>
                   </td>
                 </tr>
               )}

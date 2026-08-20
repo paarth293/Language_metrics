@@ -3,8 +3,9 @@
 import { Bell, Search, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import type { SessionUser } from "@/lib/rbac";
 
-export function TopNav() {
+export function TopNav({ admin }: { admin: SessionUser }) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 

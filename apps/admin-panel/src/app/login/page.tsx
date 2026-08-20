@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState } from "react";
 import Image from "next/image";
 import { loginAction } from "./actions";
 
@@ -55,20 +55,22 @@ export default function LoginPage() {
         <form action={formAction} className="space-y-5">
           <div>
             <label style={{ color: "var(--lm-text-subtle)" }} className="block text-[12px] font-bold uppercase tracking-wider mb-2">
-              Username
+              Admin Email
             </label>
             <input 
-              name="username"
-              type="text" 
+              name="email"
+              type="email" 
               required
               autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
               style={{ 
                 background: "var(--lm-bg)", 
                 border: "1px solid var(--lm-border)",
                 color: "var(--lm-text)"
               }}
               className="w-full px-4 py-2.5 rounded-lg text-sm outline-none focus:border-yellow-500/50 transition-colors"
-              placeholder="Enter admin username"
+              placeholder="admin@languagemetrics.com"
             />
           </div>
 
@@ -111,7 +113,7 @@ export default function LoginPage() {
         </form>
 
         <p style={{ color: "var(--lm-text-subtle)" }} className="text-center text-[11px] font-medium mt-8">
-          Authorized personnel only. All access is logged.
+          Authorized personnel only. All access is logged and rate-limited.
         </p>
       </div>
     </div>
