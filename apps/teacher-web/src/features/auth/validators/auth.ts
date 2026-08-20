@@ -35,7 +35,7 @@ const emailSchema = z
 // passwordSchema is NOT exported directly — importers use PASSWORD_RULES for
 // the raw rules and rely on the schema objects for Zod validation.
 const passwordSchema = z
-  .string({ required_error: "Password is required." })
+  .string({ message: "Password is required." })
   .min(PASSWORD_RULES.minLength, "Password must be at least 8 characters.")
   .max(PASSWORD_RULES.maxLength, "Password is too long.")
   .regex(PASSWORD_RULES.uppercase, "Password must contain at least one uppercase letter.")
@@ -54,7 +54,7 @@ export const loginSchema = z
     // strength checks — users with old weak passwords must still be able to
     // log in and reset. Only presence is required.
     password: z
-      .string({ required_error: "Password is required." })
+      .string({ message: "Password is required." })
       .min(1, "Password is required."),
   })
   .strict();
@@ -74,7 +74,7 @@ export const teacherStep1Schema = z
 export const teacherStep3Schema = z
   .object({
     experienceType: z.enum(["fresher", "experienced"], {
-      errorMap: () => ({ message: "Please select a valid experience type." }),
+      message: "Please select a valid experience type.",
     }),
   })
   .strict();
@@ -107,7 +107,7 @@ export const registerTeacherSchema = z
     email: emailSchema,
     password: passwordSchema,
     experienceType: z.enum(["fresher", "experienced"], {
-      errorMap: () => ({ message: "Please select a valid experience type." }),
+      message: "Please select a valid experience type.",
     }),
   })
   .strict();
