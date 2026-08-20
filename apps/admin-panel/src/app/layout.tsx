@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, Manrope } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "@/components/layout/theme-provider";
 
 const fraunces = Fraunces({ 
   subsets: ["latin"], 
@@ -27,10 +26,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${manrope.variable} ${fraunces.variable} font-sans antialiased`}>
-        <ThemeProvider attribute="data-theme" defaultTheme="light">
+      <body className={`${manrope.variable} ${fraunces.variable} font-sans antialiased bg-[#0B0F19]`}>
           {children}
-        </ThemeProvider>
       </body>
     </html>
   );

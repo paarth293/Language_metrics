@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "dev": "concurrently \"npm run dev -w language_metrics\" \"npm run dev -w admin-panel\"",
+    "start": "concurrently \"npm start -w language_metrics\" \"npm start -w admin-panel\"",
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "setup": "husky",
