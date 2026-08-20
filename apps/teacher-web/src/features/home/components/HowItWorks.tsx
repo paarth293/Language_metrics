@@ -90,9 +90,6 @@ export default function HowItWorks() {
           viewport={{ once: true, margin: "-60px" }}
           variants={headerVariants}
         >
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-gold/30 bg-gold/5 text-gold text-xs font-semibold uppercase tracking-widest mb-6">
-            Simple Process
-          </div>
           <h2 className="font-display text-3xl md:text-5xl font-bold text-text mb-5 leading-tight">
             How Language Metrics Works
           </h2>
