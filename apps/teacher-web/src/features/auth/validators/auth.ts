@@ -1,25 +1,120 @@
 import { z } from "zod";
 
-export const loginSchema = z.object({
-  email: z.string().email("Invalid email address."),
-  password: z.string().min(1, "Password is required."),
-});
+// ─── Exported password rule constants ────────────────────────────────────────
+// Single source of truth: both this schema and the UI strength meter import
+// these so they can never silently drift out of sync.
+export const PASSWORD_RULES = {
+  minLength: 8,
+  maxLength: 100,
+  uppercase: /[A-Z]/,
+  lowercase: /[a-z]/,
+  digit: /[0-9]/,
+} as const;
 
-export const registerStudentSchema = z.object({
-  name: z.string().min(1, "Name is required."),
-  email: z.string().email("Invalid email address."),
-  password: z.string().min(8, "Password must be at least 8 characters."),
-  languageToLearn: z.string().min(1, "Language to learn is required."),
-  proficiencyLevel: z.string().optional().default("beginner"),
-});
+// ─── Shared sub-schemas ───────────────────────────────────────────────────────
 
-export const registerTeacherSchema = z.object({
-  name: z.string().min(1, "Name is required."),
-  email: z.string().email("Invalid email address."),
-  password: z.string().min(8, "Password must be at least 8 characters."),
-  experienceType: z.string().min(1, "Experience type is required."),
-});
+// Name: trimmed, length-bounded, and restricted to safe Unicode letter/space
+// characters. This blocks payloads like '<script>alert(1)</script>' and emoji
+// spam before they ever reach the database or a render surface.
+const nameSchema = z
+  .string()
+  .trim()
+  .min(2, "Name must be at least 2 characters.")
+  .max(50, "Name cannot exceed 50 characters.")
+  .regex(
+    /^[\p{L}\p{M}'\-\s]+$/u,
+    "Name may only contain letters, spaces, hyphens, and apostrophes."
+  );
 
+const emailSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .email("Please enter a valid email address.");
+
+// passwordSchema is NOT exported directly — importers use PASSWORD_RULES for
+// the raw rules and rely on the schema objects for Zod validation.
+const passwordSchema = z
+  .string({ message: "Password is required." })
+  .min(PASSWORD_RULES.minLength, "Password must be at least 8 characters.")
+  .max(PASSWORD_RULES.maxLength, "Password is too long.")
+  .regex(PASSWORD_RULES.uppercase, "Password must contain at least one uppercase letter.")
+  .regex(PASSWORD_RULES.lowercase, "Password must contain at least one lowercase letter.")
+  .regex(PASSWORD_RULES.digit, "Password must contain at least one number.");
+
+// ─── loginSchema ─────────────────────────────────────────────────────────────
+// .strict() strips NO unknown fields and rejects any unrecognised key.
+// For the login form this is safe because the payload should ONLY ever be
+// {email, password}. An attacker sending `{email, password, role:"admin"}`
+// will receive a 400 before the route logic runs.
+export const loginSchema = z
+  .object({
+    email: emailSchema,
+    // Login password is intentionally NOT run through the full passwordSchema
+    // strength checks — users with old weak passwords must still be able to
+    // log in and reset. Only presence is required.
+    password: z
+      .string({ message: "Password is required." })
+      .min(1, "Password is required."),
+  })
+  .strict();
+
+// ─── Step schemas for teacher multi-step form ─────────────────────────────────
+// Defined as standalone objects so .pick() is never needed.
+// .pick() breaks if the parent schema is ever wrapped in .refine()/.superRefine()
+// (those produce ZodEffects, which has no .pick() method).
+export const teacherStep1Schema = z
+  .object({
+    name: nameSchema,
+    email: emailSchema,
+    password: passwordSchema,
+  })
+  .strict();
+
+export const teacherStep3Schema = z
+  .object({
+    experienceType: z.enum(["fresher", "experienced"], {
+      message: "Please select a valid experience type.",
+    }),
+  })
+  .strict();
+
+// ─── registerStudentSchema ────────────────────────────────────────────────────
+export const registerStudentSchema = z
+  .object({
+    name: nameSchema,
+    email: emailSchema,
+    password: passwordSchema,
+    languageToLearn: z
+      .string()
+      .trim()
+      .min(2, "Please specify a valid language.")
+      .max(30, "Language name is too long."),
+    proficiencyLevel: z
+      .enum(["beginner", "intermediate", "advanced"])
+      .optional()
+      .default("beginner"),
+  })
+  .strict();
+
+// ─── registerTeacherSchema ────────────────────────────────────────────────────
+// Composed from the two step schemas. We use shape directly since both
+// teacherStep1Schema and teacherStep3Schema are ZodObject instances (strict
+// wrapping does not change the type — .strict() is a flag on ZodObject itself).
+export const registerTeacherSchema = z
+  .object({
+    name: nameSchema,
+    email: emailSchema,
+    password: passwordSchema,
+    experienceType: z.enum(["fresher", "experienced"], {
+      message: "Please select a valid experience type.",
+    }),
+  })
+  .strict();
+
+// ─── Inferred types ───────────────────────────────────────────────────────────
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterStudentInput = z.infer<typeof registerStudentSchema>;
 export type RegisterTeacherInput = z.infer<typeof registerTeacherSchema>;
+export type TeacherStep1Input = z.infer<typeof teacherStep1Schema>;
+export type TeacherStep3Input = z.infer<typeof teacherStep3Schema>;

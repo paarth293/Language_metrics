@@ -52,9 +52,9 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-16 border-t border-border pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-text-subtle">
+        <div className="mt-16 border-t border-border pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-text-subtle text-center md:text-left">
           <p>© {new Date().getFullYear()} Language Metrics. All rights reserved.</p>
-          <div className="flex gap-6">
+          <div className="flex flex-wrap justify-center md:justify-end gap-4 md:gap-6">
             <Link href="#" className="hover:text-text transition-colors">Privacy (DPDP Act)</Link>
             <Link href="#" className="hover:text-text transition-colors">Terms of Service</Link>
             <Link href="#" className="hover:text-text transition-colors">Secure Payments via Razorpay</Link>

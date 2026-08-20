@@ -95,7 +95,7 @@ export default function Hero() {
             initial="hidden"
             animate="visible"
             variants={fadeUpVariant}
-            className="flex flex-nowrap items-center justify-center lg:justify-start gap-x-6 gap-y-3 text-sm font-medium text-text-subtle overflow-x-auto hide-scrollbar max-w-full pb-2"
+            className="flex flex-nowrap items-center justify-start md:justify-center lg:justify-start gap-x-6 gap-y-3 text-sm font-medium text-text-subtle overflow-x-auto hide-scrollbar max-w-full pb-2"
           >
             <div className="flex items-center gap-2 whitespace-nowrap"><ShieldCheck className="w-4 h-4 text-success shrink-0" /> Verified Teachers</div>
             <div className="h-4 w-px bg-border hidden sm:block shrink-0" />
