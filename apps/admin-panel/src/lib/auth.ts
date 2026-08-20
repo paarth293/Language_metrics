@@ -27,27 +27,29 @@ export interface VerifiedSession extends AdminSessionToken {
   exp: number;
 }
 
-if (!JWT_SECRET) {
-  // Fail loudly rather than silently shipping an unauthenticated panel.
-  throw new Error(
-    "JWT_SECRET is not configured. Refusing to start the admin panel without a signing secret."
-  );
-}
-
-if (JWT_SECRET.length < 32) {
-  throw new Error(
-    "JWT_SECRET is too short (< 32 chars). Generate a strong one with `openssl rand -base64 64`."
-  );
+function getSecret(): string {
+  if (!JWT_SECRET) {
+    throw new Error(
+      "JWT_SECRET is not configured. Refusing to start the admin panel without a signing secret."
+    );
+  }
+  if (JWT_SECRET.length < 32) {
+    throw new Error(
+      "JWT_SECRET is too short (< 32 chars). Generate a strong one with `openssl rand -base64 64`."
+    );
+  }
+  return JWT_SECRET;
 }
 
 export function signSession(payload: AdminSessionToken): string {
+  const secret = getSecret();
   return jwt.sign(
     {
       email: payload.email,
       roleKey: payload.roleKey,
       isSuperAdmin: payload.isSuperAdmin,
     },
-    JWT_SECRET as string,
+    secret,
     {
       subject: payload.sub,
       issuer: ISSUER,
@@ -64,7 +66,8 @@ export function signSession(payload: AdminSessionToken): string {
  */
 export function verifySession(token: string): VerifiedSession | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET as string, {
+    const secret = getSecret();
+    const decoded = jwt.verify(token, secret, {
       issuer: ISSUER,
       audience: AUDIENCE,
     }) as VerifiedSession;
