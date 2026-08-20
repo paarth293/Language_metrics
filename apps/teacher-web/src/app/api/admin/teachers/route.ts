@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { TeacherService } from "@/features/teacher/services/teacher-service";
-import type { VerificationStatus } from "@prisma/client";
+import type { VerificationStatus } from "@repo/database";
 
 const VALID_STATUSES: VerificationStatus[] = ["PENDING", "APPROVED", "REJECTED"];
 

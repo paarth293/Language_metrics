@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import type { VerificationStatus } from "@prisma/client";
+import type { VerificationStatus } from "@repo/database";
 
 export class TeacherService {
   static async getProfileByUserId(userId: string) {
