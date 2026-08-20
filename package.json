@@ -11,12 +11,42 @@
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "setup": "husky",
-    "postinstall": "npm run postinstall --workspaces --if-present"
+    "postinstall": "npm run postinstall --workspaces --if-present",
+    "db:seed": "node --env-file=.env prisma/seed.mjs"
+  },
+  "prisma": {
+    "seed": "node --env-file=.env prisma/seed.mjs"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.16.1",
+    "axios": "^1.19.0",
+    "bcryptjs": "^2.4.3",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "framer-motion": "^13.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "lucide-react": "^1.31.0",
+    "next": "16.3.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "tailwind-merge": "^3.6.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
     "concurrently": "^10.0.5",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.0",
     "husky": "^9.1.4",
-    "lint-staged": "^15.2.8"
+    "lint-staged": "^15.2.8",
+    "prisma": "^5.16.1",
+    "tailwindcss": "^4",
+    "typescript": "^5"
   },
   "lint-staged": {
     "apps/teacher-web/**/*.{js,jsx,ts,tsx}": [

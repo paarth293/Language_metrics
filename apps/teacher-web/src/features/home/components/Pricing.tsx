@@ -1,49 +1,84 @@
 "use client";
 
 import React, { useState } from "react";
-import { Check, HelpCircle, ChevronDown, Sparkles } from "lucide-react";
+import { Check, HelpCircle, ChevronDown, Sparkles, Zap, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/Button";
+import Link from "next/link";
 
-const packages = [
+const pricingPlans = [
   {
-    name: "Starter",
-    coins: 500,
-    price: "₹500",
-    bonus: 0,
+    name: "Demo Class",
+    price: "₹49",
+    priceSub: "one-time",
     popular: false,
-    description: "Perfect for trying your first class",
+    icon: Zap,
+    description: "Required before booking hourly or course sessions. A 30-min trial with any teacher to see if it's the right fit.",
+    features: [
+      "30-minute live class with your chosen teacher",
+      "Runs on our custom video system (not Google Meet)",
+      "Recorded automatically",
+      "No obligation to continue after demo",
+      "Full ₹49 goes to the platform (not teacher)",
+    ],
+    cta: "Book a Demo",
+    ctaHref: "/register/student",
+    ctaVariant: "outline" as const,
   },
   {
-    name: "Learner",
-    coins: 1050,
-    price: "₹1,000",
-    bonus: 50,
+    name: "Hourly Learning",
+    price: "₹500–₹600",
+    priceSub: "per hour",
     popular: true,
-    description: "Best value for regular learners",
+    icon: Sparkles,
+    description: "Pay per session at your teacher's rate. Flexible, no long-term commitment.",
+    features: [
+      "1-on-1 live class with your chosen teacher",
+      "Rates set by each teacher (₹500–₹600/hr typical)",
+      "Custom LiveKit video classroom — whiteboard & screen share included",
+      "Automatic class recording",
+      "Pay per session — no subscription required",
+    ],
+    cta: "Find a Teacher",
+    ctaHref: "/register/student",
+    ctaVariant: "gold" as const,
   },
   {
-    name: "Fluency",
-    coins: 2750,
-    price: "₹2,500",
-    bonus: 250,
+    name: "Full Course",
+    price: "₹15,000–₹30,000",
+    priceSub: "per level, one-time",
     popular: false,
-    description: "For committed language enthusiasts",
+    icon: BookOpen,
+    description: "Complete a full language proficiency level. Pay once upfront — teacher is paid in installments as the course progresses.",
+    features: [
+      "Complete language level (e.g. Beginner → Intermediate)",
+      "One-time upfront payment",
+      "Teacher paid in installments as course progresses",
+      "All classes recorded automatically",
+      "Schedule managed from your dashboard",
+    ],
+    cta: "Explore Courses",
+    ctaHref: "/register/student",
+    ctaVariant: "outline" as const,
   },
 ];
 
 const faqs = [
   {
-    q: "How do coins work?",
-    a: "Coins are our universal platform currency. You buy coins with your local currency and spend them to book classes with any teacher. 1 coin = ₹1.",
+    q: "Why does the ₹49 demo fee go to the platform, not the teacher?",
+    a: "The ₹49 demo fee goes 100% to the platform — not the teacher. This structure prevents ghosting and abuse (students not showing up to free trials), and ensures both teacher and student are committed to the session.",
   },
   {
-    q: "What happens if a teacher cancels?",
-    a: "If a teacher cancels, 100% of the coins are instantly refunded to your wallet. If you cancel more than 12 hours in advance, you also get a full refund.",
+    q: "How are payments collected?",
+    a: "Payments are collected directly on the platform via UPI, credit/debit card, or net banking — powered by a secure payment gateway. You never pay a teacher outside the platform.",
   },
   {
-    q: "Can I take a trial class?",
-    a: "Yes! Most teachers offer a 30-minute demo class for a deeply discounted rate (often around 49 coins) so you can see if they are a good fit.",
+    q: "Can I get a recording of my class?",
+    a: "Yes. All classes are automatically recorded. Students can request access to their own class recordings as an optional subscription add-on.",
+  },
+  {
+    q: "What if I want to cancel a session?",
+    a: "Cancellation policies are enforced on the platform. If the teacher cancels, your payment is refunded in full. Student cancellation terms depend on how far in advance you cancel.",
   },
 ];
 
@@ -78,68 +113,64 @@ export default function Pricing() {
             <Sparkles className="w-3.5 h-3.5" /> Transparent Pricing
           </div>
           <h2 className="font-display text-3xl md:text-5xl font-bold text-text mb-5 leading-tight">
-            Simple, upfront pricing
+            Simple, upfront pricing for students
           </h2>
           <p className="text-lg text-text-muted max-w-2xl mx-auto">
-            Top up your wallet with coins, then spend them on classes. No subscriptions, no hidden fees.
+            Start with a ₹49 demo class. Then choose hourly sessions or a full course — you decide the pace.
           </p>
         </motion.div>
 
         <motion.div
-          className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto mb-24"
+          className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-24"
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-80px" }}
           variants={containerVariants}
         >
-          {packages.map((pkg, idx) => (
+          {pricingPlans.map((plan, idx) => (
             <motion.div
               key={idx}
               variants={cardVariants}
               whileHover={{ y: -6, transition: { duration: 0.25 } }}
               className={`relative flex flex-col rounded-2xl border bg-surface p-8 shadow-sm transition-all duration-300 hover:shadow-lg group ${
-                pkg.popular ? 'border-gold ring-2 ring-gold/20 shadow-glow-gold' : 'border-border hover:border-border-strong'
+                plan.popular
+                  ? "border-gold ring-2 ring-gold/20 shadow-glow-gold"
+                  : "border-border hover:border-border-strong"
               }`}
             >
-              {pkg.popular && (
+              {plan.popular && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gold text-white text-xs font-bold px-5 py-1.5 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1.5">
                   <Sparkles className="w-3 h-3" /> Most Popular
                 </div>
               )}
 
               <div className="mb-6">
-                <h3 className="text-lg font-semibold text-text mb-1">{pkg.name}</h3>
-                <p className="text-sm text-text-muted mb-4">{pkg.description}</p>
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${plan.popular ? "bg-gold/10 text-gold" : "bg-surface-inset text-text-muted"}`}>
+                  <plan.icon className="w-5 h-5" />
+                </div>
+                <h3 className="text-lg font-semibold text-text mb-1">{plan.name}</h3>
+                <p className="text-sm text-text-muted mb-4">{plan.description}</p>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-display font-bold text-text group-hover:text-gold transition-colors duration-300">{pkg.price}</span>
-                </div>
-              </div>
-
-              <div className="flex-1 space-y-4 mb-8">
-                <div className="flex items-center gap-3">
-                  <div className="bg-gold/10 p-1.5 rounded-full"><Check className="w-4 h-4 text-gold" /></div>
-                  <span className="text-text font-medium flex items-center gap-1">
-                    <span className="text-gold">🪙</span> {pkg.coins} Coins
+                  <span className="text-3xl font-display font-bold text-text group-hover:text-gold transition-colors duration-300">
+                    {plan.price}
                   </span>
-                </div>
-                {pkg.bonus > 0 && (
-                  <div className="flex items-center gap-3">
-                    <div className="bg-success/10 p-1.5 rounded-full"><Check className="w-4 h-4 text-success" /></div>
-                    <span className="text-success text-sm font-semibold">+{pkg.bonus} Bonus Coins</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-3">
-                  <div className="bg-surface-inset p-1.5 rounded-full"><Check className="w-4 h-4 text-text-muted" /></div>
-                  <span className="text-text-muted text-sm">Never expires</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="bg-surface-inset p-1.5 rounded-full"><Check className="w-4 h-4 text-text-muted" /></div>
-                  <span className="text-text-muted text-sm">Instant refund on cancellation</span>
+                  <span className="text-sm text-text-muted">{plan.priceSub}</span>
                 </div>
               </div>
 
-              <Button variant={pkg.popular ? "gold" : "outline"} className="w-full">
-                Buy Coins
+              <div className="flex-1 space-y-3 mb-8">
+                {plan.features.map((f, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <div className={`mt-0.5 p-1 rounded-full shrink-0 ${plan.popular ? "bg-gold/10" : "bg-surface-inset"}`}>
+                      <Check className={`w-3.5 h-3.5 ${plan.popular ? "text-gold" : "text-text-muted"}`} />
+                    </div>
+                    <span className="text-text-muted text-sm leading-snug">{f}</span>
+                  </div>
+                ))}
+              </div>
+
+              <Button asChild variant={plan.ctaVariant} className="w-full">
+                <Link href={plan.ctaHref}>{plan.cta}</Link>
               </Button>
             </motion.div>
           ))}
@@ -163,7 +194,7 @@ export default function Pricing() {
               <div
                 key={idx}
                 className={`border rounded-xl bg-surface overflow-hidden transition-all duration-300 ${
-                  openFaq === idx ? 'border-gold/40 shadow-sm' : 'border-border hover:border-gold/30'
+                  openFaq === idx ? "border-gold/40 shadow-sm" : "border-border hover:border-gold/30"
                 }`}
               >
                 <button

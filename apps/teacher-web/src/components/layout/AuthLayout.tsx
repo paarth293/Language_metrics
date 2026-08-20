@@ -66,7 +66,7 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
             The world&apos;s most effective way to learn a language.
           </h2>
           <p className="text-navy-2/80 text-lg font-medium">
-            1-on-1 live video classes with verified native speakers. Pay securely with coins and learn anywhere.
+            1-on-1 live video classes with verified teachers. Pay securely with coins and learn anywhere.
           </p>
         </div>
       </div>

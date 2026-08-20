@@ -1,45 +1,59 @@
 "use client";
 
 import React, { useRef } from "react";
-import { Search, CalendarCheck, Coins, Video } from "lucide-react";
+import { Globe, SlidersHorizontal, CalendarCheck, Video, MessageSquare } from "lucide-react";
 import { motion, useInView } from "framer-motion";
 
 const steps = [
   {
-    icon: Search,
-    title: "Discover",
+    icon: Globe,
+    title: "Pick Your Language",
     step: "01",
-    description: "Find the perfect teacher by language, timezone, price, and rating.",
+    description:
+      "Select the language you want to learn and set your proficiency level — Beginner, Intermediate, or Advanced.",
     color: "text-accent",
     glow: "shadow-accent/20",
     bg: "bg-accent/10",
   },
   {
-    icon: CalendarCheck,
-    title: "Book",
+    icon: SlidersHorizontal,
+    title: "Filter & Browse",
     step: "02",
-    description: "Choose an open slot. We lock it instantly to prevent double-booking.",
+    description:
+      "Browse verified teachers filtered by budget, availability, teacher gender, and experience level to find your perfect match.",
     color: "text-success",
     glow: "shadow-success/20",
     bg: "bg-success/10",
   },
   {
-    icon: Coins,
-    title: "Pay seamlessly",
+    icon: CalendarCheck,
+    title: "Book a ₹49 Demo",
     step: "03",
-    description: "Use your platform coin wallet. Simple, upfront pricing with no hidden fees.",
+    description:
+      "Start with a ₹49 demo class to see if the teacher is right for you — then upgrade to hourly sessions or a full course.",
     color: "text-gold",
     glow: "shadow-gold/20",
     bg: "bg-gold/10",
   },
   {
     icon: Video,
-    title: "Learn live",
+    title: "Join Live Classroom",
     step: "04",
-    description: "Join your custom video classroom directly from your dashboard.",
+    description:
+      "Attend your class through our custom-built LiveKit video system — with whiteboard, screen sharing, and automatic recording. No Zoom, no Meet.",
     color: "text-danger",
     glow: "shadow-danger/20",
     bg: "bg-danger/10",
+  },
+  {
+    icon: MessageSquare,
+    title: "Chat & Manage",
+    step: "05",
+    description:
+      "Message your teacher 1-on-1, share files and notes, and manage your upcoming bookings — all from your dashboard.",
+    color: "text-info",
+    glow: "shadow-info/20",
+    bg: "bg-info/10",
   },
 ];
 
@@ -65,7 +79,7 @@ const lineVariants = {
   hidden: { scaleX: 0 },
   visible: {
     scaleX: 1,
-    transition: { duration: 1.2, delay: 0.2 },
+    transition: { duration: 1.4, delay: 0.2 },
   },
 };
 
@@ -91,32 +105,32 @@ export default function HowItWorks() {
           variants={headerVariants}
         >
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-gold/30 bg-gold/5 text-gold text-xs font-semibold uppercase tracking-widest mb-6">
-            Simple Process
+            How It Works
           </div>
           <h2 className="font-display text-3xl md:text-5xl font-bold text-text mb-5 leading-tight">
-            How Language Metrics Works
+            From first search to live class in minutes
           </h2>
           <p className="text-lg text-text-muted max-w-2xl mx-auto">
-            From finding a teacher to saying your first words, we&apos;ve made the process completely frictionless.
+            A seamless, student-first flow — from picking your language to attending your first live session.
           </p>
         </motion.div>
 
         {/* Steps */}
         <div className="relative" ref={ref}>
 
-          {/* Animated connecting line */}
+          {/* Animated connecting line — 5-col layout on xl */}
           <motion.div
-            className="hidden md:block absolute top-[52px] left-[12%] right-[12%] h-px bg-gradient-to-r from-accent via-gold to-danger origin-left z-0"
+            className="hidden xl:block absolute top-[52px] left-[9%] right-[9%] h-px bg-gradient-to-r from-accent via-gold to-danger origin-left z-0"
             initial="hidden"
             animate={isInView ? "visible" : "hidden"}
             variants={lineVariants}
           />
 
           {/* Dotted track behind */}
-          <div className="hidden md:block absolute top-[52px] left-[12%] right-[12%] h-px border-t border-dashed border-border z-0 opacity-40" />
+          <div className="hidden xl:block absolute top-[52px] left-[9%] right-[9%] h-px border-t border-dashed border-border z-0 opacity-40" />
 
           <motion.div
-            className="grid grid-cols-1 md:grid-cols-4 gap-10 relative z-10"
+            className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-10 relative z-10"
             initial="hidden"
             animate={isInView ? "visible" : "hidden"}
             variants={containerVariants}
@@ -144,16 +158,10 @@ export default function HowItWorks() {
                   <step.icon className={`w-10 h-10 relative z-10 ${step.color} transition-transform duration-300 group-hover:scale-110`} />
                 </motion.div>
 
-                {/* Pulse dot on the line */}
-                <div className="hidden md:block absolute top-[44px] w-4 h-4">
-                  <span className={`absolute inset-0 rounded-full ${step.bg} animate-ping opacity-60`} />
-                  <span className={`relative block w-4 h-4 rounded-full ${step.bg} border-2 border-current ${step.color}`} />
-                </div>
-
-                <h3 className="text-xl font-bold text-text mb-2 group-hover:text-gold transition-colors duration-300">
+                <h3 className="text-lg font-bold text-text mb-2 group-hover:text-gold transition-colors duration-300">
                   {step.title}
                 </h3>
-                <p className="text-text-muted text-sm leading-relaxed max-w-[200px]">
+                <p className="text-text-muted text-sm leading-relaxed max-w-[190px]">
                   {step.description}
                 </p>
               </motion.div>
