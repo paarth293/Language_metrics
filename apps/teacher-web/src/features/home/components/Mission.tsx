@@ -28,7 +28,7 @@ export default function Mission() {
             </p>
             <div className="flex gap-12 mt-8">
               <div>
-                <p className="font-display font-bold text-3xl text-gold mb-1">₹49</p>
+                <p className="font-display font-bold text-3xl text-gold mb-1">₹29</p>
                 <p className="text-sm text-text-subtle uppercase tracking-wider font-semibold">Demo Class</p>
               </div>
               <div>

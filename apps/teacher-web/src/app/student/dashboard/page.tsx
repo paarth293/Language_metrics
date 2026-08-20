@@ -133,7 +133,7 @@ export default function StudentDashboard() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}
           className="bg-navy rounded-2xl p-8 text-center">
           <div className="text-4xl mb-4">🎓</div>
-          <h2 className="font-display font-bold text-cream text-2xl mb-3">Start with a ₹49 Demo Class</h2>
+          <h2 className="font-display font-bold text-cream text-2xl mb-3">Start with a ₹29 Demo Class</h2>
           <p className="text-cream/60 text-[15px] max-w-md mx-auto mb-6">
             Find your perfect language teacher, book a 30-minute demo, and experience our custom live platform.
           </p>

@@ -27,10 +27,10 @@ const steps = [
   },
   {
     icon: CalendarCheck,
-    title: "Book a ₹49 Demo",
+    title: "Book a ₹29 Demo",
     step: "03",
     description:
-      "Start with a ₹49 demo class to see if the teacher is right for you — then upgrade to hourly sessions or a full course.",
+      "Start with a ₹29 demo class to see if the teacher is right for you — then upgrade to hourly sessions or a full course.",
     color: "text-gold",
     glow: "shadow-gold/20",
     bg: "bg-gold/10",
