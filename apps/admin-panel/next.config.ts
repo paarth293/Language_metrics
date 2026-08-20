@@ -40,11 +40,6 @@ const nextConfig: NextConfig = {
     ];
   },
   poweredByHeader: false, // hide framework identity
-  typescript: {
-    // Admin panel references Prisma models not yet in schema (WIP).
-    // Remove this once the schema is updated to include all admin models.
-    ignoreBuildErrors: true,
-  },
 };
 
 export default nextConfig;
