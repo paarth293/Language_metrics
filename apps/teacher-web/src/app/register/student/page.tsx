@@ -6,6 +6,26 @@ import { useRouter } from "next/navigation";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { registerStudentSchema, PASSWORD_RULES } from "@/features/auth/validators/auth";
+
+type FieldErrors = Partial<
+  Record<"name" | "email" | "password" | "languageToLearn" | "proficiencyLevel", string>
+>;
+
+// Password strength: returns 0-4.
+// Intentionally uses PASSWORD_RULES from the schema — single source of truth
+// so the meter can never silently drift out of sync with actual validation.
+function passwordStrength(password: string): number {
+  let score = 0;
+  if (password.length >= PASSWORD_RULES.minLength) score++;
+  if (PASSWORD_RULES.uppercase.test(password)) score++;
+  if (PASSWORD_RULES.lowercase.test(password)) score++;
+  if (PASSWORD_RULES.digit.test(password)) score++;
+  return score;
+}
+
+const strengthLabels = ["", "Weak", "Fair", "Good", "Strong"];
+const strengthColors = ["", "bg-danger", "bg-warning", "bg-info", "bg-success"];
 
 export default function StudentRegisterPage() {
   const router = useRouter();
@@ -13,22 +33,46 @@ export default function StudentRegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [language, setLanguage] = useState("");
-  const [level, setLevel] = useState("beginner");
+  const [level, setLevel] = useState<"beginner" | "intermediate" | "advanced">("beginner");
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+
+  const clearError = (field: keyof FieldErrors) =>
+    setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // ── Client-side Zod validation ───────────────────────────────────────────
+    const result = registerStudentSchema.safeParse({
+      name,
+      email,
+      password,
+      languageToLearn: language,
+      proficiencyLevel: level,
+    });
+
+    if (!result.success) {
+      const errors: FieldErrors = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as keyof FieldErrors;
+        if (!errors[field]) errors[field] = issue.message;
+      }
+      setFieldErrors(errors);
+      return;
+    }
+    setFieldErrors({});
+
     setIsLoading(true);
-    // Simulate auth API call
     setTimeout(() => {
       setIsLoading(false);
       setSuccess(true);
-      setTimeout(() => {
-        router.push("/student/discover"); // Demo redirect
-      }, 1500);
+      setTimeout(() => { router.push("/student/discover"); }, 1500);
     }, 1500);
   };
+
+  const strength = passwordStrength(password);
 
   if (success) {
     return (
@@ -53,54 +97,84 @@ export default function StudentRegisterPage() {
         <p className="text-text-muted">Create a free student account</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        {/* Name */}
         <div className="space-y-1">
-          <label className="text-sm font-medium text-text">Full name</label>
-          <Input 
-            type="text" 
-            placeholder="John Doe" 
+          <label htmlFor="student-name" className="text-sm font-medium text-text">Full name</label>
+          <Input
+            id="student-name"
+            type="text"
+            placeholder="John Doe"
             value={name}
-            onChange={(e) => setName(e.target.value)}
-            required 
+            onChange={(e) => { setName(e.target.value); clearError("name"); }}
+            aria-invalid={!!fieldErrors.name}
+            aria-describedby={fieldErrors.name ? "student-name-error" : undefined}
+            className={fieldErrors.name ? "border-danger focus:ring-danger" : ""}
           />
+          {fieldErrors.name && <p id="student-name-error" role="alert" className="text-xs text-danger mt-1">{fieldErrors.name}</p>}
         </div>
 
+        {/* Email */}
         <div className="space-y-1">
-          <label className="text-sm font-medium text-text">Email address</label>
-          <Input 
-            type="email" 
-            placeholder="name@example.com" 
+          <label htmlFor="student-email" className="text-sm font-medium text-text">Email address</label>
+          <Input
+            id="student-email"
+            type="email"
+            placeholder="name@example.com"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required 
+            onChange={(e) => { setEmail(e.target.value); clearError("email"); }}
+            aria-invalid={!!fieldErrors.email}
+            aria-describedby={fieldErrors.email ? "student-email-error" : undefined}
+            className={fieldErrors.email ? "border-danger focus:ring-danger" : ""}
           />
+          {fieldErrors.email && <p id="student-email-error" role="alert" className="text-xs text-danger mt-1">{fieldErrors.email}</p>}
         </div>
 
+        {/* Password */}
         <div className="space-y-1">
-          <label className="text-sm font-medium text-text">Password</label>
-          <Input 
-            type="password" 
-            placeholder="Create a strong password" 
+          <label htmlFor="student-password" className="text-sm font-medium text-text">Password</label>
+          <Input
+            id="student-password"
+            type="password"
+            placeholder="Create a strong password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required 
+            onChange={(e) => { setPassword(e.target.value); clearError("password"); }}
+            aria-invalid={!!fieldErrors.password}
+            aria-describedby={[
+              fieldErrors.password ? "student-password-error" : "",
+              password.length > 0 ? "student-password-strength" : "",
+            ].filter(Boolean).join(" ") || undefined}
+            className={fieldErrors.password ? "border-danger focus:ring-danger" : ""}
           />
-          {/* Simple password strength meter mock */}
-          <div className="flex gap-1 mt-2">
-            <div className={`h-1 flex-1 rounded-full ${password.length > 0 ? 'bg-danger' : 'bg-surface-inset'}`} />
-            <div className={`h-1 flex-1 rounded-full ${password.length > 5 ? 'bg-warning' : 'bg-surface-inset'}`} />
-            <div className={`h-1 flex-1 rounded-full ${password.length > 8 ? 'bg-success' : 'bg-surface-inset'}`} />
+          {/* Strength meter — rules sourced from PASSWORD_RULES, not hardcoded */}
+          <div className="flex gap-1 mt-2" aria-hidden="true">
+            {[1, 2, 3, 4].map((lvl) => (
+              <div
+                key={lvl}
+                className={`h-1 flex-1 rounded-full transition-all duration-300 ${
+                  password.length > 0 && strength >= lvl ? strengthColors[strength] : "bg-surface-inset"
+                }`}
+              />
+            ))}
           </div>
+          {password.length > 0 && (
+            <p id="student-password-strength" className={`text-xs mt-1 ${strengthColors[strength].replace("bg-", "text-")}`}>
+              {strengthLabels[strength]}
+            </p>
+          )}
+          {fieldErrors.password && <p id="student-password-error" role="alert" className="text-xs text-danger mt-1">{fieldErrors.password}</p>}
         </div>
 
+        {/* Language + Level */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
             <label className="text-sm font-medium text-text">I want to learn</label>
-            <select 
-              className="flex h-11 w-full rounded-md border border-border bg-surface-inset px-3 py-2 text-sm text-text focus-ring"
+            <select
+              className={`flex h-11 w-full rounded-md border bg-surface-inset px-3 py-2 text-sm text-text focus-ring ${
+                fieldErrors.languageToLearn ? "border-danger" : "border-border"
+              }`}
               value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              required
+              onChange={(e) => { setLanguage(e.target.value); clearError("languageToLearn"); }}
             >
               <option value="" disabled>Select language...</option>
               <option value="spanish">Spanish 🇪🇸</option>
@@ -108,17 +182,19 @@ export default function StudentRegisterPage() {
               <option value="japanese">Japanese 🇯🇵</option>
               <option value="english">English 🇬🇧</option>
             </select>
+            {fieldErrors.languageToLearn && (
+              <p className="text-xs text-danger mt-1">{fieldErrors.languageToLearn}</p>
+            )}
           </div>
-          
+
           <div className="space-y-1">
             <label className="text-sm font-medium text-text">My level is</label>
-            <select 
+            <select
               className="flex h-11 w-full rounded-md border border-border bg-surface-inset px-3 py-2 text-sm text-text focus-ring"
               value={level}
-              onChange={(e) => setLevel(e.target.value)}
+              onChange={(e) => setLevel(e.target.value as "beginner" | "intermediate" | "advanced")}
             >
-              <option value="beginner">Beginner (A1)</option>
-              <option value="elementary">Elementary (A2)</option>
+              <option value="beginner">Beginner (A1-A2)</option>
               <option value="intermediate">Intermediate (B1-B2)</option>
               <option value="advanced">Advanced (C1-C2)</option>
             </select>
