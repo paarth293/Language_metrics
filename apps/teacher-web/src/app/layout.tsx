@@ -26,6 +26,7 @@ const caveat = Caveat({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
   title: "Language Metrics — Find Your Perfect Language Teacher",
   description:
     "Connect with verified language professionals for 1-on-1 live classes. Learn any language with expert teachers via our custom video platform.",

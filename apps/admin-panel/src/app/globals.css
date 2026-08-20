@@ -1,0 +1,94 @@
+@import "tailwindcss";
+@source "..";
+
+/* =====================================================
+   Language Matrix Admin — Theme Tokens
+   ===================================================== */
+
+:root {
+  /* LIGHT THEME (Default) */
+  color-scheme: light;
+
+  --lm-bg:          #F8F6F0;
+  --lm-surface:     #FFFFFF;
+  --lm-surface2:    #F1EFE7;
+  --lm-border:      #E5E0D8;
+  --lm-border2:     #D6CFC4;
+
+  --lm-text:        #1C2A3A;
+  --lm-text-muted:  #50637A;
+  --lm-text-subtle: #8295A9;
+
+  --lm-accent:      #C7982F;
+  --lm-accent-bg:   rgba(199, 152, 47, 0.15);
+
+  --lm-ok:          #10b981;
+  --lm-ok-bg:       rgba(16, 185, 129, 0.15);
+
+  --lm-err:         #ef4444;
+  --lm-err-bg:      rgba(239, 68, 68, 0.15);
+}
+
+[data-theme='dark'] {
+  /* DARK THEME (Premium Ultra-Dark Matte) */
+  color-scheme: dark;
+
+  /* Deep Blacks */
+  --lm-bg:          #0A0A0A;
+  --lm-surface:     #141414;
+  --lm-surface2:    #1A1A1A;
+  
+  /* Subtle Borders */
+  --lm-border:      rgba(255, 255, 255, 0.05);
+  --lm-border2:     rgba(255, 255, 255, 0.1);
+
+  /* High Contrast Text */
+  --lm-text:        #FFFFFF;
+  --lm-text-muted:  #A1A1AA;
+  --lm-text-subtle: #71717A;
+
+  /* Premium Gold Accent */
+  --lm-accent:      #EAB308;
+  --lm-accent-bg:   rgba(234, 179, 8, 0.1);
+
+  --lm-ok:          #10b981;
+  --lm-ok-bg:       rgba(16, 185, 129, 0.1);
+
+  --lm-err:         #ef4444;
+  --lm-err-bg:      rgba(239, 68, 68, 0.1);
+}
+
+*,*::before,*::after { box-sizing: border-box; }
+
+html, body {
+  background-color: var(--lm-bg);
+  color: var(--lm-text);
+  font-family: var(--font-manrope), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Subtle Grid Pattern for Light Mode */
+:root:not([data-theme='dark']) body {
+  background-image: 
+    linear-gradient(to right, rgba(0,0,0,0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0,0,0,0.02) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Subtle Grid Pattern for Dark Mode */
+[data-theme='dark'] body {
+  background-image: 
+    linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.font-serif {
+  font-family: var(--font-fraunces), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+}
+
+::-webkit-scrollbar { width:6px; height:6px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.25); border-radius:999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,0.5); }
