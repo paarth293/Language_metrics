@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+
 import { AuthService } from "@/features/auth/services/auth-service";
 import { registerTeacherSchema } from "@/features/auth/validators/auth";
 import { rateLimit, exceedsMaxBodySize } from "@/lib/rate-limit";

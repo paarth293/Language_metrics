@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { SlidersHorizontal, Lock, MessageSquare, Video, Clock, BookOpen } from "lucide-react";
+import { SlidersHorizontal, Lock, MessageSquare, Clock, BookOpen } from "lucide-react";
 import { motion } from "framer-motion";
 
 const features = [
