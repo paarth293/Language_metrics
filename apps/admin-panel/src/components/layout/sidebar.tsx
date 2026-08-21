@@ -90,8 +90,8 @@ export function Sidebar() {
       <div className="p-5 shrink-0">
         <button
           onClick={async () => {
-            const { logoutAction } = await import("@/app/login/actions");
-            await logoutAction();
+            await fetch("/api/logout", { method: "POST" });
+            window.location.href = "/login";
           }}
           style={{ color: "var(--lm-text-muted)" }}
           className="flex items-center gap-3 w-full px-4 py-2 rounded-lg text-[13px] font-semibold transition-colors hover:text-white hover:bg-white/5 mx-2"
