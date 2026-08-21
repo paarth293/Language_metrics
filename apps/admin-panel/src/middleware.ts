@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { SESSION_COOKIE } from '@/lib/auth'
 
 export function middleware(request: NextRequest) {
-  const adminSession = request.cookies.get('admin_session')?.value
+  const adminSession = request.cookies.get(SESSION_COOKIE)?.value
   
   // If no session cookie exists and the user is not already on /login, redirect to /login
   if (!adminSession && !request.nextUrl.pathname.startsWith('/login')) {

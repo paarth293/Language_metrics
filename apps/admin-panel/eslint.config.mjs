@@ -2,6 +2,7 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 import securityPlugin from "eslint-plugin-security";
+import noSecretsPlugin from "eslint-plugin-no-secrets";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -11,6 +12,7 @@ const eslintConfig = defineConfig([
   {
     plugins: {
       security: securityPlugin,
+      "no-secrets": noSecretsPlugin,
     },
     rules: {
       // Detects potential ReDoS vulnerabilities
@@ -27,8 +29,6 @@ const eslintConfig = defineConfig([
       "security/detect-child-process": "error",
       // Prevents disabling eslint-disable on security rules
       "security/detect-disable-mustache-escape": "warn",
-      // Detects possible SQL injection with Knex
-      "security/detect-sql-literal-injection": "error",
       // Detects new Buffer() which is deprecated and can overflow
       "security/detect-new-buffer": "error",
       // Flags possible path traversal
@@ -43,7 +43,7 @@ const eslintConfig = defineConfig([
           additionalRegexes: {
             "hardcoded-password": "password\\s*===\\s*['\"][^'\"]{4,}['\"]",
             "hardcoded-username": "username\\s*===\\s*['\"]admin['\"]",
-            "static-session-value": "\\.set\\(['\"][^'\"]+['\"],\\s*['\"]authenticated['\"]",
+            "static-session-value": "\\\.set\\(['\"][^'\"]+['\"],\\s*['\"]authenticated['\"]",
           },
         },
       ],
