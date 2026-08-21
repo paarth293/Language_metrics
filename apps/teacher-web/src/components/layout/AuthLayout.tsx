@@ -44,29 +44,29 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Right side: Branded Panel (Hidden on mobile) */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-[#f8f4ea] overflow-hidden flex-col items-center justify-center p-12 text-center text-navy">
-        {/* Crisp globe illustration in full colour */}
-        <div className="absolute inset-0 z-0 overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 flex-col bg-[#f8f4ea] overflow-hidden">
+        {/* Globe zone — upper 55% of the panel */}
+        <div className="relative flex-[0_0_55%] w-full overflow-hidden">
           <Image
             src="/brand/hero-globe.jpg"
             alt=""
             aria-hidden="true"
             fill
             sizes="50vw"
-            style={{ objectFit: "cover", objectPosition: "center", opacity: 0.9 }}
+            style={{ objectFit: "cover", objectPosition: "center top", opacity: 0.92 }}
             priority
           />
+          {/* Bottom fade into the cream background below */}
+          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#f8f4ea] to-transparent" />
         </div>
-        
-        {/* Soft gradient fade so text at the bottom is highly readable */}
-        <div className="absolute inset-x-0 bottom-0 h-[60%] bg-gradient-to-t from-[#f8f4ea] via-[#f8f4ea]/90 to-transparent z-0" />
-        
-        <div className="relative z-10 max-w-md space-y-6 mt-auto mb-12">
-          <h2 className="font-display text-4xl font-bold text-balance leading-tight text-navy">
-            The world&apos;s most effective way to learn a language.
+
+        {/* Text zone — lower 45%, completely clear of the image */}
+        <div className="flex flex-1 flex-col items-center justify-center px-12 pb-16 text-center text-navy">
+          <h2 className="font-display text-4xl font-bold text-balance leading-tight text-navy mb-4">
+            Find the right teacher.<br />Learn on your own schedule.
           </h2>
-          <p className="text-navy-2/80 text-lg font-medium">
-            1-on-1 live video classes with verified teachers. Pay securely with coins and learn anywhere.
+          <p className="text-navy-2/75 text-base font-medium max-w-sm">
+            Every teacher on our platform is manually verified before their first class. Book a ₹29 demo, then decide.
           </p>
         </div>
       </div>

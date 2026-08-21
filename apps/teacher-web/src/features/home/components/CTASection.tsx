@@ -32,7 +32,7 @@ export default function CTASection() {
               Ready to start learning?
             </h2>
             <p className="text-text-muted mb-8 text-balance">
-              Find a verified teacher, book a ₹49 demo class, and join your first live session today — no long-term commitment required.
+              Find a verified teacher, book a ₹29 demo class, and join your first live session today — no long-term commitment required.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 w-full">
               <Button asChild variant="gold" size="lg" className="shadow-glow-gold flex items-center gap-2">
@@ -41,7 +41,7 @@ export default function CTASection() {
                 </Link>
               </Button>
               <Button asChild variant="outline" size="lg">
-                <Link href="#pricing">Book a Demo — ₹49</Link>
+                <Link href="#pricing">Book a Demo — ₹29</Link>
               </Button>
             </div>
           </motion.div>

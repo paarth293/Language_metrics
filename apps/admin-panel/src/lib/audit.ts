@@ -1,34 +1,66 @@
 import { db } from "@repo/database";
 
-export type AuditEventType = "LOGIN_SUCCESS" | "LOGIN_FAILURE" | "LOGOUT";
+// Every privileged action is recorded. The AdminAuditLog model is append-only
+// and referenced to the acting admin's User row for non-repudiation.
 
-export async function writeAuditLog(input: {
-  eventType: AuditEventType;
-  actorId?: string | null;
-  adminId?: string | null;
-  ipAddress?: string | null;
-  userAgent?: string | null;
-  outcome: "success" | "failure";
-}): Promise<void> {
+export interface AuditContext {
+  adminId: string;
+}
+
+export async function auditLog(
+  ctx: AuditContext,
+  action: string,
+  targetId: string,
+  details?: Record<string, unknown>
+): Promise<void> {
   try {
     await db.adminAuditLog.create({
       data: {
-        eventType: input.eventType,
-        actorId: input.actorId ?? undefined,
-        adminId: input.adminId ?? undefined,
-        ipAddress: input.ipAddress ?? undefined,
-        userAgent: input.userAgent ?? undefined,
-        outcome: input.outcome,
+        adminId: ctx.adminId,
+        action,
+        targetId: targetId ?? "",
+        details: details ? JSON.stringify(details) : null,
       },
     });
   } catch (err) {
-    // Never fail the auth flow because audit write failed — log server-side.
-    console.error("[audit] failed to write AdminAuditLog", err);
+    // Audit must never break the primary operation, but failures are surfaced.
+    console.error("audit log write failed:", err);
   }
 }
 
-export function clientIp(headers: Headers): string {
-  const forwarded = headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0]!.trim();
-  return headers.get("x-real-ip") ?? "unknown";
+export async function recordLoginAttempt(
+  email: string,
+  ip: string | null,
+  result: "SUCCESS" | "FAILED" | "RATE_LIMITED" | "LOCKED",
+  adminUserId: string | null
+): Promise<void> {
+  try {
+    await db.loginAttempt.create({
+      data: { email, ip, result, adminUserId },
+    });
+  } catch (err) {
+    console.error("login attempt write failed:", err);
+  }
+}
+
+export async function recordSecurityEvent(
+  type: string,
+  severity: "INFO" | "WARN" | "CRITICAL",
+  details: Record<string, unknown>,
+  actorUserId: string | null,
+  ip: string | null
+): Promise<void> {
+  try {
+    await db.securityEvent.create({
+      data: {
+        type,
+        severity,
+        details: JSON.stringify(details),
+        actorUserId,
+        ip,
+      },
+    });
+  } catch (err) {
+    console.error("security event write failed:", err);
+  }
 }

@@ -9,7 +9,7 @@ import Link from "next/link";
 const pricingPlans = [
   {
     name: "Demo Class",
-    price: "₹49",
+    price: "₹29",
     priceSub: "one-time",
     popular: false,
     icon: Zap,
@@ -19,7 +19,7 @@ const pricingPlans = [
       "Runs on our custom video system (not Google Meet)",
       "Recorded automatically",
       "No obligation to continue after demo",
-      "Full ₹49 goes to the platform (not teacher)",
+      "Full ₹29 goes to the platform (not teacher)",
     ],
     cta: "Book a Demo",
     ctaHref: "/register/student",
@@ -27,14 +27,14 @@ const pricingPlans = [
   },
   {
     name: "Hourly Learning",
-    price: "₹500–₹600",
+    price: "₹200–₹1,500",
     priceSub: "per hour",
     popular: true,
     icon: Sparkles,
     description: "Pay per session at your teacher's rate. Flexible, no long-term commitment.",
     features: [
       "1-on-1 live class with your chosen teacher",
-      "Rates set by each teacher (₹500–₹600/hr typical)",
+      "Rates set by each teacher (₹200–₹1,500/hr depending on experience)",
       "Custom LiveKit video classroom — whiteboard & screen share included",
       "Automatic class recording",
       "Pay per session — no subscription required",
@@ -45,14 +45,14 @@ const pricingPlans = [
   },
   {
     name: "Full Course",
-    price: "₹15,000–₹30,000",
+    price: "₹12,000–₹45,000",
     priceSub: "per level, one-time",
     popular: false,
     icon: BookOpen,
-    description: "Complete a full language proficiency level. Pay once upfront — teacher is paid in installments as the course progresses.",
+    description: "Complete a full language proficiency level. Pay upfront or in installments — your choice.",
     features: [
       "Complete language level (e.g. Beginner → Intermediate)",
-      "One-time upfront payment",
+      "Pay in installments — split into 2 or 3 parts",
       "Teacher paid in installments as course progresses",
       "All classes recorded automatically",
       "Schedule managed from your dashboard",
@@ -65,8 +65,8 @@ const pricingPlans = [
 
 const faqs = [
   {
-    q: "Why does the ₹49 demo fee go to the platform, not the teacher?",
-    a: "The ₹49 demo fee goes 100% to the platform — not the teacher. This structure prevents ghosting and abuse (students not showing up to free trials), and ensures both teacher and student are committed to the session.",
+    q: "Why does the ₹29 demo fee go to the platform, not the teacher?",
+    a: "The ₹29 demo fee goes 100% to the platform — not the teacher. This structure prevents ghosting and abuse (students not showing up to free trials), and ensures both teacher and student are committed to the session.",
   },
   {
     q: "How are payments collected?",
@@ -116,7 +116,7 @@ export default function Pricing() {
             Simple, upfront pricing for students
           </h2>
           <p className="text-lg text-text-muted max-w-2xl mx-auto">
-            Start with a ₹49 demo class. Then choose hourly sessions or a full course — you decide the pace.
+            Start with a ₹29 demo class. Then choose hourly sessions or a full course — you decide the pace.
           </p>
         </motion.div>
 

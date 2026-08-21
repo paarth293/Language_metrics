@@ -1,36 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Language Metrics — Admin Panel
 
-## Getting Started
+Administrative dashboard for the Language Metrics platform, built to the
+`LM_Admin_Panel_Specification.pdf` blueprint.
 
-First, run the development server:
+> **⚠️ Read `SECURITY.md` before deploying.** This panel is production-bound
+> and ships hardened auth, RBAC, rate-limiting, audit logging and security
+> headers.
+
+## Stack
+
+- **Next.js 16 (App Router)** · React 19 · TypeScript · Tailwind v4
+- **Prisma + PostgreSQL** via the shared `@repo/database` package
+- **jsonwebtoken** (signed session JWTs) · **bcryptjs** (password hashing)
+- **zod** available for input validation
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# 1. Install dependencies (from repo root)
+npm install
+
+# 2. Configure environment
+cp apps/admin-panel/.env.example apps/admin-panel/.env
+#  ...fill in DATABASE_URL, DIRECT_URL and a strong JWT_SECRET (>=32 chars)
+
+# 3. Sync the schema to the database (additive; creates new admin tables)
+cd packages/database && npx prisma db push
+
+# 4. Provision your first admin (from repo root)
+ADMIN_EMAIL=admin@yourdomain.com \
+ADMIN_PASSWORD='a-very-strong-password-here' \
+ADMIN_ROLE=SUPER_ADMIN \
+node --env-file=.env apps/admin-panel/scripts/create-admin.mjs
+
+# 5. Run the panel (port 3001)
+npm run dev -w admin-panel
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Optional sample content for non-production:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+node --env-file=.env apps/admin-panel/scripts/seed-dev.mjs
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Key scripts
 
-## Learn More
+| Script | Purpose |
+| --- | --- |
+| `scripts/create-admin.mjs` | Create / rotate an admin account (bcrypt hashing) |
+| `scripts/seed-dev.mjs` | Seed demo languages, courses, coupons, complaints (dev only) |
 
-To learn more about Next.js, take a look at the following resources:
+## Features (spec coverage)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Dashboard, Students, Teachers (approval / suspension / BGV / QA), Languages,
+Courses, Classes, Payments, GST & Invoices, Teacher Payouts, Recordings,
+Complaints, Reviews, Coupons, Notifications, Analytics, Security &
+Monitoring, Legal & Documents, Settings, Admin Users & Permissions, Audit Logs.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Security model
 
-## Deploy on Vercel
+See [`SECURITY.md`](./SECURITY.md) for the full note. Highlights:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- No hardcoded credentials; bcrypt-hashed admin passwords only.
+- HttpOnly + Secure + SameSite=strict signed session JWT.
+- Per-IP rate limiting, account lockout, timing-safe login.
+- Role presets + granular per-user permissions (RBAC).
+- Full audit logging of every privileged action.
+- Security headers + CSP; framework identity hidden.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Production reminders
+
+- Never commit `.env`. Use `.env.example`.
+- Set a strong `JWT_SECRET` in prod (rotate on leak).
+- Enforce DB-level RLS (see `SECURITY.md`); keep DB creds off the client.

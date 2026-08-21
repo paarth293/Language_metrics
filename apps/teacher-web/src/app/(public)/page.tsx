@@ -8,7 +8,6 @@ import Features from "@/features/home/components/Features";
 import TeacherSpotlight from "@/features/home/components/TeacherSpotlight";
 import Pricing from "@/features/home/components/Pricing";
 import CoinSystem from "@/features/home/components/CoinSystem";
-import Mission from "@/features/home/components/Mission";
 import CTASection from "@/features/home/components/CTASection";
 
 export default function HomePage() {
@@ -24,7 +23,6 @@ export default function HomePage() {
       <TeacherSpotlight />
       <Pricing />
       <CoinSystem />
-      <Mission />
       <CTASection />
     </main>
   );

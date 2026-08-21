@@ -135,7 +135,7 @@ export default function Hero() {
               <div className="flex justify-between items-center text-sm text-text-muted">
                 <span>Today, 14:00 (Local)</span>
                 <span className="font-semibold text-text flex items-center gap-1">
-                  ₹49
+                  ₹29
                 </span>
               </div>
             </div>

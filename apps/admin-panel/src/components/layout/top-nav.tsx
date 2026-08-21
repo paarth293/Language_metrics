@@ -1,62 +1,72 @@
 "use client";
 
-import { Bell, Search, Moon, Sun } from "lucide-react";
+import { Bell, ChevronDown, LockKeyhole, Moon, Search, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
+import type { SessionUser } from "@/lib/rbac";
 
-export function TopNav() {
+const emptySubscribe = () => () => undefined;
+
+export function TopNav({ admin }: { admin: SessionUser }) {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const initials = admin.name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "SA";
 
   return (
-    <header
-      style={{ background: "var(--lm-bg)" }}
-      className="h-[72px] px-8 flex items-center justify-between sticky top-0 z-10 transition-colors duration-200"
-    >
-      {/* Search */}
-      <div className="flex-1 max-w-md">
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2" size={15} style={{ color: "var(--lm-text-subtle)" }} />
-          <input
-            type="text"
-            placeholder="Search across portal..."
-            style={{
-              background: "var(--lm-surface)",
-              color: "var(--lm-text)",
-            }}
-            className="w-full rounded-full py-2.5 pl-11 pr-4 text-[13px] font-medium placeholder-gray-500 outline-none focus:ring-1 focus:ring-yellow-500/50 transition-all"
-          />
-        </div>
+    <header className="sticky top-0 z-30 flex h-[86px] items-center justify-between border-b border-[var(--lm-line)] bg-[color-mix(in_srgb,var(--lm-surface)_88%,transparent)] px-9 backdrop-blur-md max-[900px]:px-5 max-[640px]:h-[74px] max-[640px]:px-4">
+      <div className="relative flex w-full max-w-[430px] items-center">
+        <Search size={18} className="pointer-events-none absolute left-4 text-[var(--lm-subtle)]" aria-hidden="true" />
+        <input
+          type="search"
+          aria-label="Search people, classes, payments"
+          placeholder="Search people, classes, payments…"
+          className="lm-input h-11 w-full pl-11 pr-16 text-[13px]"
+        />
+        <span className="pointer-events-none absolute right-3 rounded-md border border-[var(--lm-line)] bg-[var(--lm-surface)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--lm-subtle)]">
+          ⌘ K
+        </span>
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center gap-4 ml-4">
-        <button style={{ color: "var(--lm-text-muted)" }} className="relative hover:text-white transition-colors">
-          <Bell size={18} />
-          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 border-2 border-[#0A0A0A] rounded-full"></span>
+      <div className="ml-5 flex items-center gap-4 max-[700px]:gap-1.5">
+        <div className="hidden items-center gap-2 rounded-full border border-[var(--lm-line)] bg-[var(--lm-paper-muted)] px-3 py-1.5 text-[11px] font-semibold text-[var(--lm-teal-deep)] min-[820px]:flex">
+          <LockKeyhole size={14} aria-hidden="true" />
+          <span>Secure session</span>
+        </div>
+
+        <button type="button" className="lm-icon-button relative" aria-label="Notifications, 4 unread" title="Notifications">
+          <Bell size={19} strokeWidth={1.8} aria-hidden="true" />
+          <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--lm-red)] px-1 font-mono text-[9px] text-white">4</span>
         </button>
 
-        {mounted && (
-          <button 
+        {mounted ? (
+          <button
+            type="button"
+            className="lm-icon-button"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            style={{ color: "var(--lm-text-muted)" }} 
-            className="hover:text-white transition-colors"
+            aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
             title="Toggle theme"
           >
-            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+            {theme === "dark" ? <Sun size={19} strokeWidth={1.8} aria-hidden="true" /> : <Moon size={19} strokeWidth={1.8} aria-hidden="true" />}
           </button>
+        ) : (
+          <span className="lm-icon-button" aria-hidden="true"><Moon size={19} strokeWidth={1.8} /></span>
         )}
 
-        <button className="flex items-center justify-center overflow-hidden shrink-0 ml-2 rounded-full border border-gray-800 hover:border-gray-600 transition-colors">
-          <img
-            src="https://api.dicebear.com/7.x/notionists/svg?seed=Admin&backgroundColor=transparent"
-            alt="Avatar"
-            className="w-8 h-8 object-cover bg-[#1A1A1A]"
-          />
+        <span className="mx-1 h-7 w-px bg-[var(--lm-line)] max-[700px]:hidden" aria-hidden="true" />
+
+        <button type="button" className="flex min-h-10 items-center gap-3 rounded-xl px-2 transition-colors hover:bg-[var(--lm-hover)] max-[700px]:gap-0" aria-label={`Admin profile for ${admin.name}`}>
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#2d5a5b] text-[12px] font-bold text-[#e9f7f3]">{initials}</span>
+          <span className="hidden text-left min-[820px]:block">
+            <span className="block text-[12px] font-bold text-[var(--lm-ink-strong)]">{admin.name}</span>
+            <span className="mt-0.5 block max-w-[140px] truncate text-[10px] text-[var(--lm-subtle)]">{admin.email}</span>
+          </span>
+          <ChevronDown size={15} className="hidden text-[var(--lm-subtle)] min-[820px]:block" aria-hidden="true" />
         </button>
       </div>
     </header>

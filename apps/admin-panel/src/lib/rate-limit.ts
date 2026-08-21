@@ -1,76 +1,38 @@
-/**
- * In-memory sliding-window rate limiter for the admin login action.
- *
- * NOTE (see SECURITY.md): this is acceptable for single-instance
- * dev/staging only. Before horizontal scaling, replace with
- * @upstash/ratelimit (Redis) so counters are shared across instances.
- */
+// Fixed-window in-memory rate limiter. Suitable for a single-instance admin
+// panel; for horizontally scaled deployments replace with a shared store
+// (Redis) or a DB-backed counter. Login attempts are ALSO persisted to the
+// LoginAttempt table for forensic audit regardless of this limiter.
 
-interface Window {
-  timestamps: number[];
+interface Bucket {
+  count: number;
+  resetAt: number;
 }
 
-declare global {
-  var rateLimitGlobal: Map<string, Window> | undefined;
-}
-
-const store = globalThis.rateLimitGlobal || new Map<string, Window>();
-if (process.env.NODE_ENV !== "production") {
-  globalThis.rateLimitGlobal = store;
-}
-
-function prune(timestamps: number[], windowMs: number, now: number): number[] {
-  return timestamps.filter((t) => now - t < windowMs);
-}
+const buckets = new Map<string, Bucket>();
 
 /**
- * Returns true when `identifier` has already made `max` attempts
- * inside the window (caller should respond with 429).
- * Does NOT record the current attempt — call `recordAttempt` after.
+ * @returns {ok} false when the key has exceeded the window limit.
  */
-export function isRateLimited(
-  identifier: string,
-  {
-    windowMs = Number(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
-    max = Number(process.env.RATE_LIMIT_MAX) || 4,
-  }: { windowMs?: number; max?: number } = {},
-): boolean {
+export function rateLimit(
+  key: string,
+  opts: { limit: number; windowMs: number }
+): { ok: boolean; retryAfterMs: number } {
   const now = Date.now();
-  const entry = store.get(identifier);
-  if (!entry) return false;
-  entry.timestamps = prune(entry.timestamps, windowMs, now);
-  return entry.timestamps.length >= max;
-}
+  const bucket = buckets.get(key);
 
-/** Record one attempt for the identifier. */
-export function recordAttempt(
-  identifier: string,
-  {
-    windowMs = Number(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
-  }: { windowMs?: number } = {},
-): void {
-  const now = Date.now();
-  const entry = store.get(identifier) ?? { timestamps: [] };
-  entry.timestamps = prune(entry.timestamps, windowMs, now);
-  entry.timestamps.push(now);
-  store.set(identifier, entry);
-}
-
-/**
- * Key by IP and by username so rotating either alone cannot bypass the limit.
- * Returns true if either key is limited (after recording both).
- */
-export function checkAndRecordLoginAttempt(
-  ip: string,
-  username: string,
-): boolean {
-  const ipKey = `ip:${ip || "unknown"}`;
-  const userKey = `user:${(username || "unknown").toLowerCase()}`;
-
-  if (isRateLimited(ipKey) || isRateLimited(userKey)) {
-    return true;
+  if (!bucket || bucket.resetAt <= now) {
+    buckets.set(key, { count: 1, resetAt: now + opts.windowMs });
+    return { ok: true, retryAfterMs: 0 };
   }
-  recordAttempt(ipKey);
-  recordAttempt(userKey);
-  return false;
+
+  if (bucket.count >= opts.limit) {
+    return { ok: false, retryAfterMs: bucket.resetAt - now };
+  }
+
+  bucket.count += 1;
+  return { ok: true, retryAfterMs: 0 };
+}
+
+export function clearRateLimit(key: string): void {
+  buckets.delete(key);
 }

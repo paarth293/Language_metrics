@@ -46,12 +46,19 @@ model User {
   payments         Payment[]
   notifications    Notification[]
   adminLogs        AdminAuditLog[]
+  adminUser        AdminUser?
 }
 
 enum ProficiencyLevel {
   BEGINNER
   INTERMEDIATE
   ADVANCED
+}
+
+enum StudentStatus {
+  ACTIVE
+  SUSPENDED
+  BLOCKED
 }
 
 /// RLS: Public read. Self write.
@@ -63,6 +70,7 @@ model StudentProfile {
   name             String
   languageToLearn  String
   proficiencyLevel ProficiencyLevel
+  status           StudentStatus @default(ACTIVE)
 
   // Relations
   bookings Booking[]
@@ -108,6 +116,7 @@ model TeacherProfile {
   payouts      Payout[]
   reviews      Review[]
 
+  @@index([status])
   @@index([language, status])
 }
 
@@ -370,6 +379,9 @@ model Payout {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
 }
 
 // ==========================================
@@ -473,4 +485,264 @@ model AdminAuditLog {
 
   adminId String? @map("admin_id") @db.Uuid
   admin   User?   @relation(fields: [adminId], references: [id])
+}
+
+// ==========================================
+// 9. ADMIN AUTH, RBAC & SECURITY MONITORING
+// ==========================================
+
+enum AdminUserStatus {
+  ACTIVE
+  SUSPENDED
+  DISABLED
+}
+
+/// Admin panel credential store. Linked to a User row (which mirrors
+/// Supabase auth.users.id) so audit logs keep referential integrity.
+/// Password hashes are bcrypt; never stored in plain text.
+model AdminUser {
+  userId        String @id @db.Uuid
+  user          User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name          String
+  email         String @unique
+  passwordHash  String
+  roleKey       String // SUPER_ADMIN | FINANCE_ADMIN | TEACHER_ADMIN | SUPPORT_ADMIN | CONTENT_ADMIN
+  isSuperAdmin  Boolean          @default(false)
+  permissions   String[] // Granular overrides; empty array = use role preset.
+  status        AdminUserStatus  @default(ACTIVE)
+  mustChangePassword Boolean       @default(false)
+
+  lastLoginAt      DateTime?
+  failedLoginCount Int      @default(0)
+  lockedUntil      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model LoginAttempt {
+  id          String  @id @default(uuid()) @db.Uuid
+  email       String
+  ip          String?
+  result      String // SUCCESS | FAILED | RATE_LIMITED | LOCKED
+  adminUserId String? @db.Uuid
+  createdAt   DateTime @default(now())
+
+  @@index([email])
+  @@index([ip])
+}
+
+/// Non-repudiation / monitoring events surfaced in Security & Monitoring.
+model SecurityEvent {
+  id          String  @id @default(uuid()) @db.Uuid
+  type        String // SUSPICIOUS_ACTIVITY | CONTACT_SHARING | LOGIN | SESSION_REVOKED ...
+  severity    String  @default("INFO") // INFO | WARN | CRITICAL
+  actorUserId String? @db.Uuid
+  details     String? // JSON
+  ip          String?
+  createdAt   DateTime @default(now())
+
+  @@index([type])
+  @@index([createdAt])
+}
+
+// ==========================================
+// 10. LANGUAGE & COURSE MANAGEMENT
+// ==========================================
+
+enum LanguageStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model Language {
+  id        String         @id @default(uuid()) @db.Uuid
+  name      String         @unique
+  code      String         @unique
+  flagEmoji String?
+  iconUrl   String?
+  levels    Int            @default(6)
+  status    LanguageStatus @default(ACTIVE)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  courses Course[]
+}
+
+enum CourseStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+model Course {
+  id           String       @id @default(uuid()) @db.Uuid
+  languageId   String       @db.Uuid
+  language     Language     @relation(fields: [languageId], references: [id])
+
+  name             String
+  level            String
+  description      String?
+  syllabus         String? // markdown
+  price            Int // paise
+  durationWeeks    Int
+  classCount       Int
+  classDurationMin Int
+  status           CourseStatus @default(DRAFT)
+  published        Boolean      @default(false)
+  teacherIds       String[] // Assigned teacher userIds
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([languageId])
+}
+
+// ==========================================
+// 11. COUPONS & OFFERS
+// ==========================================
+
+enum CouponDiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+enum CouponScope {
+  GLOBAL
+  LANGUAGE
+  COURSE
+  FIRST_STUDENT
+}
+
+model Coupon {
+  id            String             @id @default(uuid()) @db.Uuid
+  code          String             @unique
+  discountType  CouponDiscountType
+  discountValue Int // percentage OR fixed amount in paise
+  scope         CouponScope        @default(GLOBAL)
+  scopeTargetId String? // languageId / courseId when scoped
+  minOrderValue Int                @default(0)
+  maxUses       Int?
+  usedCount     Int                @default(0)
+  expiresAt     DateTime?
+  isActive      Boolean            @default(true)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+}
+
+// ==========================================
+// 12. GST & INVOICING
+// ==========================================
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PAID
+  CANCELLED
+  CREDIT_NOTE
+}
+
+enum BillingType {
+  B2B
+  B2C
+}
+
+model Invoice {
+  id               String        @id @default(uuid()) @db.Uuid
+  invoiceNumber    String        @unique
+  orderId          String        @unique
+  userId           String        @db.Uuid
+  billingType      BillingType   @default(B2C)
+  customerGstin    String?
+  grossAmount      Int // paise, before tax
+  cgstPct          Int
+  sgstPct          Int
+  igstPct          Int
+  taxAmount        Int // paise
+  totalAmount      Int // paise
+  status           InvoiceStatus @default(ISSUED)
+  pdfUrl           String?
+  creditNoteNumber String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+// ==========================================
+// 13. COMPLAINTS / DISPUTE TICKETS
+// ==========================================
+
+enum ComplaintStatus {
+  NEW
+  INVESTIGATING
+  ACTION_REQUIRED
+  RESOLVED
+  CLOSED
+}
+
+enum ComplaintCategory {
+  CONTACT_SHARING
+  TEACHER_BEHAVIOUR
+  PAYMENT
+  REFUND
+  OTHER
+}
+
+model Complaint {
+  id            String            @id @default(uuid()) @db.Uuid
+  ticketNumber  String            @unique // e.g. LM1024
+  studentId     String?           @db.Uuid
+  teacherId     String?           @db.Uuid
+  bookingId     String?           @db.Uuid
+  category      ComplaintCategory @default(OTHER)
+  subject       String
+  description   String
+  status        ComplaintStatus   @default(NEW)
+  severity      String            @default("MEDIUM")
+  assignedTo    String?           @db.Uuid
+  internalNotes String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([status])
+  @@index([ticketNumber])
+}
+
+// ==========================================
+// 14. COMMUNICATION TEMPLATES
+// ==========================================
+
+enum NotificationChannel {
+  PUSH
+  EMAIL
+  SMS
+  INAPP
+}
+
+model NotificationTemplate {
+  id         String             @id @default(uuid()) @db.Uuid
+  name       String
+  channel    NotificationChannel
+  title      String
+  body       String
+  audience   String // ALL_STUDENTS | ALL_TEACHERS | SPECIFIC
+  isActive   Boolean            @default(true)
+  lastSentAt DateTime?
+  createdAt  DateTime           @default(now())
+}
+
+// ==========================================
+// 15. MARKETING / CMS
+// ==========================================
+
+model CmsContent {
+  id          String  @id @default(uuid()) @db.Uuid
+  slug        String  @unique
+  title       String
+  contentType String // HOMEPAGE_BANNER | FAQ | ABOUT | TESTIMONIAL | BLOG | ANNOUNCEMENT | PROMOTION
+  content     String // rich text / JSON
+  isActive    Boolean @default(true)
+  order       Int     @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

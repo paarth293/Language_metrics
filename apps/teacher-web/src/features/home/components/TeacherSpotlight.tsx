@@ -174,7 +174,7 @@ export default function TeacherSpotlight() {
                   </div>
                   <Button asChild variant="primary" size="sm" className="group/btn">
                     <Link href={`/teacher/${teacher.id}`} className="flex items-center gap-1.5">
-                      Book ₹49 Demo
+                      Book ₹29 Demo
                       <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/btn:translate-x-0.5" />
                     </Link>
                   </Button>
