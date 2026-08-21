@@ -12,11 +12,11 @@ export default async function DashboardLayout({
   const admin = await requireAdmin();
 
   return (
-    <div className="min-h-screen flex w-full">
+    <div className="lm-shell flex min-h-screen w-full">
       <Sidebar admin={admin} />
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex min-w-0 flex-1 flex-col">
         <TopNav admin={admin} />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto">
+        <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-[var(--lm-paper)]">
           {children}
         </main>
       </div>
