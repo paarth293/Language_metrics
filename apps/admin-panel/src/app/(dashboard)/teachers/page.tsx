@@ -1,172 +1,130 @@
+import { Inbox } from "lucide-react";
 import { db } from "@repo/database";
 import { requireAdmin } from "@/lib/guards";
-import { MoreHorizontal, Search, Filter } from "lucide-react";
+import { SearchInput } from "@/components/SearchInput";
+import { Pagination } from "@/components/Pagination";
+import { statusClass, statusLabel } from "@/components/dashboard/teacher-approval-table";
+import type { ApprovalStatus } from "@/components/dashboard/types";
 import Link from "next/link";
 import { Prisma } from "@prisma/client";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
-export default async function TeachersPage({
-  searchParams,
-}: {
-  searchParams: { filter?: string; q?: string };
+const tabs = [
+  { key: "all", label: "All teachers", href: "/teachers?filter=all" },
+  { key: "pending", label: "Pending approval", href: "/teachers?filter=pending" },
+  { key: "suspended", label: "Suspended / rejected", href: "/teachers?filter=suspended" },
+] as const;
+
+function formatDate(date: Date): string {
+  return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function initials(name: string): string {
+  return name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "NA";
+}
+
+export default async function TeachersPage(props: {
+  searchParams: Promise<{ filter?: string; q?: string; page?: string }>;
 }) {
   await requireAdmin();
+  const searchParams = await props.searchParams;
 
-  // Resolve search parameters for Next 15 compatible way
   const filter = searchParams.filter || "all";
   const q = searchParams.q || "";
+  const page = Math.max(parseInt(searchParams.page || "1", 10), 1);
+  const pageSize = 20;
+  const skip = (page - 1) * pageSize;
 
-  // Build the query where clause
-  let whereClause: Prisma.TeacherProfileWhereInput = {};
+  const whereClause: Prisma.TeacherProfileWhereInput = {};
 
-  if (q) {
-    whereClause.name = { contains: q, mode: "insensitive" };
-  }
+  if (q) whereClause.name = { contains: q, mode: "insensitive" };
+  if (filter === "pending") whereClause.status = "PENDING";
+  if (filter === "suspended") whereClause.status = "REJECTED";
 
-  if (filter === "pending") {
-    whereClause.status = "PENDING";
-  } else if (filter === "suspended") {
-    // Assuming you have a suspended status, or we map it
-    // Wait, the schema has: PENDING, INTERVIEW_SCHEDULED, APPROVED, REJECTED.
-    // Suspended might be an overarching User status or a new Teacher status. Let's use REJECTED as a placeholder for suspended for now.
-    whereClause.status = "REJECTED";
-  }
+  const [teachers, totalCount] = await Promise.all([
+    db.teacherProfile.findMany({
+      where: whereClause,
+      select: { userId: true, name: true, language: true, status: true, createdAt: true, user: { select: { email: true } } },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: pageSize,
+    }),
+    db.teacherProfile.count({ where: whereClause }),
+  ]);
 
-  const teachers = await db.teacherProfile.findMany({
-    where: whereClause,
-    include: { user: true },
-    orderBy: { createdAt: 'desc' }
-  });
-
-  const cardStyle = {
-    background: "var(--lm-surface)",
-    border: "1px solid var(--lm-border2)",
-  };
-
-  const activeTabStyle = "border-b-2 border-indigo-500 text-indigo-400 font-medium";
-  const inactiveTabStyle = "text-gray-400 hover:text-gray-300 transition-colors";
+  const totalPages = Math.ceil(totalCount / pageSize);
+  const hasFilters = Boolean(q) || filter !== "all";
 
   return (
-    <div className="p-7 space-y-6 pb-10">
-      {/* Breadcrumb & Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="mx-auto max-w-[1230px] px-9 pb-12 pt-9 max-[900px]:px-5 max-[640px]:px-4">
+      <div className="flex flex-col gap-5">
         <div>
-          <h1 className="text-2xl font-bold text-white mb-1">Teacher Management</h1>
-          <div className="flex items-center gap-2 text-[13px]">
-            <span style={{ color: "var(--lm-text)" }} className="font-semibold">Dashboard</span>
-            <span style={{ color: "var(--lm-text-subtle)" }}>/</span>
-            <span style={{ color: "var(--lm-text-muted)" }}>Teachers</span>
+          <div className="mb-3 flex items-center gap-2 text-[11px] font-medium text-[var(--lm-subtle)]"><span>People</span><span aria-hidden="true">/</span><span className="text-[var(--lm-muted)]">Teachers</span></div>
+          <h1 className="lm-page-title">Teacher approvals</h1>
+          <p className="lm-body-copy mt-2">Review applications, verify teaching profiles, and keep the network healthy.</p>
+        </div>
+
+        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-[var(--lm-line)]">
+          <nav aria-label="Teacher views" className="flex min-w-0 gap-6 overflow-x-auto">
+            {tabs.map((tab) => {
+              const active = filter === tab.key;
+              return <Link key={tab.key} href={tab.href} aria-current={active ? "page" : undefined} className={`border-b-2 px-1 pb-3 text-[12px] font-semibold transition-colors ${active ? "border-[var(--lm-teal)] text-[var(--lm-teal-deep)]" : "border-transparent text-[var(--lm-muted)] hover:text-[var(--lm-ink-strong)]"}`}>{tab.label}</Link>;
+            })}
+          </nav>
+          <div className="pb-2"><SearchInput placeholder="Search teachers" /></div>
+        </div>
+      </div>
+
+      <section className="lm-panel mt-6 overflow-hidden" aria-labelledby="teacher-directory-title">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--lm-line)] px-6 py-5">
+          <div>
+            <div className="flex items-center gap-2.5"><h2 id="teacher-directory-title" className="text-[16px] font-bold tracking-[-0.02em] text-[var(--lm-ink-strong)]">Teacher directory</h2><span className="rounded-full bg-[var(--lm-teal-soft)] px-2 py-1 font-mono text-[10px] font-semibold text-[var(--lm-teal-deep)]">{totalCount} records</span></div>
+            <p className="mt-1.5 text-[11px] text-[var(--lm-muted)]">Latest applications appear first. Select a profile to review documents and actions.</p>
           </div>
+          <div className="flex items-center gap-2 text-[10px] text-[var(--lm-subtle)]"><span className="h-1.5 w-1.5 rounded-full bg-[var(--lm-teal)]" /> Live queue</div>
         </div>
-      </div>
 
-      {/* Tabs & Search */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b" style={{ borderColor: "var(--lm-border2)" }}>
-        <div className="flex gap-6 text-sm">
-          <Link href="/teachers?filter=all" className={`pb-3 px-1 ${filter === 'all' ? activeTabStyle : inactiveTabStyle}`}>
-            All Teachers
-          </Link>
-          <Link href="/teachers?filter=pending" className={`pb-3 px-1 ${filter === 'pending' ? activeTabStyle : inactiveTabStyle}`}>
-            Pending Approval
-          </Link>
-          <Link href="/teachers?filter=suspended" className={`pb-3 px-1 ${filter === 'suspended' ? activeTabStyle : inactiveTabStyle}`}>
-            Suspended / Rejected
-          </Link>
-        </div>
-        
-        <form className="pb-2 flex items-center relative">
-          <Search size={16} className="absolute left-3 text-gray-500" />
-          <input 
-            type="text" 
-            name="q"
-            defaultValue={q}
-            placeholder="Search teachers..." 
-            className="pl-9 pr-4 py-1.5 text-sm rounded bg-gray-800 border border-gray-700 text-white focus:outline-none focus:border-indigo-500"
-          />
-          <input type="hidden" name="filter" value={filter} />
-        </form>
-      </div>
-
-      {/* Table */}
-      <div style={cardStyle} className="rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full min-w-[760px] border-collapse text-left">
+            <caption className="sr-only">Teacher approval directory</caption>
             <thead>
-              <tr style={{ background: "var(--lm-bg)", borderBottom: "1px solid var(--lm-border2)" }}>
-                {["Teacher Name", "Applied On", "Status", "Action"].map((h, i) => (
-                  <th
-                    key={h}
-                    style={{ color: "var(--lm-text-subtle)" }}
-                    className={`py-3 px-5 text-[11px] font-semibold uppercase tracking-wider ${i === 3 ? "text-right" : ""}`}
-                  >
-                    {h}
-                  </th>
-                ))}
+              <tr className="border-b border-[var(--lm-line)] bg-[var(--lm-paper-muted)]">
+                <th scope="col" className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Teacher</th>
+                <th scope="col" className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Applied on</th>
+                <th scope="col" className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Language</th>
+                <th scope="col" className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Status</th>
+                <th scope="col" className="px-6 py-3 text-right text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Action</th>
               </tr>
             </thead>
-            <tbody>
-              {teachers.map((teacher) => (
-                <tr
-                  key={teacher.userId}
-                  style={{ borderBottom: "1px solid var(--lm-border)" }}
-                  className="hover:bg-gray-800/40 transition-colors group"
-                >
-                  <td className="py-3.5 px-5">
-                    <div className="flex items-center gap-3">
-                      <div style={{ background: "var(--lm-surface2)" }}
-                        className="h-7 w-7 rounded-full overflow-hidden shrink-0">
-                        <img
-                          src={`https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(teacher.name)}&backgroundColor=transparent`}
-                          alt="Avatar"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <span style={{ color: "var(--lm-text)" }} className="text-[13px] font-medium">{teacher.name}</span>
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-5">
-                    <span style={{ color: "var(--lm-text-muted)" }} className="text-[13px]">
-                      {teacher.createdAt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-5">
-                    {teacher.status === 'PENDING' && (
-                      <span style={{ background: "var(--lm-accent-bg)", color: "var(--lm-accent)", border: "1px solid rgba(99,102,241,0.25)" }}
-                        className="px-2 py-0.5 rounded text-[11px] font-medium">Pending</span>
-                    )}
-                    {teacher.status === 'APPROVED' && (
-                      <span style={{ background: "var(--lm-ok-bg)", color: "var(--lm-ok)", border: "1px solid rgba(16,185,129,0.25)" }}
-                        className="px-2 py-0.5 rounded text-[11px] font-medium">Approved</span>
-                    )}
-                    {(teacher.status === 'REJECTED' || teacher.status === 'INTERVIEW_SCHEDULED') && (
-                      <span style={{ background: "var(--lm-err-bg)", color: "var(--lm-err)", border: "1px solid rgba(239,68,68,0.25)" }}
-                        className="px-2 py-0.5 rounded text-[11px] font-medium">
-                        {teacher.status === 'REJECTED' ? 'Rejected' : 'Interview'}
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-3.5 px-5 text-right">
-                    <Link
-                      href={`/teachers/${teacher.userId}`}
-                      style={{ border: "1px solid var(--lm-border2)", color: "var(--lm-text-muted)" }}
-                      className="inline-block px-3 py-1 rounded text-[12px] font-medium hover:bg-gray-700 hover:text-white transition-colors">
-                      View Profile
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-              {teachers.length === 0 && (
+            <tbody className="divide-y divide-[var(--lm-line)]">
+              {teachers.map((teacher) => {
+                const approvalStatus = teacher.status as ApprovalStatus;
+                return (
+                  <tr key={teacher.userId} className="group transition-colors hover:bg-[var(--lm-hover)]">
+                    <td className="px-6 py-4"><div className="flex items-center gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--lm-teal-soft)] text-[11px] font-bold text-[var(--lm-teal-deep)]">{initials(teacher.name)}</span><div className="min-w-0"><p className="truncate text-[12px] font-bold text-[var(--lm-ink)]">{teacher.name}</p><p className="mt-0.5 truncate text-[10px] text-[var(--lm-subtle)]">{teacher.user.email}</p></div></div></td>
+                    <td className="whitespace-nowrap px-6 py-4 text-[12px] text-[var(--lm-muted)]">{formatDate(teacher.createdAt)}</td>
+                    <td className="px-6 py-4 text-[12px] text-[var(--lm-muted)]">{teacher.language || "Not specified"}</td>
+                    <td className="px-6 py-4"><span className={statusClass(approvalStatus)}>{statusLabel(approvalStatus)}</span></td>
+                    <td className="px-6 py-4 text-right"><Link href={`/teachers/${teacher.userId}`} className="inline-flex min-h-9 items-center rounded-lg border border-[var(--lm-line)] px-3 text-[11px] font-bold text-[var(--lm-teal-deep)] transition-colors hover:border-[var(--lm-teal)] hover:bg-[var(--lm-teal-soft)]">{approvalStatus === "PENDING" || approvalStatus === "REJECTED" ? "Review profile" : "View profile"}</Link></td>
+                  </tr>
+                );
+              })}
+              {teachers.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-14 text-center">
-                    <p style={{ color: "var(--lm-text-muted)" }} className="text-[13px]">No teachers found.</p>
+                  <td colSpan={5} className="px-6 py-16 text-center">
+                    <span className="lm-empty-icon"><Inbox size={19} aria-hidden="true" /></span>
+                    <p className="mt-4 text-[13px] font-bold text-[var(--lm-ink)]">{hasFilters ? "No teachers match these filters" : "No teacher applications yet"}</p>
+                    <p className="mx-auto mt-1 max-w-[320px] text-[11px] leading-5 text-[var(--lm-subtle)]">{hasFilters ? "Try clearing the search or switching to another view." : "New teacher applications will appear here when they are submitted."}</p>
+                    {hasFilters ? <Link href="/teachers" className="lm-button-secondary mt-5 min-h-9 px-3 text-[11px]">Clear filters</Link> : null}
                   </td>
                 </tr>
-              )}
+              ) : null}
             </tbody>
           </table>
         </div>
-      </div>
+        <Pagination currentPage={page} totalPages={totalPages} />
+      </section>
     </div>
   );
 }

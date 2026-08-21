@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
-import { Fraunces, Manrope } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
+import { ThemeProvider } from "@/components/layout/theme-provider";
 import "./globals.css";
 
-const fraunces = Fraunces({ 
-  subsets: ["latin"], 
-  variable: "--font-fraunces",
-  display: 'swap',
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
 });
 
-const manrope = Manrope({
+const jetBrainsMono = JetBrains_Mono({
   subsets: ["latin"],
-  variable: "--font-manrope",
-  display: 'swap',
+  variable: "--font-mono",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -26,8 +27,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${manrope.variable} ${fraunces.variable} font-sans antialiased bg-[#0B0F19]`}>
+      <body className={`${inter.variable} ${jetBrainsMono.variable}`}>
+        <ThemeProvider attribute="data-theme" defaultTheme="light" enableSystem={false}>
           {children}
+        </ThemeProvider>
       </body>
     </html>
   );

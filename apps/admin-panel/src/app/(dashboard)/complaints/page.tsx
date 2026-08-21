@@ -1,33 +1,62 @@
+import { Inbox } from "lucide-react";
 import { db } from "@repo/database";
 import { requireAdmin } from "@/lib/guards";
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { Pagination } from "@/components/Pagination";
+import { SearchInput } from "@/components/SearchInput";
 
 export const dynamic = 'force-dynamic';
 
-export default async function ComplaintsPage({ searchParams }: { searchParams: { filter?: string, q?: string } }) {
+const tabs = [
+  { key: "all", label: "All Tickets", href: "/complaints?filter=all" },
+  { key: "open", label: "Open Tickets", href: "/complaints?filter=open" },
+  { key: "resolved", label: "Resolved", href: "/complaints?filter=resolved" },
+] as const;
+
+export default async function ComplaintsPage(props: { searchParams: Promise<{ filter?: string, q?: string, page?: string }> }) {
   await requireAdmin();
+  const searchParams = await props.searchParams;
 
   const filter = searchParams.filter || "open";
+  const q = searchParams.q || "";
+  const page = Math.max(parseInt(searchParams.page || "1", 10), 1);
+  const pageSize = 20;
+  const skip = (page - 1) * pageSize;
   
   let statusFilter: any = {};
   if (filter === "resolved") {
     statusFilter = { in: ["RESOLVED", "CLOSED"] };
   } else if (filter !== "all") {
-    // Default to "open" for any other unknown filter values
     statusFilter = { in: ["NEW", "INVESTIGATING", "ACTION_REQUIRED"] };
   }
 
-  const complaintsData = await db.complaint.findMany({
-    where: filter === "all" ? {} : { status: statusFilter },
-    orderBy: { createdAt: 'desc' }
-  });
+  const [complaintsData, totalCount] = await Promise.all([
+    db.complaint.findMany({
+      where: filter === "all" ? {} : { status: statusFilter },
+      select: {
+        id: true,
+        subject: true,
+        status: true,
+        studentId: true,
+        teacherId: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: pageSize
+    }),
+    db.complaint.count({
+      where: filter === "all" ? {} : { status: statusFilter }
+    })
+  ]);
+
+  const totalPages = Math.ceil(totalCount / pageSize);
+  const hasFilters = filter !== "open";
 
   const studentIds = complaintsData.map(c => c.studentId).filter(Boolean) as string[];
   const teacherIds = complaintsData.map(c => c.teacherId).filter(Boolean) as string[];
 
-  const students = await db.studentProfile.findMany({ where: { userId: { in: studentIds } } });
-  const teachers = await db.teacherProfile.findMany({ where: { userId: { in: teacherIds } } });
+  const students = await db.studentProfile.findMany({ where: { userId: { in: studentIds } }, select: { userId: true, name: true } });
+  const teachers = await db.teacherProfile.findMany({ where: { userId: { in: teacherIds } }, select: { userId: true, name: true } });
 
   const complaints = complaintsData.map(c => ({
     ...c,
@@ -35,73 +64,93 @@ export default async function ComplaintsPage({ searchParams }: { searchParams: {
     teacher: teachers.find(t => t.userId === c.teacherId) || { name: 'Unknown' },
   }));
 
-  const cardStyle = {
-    background: "var(--lm-surface)",
-    border: "1px solid var(--lm-border2)",
+  const getStatusStyle = (status: string) => {
+    if (status === 'RESOLVED' || status === 'CLOSED') return "lm-status lm-status--teal";
+    if (status === 'ACTION_REQUIRED') return "lm-status lm-status--red";
+    return "lm-status lm-status--amber";
   };
 
-  const activeTabStyle = "border-b-2 border-indigo-500 text-indigo-400 font-medium";
-  const inactiveTabStyle = "text-gray-400 hover:text-gray-300 transition-colors";
-
   return (
-    <div className="p-7 space-y-6 pb-10">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="mx-auto max-w-[1230px] px-9 pb-12 pt-9 max-[900px]:px-5 max-[640px]:px-4">
+      <div className="flex flex-col gap-5">
         <div>
-          <h1 className="text-2xl font-bold text-white mb-1">Dispute Management</h1>
-          <div className="flex items-center gap-2 text-[13px]">
-            <span style={{ color: "var(--lm-text)" }} className="font-semibold">Dashboard</span>
-            <span style={{ color: "var(--lm-text-subtle)" }}>/</span>
-            <span style={{ color: "var(--lm-text-muted)" }}>Complaints</span>
+          <div className="mb-3 flex items-center gap-2 text-[11px] font-medium text-[var(--lm-subtle)]">
+            <span>Dashboard</span><span aria-hidden="true">/</span><span className="text-[var(--lm-muted)]">Complaints</span>
+          </div>
+          <h1 className="lm-page-title">Dispute Management</h1>
+          <p className="lm-body-copy mt-2">Manage student and teacher disputes, monitor resolutions, and enforce policies.</p>
+        </div>
+
+        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-[var(--lm-line)]">
+          <nav aria-label="Complaint views" className="flex min-w-0 gap-6 overflow-x-auto">
+            {tabs.map((tab) => {
+              const active = filter === tab.key;
+              return (
+                <Link
+                  key={tab.key}
+                  href={tab.href}
+                  aria-current={active ? "page" : undefined}
+                  className={`border-b-2 px-1 pb-3 text-[12px] font-semibold transition-colors ${
+                    active ? "border-[var(--lm-teal)] text-[var(--lm-teal-deep)]" : "border-transparent text-[var(--lm-muted)] hover:text-[var(--lm-ink-strong)]"
+                  }`}
+                >
+                  {tab.label}
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="pb-2">
+            <SearchInput placeholder="Search tickets" />
           </div>
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b" style={{ borderColor: "var(--lm-border2)" }}>
-        <div className="flex gap-6 text-sm overflow-x-auto">
-          <Link href="/complaints?filter=all" className={`pb-3 px-1 whitespace-nowrap ${filter === 'all' ? activeTabStyle : inactiveTabStyle}`}>All Tickets</Link>
-          <Link href="/complaints?filter=open" className={`pb-3 px-1 whitespace-nowrap ${filter === 'open' ? activeTabStyle : inactiveTabStyle}`}>Open Tickets</Link>
-          <Link href="/complaints?filter=resolved" className={`pb-3 px-1 whitespace-nowrap ${filter === 'resolved' ? activeTabStyle : inactiveTabStyle}`}>Resolved</Link>
+      <section className="lm-panel mt-6 overflow-hidden" aria-labelledby="complaints-directory-title">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--lm-line)] px-6 py-5">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <h2 id="complaints-directory-title" className="text-[16px] font-bold tracking-[-0.02em] text-[var(--lm-ink-strong)]">Tickets</h2>
+              <span className="rounded-full bg-[var(--lm-teal-soft)] px-2 py-1 font-mono text-[10px] font-semibold text-[var(--lm-teal-deep)]">{totalCount} records</span>
+            </div>
+            <p className="mt-1.5 text-[11px] text-[var(--lm-muted)]">Latest complaints and dispute tickets.</p>
+          </div>
         </div>
-      </div>
 
-      <div style={cardStyle} className="rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full min-w-[860px] border-collapse text-left">
+            <caption className="sr-only">Complaints directory</caption>
             <thead>
-              <tr style={{ background: "var(--lm-bg)", borderBottom: "1px solid var(--lm-border2)" }}>
-                <th style={{ color: "var(--lm-text-subtle)" }} className="py-3 px-5 text-[11px] font-semibold uppercase">Ticket ID</th>
-                <th style={{ color: "var(--lm-text-subtle)" }} className="py-3 px-5 text-[11px] font-semibold uppercase">Subject</th>
-                <th style={{ color: "var(--lm-text-subtle)" }} className="py-3 px-5 text-[11px] font-semibold uppercase">Student</th>
-                <th style={{ color: "var(--lm-text-subtle)" }} className="py-3 px-5 text-[11px] font-semibold uppercase">Teacher</th>
-                <th style={{ color: "var(--lm-text-subtle)" }} className="py-3 px-5 text-[11px] font-semibold uppercase">Status</th>
-                <th style={{ color: "var(--lm-text-subtle)" }} className="py-3 px-5 text-[11px] font-semibold uppercase text-right">Action</th>
+              <tr className="border-b border-[var(--lm-line)] bg-[var(--lm-paper-muted)]">
+                <th scope="col" className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Ticket ID</th>
+                <th scope="col" className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Subject</th>
+                <th scope="col" className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Student</th>
+                <th scope="col" className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Teacher</th>
+                <th scope="col" className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Status</th>
+                <th scope="col" className="px-6 py-3 text-right text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Action</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-[var(--lm-line)]">
               {complaints.map((complaint) => (
-                <tr key={complaint.id} style={{ borderBottom: "1px solid var(--lm-border)" }} className="hover:bg-gray-800/40 transition-colors">
-                  <td className="py-3.5 px-5 text-[13px] text-gray-400 font-mono">
-                    #{complaint.id.split('-')[0].toUpperCase()}
+                <tr key={complaint.id} className="group transition-colors hover:bg-[var(--lm-hover)]">
+                  <td className="px-6 py-4">
+                    <p className="lm-mono text-[12px] text-[var(--lm-muted)]">#{complaint.id.split('-')[0].toUpperCase()}</p>
                   </td>
-                  <td className="py-3.5 px-5 text-[13px] text-white">
-                    {complaint.subject || "No Subject"}
+                  <td className="px-6 py-4">
+                    <p className="truncate text-[12px] font-bold text-[var(--lm-ink)]">{complaint.subject || "No Subject"}</p>
                   </td>
-                  <td className="py-3.5 px-5 text-[13px] text-white">{complaint.student.name}</td>
-                  <td className="py-3.5 px-5 text-[13px] text-white">{complaint.teacher.name}</td>
-                  <td className="py-3.5 px-5">
-                    <span className={`px-2 py-0.5 rounded text-[11px] font-medium ${
-                      complaint.status === 'RESOLVED' || complaint.status === 'CLOSED' ? 'bg-green-900/30 text-green-400' :
-                      complaint.status === 'ACTION_REQUIRED' ? 'bg-red-900/30 text-red-400' :
-                      'bg-yellow-900/30 text-yellow-400'
-                    }`}>
+                  <td className="px-6 py-4 text-[12px] text-[var(--lm-muted)]">
+                    {complaint.student.name}
+                  </td>
+                  <td className="px-6 py-4 text-[12px] text-[var(--lm-muted)]">
+                    {complaint.teacher.name}
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={getStatusStyle(complaint.status)}>
                       {complaint.status.replace('_', ' ')}
                     </span>
                   </td>
-                  <td className="py-3.5 px-5 text-right">
-                    <Link
-                      href={`/complaints/${complaint.id}`}
-                      style={{ border: "1px solid var(--lm-border2)", color: "var(--lm-text-muted)" }}
-                      className="inline-block px-3 py-1 rounded text-[12px] font-medium hover:bg-gray-700 hover:text-white transition-colors">
+                  <td className="px-6 py-4 text-right">
+                    <Link href={`/complaints/${complaint.id}`} className="inline-flex min-h-9 items-center rounded-lg border border-[var(--lm-line)] px-3 text-[11px] font-bold text-[var(--lm-teal-deep)] transition-colors hover:border-[var(--lm-teal)] hover:bg-[var(--lm-teal-soft)]">
                       View Ticket
                     </Link>
                   </td>
@@ -109,13 +158,25 @@ export default async function ComplaintsPage({ searchParams }: { searchParams: {
               ))}
               {complaints.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-14 text-center text-gray-500 text-sm">No tickets found.</td>
+                  <td colSpan={6} className="px-6 py-16 text-center">
+                    <span className="lm-empty-icon"><Inbox size={19} aria-hidden="true" /></span>
+                    <p className="mt-4 text-[13px] font-bold text-[var(--lm-ink)]">
+                      {hasFilters ? "No tickets match these filters" : "No open tickets."}
+                    </p>
+                    <p className="mx-auto mt-1 max-w-[320px] text-[11px] leading-5 text-[var(--lm-subtle)]">
+                      {hasFilters ? "Try clearing the search or switching to another view." : "New tickets will appear here when they are submitted."}
+                    </p>
+                    {hasFilters && (
+                      <Link href="/complaints?filter=all" className="lm-button-secondary mt-5 min-h-9 px-3 text-[11px]">Clear filters</Link>
+                    )}
+                  </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-      </div>
+        <Pagination currentPage={page} totalPages={totalPages} />
+      </section>
     </div>
   );
 }

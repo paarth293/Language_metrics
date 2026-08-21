@@ -107,6 +107,7 @@ model TeacherProfile {
   payouts      Payout[]
   reviews      Review[]
 
+  @@index([status])
   @@index([language, status])
 }
 
@@ -369,6 +370,9 @@ model Payout {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
 }
 
 // ==========================================
