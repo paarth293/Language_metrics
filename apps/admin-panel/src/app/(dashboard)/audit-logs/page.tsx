@@ -36,12 +36,12 @@ export default async function AuditLogsPage() {
               {logs.map((l) => (
                 <tr key={l.id} style={{ borderBottom: "1px solid var(--lm-border)" }} className="hover:bg-gray-800/40 transition-colors">
                   <td style={{ color: "var(--lm-text-muted)" }} className="py-3.5 px-5 text-[13px] whitespace-nowrap">{l.createdAt.toLocaleString()}</td>
-                  <td style={{ color: "var(--lm-text)" }} className="py-3.5 px-5 text-[13px]">{l.admin.email}</td>
+                  <td style={{ color: "var(--lm-text)" }} className="py-3.5 px-5 text-[13px]">{l.admin?.email ?? "System"}</td>
                   <td className="py-3.5 px-5">
-                    <span style={{ color: "var(--lm-accent)" }} className="px-2 py-0.5 rounded text-[11px] font-bold bg-[var(--lm-accent-bg)]">{l.action}</span>
+                    <span style={{ color: "var(--lm-accent)" }} className="px-2 py-0.5 rounded text-[11px] font-bold bg-[var(--lm-accent-bg)]">{l.eventType}</span>
                   </td>
-                  <td style={{ color: "var(--lm-text-muted)" }} className="py-3.5 px-5 text-[13px]">{l.targetId.slice(0, 12)}</td>
-                  <td style={{ color: "var(--lm-text-muted)" }} className="py-3.5 px-5 text-[12px] max-w-[300px] truncate">{l.details ?? "—"}</td>
+                  <td style={{ color: "var(--lm-text-muted)" }} className="py-3.5 px-5 text-[13px]">{l.actorId?.slice(0, 12) ?? "—"}</td>
+                  <td style={{ color: "var(--lm-text-muted)" }} className="py-3.5 px-5 text-[12px] max-w-[300px] truncate">{l.outcome ?? "—"}</td>
                 </tr>
               ))}
               {logs.length === 0 && (

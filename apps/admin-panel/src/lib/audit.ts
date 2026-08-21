@@ -17,9 +17,9 @@ export async function auditLog(
     await db.adminAuditLog.create({
       data: {
         adminId: ctx.adminId,
-        action,
-        targetId: targetId ?? "",
-        details: details ? JSON.stringify(details) : null,
+        eventType: action,
+        actorId: targetId ?? "",
+        outcome: details ? JSON.stringify(details) : null,
       },
     });
   } catch (err) {

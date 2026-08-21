@@ -61,7 +61,7 @@ export default function Hero() {
             variants={fadeUpVariant}
             className="font-display text-[clamp(2.75rem,6vw,5rem)] font-semibold leading-[1.05] tracking-tight mb-6 text-balance"
           >
-            A place to find a language teacher who's actually been checked out.
+            A place to find a language teacher who&apos;s actually been checked out.
           </motion.h1>
 
           <motion.p

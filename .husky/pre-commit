@@ -1,2 +1,26 @@
 #!/bin/sh
+# ─────────────────────────────────────────────────────────────
+# Husky pre-commit hook — Language Matrix
+# Runs on every git commit
+# ─────────────────────────────────────────────────────────────
+
+# 1. Run lint-staged (ESLint + security rules on staged files)
 npx lint-staged
+
+# 2. Secrets scan on staged files only (fast — no full repo scan)
+if command -v gitleaks &> /dev/null; then
+  echo "🔐 Running gitleaks secrets scan on staged files..."
+  gitleaks protect --config .gitleaks.toml --staged --verbose
+  if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ COMMIT BLOCKED: Gitleaks detected a secret in staged files."
+    echo "   Remove the secret, move it to .env, and try again."
+    echo "   If this is a false positive, use: git commit --no-verify"
+    echo ""
+    exit 1
+  fi
+  echo "✅ No secrets detected in staged files."
+else
+  echo "⚠️  gitleaks not installed — skipping secrets scan."
+  echo "   Install: https://github.com/gitleaks/gitleaks#installing"
+fi

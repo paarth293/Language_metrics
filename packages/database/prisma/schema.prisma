@@ -24,6 +24,15 @@ model User {
   id        String   @id @db.Uuid // Matches Supabase auth.users.id
   role      UserRole
   email     String   @unique
+  /// Optional login handle (admin panel uses username "admin")
+  username     String?  @unique
+  /// bcrypt hash — required for local/admin-panel password auth
+  passwordHash String?
+  /// AES-256-GCM encrypted TOTP secret (base64 payload). Never store plaintext.
+  totpSecret   String?
+  totpEnabled  Boolean  @default(false)
+  /// bcrypt-hashed single-use backup codes
+  backupCodes  String[] @default([])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -444,6 +453,7 @@ model Notification {
   createdAt DateTime @default(now())
 }
 
+
 // ==========================================
 // 8. ADMIN SETTINGS & AUDIT
 // ==========================================
@@ -459,16 +469,22 @@ model PlatformSetting {
 
 /// RLS: Admin only read/write.
 /// Read/Write: Admin app reads. Admin app / Backend writes.
+/// Column names are snake_case to match security-tests/test_audit_log.py.
 model AdminAuditLog {
-  id      String @id @default(uuid()) @db.Uuid
-  adminId String @db.Uuid
-  admin   User   @relation(fields: [adminId], references: [id])
+  id String @id @default(uuid()) @db.Uuid
 
-  action   String // e.g., 'APPROVE_TEACHER', 'CHANGE_SETTING'
-  targetId String // e.g., teacherId or setting key
-  details  String? // JSON string
+  /// e.g. LOGIN_SUCCESS, LOGIN_FAILURE, LOGOUT, APPROVE_TEACHER
+  eventType String @default("UNKNOWN") @map("event_type")
+  /// User UUID when known; attempted username on failed login
+  actorId   String? @map("actor_id")
+  ipAddress String? @map("ip_address")
+  userAgent String? @map("user_agent")
+  /// "success" | "failure"
+  outcome   String?
+  createdAt DateTime @default(now()) @map("created_at")
 
-  createdAt DateTime @default(now())
+  adminId String? @map("admin_id") @db.Uuid
+  admin   User?   @relation(fields: [adminId], references: [id])
 }
 
 // ==========================================

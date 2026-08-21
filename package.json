@@ -13,7 +13,11 @@
     "lint": "npm run lint --workspaces --if-present",
     "setup": "husky",
     "postinstall": "npm run postinstall --workspaces --if-present",
-    "db:seed": "node --env-file=.env prisma/seed.mjs"
+    "db:seed": "node --env-file=.env prisma/seed.mjs",
+    "scan:sast": "semgrep --config p/owasp-top-ten --config p/nextjs --config p/secrets --config semgrep.yml --json --output sast-results.json apps/admin-panel/src/ && node security-tests/generate-sast-report.mjs",
+    "scan:deps": "npm audit --json > npm-audit.json; echo 'npm audit done — see npm-audit.json'",
+    "scan:secrets": "gitleaks detect --config .gitleaks.toml --source . --verbose",
+    "test:security": "python security-tests/run_all.py"
   },
   "prisma": {
     "seed": "node --env-file=.env prisma/seed.mjs"
@@ -43,6 +47,8 @@
     "concurrently": "^10.0.5",
     "eslint": "^9",
     "eslint-config-next": "16.3.0",
+    "eslint-plugin-no-secrets": "^1.1.2",
+    "eslint-plugin-security": "^3.0.1",
     "husky": "^9.1.4",
     "lint-staged": "^15.2.8",
     "prisma": "^5.16.1",
@@ -52,6 +58,9 @@
   "lint-staged": {
     "apps/teacher-web/**/*.{js,jsx,ts,tsx}": [
       "eslint --config apps/teacher-web/eslint.config.mjs --fix"
+    ],
+    "apps/admin-panel/**/*.{js,jsx,ts,tsx}": [
+      "eslint --config apps/admin-panel/eslint.config.mjs --fix"
     ]
   }
 }
