@@ -1,6 +1,5 @@
-import { Sidebar } from "@/components/layout/sidebar";
-import { TopNav } from "@/components/layout/top-nav";
 import { requireAdmin } from "@/lib/guards";
+import { DashboardClient } from "./dashboard-client";
 
 export default async function DashboardLayout({
   children,
@@ -12,14 +11,8 @@ export default async function DashboardLayout({
   const admin = await requireAdmin();
 
   return (
-    <div className="lm-shell flex min-h-screen w-full">
-      <Sidebar admin={admin} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <TopNav admin={admin} />
-        <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-[var(--lm-paper)]">
-          {children}
-        </main>
-      </div>
-    </div>
+    <DashboardClient admin={admin}>
+      {children}
+    </DashboardClient>
   );
 }
