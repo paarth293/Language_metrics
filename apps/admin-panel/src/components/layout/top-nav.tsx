@@ -90,7 +90,7 @@ export function TopNav({ admin, onMenuClick }: TopNavProps) {
         <div className="hidden items-center gap-2.5 md:flex">
           <div className="text-right">
             <p className="text-[12px] font-semibold leading-tight text-[var(--text)]">{admin.name}</p>
-            <p className="text-[10px] leading-tight text-[var(--text-subtle)] capitalize">{admin.role?.toLowerCase()}</p>
+            <p className="text-[10px] leading-tight text-[var(--text-subtle)] capitalize">{admin.roleKey?.toLowerCase()}</p>
           </div>
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--brand-gold)_15%,transparent)] text-[11px] font-bold text-[var(--brand-navy)]">
             {initials}
