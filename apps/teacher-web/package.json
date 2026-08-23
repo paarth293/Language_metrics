@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
-    "prebuild": "rimraf node_modules/.prisma",
+    "prebuild": "node -e \"const fs=require('fs'); fs.rmSync('node_modules/.prisma', { recursive: true, force: true })\"",
     "build": "prisma generate --schema=../../packages/database/prisma/schema.prisma && next build",
     "start": "next start",
     "lint": "eslint",
