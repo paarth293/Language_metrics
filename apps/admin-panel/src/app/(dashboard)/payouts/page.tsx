@@ -10,6 +10,7 @@ export default async function PayoutsPage({ searchParams }: { searchParams: { fi
 
   const filter = searchParams.filter || "pending";
   
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let statusFilter: any = "PENDING";
   if (filter === "paid") statusFilter = "PAID";
   else if (filter === "failed") statusFilter = "FAILED";

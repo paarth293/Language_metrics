@@ -1,6 +1,5 @@
 import { db } from "@repo/database";
 import { requireAdmin } from "@/lib/guards";
-import { Filter } from "lucide-react";
 import Link from "next/link";
 
 export const dynamic = 'force-dynamic';
@@ -13,8 +12,9 @@ export default async function ClassesPage({
   await requireAdmin();
   const filter = searchParams.filter || "upcoming";
 
-  let statusFilter: any = "SCHEDULED";
-  if (filter === "ongoing") statusFilter = "ONGOING";
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let statusFilter: any = "CONFIRMED"; // "upcoming"
+  if (filter === "ongoing") statusFilter = "CONFIRMED"; // Bookings don't have ONGOING, map to CONFIRMED
   else if (filter === "completed") statusFilter = "COMPLETED";
   else if (filter === "cancelled") statusFilter = "CANCELLED";
 

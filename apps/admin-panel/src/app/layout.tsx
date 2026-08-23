@@ -48,7 +48,7 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <ThemeProvider attribute="data-theme" defaultTheme="light" enableSystem={false}>
           {children}
         </ThemeProvider>

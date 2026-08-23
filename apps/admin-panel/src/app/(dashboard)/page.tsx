@@ -1,6 +1,6 @@
 import { CalendarRange, Download } from "lucide-react";
 import { requireAdmin } from "@/lib/guards";
-import { getDashboardStats } from "@/lib/analytics";
+import { getDashboardStats, getRevenueTrend, getLatestPendingTeachers, checkDatabaseHealth } from "@/lib/analytics";
 import {
   ActionQueue,
   MetricCard,
@@ -15,7 +15,6 @@ import {
   type HealthMetric,
   type QueueItem,
   type TeacherApprovalRow,
-  type TrendPoint,
 } from "@/components/dashboard";
 
 
@@ -54,27 +53,12 @@ const emptyDashboardStats: DashboardStats = {
 
 async function loadDashboardStats(): Promise<DashboardStats> {
   try {
-    return await Promise.race([
-      getDashboardStats(),
-      new Promise<DashboardStats>((resolve) => setTimeout(() => resolve(emptyDashboardStats), 3500)),
-    ]);
+    return await getDashboardStats();
   } catch {
     return emptyDashboardStats;
   }
 }
 
-function buildTrend(totalRevenue: number): TrendPoint[] {
-  const revenueInThousands = totalRevenue > 0 ? Math.max(totalRevenue / 100 / 1_000, 1) : 24;
-  const currentMultipliers = [0.48, 0.58, 0.52, 0.66, 0.61, 0.74, 0.83, 0.78, 0.92, 1];
-  const previousMultipliers = [0.41, 0.48, 0.5, 0.56, 0.6, 0.62, 0.67, 0.72, 0.79, 0.84];
-  const labels = ["01 Aug", "03 Aug", "05 Aug", "07 Aug", "09 Aug", "11 Aug", "13 Aug", "15 Aug", "17 Aug", "20 Aug"];
-
-  return labels.map((label, index) => ({
-    label,
-    current: Math.max(Math.round(revenueInThousands * currentMultipliers[index]), 1),
-    previous: Math.max(Math.round(revenueInThousands * previousMultipliers[index]), 1),
-  }));
-}
 
 function buildActivity(stats: Awaited<ReturnType<typeof getDashboardStats>>): ActivityItem[] {
   return [
@@ -102,19 +86,25 @@ function buildActivity(stats: Awaited<ReturnType<typeof getDashboardStats>>): Ac
   ];
 }
 
-function buildHealth(preview: boolean): HealthMetric[] {
+function buildHealth(dbConnected: boolean, preview: boolean): HealthMetric[] {
   return [
     { label: "Application data", value: "Connected", progress: 100, tone: "teal" },
-    { label: "Database queries", value: "Ready", progress: 100, tone: "teal" },
+    { label: "Database queries", value: dbConnected ? "Ready" : "Failing", progress: dbConnected ? 100 : 0, tone: dbConnected ? "teal" : "amber" },
     { label: "Historical analytics", value: preview ? "Preview" : "Available", progress: preview ? 36 : 100, tone: preview ? "slate" : "amber" },
   ];
 }
 
 export default async function DashboardPage() {
   const admin = await requireAdmin();
-  const stats = await loadDashboardStats();
+  
+  const [stats, trend, pendingTeachers, dbConnected] = await Promise.all([
+    loadDashboardStats(),
+    getRevenueTrend(),
+    getLatestPendingTeachers(),
+    checkDatabaseHealth()
+  ]);
+
   const preview = stats.totalRevenue === 0;
-  const trend = buildTrend(stats.totalRevenue);
   const metrics: DashboardMetric[] = [
     {
       label: "Revenue",
@@ -177,9 +167,16 @@ export default async function DashboardPage() {
     },
   ];
 
-  // The dashboard stays fast and honest when the live queue is empty. The full
-  // teacher directory remains the source of truth for the Prisma-backed list.
-  const teacherRows: TeacherApprovalRow[] = [];
+  const teacherRows: TeacherApprovalRow[] = pendingTeachers.map(t => ({
+    userId: t.userId,
+    name: t.name,
+    email: t.user?.email || "",
+    language: t.language || "Not specified",
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    status: t.status as any, // Cast to any to align with ApprovalStatus in components
+    createdAt: t.createdAt.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
+    href: `/teachers/${t.userId}`
+  }));
 
   const now = new Date();
   const dateLabel = now.toLocaleDateString("en-GB", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
@@ -222,7 +219,7 @@ export default async function DashboardPage() {
 
       <div className="mt-5 grid grid-cols-[minmax(0,1.35fr)_minmax(300px,0.85fr)] gap-5 max-[1080px]:grid-cols-1">
         <RecentActivity items={buildActivity(stats)} />
-        <SystemHealth metrics={buildHealth(preview)} />
+        <SystemHealth metrics={buildHealth(dbConnected, preview)} />
       </div>
 
       <div className="mt-5">

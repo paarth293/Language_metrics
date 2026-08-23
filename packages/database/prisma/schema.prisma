@@ -47,6 +47,8 @@ model User {
   notifications    Notification[]
   adminLogs        AdminAuditLog[]
   adminUser        AdminUser?
+
+  @@index([createdAt])
 }
 
 enum ProficiencyLevel {
@@ -283,6 +285,7 @@ model Booking {
 
   @@index([studentId, status])
   @@index([teacherId, status])
+  @@index([status])
 }
 
 enum SessionStatus {
@@ -315,6 +318,7 @@ model ClassSession {
 
   @@index([bookingId])
   @@index([scheduledStart])
+  @@index([status, scheduledStart])
 }
 
 // ==========================================
@@ -354,6 +358,8 @@ model Payment {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([status])
 }
 
 enum PayoutStatus {
@@ -597,6 +603,7 @@ model Course {
   updatedAt DateTime @updatedAt
 
   @@index([languageId])
+  @@index([published])
 }
 
 // ==========================================
