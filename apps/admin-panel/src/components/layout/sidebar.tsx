@@ -78,7 +78,7 @@ export function Sidebar({ admin, isOpen, onClose }: SidebarProps) {
                   const LinkIcon = link.icon;
                   const active = isPathActive(pathname, link.href);
                   return (
-                    <li key={link.href}>
+                    <li key={`${link.href}-${link.label}`}>
                       <Link
                         href={link.href}
                         onClick={onClose}
