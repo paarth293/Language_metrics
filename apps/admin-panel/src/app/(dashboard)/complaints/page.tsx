@@ -18,11 +18,13 @@ export default async function ComplaintsPage(props: { searchParams: Promise<{ fi
   const searchParams = await props.searchParams;
 
   const filter = searchParams.filter || "open";
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const q = searchParams.q || "";
   const page = Math.max(parseInt(searchParams.page || "1", 10), 1);
   const pageSize = 20;
   const skip = (page - 1) * pageSize;
   
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let statusFilter: any = {};
   if (filter === "resolved") {
     statusFilter = { in: ["RESOLVED", "CLOSED"] };

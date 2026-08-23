@@ -50,8 +50,7 @@ export const adminModules: AdminModule[] = [
     match: ["/"],
     contextLinks: [
       { href: "/", label: "Dashboard", icon: LayoutDashboard, permission: "dashboard:view" },
-      { href: "/analytics", label: "Daily brief", icon: Activity, permission: "analytics:view" },
-      { href: "/analytics", label: "Reports", icon: BarChart3, permission: "analytics:view" },
+      { href: "/analytics", label: "Reports & Analytics", icon: BarChart3, permission: "analytics:view" },
     ],
   },
   {
