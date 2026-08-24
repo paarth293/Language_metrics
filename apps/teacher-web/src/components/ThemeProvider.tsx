@@ -2,19 +2,19 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-type Theme = "light" | "dark" | "auto";
+type Theme = "light" | "dark";
 
 interface ThemeContextType {
   theme: Theme;
   setTheme: (theme: Theme) => void;
-  resolvedTheme: "light" | "dark";
+  resolvedTheme: Theme;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("light");
-  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
+  const [resolvedTheme, setResolvedTheme] = useState<Theme>("light");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -31,17 +31,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     const root = window.document.documentElement;
     
-    let effectiveTheme: "light" | "dark" = "light";
-    if (theme === "auto") {
-      const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      effectiveTheme = systemPrefersDark ? "dark" : "light";
-    } else {
-      effectiveTheme = theme;
-    }
-
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setResolvedTheme(effectiveTheme);
-    root.setAttribute("data-theme", effectiveTheme);
+    setResolvedTheme(theme);
+    root.setAttribute("data-theme", theme);
     localStorage.setItem("lm-theme", theme);
   }, [theme, mounted]);
 
