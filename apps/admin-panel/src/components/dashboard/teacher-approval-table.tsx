@@ -102,3 +102,5 @@ export function TeacherApprovalTable({ rows, pendingCount }: { rows: TeacherAppr
 }
 
 export { statusLabel, statusClass };
+
+

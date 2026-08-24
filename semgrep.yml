@@ -1,0 +1,15 @@
+rules: []  # All rules come from the rulesets below
+
+# ─────────────────────────────────────────────────────────────
+# Language Matrix — Semgrep SAST Configuration
+# Run with:  npm run scan:sast
+# Docs:      https://semgrep.dev/docs/running-rules/
+# ─────────────────────────────────────────────────────────────
+
+# Remote rule packs (downloaded at scan time).
+# Added here for documentation; actual pack list is passed via CLI
+# in the npm script so they appear in the JSON output.
+# Packs used:
+#   - p/owasp-top-ten    → A1-A10 injection, broken auth, misconfig …
+#   - p/nextjs           → Next.js-specific XSS, SSRF, open-redirect …
+#   - p/secrets          → hard-coded keys, tokens, passwords

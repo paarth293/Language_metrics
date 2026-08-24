@@ -1,24 +1,62 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
-import { SESSION_COOKIE } from '@/lib/auth'
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { SESSION_COOKIE, verifySessionEdge } from "@/lib/edge-auth";
 
-export function middleware(request: NextRequest) {
-  const adminSession = request.cookies.get(SESSION_COOKIE)?.value
+export async function middleware(request: NextRequest) {
+  const isLoginPage = request.nextUrl.pathname.startsWith("/login");
+  const token = request.cookies.get(SESSION_COOKIE)?.value;
+
+  // Set the current pathname in a custom header so server components (guards.ts) can read it
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", request.nextUrl.pathname);
   
-  // If no session cookie exists and the user is not already on /login, redirect to /login
-  if (!adminSession && !request.nextUrl.pathname.startsWith('/login')) {
-    return NextResponse.redirect(new URL('/login', request.url))
+  // Handle CSRF token setup and passing
+  let csrfToken = request.cookies.get("csrf_token")?.value;
+  if (!csrfToken) {
+    csrfToken = crypto.randomUUID();
+    requestHeaders.set("x-csrf-token", csrfToken);
   }
 
-  // If session exists and user is on /login, redirect to dashboard
-  if (adminSession && request.nextUrl.pathname.startsWith('/login')) {
-    return NextResponse.redirect(new URL('/', request.url))
+  let response = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
+
+  if (requestHeaders.has("x-csrf-token")) {
+    response.cookies.set("csrf_token", csrfToken, {
+      path: "/",
+      sameSite: "strict",
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+    });
+  }
+  if (!token && !isLoginPage) {
+    response = NextResponse.redirect(new URL("/login", request.url));
+  } else if (token) {
+    // Token exists → verify its signature, issuer, audience, and expiry
+    const result = await verifySessionEdge(token);
+
+    if (!result.valid) {
+      // Invalid/expired/forged token → clear cookie and redirect to login
+      if (!isLoginPage) {
+        response = NextResponse.redirect(new URL("/login", request.url));
+      } else {
+        // If already on login but token is invalid, we must preserve the custom header
+        response = NextResponse.next({
+          request: {
+            headers: requestHeaders,
+          },
+        });
+      }
+      response.cookies.set(SESSION_COOKIE, "", { maxAge: 0, path: "/" });
+    }
   }
 
-  return NextResponse.next()
+  return response;
 }
 
 export const config = {
   // Apply middleware to all routes except api, _next/static, _next/image, and favicon/brand assets
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|brand).*)'],
-}
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|brand).*)"],
+};

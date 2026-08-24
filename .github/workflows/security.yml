@@ -1,0 +1,301 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# .github/workflows/security.yml
+#
+# Language Matrix — Security Testing & Verification Pipeline
+#
+# Triggers on every PR that touches:
+#   - src/app/login/**
+#   - src/middleware.ts (or proxy.ts after Next.js 16 migration)
+#   - prisma/schema.prisma
+#   - Any file in security-tests/**
+#
+# Steps:
+#   1. Secrets scan (gitleaks)
+#   2. SAST — Semgrep (OWASP Top 10, Next.js, secrets)
+#   3. Dependency CVE audit (npm audit + osv-scanner)
+#   4. ESLint security rules
+#   5. Dynamic security tests (against a live dev server on port 3001)
+#   6. Upload SECURITY_REPORT.md as artifact
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Security Pipeline
+
+on:
+  pull_request:
+    paths:
+      - "apps/admin-panel/src/app/login/**"
+      - "apps/admin-panel/src/middleware.ts"
+      - "apps/admin-panel/src/proxy.ts"
+      - "packages/database/prisma/schema.prisma"
+      - "security-tests/**"
+      - ".gitleaks.toml"
+      - "semgrep.yml"
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - "apps/admin-panel/src/app/login/**"
+      - "apps/admin-panel/src/middleware.ts"
+
+  # Allow manual trigger
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  # ── 1. Secrets Scan ────────────────────────────────────────────────────────
+  secrets-scan:
+    name: "🔐 Secrets Scan (Gitleaks)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # Full history needed for gitleaks
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          config-path: .gitleaks.toml
+          fail-on-findings: true
+
+  # ── 2. SAST (Semgrep) ──────────────────────────────────────────────────────
+  sast:
+    name: "🔍 SAST (Semgrep)"
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Node.js
+        run: |
+          if command -v apt-get >/dev/null 2>&1; then
+            apt-get update && apt-get install -y nodejs npm
+          elif command -v apk >/dev/null 2>&1; then
+            apk add --no-cache nodejs npm
+          fi
+
+      - name: Run Semgrep OWASP Top 10
+        run: |
+          semgrep \
+            --config p/owasp-top-ten \
+            --config p/nextjs \
+            --config p/secrets \
+            --config semgrep.yml \
+            --json \
+            --output sast-results.json \
+            --severity ERROR \
+            --severity WARNING \
+            apps/admin-panel/src/ \
+            || true   # don't fail here — we fail on report generation
+
+      - name: Generate Markdown report
+        run: |
+          node security-tests/generate-sast-report.mjs
+
+      - name: Fail on CRITICAL/HIGH findings
+        run: |
+          CRITICAL=$(cat sast-results.json | python3 -c "
+          import json, sys
+          data = json.load(sys.stdin)
+          highs = [r for r in data.get('results', [])
+                   if r.get('extra', {}).get('severity', '').upper() in ('CRITICAL', 'ERROR')]
+          print(len(highs))
+          ")
+          echo "Critical/High findings: $CRITICAL"
+          if [ "$CRITICAL" -gt "0" ]; then
+            echo "❌ Build failed: $CRITICAL CRITICAL/HIGH SAST findings"
+            exit 1
+          fi
+
+      - name: Upload SAST results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sast-results
+          path: |
+            sast-results.json
+            SECURITY_REPORT.md
+
+  # ── 3. Dependency CVE Audit ────────────────────────────────────────────────
+  dependency-audit:
+    name: "📦 Dependency CVE Audit"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: npm audit (high/critical only)
+        run: npm audit --audit-level=high --json > npm-audit.json || true
+
+      - name: Install OSV-Scanner
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/google/osv-scanner/main/install.sh | sudo sh -s -- -b /usr/local/bin
+
+      - name: OSV-Scanner
+        run: |
+          osv-scanner --format json --output osv-results.json . || true
+
+      - name: Fail on critical CVEs
+        run: |
+          CRITICAL=$(cat npm-audit.json | python3 -c "
+          import json, sys
+          data = json.load(sys.stdin)
+          vulns = data.get('vulnerabilities', {})
+          crits = sum(1 for v in vulns.values() if v.get('severity') == 'critical')
+          print(crits)
+          " 2>/dev/null || echo "0")
+          echo "Critical CVEs: $CRITICAL"
+          if [ "$CRITICAL" -gt "0" ]; then
+            echo "❌ Critical CVEs found — review npm-audit.json"
+            exit 1
+          fi
+
+      - name: Upload CVE results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dependency-audit
+          path: |
+            npm-audit.json
+            osv-results.json
+
+  # ── 4. ESLint Security Rules ───────────────────────────────────────────────
+  eslint-security:
+    name: "🔎 ESLint Security Rules"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint with security plugins
+        run: |
+          npm run lint --workspace=apps/admin-panel -- \
+            --format json \
+            --output-file eslint-security-results.json \
+            || true
+
+      - name: Upload ESLint results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eslint-results
+          path: eslint-security-results.json
+
+  # ── 5. Dynamic Security Tests ──────────────────────────────────────────────
+  dynamic-tests:
+    name: "🧪 Dynamic Security Tests"
+    runs-on: ubuntu-latest
+    needs: [secrets-scan]   # Only run if no secrets leaked
+
+    services: {}    # No external services needed — tests hit localhost
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate --schema=packages/database/prisma/schema.prisma
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+
+      - name: Install Python test dependencies
+        run: pip install -r security-tests/requirements.txt
+
+      - name: Start admin panel dev server
+        run: |
+          cd apps/admin-panel
+          npm run dev &
+          echo "Waiting for server on port 3001..."
+          timeout 60 bash -c 'until nc -z localhost 3001; do sleep 1; done'
+          echo "Server is up!"
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          NODE_ENV: test
+
+      - name: Run dynamic security tests
+        run: python security-tests/run_all.py --port 3001
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+
+      - name: Upload security report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-report
+          path: SECURITY_REPORT.md
+
+  # ── 6. Summary Comment on PR ──────────────────────────────────────────────
+  report-comment:
+    name: "💬 PR Security Summary"
+    runs-on: ubuntu-latest
+    needs: [sast, dependency-audit, dynamic-tests]
+    if: always() && github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download security report
+        uses: actions/download-artifact@v4
+        with:
+          name: security-report
+          path: artifacts/
+        continue-on-error: true
+
+      - name: Comment security report on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const reportPath = 'artifacts/SECURITY_REPORT.md';
+            let body = '## 🔐 Security Pipeline Results\n\n';
+
+            if (fs.existsSync(reportPath)) {
+              const report = fs.readFileSync(reportPath, 'utf8');
+              // Truncate to GitHub comment limit (65536 chars)
+              body += report.slice(0, 60000);
+              if (report.length > 60000) body += '\n\n*[Report truncated — see artifact for full output]*';
+            } else {
+              body += '⚠️ Security report not generated — check workflow logs.';
+            }
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body,
+            });

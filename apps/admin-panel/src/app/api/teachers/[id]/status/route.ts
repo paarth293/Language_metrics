@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@repo/database";
 import { requireApiAdmin } from "@/lib/api-auth";
 import { auditLog, recordSecurityEvent } from "@/lib/audit";
+import { teacherActionSchema, parseBody } from "@/lib/validators";
 
 // Suspending / reactivating / banning a teacher. Highly privileged action.
 // Every call is audited against the acting admin and recorded as a security
@@ -22,10 +23,13 @@ export async function POST(
 
   const { id } = await params;
   const body = await request.json().catch(() => null);
-  const action = body?.action;
-  if (typeof action !== "string" || !ACTIONS[action]) {
-    return NextResponse.json({ message: "Invalid action." }, { status: 400 });
+
+  const parsed = parseBody(teacherActionSchema, body);
+  if (!parsed.success) {
+    return NextResponse.json({ message: parsed.error }, { status: 400 });
   }
+
+  const action = parsed.data.action;
 
   const teacher = await db.teacherProfile.findUnique({ where: { userId: id } });
   if (!teacher) {
@@ -37,13 +41,20 @@ export async function POST(
   const newStatus = action === "suspend" || action === "ban" ? "REJECTED" : "PENDING";
   await db.teacherProfile.update({ where: { userId: id }, data: { status: newStatus } });
 
-  await auditLog({ adminId: auth.admin.id }, ACTIONS[action], id, { teacherId: id });
+  const h = request.headers;
+  const ctx = {
+    adminId: auth.admin.id,
+    ip: h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? h.get("x-real-ip") ?? null,
+    userAgent: h.get("user-agent") ?? null,
+  };
+
+  await auditLog(ctx, ACTIONS[action]!, id, { teacherId: id });
   await recordSecurityEvent(
     action === "ban" ? "ACCOUNT_BANNED" : action === "suspend" ? "ACCOUNT_SUSPENDED" : "ACCOUNT_REACTIVATED",
     action === "ban" ? "CRITICAL" : "WARN",
     { teacherId: id, teacherName: teacher.name },
     auth.admin.id,
-    null
+    ctx.ip
   );
 
   return NextResponse.json({ ok: true, action });

@@ -110,5 +110,3 @@ yarn-error.log*
 .turbo/
 proposal.txt
 apps/student-app/
-apps/teacher-web/package-lock.json
-package-lock.json

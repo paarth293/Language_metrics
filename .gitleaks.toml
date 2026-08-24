@@ -1,0 +1,46 @@
+# ─────────────────────────────────────────────────────────────
+# Language Matrix — Gitleaks Configuration
+# Used by: pre-commit hook + GitHub Actions CI
+# Docs: https://github.com/gitleaks/gitleaks
+# ─────────────────────────────────────────────────────────────
+
+title = "Language Matrix Secret Detection"
+
+[extend]
+# Use the default gitleaks ruleset as base
+useDefault = true
+
+[[rules]]
+id          = "hardcoded-admin-password"
+description = "Hardcoded admin password detected in login action"
+regex       = '''password\s*===\s*["'][^"']{4,}["']'''
+severity    = "CRITICAL"
+tags        = ["auth", "hardcoded-credentials", "OWASP-A07"]
+[rules.allowlist]
+  regexes   = ["password.*process\\.env"]
+
+[[rules]]
+id          = "hardcoded-admin-username"
+description = "Hardcoded admin username detected"
+regex       = '''username\s*===\s*["']admin["']'''
+severity    = "HIGH"
+tags        = ["auth", "hardcoded-credentials", "OWASP-A07"]
+
+[[rules]]
+id          = "static-session-token"
+description = "Static string used as session cookie value"
+regex       = '''\.set\(["'][^"']+["'],\s*["']authenticated["']'''
+severity    = "CRITICAL"
+tags        = ["auth", "session", "OWASP-A07"]
+
+[[rules]]
+id          = "database-url-inline"
+description = "Database connection string hardcoded"
+regex       = '''postgresql://[^"'\s]+:[^"'\s]+@[^"'\s]+'''
+severity    = "CRITICAL"
+tags        = ["secrets", "database", "OWASP-A02"]
+
+[allowlist]
+# Never flag .env.example (it has placeholder values)
+paths       = ['''\.env\.example''', '''SECURITY_REPORT\.md''', '''security-tests/.*''']
+commits     = []

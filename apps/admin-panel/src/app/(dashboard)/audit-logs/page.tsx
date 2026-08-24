@@ -54,3 +54,5 @@ export default async function AuditLogsPage() {
     </div>
   );
 }
+
+
