@@ -5,18 +5,18 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 
 const languages = [
-  { name: "English", flag: "🇬🇧" },
-  { name: "Spanish", flag: "🇪🇸" },
-  { name: "French", flag: "🇫🇷" },
-  { name: "German", flag: "🇩🇪" },
-  { name: "Italian", flag: "🇮🇹" },
-  { name: "Portuguese", flag: "🇵🇹" },
-  { name: "Chinese", flag: "🇨🇳" },
-  { name: "Japanese", flag: "🇯🇵" },
-  { name: "Korean", flag: "🇰🇷" },
-  { name: "Hindi", flag: "🇮🇳" },
-  { name: "Arabic", flag: "🇸🇦" },
-  { name: "Russian", flag: "🇷🇺" },
+  { name: "English", code: "gb" },
+  { name: "Spanish", code: "es" },
+  { name: "French", code: "fr" },
+  { name: "German", code: "de" },
+  { name: "Italian", code: "it" },
+  { name: "Portuguese", code: "pt" },
+  { name: "Chinese", code: "cn" },
+  { name: "Japanese", code: "jp" },
+  { name: "Korean", code: "kr" },
+  { name: "Hindi", code: "in" },
+  { name: "Arabic", code: "sa" },
+  { name: "Russian", code: "ru" },
 ];
 
 export default function LanguageMarquee() {
@@ -44,9 +44,19 @@ export default function LanguageMarquee() {
             <Link
               key={`${lang.name}-${idx}`}
               href={`/discover?lang=${lang.name.toLowerCase()}`}
+              prefetch={false}
               className="flex items-center gap-2.5 px-6 py-3 mx-2 rounded-xl border border-border bg-surface text-text shadow-sm hover:border-gold hover:shadow-md hover:-translate-y-0.5 transition-all duration-300"
             >
-              <span className="text-xl">{lang.flag}</span>
+              <img 
+                src={`https://flagcdn.com/w40/${lang.code}.png`} 
+                srcSet={`https://flagcdn.com/w80/${lang.code}.png 2x`}
+                width="24"
+                height="18"
+                alt={lang.name}
+                className="w-6 h-[18px] object-cover shrink-0 rounded-sm shadow-sm" 
+                loading="lazy"
+                decoding="async"
+              />
               <span className="font-medium text-sm">{lang.name}</span>
             </Link>
           ))}
@@ -63,9 +73,19 @@ export default function LanguageMarquee() {
             <Link
               key={`rev-${lang.name}-${idx}`}
               href={`/discover?lang=${lang.name.toLowerCase()}`}
+              prefetch={false}
               className="flex items-center gap-2.5 px-6 py-3 mx-2 rounded-xl border border-border bg-surface text-text shadow-sm hover:border-gold hover:shadow-md hover:-translate-y-0.5 transition-all duration-300"
             >
-              <span className="text-xl">{lang.flag}</span>
+              <img 
+                src={`https://flagcdn.com/w40/${lang.code}.png`} 
+                srcSet={`https://flagcdn.com/w80/${lang.code}.png 2x`}
+                width="24"
+                height="18"
+                alt={lang.name}
+                className="w-6 h-[18px] object-cover shrink-0 rounded-sm shadow-sm" 
+                loading="lazy"
+                decoding="async"
+              />
               <span className="font-medium text-sm">{lang.name}</span>
             </Link>
           ))}
