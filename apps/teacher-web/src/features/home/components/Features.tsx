@@ -71,7 +71,7 @@ const itemVariants = {
 
 export default function Features() {
   return (
-    <section className="py-28 bg-bg">
+    <section id="students" className="py-28 bg-bg">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           className="text-center mb-16"

@@ -26,8 +26,8 @@ export default function Footer() {
           <div>
             <h3 className="font-semibold mb-4 text-text">Product</h3>
             <ul className="space-y-3 text-sm text-text-muted">
-              <li><Link href="#students" className="hover:text-gold transition-colors">For Students</Link></li>
-              <li><Link href="#pricing" className="hover:text-gold transition-colors">Pricing & Coins</Link></li>
+              <li><a href="#students" className="hover:text-gold transition-colors">For Students</a></li>
+              <li><a href="#pricing" className="hover:text-gold transition-colors">Pricing & Coins</a></li>
               <li><Link href="#" className="hover:text-gold transition-colors">Browse Languages</Link></li>
               <li><Link href="#" className="hover:text-gold transition-colors">Student Reviews</Link></li>
             </ul>
