@@ -14,7 +14,7 @@ export function DashboardClient({ admin, children }: DashboardClientProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="lm-shell flex min-h-screen w-full">
+    <div className="lm-shell flex h-screen w-full overflow-hidden">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
