@@ -139,7 +139,7 @@ export default function Pricing() {
               }`}
             >
               {plan.popular && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gold text-white text-xs font-bold px-5 py-1.5 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1.5">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gold text-white text-xs font-bold px-4 md:px-5 py-1 md:py-1.5 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1.5 whitespace-nowrap z-10">
                   <Sparkles className="w-3 h-3" /> Most Popular
                 </div>
               )}
@@ -198,8 +198,8 @@ export default function Pricing() {
                 }`}
               >
                 <button
-                  className="w-full text-left px-6 py-5 flex items-center justify-between focus:outline-none group"
                   onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
+                  className="flex w-full items-center justify-between gap-4 px-4 sm:px-6 py-4 sm:py-5 text-left transition-colors duration-200"
                 >
                   <span className="font-semibold text-text group-hover:text-gold transition-colors duration-200">{faq.q}</span>
                   <motion.div
@@ -218,7 +218,7 @@ export default function Pricing() {
                       transition={{ duration: 0.3, ease: "easeInOut" }}
                       className="overflow-hidden"
                     >
-                      <div className="px-6 pb-5 text-text-muted leading-relaxed border-t border-border pt-4">
+                      <div className="px-4 sm:px-6 pb-4 sm:pb-5 text-text-muted leading-relaxed text-sm sm:text-base border-t border-border/50 pt-3 sm:pt-4">
                         {faq.a}
                       </div>
                     </motion.div>

@@ -42,7 +42,7 @@ export default function StatsBar() {
               }}
               className="flex flex-col items-center justify-center text-center px-4"
             >
-              <div className="font-display text-4xl font-bold text-text mb-2 tracking-tight">
+              <div className="font-display text-3xl md:text-4xl font-bold text-text mb-2 tracking-tight">
                 <span className="tabular-nums">{stat.value}</span>
                 <span className="text-gold">{stat.suffix}</span>
               </div>

@@ -23,7 +23,7 @@ export default function CTASection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-60px" }}
             transition={{ duration: 0.6 }}
-            className="bg-surface border border-border rounded-2xl p-10 flex flex-col items-start hover:border-gold/40 hover:shadow-lg transition-all duration-300 group"
+            className="bg-surface border border-border rounded-2xl p-6 sm:p-10 flex flex-col items-start hover:border-gold/40 hover:shadow-lg transition-all duration-300 group"
           >
             <div className="w-12 h-12 rounded-xl bg-gold/10 flex items-center justify-center mb-6">
               <span className="text-2xl">🎓</span>
@@ -52,7 +52,7 @@ export default function CTASection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-60px" }}
             transition={{ duration: 0.6, delay: 0.12 }}
-            className="bg-surface border border-border rounded-2xl p-10 flex flex-col items-start hover:border-accent/40 hover:shadow-lg transition-all duration-300 group"
+            className="bg-surface border border-border rounded-2xl p-6 sm:p-10 flex flex-col items-start hover:border-accent/40 hover:shadow-lg transition-all duration-300 group"
           >
             <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center mb-6">
               <span className="text-2xl">👨‍🏫</span>

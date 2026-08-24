@@ -87,8 +87,8 @@ export function TopNav({ admin, onMenuClick }: TopNavProps) {
         <div className="mx-1 hidden h-7 w-px bg-[var(--border)] md:block" aria-hidden="true" />
 
         {/* User */}
-        <div className="hidden items-center gap-2.5 md:flex">
-          <div className="text-right">
+        <div className="flex items-center gap-2.5 md:ml-1">
+          <div className="hidden text-right md:block">
             <p className="text-[12px] font-semibold leading-tight text-[var(--text)]">{admin.name}</p>
             <p className="text-[10px] leading-tight text-[var(--text-subtle)] capitalize">{admin.roleKey?.toLowerCase()}</p>
           </div>
@@ -99,7 +99,7 @@ export function TopNav({ admin, onMenuClick }: TopNavProps) {
             type="button"
             title="Sign out"
             aria-label="Sign out"
-            className="lm-icon-button h-8 min-h-8 w-8 min-w-8 hover:bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] hover:text-[var(--danger)]"
+            className="hidden md:flex lm-icon-button h-8 min-h-8 w-8 min-w-8 hover:bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] hover:text-[var(--danger)]"
             onClick={async () => {
               const { logoutAction } = await import("@/app/login/actions");
               await logoutAction();
