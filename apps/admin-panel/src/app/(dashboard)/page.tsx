@@ -208,16 +208,16 @@ export default async function DashboardPage() {
         <PlatformPulse preview={preview} />
       </div>
 
-      <section aria-label="Priority metrics" className="mt-5 grid grid-cols-4 gap-4 max-[1100px]:grid-cols-2 max-[640px]:grid-cols-1">
+      <section aria-label="Priority metrics" className="mt-5 grid grid-cols-4 gap-4 max-[1100px]:grid-cols-2">
         {metrics.map((metric, index) => <MetricCard key={metric.label} metric={metric} index={index} />)}
       </section>
 
-      <div className="mt-5 grid grid-cols-[minmax(0,1.65fr)_minmax(300px,0.85fr)] gap-5 max-[1080px]:grid-cols-1">
+      <div className="mt-5 grid grid-cols-[minmax(0,1.65fr)_minmax(250px,0.85fr)] gap-5 max-[1080px]:grid-cols-1">
         <PlatformPulseChart data={trend} preview={preview} totalRevenue={formatCurrency(stats.totalRevenue)} />
         <ActionQueue items={queue} />
       </div>
 
-      <div className="mt-5 grid grid-cols-[minmax(0,1.35fr)_minmax(300px,0.85fr)] gap-5 max-[1080px]:grid-cols-1">
+      <div className="mt-5 grid grid-cols-[minmax(0,1.35fr)_minmax(250px,0.85fr)] gap-5 max-[1080px]:grid-cols-1">
         <RecentActivity items={buildActivity(stats)} />
         <SystemHealth metrics={buildHealth(dbConnected, preview)} />
       </div>

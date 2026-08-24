@@ -36,48 +36,42 @@ export default function Hero() {
       {/* Radial Gradient Base */}
       <div className="absolute inset-0 z-0 opacity-10 pointer-events-none bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-surface to-transparent" />
 
-      {/* Floating Script Words (Parallax) */}
-      <motion.div style={{ y: y2 }} className="absolute inset-0 z-0 pointer-events-none select-none opacity-20 will-change-transform overflow-hidden">
+      {/* Floating Script Words (Parallax) — hidden on mobile to prevent content overlap */}
+      <motion.div style={{ y: y2 }} className="hidden sm:block absolute inset-0 z-0 pointer-events-none select-none opacity-20 will-change-transform overflow-hidden">
         {/* Original 4 */}
         <span className="absolute top-[15%] left-[12%] font-script text-4xl text-gold animate-float-drift">Bonjour</span>
         <span className="absolute top-[25%] right-[18%] font-script text-5xl text-accent animate-float-drift" style={{ animationDelay: "1s" }}>你好</span>
         <span className="absolute bottom-[35%] left-[20%] font-script text-4xl text-text-muted animate-float-drift" style={{ animationDelay: "2s" }}>Hola</span>
         <span className="absolute bottom-[30%] right-[12%] font-script text-5xl text-navy dark:text-gold-soft animate-float-drift" style={{ animationDelay: "1.5s" }}>Namaste</span>
         
-        {/* New additions scattered carefully */}
+        {/* Additional greetings scattered carefully */}
         <span className="absolute top-[10%] right-[40%] font-script text-3xl text-success animate-float-drift" style={{ animationDelay: "0.5s" }}>Ciao</span>
         <span className="absolute top-[45%] left-[6%] font-script text-5xl text-info animate-float-drift" style={{ animationDelay: "2.5s" }}>안녕하세요</span>
         <span className="absolute bottom-[15%] right-[35%] font-script text-4xl text-gold-soft animate-float-drift" style={{ animationDelay: "0.8s" }}>مرحبا</span>
         <span className="absolute bottom-[10%] left-[10%] font-script text-3xl text-warning animate-float-drift" style={{ animationDelay: "3s" }}>Hallo</span>
         <span className="absolute top-[65%] right-[6%] font-script text-4xl text-text-subtle animate-float-drift" style={{ animationDelay: "1.2s" }}>Привет</span>
         <span className="absolute top-[5%] left-[45%] font-script text-3xl text-accent animate-float-drift" style={{ animationDelay: "3.5s" }}>Olá</span>
-
-        {/* 4 Additional greetings */}
         <span className="absolute top-[75%] left-[8%] font-script text-3xl text-danger animate-float-drift" style={{ animationDelay: "1.8s" }}>こんにちは</span>
         <span className="absolute top-[35%] right-[5%] font-script text-4xl text-gold animate-float-drift" style={{ animationDelay: "2.2s" }}>Sawasdee</span>
         <span className="absolute bottom-[5%] right-[25%] font-script text-3xl text-success animate-float-drift" style={{ animationDelay: "0.2s" }}>Merhaba</span>
         <span className="absolute top-[2%] right-[15%] font-script text-4xl text-info animate-float-drift" style={{ animationDelay: "2.8s" }}>Jambo</span>
-
-        {/* 5 Final additions for balanced layout */}
         <span className="absolute top-[55%] left-[30%] font-script text-4xl text-text-muted animate-float-drift" style={{ animationDelay: "4s" }}>Kamusta</span>
         <span className="absolute top-[80%] right-[45%] font-script text-5xl text-gold-pale animate-float-drift" style={{ animationDelay: "2.6s" }}>Salam</span>
         <span className="absolute top-[20%] left-[35%] font-script text-3xl text-accent animate-float-drift" style={{ animationDelay: "1.1s" }}>Ahoj</span>
         <span className="absolute top-[50%] right-[25%] font-script text-4xl text-success animate-float-drift" style={{ animationDelay: "3.2s" }}>Salut</span>
         <span className="absolute top-[85%] left-[40%] font-script text-3xl text-warning animate-float-drift" style={{ animationDelay: "0.7s" }}>Guten Tag</span>
-
-        {/* 4 More additions */}
         <span className="absolute top-[90%] right-[10%] font-script text-4xl text-info animate-float-drift" style={{ animationDelay: "4.5s" }}>Xin chào</span>
         <span className="absolute top-[15%] right-[60%] font-script text-3xl text-danger animate-float-drift" style={{ animationDelay: "1.4s" }}>வணக்கம்</span>
         <span className="absolute top-[60%] left-[15%] font-script text-4xl text-gold animate-float-drift" style={{ animationDelay: "3.8s" }}>Cześć</span>
         <span className="absolute bottom-[20%] left-[40%] font-script text-3xl text-text-subtle animate-float-drift" style={{ animationDelay: "2.1s" }}>Sveiki</span>
       </motion.div>
 
-      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 w-full flex flex-col lg:flex-row items-center gap-16 my-auto">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 w-full flex flex-col lg:flex-row items-center gap-10 lg:gap-16 my-auto">
 
         {/* Left / Center Content */}
-        <div className="flex-1 text-center lg:text-left pt-16 lg:pt-0">
+        <div className="flex-1 text-center lg:text-left pt-10 sm:pt-16 lg:pt-0">
           <motion.div custom={0} initial="hidden" animate="visible" variants={fadeUpVariant}>
-            <span className="font-script text-2xl text-gold mb-4 inline-block tracking-wider">
+            <span className="font-script text-xl sm:text-2xl text-gold mb-3 inline-block tracking-wider">
               Language learning, reimagined.
             </span>
           </motion.div>
@@ -87,7 +81,7 @@ export default function Hero() {
             initial="hidden"
             animate="visible"
             variants={fadeUpVariant}
-            className="font-display text-[clamp(2.75rem,6vw,5rem)] font-semibold leading-[1.05] tracking-tight mb-6 text-balance"
+            className="font-display text-[clamp(2rem,7vw,5rem)] font-semibold leading-[1.08] tracking-tight mb-5 text-balance"
           >
             A place to find a language teacher who&apos;s actually been checked out.
           </motion.h1>
@@ -97,7 +91,7 @@ export default function Hero() {
             initial="hidden"
             animate="visible"
             variants={fadeUpVariant}
-            className="text-lg md:text-xl text-text-muted mb-10 text-balance max-w-2xl mx-auto lg:mx-0"
+            className="text-base sm:text-lg md:text-xl text-text-muted mb-8 text-balance max-w-2xl mx-auto lg:mx-0"
           >
             Language Metrics is a global language learning platform connecting students with verified language professionals. Discover new languages, explore cultures, and build meaningful connections across the world.
           </motion.p>
@@ -107,23 +101,23 @@ export default function Hero() {
             initial="hidden"
             animate="visible"
             variants={fadeUpVariant}
-            className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 mb-16"
+            className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3 mb-10"
           >
-            <Button asChild variant="gold" size="lg" className="w-full sm:w-auto text-lg shadow-glow-gold">
+            <Button asChild variant="gold" size="lg" className="w-full sm:w-auto text-base sm:text-lg shadow-glow-gold">
               <Link href="/register/student">Find a Teacher</Link>
             </Button>
-            <Button asChild variant="outline" size="lg" className="w-full sm:w-auto text-lg bg-surface/50 backdrop-blur-md">
+            <Button asChild variant="outline" size="lg" className="w-full sm:w-auto text-base sm:text-lg bg-surface/50 backdrop-blur-md">
               <Link href="/register/teacher">Apply to Teach</Link>
             </Button>
           </motion.div>
 
-          {/* Trust Row */}
+          {/* Trust Row — wraps cleanly on mobile */}
           <motion.div
             custom={4}
             initial="hidden"
             animate="visible"
             variants={fadeUpVariant}
-            className="flex flex-nowrap items-center justify-start md:justify-center lg:justify-start gap-x-6 gap-y-3 text-sm font-medium text-text-subtle overflow-x-auto hide-scrollbar max-w-full pb-2"
+            className="flex flex-wrap items-center justify-center lg:justify-start gap-x-4 gap-y-2 text-xs sm:text-sm font-medium text-text-subtle"
           >
             <div className="flex items-center gap-2 whitespace-nowrap"><ShieldCheck className="w-4 h-4 text-success shrink-0" /> Verified Teachers</div>
             <div className="h-4 w-px bg-border hidden sm:block shrink-0" />

@@ -5,7 +5,7 @@ import { studentApi } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Globe, BookOpen, Calendar, MessageSquare, Star, ArrowRight, LogOut } from "lucide-react";
+import { Globe, BookOpen, Calendar, MessageSquare, Star, ArrowRight, LogOut, Menu, X } from "lucide-react";
 import Link from "next/link";
 
 const stats = [
@@ -28,6 +28,7 @@ export default function StudentDashboard() {
   const { user, logout, isLoading } = useAuth();
   const router = useRouter();
   const [profile, setProfile] = useState<StudentProfile | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!isLoading && (!user || user.role !== "STUDENT")) {
@@ -53,15 +54,39 @@ export default function StudentDashboard() {
 
   return (
     <div className="min-h-screen bg-cream-2">
+      {/* Mobile Header */}
+      <div className="lg:hidden flex items-center justify-between p-4 bg-navy text-cream sticky top-0 z-40 shadow-sm">
+        <Link href="/" className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-navy-2 border border-cream/10 flex items-center justify-center">
+            <Globe className="w-4 h-4 text-gold" />
+          </div>
+          <span className="font-display font-semibold text-[15px]">Language Metrics</span>
+        </Link>
+        <button onClick={() => setSidebarOpen(true)} className="p-2 -mr-2 text-cream/70 hover:text-cream">
+          <Menu className="w-6 h-6" />
+        </button>
+      </div>
+
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-navy/80 backdrop-blur-sm z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <div className="fixed left-0 top-0 bottom-0 w-64 bg-navy flex flex-col hidden lg:flex z-30">
-        <div className="p-6 border-b border-cream/8">
+      <div className={`fixed left-0 top-0 bottom-0 w-64 bg-navy flex flex-col z-50 transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <div className="p-6 border-b border-cream/8 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-navy-2 border border-cream/10 flex items-center justify-center">
               <Globe className="w-4 h-4 text-gold" />
             </div>
             <span className="font-display font-semibold text-cream text-[15px]">Language Metrics</span>
           </Link>
+          <button onClick={() => setSidebarOpen(false)} className="lg:hidden p-1 -mr-1 text-cream/50 hover:text-cream">
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         <nav className="flex-1 p-4 space-y-1">
