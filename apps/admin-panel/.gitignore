@@ -39,3 +39,17 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# ── AI agent instruction files ─────────────────────────────────────────────────
+AGENTS.md
+CLAUDE.md
+
+# ── Next.js boilerplate defaults (not used in this project) ────────────────────
+public/file.svg
+public/globe.svg
+public/next.svg
+public/vercel.svg
+public/window.svg
+
+# ── Redundant seed scripts (use scripts/create-admin.mjs instead) ──────────────
+seed-admin.js
