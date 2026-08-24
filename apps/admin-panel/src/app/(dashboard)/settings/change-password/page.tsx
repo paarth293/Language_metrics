@@ -26,7 +26,7 @@ export default function ChangePasswordPage() {
           Change your password
         </h1>
         <p className="mt-2 text-[13px] leading-6 text-[var(--lm-muted)]">
-          Your administrator account requires a password update. Choose a strong, unique password that you don't use anywhere else.
+          Your administrator account requires a password update. Choose a strong, unique password that you don&apos;t use anywhere else.
         </p>
       </div>
 

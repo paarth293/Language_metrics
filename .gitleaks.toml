@@ -42,5 +42,5 @@ tags        = ["secrets", "database", "OWASP-A02"]
 
 [allowlist]
 # Never flag .env.example (it has placeholder values)
-paths       = [".env.example", "SECURITY_REPORT.md", "security-tests/**"]
+paths       = ['''\.env\.example''', '''SECURITY_REPORT\.md''', '''security-tests/.*''']
 commits     = []

@@ -130,7 +130,7 @@ jobs:
 
       - name: Install OSV-Scanner
         run: |
-          curl -sSfL https://raw.githubusercontent.com/google/osv-scanner/main/install.sh | sh -s -- -b /usr/local/bin
+          curl -sSfL https://raw.githubusercontent.com/google/osv-scanner/main/install.sh | sudo sh -s -- -b /usr/local/bin
 
       - name: OSV-Scanner
         run: |
