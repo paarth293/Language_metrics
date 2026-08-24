@@ -97,7 +97,7 @@ const cardVariants = {
 };
 
 export default function Pricing() {
-  const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   return (
     <section id="pricing" className="py-28 bg-bg">

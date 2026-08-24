@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev -p 3000",
     "prebuild": "node -e \"const fs=require('fs'); fs.rmSync('node_modules/.prisma', { recursive: true, force: true })\"",
-    "build": "prisma generate --schema=../../packages/database/prisma/schema.prisma && next build",
+    "build": "next build",
+  "prisma:generate": "prisma generate --schema=../../packages/database/prisma/schema.prisma",
     "start": "next start",
     "lint": "eslint",
     "db:seed": "node --env-file=.env prisma/seed.mjs"

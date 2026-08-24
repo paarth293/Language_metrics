@@ -2,7 +2,7 @@
 
 import type { User } from "@/types";
 import React from "react";
-import { Bell, Menu, Search, Sun, Moon, Monitor, LogOut } from "lucide-react";
+import { Bell, Menu, Search, Sun, Moon, LogOut } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { useTheme } from "@/components/ThemeProvider";
 import { useAuth } from "@/lib/auth-client";
@@ -17,13 +17,10 @@ export function TopBar({ onMenuClick, user }: TopBarProps) {
   const { logout } = useAuth();
 
   const toggleTheme = () => {
-    if (theme === "light") setTheme("dark");
-    else if (theme === "dark") setTheme("auto");
-    else setTheme("light");
+    setTheme(theme === "light" ? "dark" : "light");
   };
 
-  const themeIcon = theme === "light" ? Sun : theme === "dark" ? Moon : Monitor;
-  const ThemeIcon = themeIcon;
+  const ThemeIcon = theme === "light" ? Moon : Sun;
 
   return (
     <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-surface/80 backdrop-blur-md px-4 md:px-6 sticky top-0 z-20">

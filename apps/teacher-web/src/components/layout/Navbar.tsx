@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Sun, Moon, Monitor, Menu, X } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
+import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "@/components/ThemeProvider";
 import { Button } from "@/components/ui/Button";
 
@@ -19,8 +20,7 @@ export default function Navbar() {
   }, []);
 
   const toggleTheme = () => {
-    if (theme === "light") setTheme("dark");
-    else if (theme === "dark") setTheme("auto");
+    setTheme(theme === "light" ? "dark" : "light");
   };
 
   return (
@@ -45,11 +45,20 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-4">
           <button 
             onClick={toggleTheme}
-            className="rounded-full p-2 text-text-muted hover:bg-surface-inset hover:text-text transition-colors"
+            className="relative rounded-full p-2 text-text-muted hover:bg-surface-inset hover:text-text transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gold w-9 h-9 flex items-center justify-center overflow-hidden"
           >
-            {theme === "light" && <Sun className="h-5 w-5" />}
-            {theme === "dark" && <Moon className="h-5 w-5" />}
-            {theme === "auto" && <Monitor className="h-5 w-5" />}
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={theme}
+                initial={{ opacity: 0, rotate: -45, scale: 0.5 }}
+                animate={{ opacity: 1, rotate: 0, scale: 1 }}
+                exit={{ opacity: 0, rotate: 45, scale: 0.5 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="absolute inset-0 flex items-center justify-center"
+              >
+                {theme === "light" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              </motion.div>
+            </AnimatePresence>
           </button>
           
           <Link href="/login" className="text-sm font-medium text-text hover:text-gold transition-colors">
@@ -81,10 +90,19 @@ export default function Navbar() {
             <div className="pt-4 border-t border-border flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <span className="text-text">Theme</span>
-                <button onClick={toggleTheme} className="p-2 bg-surface-inset rounded-full text-text">
-                  {theme === "light" && <Sun className="h-5 w-5" />}
-                  {theme === "dark" && <Moon className="h-5 w-5" />}
-                  {theme === "auto" && <Monitor className="h-5 w-5" />}
+                <button onClick={toggleTheme} className="p-2 bg-surface-inset rounded-full text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-gold relative w-9 h-9 flex items-center justify-center overflow-hidden">
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.div
+                      key={theme}
+                      initial={{ opacity: 0, rotate: -45, scale: 0.5 }}
+                      animate={{ opacity: 1, rotate: 0, scale: 1 }}
+                      exit={{ opacity: 0, rotate: 45, scale: 0.5 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+                      className="absolute inset-0 flex items-center justify-center"
+                    >
+                      {theme === "light" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                    </motion.div>
+                  </AnimatePresence>
                 </button>
               </div>
               <Button asChild variant="outline" className="w-full justify-center">

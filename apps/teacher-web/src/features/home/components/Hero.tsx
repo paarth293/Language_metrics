@@ -37,11 +37,39 @@ export default function Hero() {
       <div className="absolute inset-0 z-0 opacity-10 pointer-events-none bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-surface to-transparent" />
 
       {/* Floating Script Words (Parallax) */}
-      <motion.div style={{ y: y2 }} className="absolute inset-0 z-0 pointer-events-none select-none opacity-20 will-change-transform">
-        <span className="absolute top-[20%] left-[15%] font-script text-4xl text-gold animate-float-drift">Bonjour</span>
-        <span className="absolute top-[30%] right-[20%] font-script text-5xl text-accent animate-float-drift" style={{ animationDelay: "1s" }}>你好</span>
-        <span className="absolute bottom-[25%] left-[25%] font-script text-4xl text-text-muted animate-float-drift" style={{ animationDelay: "2s" }}>Hola</span>
-        <span className="absolute bottom-[40%] right-[15%] font-script text-5xl text-navy dark:text-gold-soft animate-float-drift" style={{ animationDelay: "1.5s" }}>Namaste</span>
+      <motion.div style={{ y: y2 }} className="absolute inset-0 z-0 pointer-events-none select-none opacity-20 will-change-transform overflow-hidden">
+        {/* Original 4 */}
+        <span className="absolute top-[15%] left-[12%] font-script text-4xl text-gold animate-float-drift">Bonjour</span>
+        <span className="absolute top-[25%] right-[18%] font-script text-5xl text-accent animate-float-drift" style={{ animationDelay: "1s" }}>你好</span>
+        <span className="absolute bottom-[35%] left-[20%] font-script text-4xl text-text-muted animate-float-drift" style={{ animationDelay: "2s" }}>Hola</span>
+        <span className="absolute bottom-[30%] right-[12%] font-script text-5xl text-navy dark:text-gold-soft animate-float-drift" style={{ animationDelay: "1.5s" }}>Namaste</span>
+        
+        {/* New additions scattered carefully */}
+        <span className="absolute top-[10%] right-[40%] font-script text-3xl text-success animate-float-drift" style={{ animationDelay: "0.5s" }}>Ciao</span>
+        <span className="absolute top-[45%] left-[6%] font-script text-5xl text-info animate-float-drift" style={{ animationDelay: "2.5s" }}>안녕하세요</span>
+        <span className="absolute bottom-[15%] right-[35%] font-script text-4xl text-gold-soft animate-float-drift" style={{ animationDelay: "0.8s" }}>مرحبا</span>
+        <span className="absolute bottom-[10%] left-[10%] font-script text-3xl text-warning animate-float-drift" style={{ animationDelay: "3s" }}>Hallo</span>
+        <span className="absolute top-[65%] right-[6%] font-script text-4xl text-text-subtle animate-float-drift" style={{ animationDelay: "1.2s" }}>Привет</span>
+        <span className="absolute top-[5%] left-[45%] font-script text-3xl text-accent animate-float-drift" style={{ animationDelay: "3.5s" }}>Olá</span>
+
+        {/* 4 Additional greetings */}
+        <span className="absolute top-[75%] left-[8%] font-script text-3xl text-danger animate-float-drift" style={{ animationDelay: "1.8s" }}>こんにちは</span>
+        <span className="absolute top-[35%] right-[5%] font-script text-4xl text-gold animate-float-drift" style={{ animationDelay: "2.2s" }}>Sawasdee</span>
+        <span className="absolute bottom-[5%] right-[25%] font-script text-3xl text-success animate-float-drift" style={{ animationDelay: "0.2s" }}>Merhaba</span>
+        <span className="absolute top-[2%] right-[15%] font-script text-4xl text-info animate-float-drift" style={{ animationDelay: "2.8s" }}>Jambo</span>
+
+        {/* 5 Final additions for balanced layout */}
+        <span className="absolute top-[55%] left-[30%] font-script text-4xl text-text-muted animate-float-drift" style={{ animationDelay: "4s" }}>Kamusta</span>
+        <span className="absolute top-[80%] right-[45%] font-script text-5xl text-gold-pale animate-float-drift" style={{ animationDelay: "2.6s" }}>Salam</span>
+        <span className="absolute top-[20%] left-[35%] font-script text-3xl text-accent animate-float-drift" style={{ animationDelay: "1.1s" }}>Ahoj</span>
+        <span className="absolute top-[50%] right-[25%] font-script text-4xl text-success animate-float-drift" style={{ animationDelay: "3.2s" }}>Salut</span>
+        <span className="absolute top-[85%] left-[40%] font-script text-3xl text-warning animate-float-drift" style={{ animationDelay: "0.7s" }}>Guten Tag</span>
+
+        {/* 4 More additions */}
+        <span className="absolute top-[90%] right-[10%] font-script text-4xl text-info animate-float-drift" style={{ animationDelay: "4.5s" }}>Xin chào</span>
+        <span className="absolute top-[15%] right-[60%] font-script text-3xl text-danger animate-float-drift" style={{ animationDelay: "1.4s" }}>வணக்கம்</span>
+        <span className="absolute top-[60%] left-[15%] font-script text-4xl text-gold animate-float-drift" style={{ animationDelay: "3.8s" }}>Cześć</span>
+        <span className="absolute bottom-[20%] left-[40%] font-script text-3xl text-text-subtle animate-float-drift" style={{ animationDelay: "2.1s" }}>Sveiki</span>
       </motion.div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 w-full flex flex-col lg:flex-row items-center gap-16 my-auto">
