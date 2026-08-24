@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, cubicBezier } from "framer-motion";
 import Image from "next/image";
 import { LogOut } from "lucide-react";
 import { useAuth } from "@/lib/auth-client";
@@ -14,7 +14,7 @@ const stagger = {
   },
   item: {
     hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.65, ease: [0.16, 1, 0.3, 1] } },
+    show: { opacity: 1, y: 0, transition: { duration: 0.65, ease: cubicBezier(0.16, 1, 0.3, 1) } },
   },
 };
 
