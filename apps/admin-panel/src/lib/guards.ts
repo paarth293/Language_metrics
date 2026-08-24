@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { db } from "@repo/database";
@@ -10,8 +11,11 @@ import type { SessionUser } from "./rbac";
  * Reads the session cookie, verifies its signature, reloads the admin from the
  * DB (so suspensions/role changes take effect immediately), and redirects to
  * /login on any failure. Never trusts the cookie alone.
+ * 
+ * Wrapped in React.cache() so multiple calls in the same server request
+ * only hit the database once.
  */
-export async function requireAdmin(): Promise<SessionUser> {
+export const requireAdmin = cache(async (): Promise<SessionUser> => {
   const session = await readSession();
   if (!session) redirect("/login");
 
@@ -46,4 +50,4 @@ export async function requireAdmin(): Promise<SessionUser> {
     isSuperAdmin: admin.isSuperAdmin,
     permissions: permissionsForRole(admin.roleKey, admin.permissions),
   };
-}
+});

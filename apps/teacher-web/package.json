@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
-    "build": "prisma generate --schema=../../packages/database/prisma/schema.prisma && next build",
+    "prebuild": "node -e \"const fs=require('fs'); fs.rmSync('node_modules/.prisma', { recursive: true, force: true })\"",
+    "build": "next build",
+  "prisma:generate": "prisma generate --schema=../../packages/database/prisma/schema.prisma",
     "start": "next start",
     "lint": "eslint",
     "db:seed": "node --env-file=.env prisma/seed.mjs"

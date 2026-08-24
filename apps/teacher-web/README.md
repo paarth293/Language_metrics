@@ -1,6 +1,20 @@
-# Language Metrics
+# teacher-web — Language Metrics Main Web App
 
-> A production-ready platform connecting language learners with verified native-speaker teachers through live 1-on-1 video sessions.
+> The primary user-facing Next.js application for the Language Metrics platform. Serves the public landing page, student dashboard, teacher portal, and all authentication flows.
+
+---
+
+## What This App Does
+
+| Area | Description |
+|------|-------------|
+| **Landing Page** | Public marketing site for prospective students and teachers |
+| **Auth** | Student & teacher registration, login, JWT-based sessions |
+| **Student Dashboard** | Browse verified teachers, book sessions, manage coin wallet |
+| **Teacher Portal** | Manage schedule, view upcoming bookings, track class history |
+| **API Routes** | Thin REST handlers for all auth and dashboard operations |
+
+> **Note:** The admin dashboard is a **separate application** at `apps/admin-panel` running on port `:3001`.
 
 ---
 
@@ -8,11 +22,11 @@
 
 | Layer | Technology |
 |-------|------------|
-| **Framework** | [Next.js 15](https://nextjs.org/) — App Router |
+| **Framework** | [Next.js 16](https://nextjs.org/) — App Router |
 | **Styling** | [Tailwind CSS v4](https://tailwindcss.com/) + Framer Motion |
-| **ORM** | [Prisma](https://prisma.io/) |
+| **ORM** | [Prisma](https://prisma.io/) (shared via `@repo/database`) |
 | **Database** | PostgreSQL |
-| **Auth** | JWT (access token) + httpOnly refresh cookie |
+| **Auth** | JWT access token + httpOnly refresh cookie |
 | **Payments** | Razorpay (coin wallet) |
 | **Language** | TypeScript (strict) |
 
@@ -23,109 +37,54 @@
 ```
 src/
 ├── app/                        # Next.js App Router
-│   ├── (public)/               # Public marketing site + layout
+│   ├── (public)/               # Public landing page + layout
 │   ├── student/                # Student-guarded dashboard views
 │   ├── teacher/                # Teacher portal views
-│   ├── admin/                  # Admin verification panel
-│   ├── api/                    # Thin API Route Handlers → call features/*/services
-│   ├── login/                  # Auth pages
-│   ├── register/
+│   ├── api/                    # REST API route handlers
+│   ├── login/                  # Login page
+│   ├── register/               # Student & teacher registration
 │   └── globals.css             # Design tokens + base styles
 │
-├── features/                   # Feature-Driven modules (domain-first)
-│   ├── auth/
-│   │   ├── services/           # Business logic: login, register
-│   │   └── validators/         # Zod schemas for auth inputs
-│   ├── student/
-│   │   └── services/
-│   ├── teacher/
-│   │   └── services/
-│   ├── admin/
-│   │   └── services/
-│   └── home/
-│       └── components/         # Landing page sections (Hero, Pricing, CTA…)
+├── features/                   # Feature-driven domain modules
+│   ├── auth/                   # Login, register, JWT validation
+│   ├── student/                # Student-specific services
+│   ├── teacher/                # Teacher-specific services
+│   └── home/                   # Landing page section components
 │
-├── components/                 # Generic, reusable UI (no domain logic)
-│   ├── layout/                 # Navbar, Footer, Sidebar, AuthLayout, AppShell
-│   ├── ui/                     # Atomic primitives: Button, Input, Badge, Logo…
+├── components/                 # Shared, reusable UI
+│   ├── layout/                 # Navbar, Footer, Sidebar, AuthLayout
+│   ├── ui/                     # Button, Input, Badge, Avatar, Logo…
 │   └── ThemeProvider.tsx
 │
 ├── lib/                        # App-wide infrastructure
 │   ├── db.ts                   # Prisma client singleton
-│   ├── auth.ts                 # JWT sign/verify, requireRole middleware
+│   ├── auth.ts                 # JWT sign/verify + role middleware
 │   ├── auth-client.tsx         # Client-side auth context
-│   ├── api.ts                  # Typed fetch wrapper
-│   └── cn.ts                   # clsx + tailwind-merge utility
+│   └── api.ts                  # Typed fetch wrapper
 │
 ├── hooks/                      # Custom React hooks
-├── types/                      # Shared TypeScript interfaces
-└── prisma/
-    ├── schema.prisma
-    └── seed.mjs
+└── types/                      # Shared TypeScript interfaces
 ```
 
 ---
 
-## Getting Started
+## Running Locally
 
-### Prerequisites
-
-- **Node.js** ≥ 20
-- **PostgreSQL** database (local, [Supabase](https://supabase.com/), [Neon](https://neon.tech/), or [Railway](https://railway.app/))
-
-### 1. Clone & Install
+From the **monorepo root**:
 
 ```bash
-git clone https://github.com/paarth293/Language_metrics.git
-cd Language_metrics
 npm install
-```
-
-### 2. Configure Environment
-
-```bash
-cp .env.example .env
-# Fill in DATABASE_URL, JWT_SECRET, and other required variables
-```
-
-### 3. Database Setup
-
-```bash
-# Generate Prisma client
-npx prisma generate
-
-# Push schema to your database
-npx prisma db push
-
-# (Optional) Seed sample data
-node prisma/seed.mjs
-```
-
-### 4. Run Development Server
-
-```bash
+cp .env.example .env   # fill in DATABASE_URL, JWT_SECRET, etc.
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+This app runs at **[http://localhost:3000](http://localhost:3000)**.
 
----
+To run only this app:
 
-## Key Concepts
-
-### Roles & Access
-
-| Role | Description |
-|------|-------------|
-| `student` | Browse teachers, book sessions, manage coin wallet |
-| `teacher` | Manage availability, view bookings, track earnings (requires admin approval) |
-| `admin` | Verify teachers, manage disputes, view platform analytics |
-
-### Coin Wallet
-Students purchase coins via Razorpay (₹1 = 1 coin). Teachers are paid in coins which can be requested for payout.
-
-### Authentication
-JWT-based with short-lived access tokens (15m) and a long-lived httpOnly refresh cookie. See `src/lib/auth.ts`.
+```bash
+npm run dev -w language_metrics
+```
 
 ---
 
@@ -133,20 +92,10 @@ JWT-based with short-lived access tokens (15m) and a long-lived httpOnly refresh
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start development server |
+| `npm run dev` | Start dev server on port 3000 |
 | `npm run build` | Production build |
 | `npm run lint` | ESLint check |
 | `npx prisma studio` | Open Prisma DB browser |
-| `npx prisma db push` | Sync schema to database |
-
----
-
-## Contributing
-
-1. Branch off `main` → use naming convention `contributor/<your-name>` or `feature/<feature-name>`.
-2. Keep commits atomic and use [Conventional Commits](https://www.conventionalcommits.org/) format: `feat:`, `fix:`, `refactor:`, `docs:`.
-3. Run `npx tsc --noEmit` before opening a pull request — zero type errors required.
-4. Open a Pull Request against `main`.
 
 ---
 

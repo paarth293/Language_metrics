@@ -56,6 +56,7 @@ export const loginSchema = z
     password: z
       .string({ message: "Password is required." })
       .min(1, "Password is required."),
+    role: z.enum(["STUDENT", "TEACHER", "ADMIN"]).optional(),
   })
   .strict();
 
@@ -68,6 +69,13 @@ export const teacherStep1Schema = z
     name: nameSchema,
     email: emailSchema,
     password: passwordSchema,
+  })
+  .strict();
+
+export const teacherStep2Schema = z
+  .object({
+    language: z.string().min(1, "Please select a language."),
+    gender: z.enum(["male", "female", "other"]).optional(),
   })
   .strict();
 
@@ -106,6 +114,8 @@ export const registerTeacherSchema = z
     name: nameSchema,
     email: emailSchema,
     password: passwordSchema,
+    language: z.string().min(1, "Please select a language."),
+    gender: z.enum(["male", "female", "other"]).optional(),
     experienceType: z.enum(["fresher", "experienced"], {
       message: "Please select a valid experience type.",
     }),
@@ -117,4 +127,5 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterStudentInput = z.infer<typeof registerStudentSchema>;
 export type RegisterTeacherInput = z.infer<typeof registerTeacherSchema>;
 export type TeacherStep1Input = z.infer<typeof teacherStep1Schema>;
+export type TeacherStep2Input = z.infer<typeof teacherStep2Schema>;
 export type TeacherStep3Input = z.infer<typeof teacherStep3Schema>;

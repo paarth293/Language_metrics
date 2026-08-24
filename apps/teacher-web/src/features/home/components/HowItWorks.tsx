@@ -130,7 +130,7 @@ export default function HowItWorks() {
           <div className="hidden xl:block absolute top-[52px] left-[9%] right-[9%] h-px border-t border-dashed border-border z-0 opacity-40" />
 
           <motion.div
-            className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-10 relative z-10"
+            className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-8 sm:gap-10 relative z-10"
             initial="hidden"
             animate={isInView ? "visible" : "hidden"}
             variants={containerVariants}
@@ -145,7 +145,7 @@ export default function HowItWorks() {
                 <motion.div
                   whileHover={{ scale: 1.1, rotate: 6 }}
                   transition={{ type: "spring", stiffness: 300, damping: 18 }}
-                  className={`relative w-[104px] h-[104px] rounded-full bg-surface border-4 border-surface-2 flex items-center justify-center shadow-xl ${step.glow} mb-6`}
+                  className={`relative w-16 h-16 sm:w-[104px] sm:h-[104px] rounded-full bg-surface border-4 border-surface-2 flex items-center justify-center shadow-xl ${step.glow} mb-6`}
                 >
                   {/* Glowing ring on hover */}
                   <span className={`absolute inset-0 rounded-full ${step.bg} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
@@ -155,7 +155,7 @@ export default function HowItWorks() {
                     {step.step}
                   </span>
 
-                  <step.icon className={`w-10 h-10 relative z-10 ${step.color} transition-transform duration-300 group-hover:scale-110`} />
+                  <step.icon className={`w-7 h-7 sm:w-10 sm:h-10 relative z-10 ${step.color} transition-transform duration-300 group-hover:scale-110`} />
                 </motion.div>
 
                 <h3 className="text-lg font-bold text-text mb-2 group-hover:text-gold transition-colors duration-300">

@@ -71,7 +71,7 @@ const itemVariants = {
 
 export default function Features() {
   return (
-    <section className="py-28 bg-bg">
+    <section id="students" className="py-28 bg-bg">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           className="text-center mb-16"
@@ -103,7 +103,7 @@ export default function Features() {
               key={idx}
               variants={itemVariants}
               whileHover={{ y: -6, transition: { duration: 0.25 } }}
-              className={`relative group rounded-2xl overflow-hidden border border-border bg-surface p-8 shadow-sm hover:shadow-lg hover:border-border-strong transition-all duration-300 cursor-default ${feature.span === 2 ? "md:col-span-2" : ""}`}
+              className={`relative group rounded-2xl overflow-hidden border border-border bg-surface p-6 md:p-8 shadow-sm hover:shadow-lg hover:border-border-strong transition-all duration-300 cursor-default ${feature.span === 2 ? "md:col-span-2" : ""}`}
             >
               {/* Gradient overlay on hover */}
               <div className={`absolute inset-0 bg-gradient-to-br from-transparent via-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />

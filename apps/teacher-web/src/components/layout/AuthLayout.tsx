@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Sun, Moon, Monitor } from "lucide-react";
+import { Sun, Moon } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 import { Logo } from "@/components/ui/Logo";
 
@@ -11,10 +11,10 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
   const { theme, setTheme } = useTheme();
 
   const toggleTheme = () => {
-    if (theme === "light") setTheme("dark");
-    else if (theme === "dark") setTheme("auto");
-    else setTheme("light");
+    setTheme(theme === "light" ? "dark" : "light");
   };
+
+  const ThemeIcon = theme === "light" ? Moon : Sun;
 
   return (
     <div className="flex min-h-screen bg-bg">
@@ -29,9 +29,7 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
             onClick={toggleTheme}
             className="rounded-full p-2 text-text-muted hover:bg-surface-inset hover:text-text transition-colors"
           >
-            {theme === "light" && <Sun className="h-5 w-5" />}
-            {theme === "dark" && <Moon className="h-5 w-5" />}
-            {theme === "auto" && <Monitor className="h-5 w-5" />}
+            <ThemeIcon className="h-[18px] w-[18px]" />
           </button>
         </header>
 

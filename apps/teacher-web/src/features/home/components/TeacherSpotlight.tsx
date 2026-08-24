@@ -69,7 +69,7 @@ const cardVariants = {
 
 export default function TeacherSpotlight() {
   return (
-    <section className="py-28 bg-surface-2 overflow-hidden">
+    <section id="teachers" className="py-28 bg-surface-2 overflow-hidden">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-14"
@@ -78,7 +78,7 @@ export default function TeacherSpotlight() {
           viewport={{ once: true, margin: "-60px" }}
           transition={{ duration: 0.6 }}
         >
-          <div>
+          <div className="flex-1">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-gold/30 bg-gold/5 text-gold text-xs font-semibold uppercase tracking-widest mb-4">
               Top Rated
             </div>
@@ -89,7 +89,7 @@ export default function TeacherSpotlight() {
               Every teacher on Language Metrics is manually verified. Browse by availability, experience, and rate — not by their personal contact details.
             </p>
           </div>
-          <Button asChild variant="outline" className="group">
+          <Button asChild variant="outline" className="group w-full md:w-auto shrink-0 justify-center">
             <Link href="/discover" className="flex items-center gap-2">
               View all teachers
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />

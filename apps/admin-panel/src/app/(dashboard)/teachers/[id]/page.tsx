@@ -35,7 +35,7 @@ export default async function TeacherProfilePage({ params }: { params: { id: str
           <ArrowLeft size={18} />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-white mb-1">{teacher.name}'s Profile</h1>
+          <h1 className="text-2xl font-bold text-white mb-1">{teacher.name}&apos;s Profile</h1>
           <div className="flex items-center gap-2 text-[13px]">
             <span style={{ color: "var(--lm-text-muted)" }}>Teacher Management</span>
             <span style={{ color: "var(--lm-text-subtle)" }}>/</span>

@@ -27,6 +27,7 @@ export default async function PaymentDetailPage({ params }: { params: { id: stri
   }
 
   // Bypass TS strict inference bugs in Next.js build
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const payment = paymentData as any;
 
   const isBooking = !!payment.booking;

@@ -1,13 +1,13 @@
-import React from "react";
+﻿import React from "react";
 import Image from "next/image";
 
 interface LogoProps {
   /**
-   * "full"  — logo mark + "Language Metrics"
-   * "mark"  — logo image only, compact square (sidebar, favicon context)
+   * "full"  -- logo image + "Language Metrics" wordmark text beside it
+   * "mark"  -- logo image only, no text
    */
   variant?: "full" | "mark";
-  /** Size of the logo mark in px */
+  /** Height of the logo image in px (width scales proportionally via aspect ratio) */
   size?: number;
   className?: string;
 }
@@ -24,30 +24,25 @@ export function Logo({ variant = "full", size = 36, className = "" }: LogoProps)
         .filter(Boolean)
         .join(" ")}
     >
-      {/* ── Logo mark image ── */}
-      <span
-        className="relative shrink-0 flex items-center justify-center overflow-hidden rounded-[0.4rem] bg-[#f8f4ea] shadow-sm border border-black/5 dark:border-white/10"
-        style={{ width: size, height: size }}
-      >
-        <Image
-          src="/brand/logo-full.png"
-          alt="Language Metrics Logo"
-          fill
-          sizes={`${size}px`}
-          style={{
-            objectFit: "cover",
-            objectPosition: "50% 5%", // Crop perfectly to the emblem at the top
-            transform: "scale(1.25)", // Zoom in slightly to hide the bottom text
-          }}
-          priority
-          draggable={false}
-        />
-      </span>
+      {/* Full logo image — no crop, no background box, aspect-ratio preserved */}
+      <Image
+        src="/brand/logo-full.png"
+        alt="Language Metrics"
+        width={size}
+        height={size}
+        style={{
+          objectFit: "contain",
+          width: "auto",
+          height: size,
+        }}
+        priority
+        draggable={false}
+      />
 
-      {/* ── Wordmark text (full variant only) ── */}
+      {/* Wordmark text beside logo (full variant only) */}
       {!isMark && (
-        <span 
-          className="font-display font-semibold text-text tracking-tight whitespace-nowrap" 
+        <span
+          className="font-display font-semibold text-text tracking-tight whitespace-nowrap"
           style={{ fontSize: size * 0.55 }}
         >
           Language Metrics
