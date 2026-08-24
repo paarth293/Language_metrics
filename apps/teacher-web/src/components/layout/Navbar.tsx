@@ -21,7 +21,6 @@ export default function Navbar() {
   const toggleTheme = () => {
     if (theme === "light") setTheme("dark");
     else if (theme === "dark") setTheme("auto");
-    else setTheme("light");
   };
 
   return (
@@ -37,10 +36,10 @@ export default function Navbar() {
 
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-text-muted">
-          <Link href="#students" className="hover:text-text transition-colors">For Students</Link>
-          <Link href="#teachers" className="hover:text-text transition-colors">For Teachers</Link>
-          <Link href="#how-it-works" className="hover:text-text transition-colors">How It Works</Link>
-          <Link href="#pricing" className="hover:text-text transition-colors">Pricing</Link>
+          <a href="#students" className="hover:text-text transition-colors">For Students</a>
+          <a href="#teachers" className="hover:text-text transition-colors">For Teachers</a>
+          <a href="#how-it-works" className="hover:text-text transition-colors">How It Works</a>
+          <a href="#pricing" className="hover:text-text transition-colors">Pricing</a>
         </nav>
 
         <div className="hidden md:flex items-center gap-4">
@@ -74,10 +73,10 @@ export default function Navbar() {
       {mobileMenuOpen && (
         <div className="absolute inset-x-0 top-16 bg-surface shadow-lg border-b border-border md:hidden">
           <div className="flex flex-col space-y-4 px-4 py-6">
-            <Link href="#students" className="text-text hover:text-gold" onClick={() => setMobileMenuOpen(false)}>For Students</Link>
-            <Link href="#teachers" className="text-text hover:text-gold" onClick={() => setMobileMenuOpen(false)}>For Teachers</Link>
-            <Link href="#how-it-works" className="text-text hover:text-gold" onClick={() => setMobileMenuOpen(false)}>How It Works</Link>
-            <Link href="#pricing" className="text-text hover:text-gold" onClick={() => setMobileMenuOpen(false)}>Pricing</Link>
+            <a href="#students" className="text-text hover:text-gold" onClick={() => setMobileMenuOpen(false)}>For Students</a>
+            <a href="#teachers" className="text-text hover:text-gold" onClick={() => setMobileMenuOpen(false)}>For Teachers</a>
+            <a href="#how-it-works" className="text-text hover:text-gold" onClick={() => setMobileMenuOpen(false)}>How It Works</a>
+            <a href="#pricing" className="text-text hover:text-gold" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
             
             <div className="pt-4 border-t border-border flex flex-col gap-4">
               <div className="flex items-center justify-between">
