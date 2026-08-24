@@ -27,17 +27,17 @@ export default function Hero() {
   return (
     <section className="relative min-h-[100dvh] flex flex-col overflow-hidden pt-32 pb-32 bg-bg text-text">
       {/* Aurora Mesh Gradient Background */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-gold/10 blur-[100px] animate-pulse-gold mix-blend-multiply dark:mix-blend-screen" />
-        <div className="absolute top-[20%] right-[-10%] w-[40%] h-[40%] rounded-full bg-accent/10 blur-[120px] mix-blend-multiply dark:mix-blend-screen" />
-        <div className="absolute bottom-[-20%] left-[20%] w-[60%] h-[60%] rounded-full bg-navy/5 dark:bg-navy/30 blur-[150px] mix-blend-multiply dark:mix-blend-screen" />
+      <div className="absolute inset-0 z-0 overflow-hidden transform-gpu">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-gold/15 blur-3xl" />
+        <div className="absolute top-[20%] right-[-10%] w-[40%] h-[40%] rounded-full bg-accent/15 blur-3xl" />
+        <div className="absolute bottom-[-20%] left-[20%] w-[60%] h-[60%] rounded-full bg-navy/10 blur-3xl" />
       </div>
 
-      {/* Grain / Noise Texture */}
-      <div className="absolute inset-0 z-0 opacity-20 mix-blend-overlay pointer-events-none bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-surface to-transparent" />
+      {/* Radial Gradient Base */}
+      <div className="absolute inset-0 z-0 opacity-10 pointer-events-none bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-surface to-transparent" />
 
       {/* Floating Script Words (Parallax) */}
-      <motion.div style={{ y: y2 }} className="absolute inset-0 z-0 pointer-events-none select-none opacity-20">
+      <motion.div style={{ y: y2 }} className="absolute inset-0 z-0 pointer-events-none select-none opacity-20 will-change-transform">
         <span className="absolute top-[20%] left-[15%] font-script text-4xl text-gold animate-float-drift">Bonjour</span>
         <span className="absolute top-[30%] right-[20%] font-script text-5xl text-accent animate-float-drift" style={{ animationDelay: "1s" }}>你好</span>
         <span className="absolute bottom-[25%] left-[25%] font-script text-4xl text-text-muted animate-float-drift" style={{ animationDelay: "2s" }}>Hola</span>
@@ -110,14 +110,14 @@ export default function Hero() {
         {/* Right Content - Floating Glass "Proof" Card */}
         <motion.div
           style={{ y: y1 }}
-          className="hidden lg:block relative flex-1"
+          className="hidden lg:block relative flex-1 will-change-transform"
         >
-          <div className="absolute inset-0 bg-gradient-to-tr from-gold/20 to-transparent rounded-[2rem] blur-2xl transform rotate-3" />
+          <div className="absolute inset-0 bg-gradient-to-tr from-gold/20 to-transparent rounded-[2rem] blur-xl transform rotate-3" />
           <motion.div
             initial={{ opacity: 0, scale: 0.9, rotate: -5 }}
             animate={{ opacity: 1, scale: 1, rotate: 0 }}
             transition={{ duration: 0.8, delay: 0.5, ease: [0.2, 0.8, 0.2, 1] }}
-            className="relative bg-surface/60 backdrop-blur-xl border border-border-strong rounded-[2rem] p-6 shadow-2xl max-w-sm ml-auto"
+            className="relative bg-surface/80 backdrop-blur-md border border-border-strong rounded-[2rem] p-6 shadow-xl max-w-sm ml-auto transform-gpu"
           >
             <div className="flex items-center gap-4 mb-6">
               <Avatar src="https://i.pravatar.cc/150?u=a042581f4e29026704d" size="lg" online={true} />
