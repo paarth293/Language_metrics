@@ -9,22 +9,31 @@ import { Button } from "@/components/ui/Button";
 // Import standalone step schemas instead of using .pick() on the full schema.
 // .pick() breaks if the parent schema is ever wrapped in .refine()/.superRefine()
 // because those return ZodEffects which has no .pick() method.
-import { teacherStep1Schema, teacherStep3Schema } from "@/features/auth/validators/auth";
+import { teacherStep1Schema, teacherStep2Schema, teacherStep3Schema } from "@/features/auth/validators/auth";
+import { useAuth } from "@/lib/auth-client";
 
 type Step1Errors = Partial<Record<"name" | "email" | "password", string>>;
+type Step2Errors = Partial<Record<"language" | "gender", string>>;
 type Step3Errors = Partial<Record<"experienceType", string>>;
 
 export default function TeacherRegisterPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
 
   // Step 1 fields
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [step1Errors, setStep1Errors] = useState<Step1Errors>({});
+
+  // Step 2 fields
+  const [language, setLanguage] = useState("");
+  const [gender, setGender] = useState<"male" | "female" | "other" | "">("");
+  const [step2Errors, setStep2Errors] = useState<Step2Errors>({});
 
   // Step 3 fields
   const [experienceType, setExperienceType] = useState<"fresher" | "experienced">("fresher");
@@ -33,8 +42,9 @@ export default function TeacherRegisterPage() {
   const clearStep1 = (field: keyof Step1Errors) =>
     setStep1Errors((prev) => ({ ...prev, [field]: undefined }));
 
-  const handleNext = (e: React.FormEvent) => {
+  const handleNext = async (e: React.FormEvent) => {
     e.preventDefault();
+    setServerError(null);
 
     // ── Step 1: validate via standalone teacherStep1Schema ───────────────────
     if (step === 1) {
@@ -53,8 +63,19 @@ export default function TeacherRegisterPage() {
       return;
     }
 
-    // ── Step 2: no Zod rules (select required handled by browser) ────────────
+    // ── Step 2: validate via teacherStep2Schema ──────────────────────────────
     if (step === 2) {
+      const result = teacherStep2Schema.safeParse({ language, gender: gender || undefined });
+      if (!result.success) {
+        const errors: Step2Errors = {};
+        for (const issue of result.error.issues) {
+          const field = issue.path[0] as keyof Step2Errors;
+          if (!errors[field]) errors[field] = issue.message;
+        }
+        setStep2Errors(errors);
+        return;
+      }
+      setStep2Errors({});
       setStep(3);
       return;
     }
@@ -74,11 +95,34 @@ export default function TeacherRegisterPage() {
       setStep3Errors({});
 
       setIsLoading(true);
-      setTimeout(() => {
+      try {
+        const res = await fetch("/api/auth/register/teacher", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name,
+            email,
+            password,
+            language,
+            gender: gender || undefined,
+            experienceType,
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          setServerError(data.message || "Registration failed");
+        } else {
+          setSuccess(true);
+          setTimeout(() => {
+            login(data.token, data.user);
+          }, 1500);
+        }
+      } catch (err) {
+        setServerError("Network error. Please try again.");
+      } finally {
         setIsLoading(false);
-        setSuccess(true);
-        setTimeout(() => { router.push("/teacher/dashboard"); }, 2000);
-      }, 1500);
+      }
     }
   };
 
@@ -114,6 +158,12 @@ export default function TeacherRegisterPage() {
           Step {step} of 3
         </div>
       </div>
+
+      {serverError && (
+        <div className="mb-4 px-4 py-3 rounded-lg bg-danger/10 border border-danger/30 text-danger text-sm">
+          {serverError}
+        </div>
+      )}
 
       <form onSubmit={handleNext} className="space-y-4 min-h-[300px] flex flex-col" noValidate>
         {/* ── Step 1: Basic info ──────────────────────────────────────────── */}
@@ -178,13 +228,40 @@ export default function TeacherRegisterPage() {
           <div className="space-y-4 animate-fade-up flex-1">
             <div className="space-y-1">
               <label htmlFor="teacher-language" className="text-sm font-medium text-text">Language you will teach</label>
-              <select id="teacher-language" className="flex h-11 w-full rounded-md border border-border bg-surface-inset px-3 py-2 text-sm text-text focus-ring" required>
+              <select 
+                id="teacher-language" 
+                className={`flex h-11 w-full rounded-md border bg-surface-inset px-3 py-2 text-sm text-text focus-ring ${step2Errors.language ? "border-danger" : "border-border"}`} 
+                value={language}
+                onChange={(e) => { setLanguage(e.target.value); setStep2Errors(prev => ({ ...prev, language: undefined })); }}
+                required
+              >
                 <option value="" disabled>Select language...</option>
                 <option value="spanish">Spanish</option>
                 <option value="french">French</option>
                 <option value="english">English</option>
+                <option value="japanese">Japanese</option>
+                <option value="german">German</option>
+              </select>
+              {step2Errors.language && (
+                <p role="alert" className="text-xs text-danger mt-1">{step2Errors.language}</p>
+              )}
+            </div>
+            
+            <div className="space-y-1">
+              <label htmlFor="teacher-gender" className="text-sm font-medium text-text">Gender (Optional)</label>
+              <select 
+                id="teacher-gender" 
+                className="flex h-11 w-full rounded-md border border-border bg-surface-inset px-3 py-2 text-sm text-text focus-ring" 
+                value={gender}
+                onChange={(e) => setGender(e.target.value as "male" | "female" | "other" | "")}
+              >
+                <option value="">Prefer not to say</option>
+                <option value="female">Female</option>
+                <option value="male">Male</option>
+                <option value="other">Other</option>
               </select>
             </div>
+            
             <div className="space-y-1">
               <label htmlFor="teacher-rate" className="text-sm font-medium text-text">Hourly Rate (Coins)</label>
               <div className="relative">

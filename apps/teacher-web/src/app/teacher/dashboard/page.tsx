@@ -31,26 +31,25 @@ const upcomingClasses = [
 
 export default function TeacherDashboard() {
   return (
-    <div className="flex flex-col h-full gap-8">
-      {/* Welcome Header */}
-      <div>
-        <h1 className="font-display text-3xl font-bold text-text mb-2">Welcome back, Elena!</h1>
-        <p className="text-text-muted">Here is what is happening with your teaching business today.</p>
+    <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* Header */}
+      <div className="flex flex-col gap-2">
+        <h1 className="text-3xl font-bold text-text">Welcome back, Teacher</h1>
+        <p className="text-text-muted">Here&apos;s what&apos;s happening with your classes today.</p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3 text-text-muted mb-2 font-medium">
-              <TrendingUp className="w-5 h-5 text-gold" /> This Month
+              <Video className="w-5 h-5 text-accent" /> Next Class
             </div>
-            <div className="text-3xl font-bold text-text flex items-center gap-1">
-              <span className="text-gold">🪙</span> 12,450
-            </div>
-            <div className="text-sm text-success flex items-center gap-1 mt-2">
-              <ArrowUpRight className="w-4 h-4" /> +15% vs last month
-            </div>
+            <div className="text-lg font-semibold text-accent">Alex Student</div>
+            <div className="text-sm text-text-muted">14:00 - 14:30 (15 min)</div>
+            <Button asChild variant="primary" className="mt-4 w-full bg-accent hover:bg-accent/90">
+              <Link href="/teacher/schedule">Start Class</Link>
+            </Button>
           </CardContent>
         </Card>
 

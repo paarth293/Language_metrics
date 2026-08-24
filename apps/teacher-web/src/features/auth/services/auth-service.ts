@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { signToken } from "@/lib/auth";
+import bcrypt from "bcryptjs";
 import { loginSchema, registerStudentSchema, registerTeacherSchema } from "@/features/auth/validators/auth";
 import type { User } from "@/types";
 import type { z } from "zod";
@@ -14,10 +15,13 @@ export class AuthService {
       where: { email: data.email },
       include: { studentProfile: true, teacherProfile: true },
     });
-    if (!user) return null;
+    if (!user || !user.passwordHash) return null;
+    
+    // Strict role check: if the login form specified a role, it MUST match the user's role.
+    if (data.role && user.role !== data.role) return null;
 
-    // FIXME: Schema dropped passwordHash (designed for Supabase Auth). 
-    // For now, bypassing password check so build passes. Real auth must be handled by Supabase.
+    const isValid = await bcrypt.compare(data.password, user.passwordHash);
+    if (!isValid) return null;
 
     const token = signToken(user.id, user.role);
     const name = user.studentProfile?.name || user.teacherProfile?.name || "User";
@@ -37,13 +41,14 @@ export class AuthService {
     const existing = await db.user.findUnique({ where: { email: data.email } });
     if (existing) return null;
 
-    // Supabase auth.users.id uses UUIDs
     const userId = crypto.randomUUID();
+    const passwordHash = await bcrypt.hash(data.password, 10);
 
     const user = await db.user.create({
       data: {
         id: userId,
         email: data.email,
+        passwordHash,
         role: "STUDENT",
         studentProfile: {
           create: {
@@ -73,17 +78,21 @@ export class AuthService {
     if (existing) return null;
 
     const userId = crypto.randomUUID();
+    const passwordHash = await bcrypt.hash(data.password, 10);
 
     const user = await db.user.create({
       data: {
         id: userId,
         email: data.email,
+        passwordHash,
         role: "TEACHER",
         teacherProfile: {
           create: {
             name: data.name,
             experienceLevel: data.experienceType === "experienced" ? "EXPERIENCED" : "FRESHER",
             status: "PENDING",
+            language: data.language,
+            gender: data.gender,
           },
         },
       },
