@@ -7,6 +7,7 @@ import { AuthLayout } from "@/components/layout/AuthLayout";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { registerStudentSchema, PASSWORD_RULES } from "@/features/auth/validators/auth";
+import { useAuth } from "@/lib/auth-client";
 
 type FieldErrors = Partial<
   Record<"name" | "email" | "password" | "languageToLearn" | "proficiencyLevel", string>
@@ -37,12 +38,16 @@ export default function StudentRegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  const { login } = useAuth();
 
   const clearError = (field: keyof FieldErrors) =>
     setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setServerError(null);
 
     // ── Client-side Zod validation ───────────────────────────────────────────
     const result = registerStudentSchema.safeParse({
@@ -65,11 +70,34 @@ export default function StudentRegisterPage() {
     setFieldErrors({});
 
     setIsLoading(true);
-    setTimeout(() => {
+    try {
+      const res = await fetch("/api/auth/register/student", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          languageToLearn: language,
+          proficiencyLevel: level,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setServerError(data.message || "Registration failed");
+      } else {
+        setSuccess(true);
+        setTimeout(() => {
+          login(data.token, data.user);
+        }, 1500);
+      }
+    } catch (err) {
+      console.error(err);
+      setServerError("Network error. Please try again.");
+    } finally {
       setIsLoading(false);
-      setSuccess(true);
-      setTimeout(() => { router.push("/student/discover"); }, 1500);
-    }, 1500);
+    }
   };
 
   const strength = passwordStrength(password);
@@ -96,6 +124,12 @@ export default function StudentRegisterPage() {
         <h1 className="font-display text-3xl font-bold text-text mb-2">Start learning</h1>
         <p className="text-text-muted">Create a free student account</p>
       </div>
+
+      {serverError && (
+        <div className="mb-4 px-4 py-3 rounded-lg bg-danger/10 border border-danger/30 text-danger text-sm">
+          {serverError}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         {/* Name */}
