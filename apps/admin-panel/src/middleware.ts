@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { SESSION_COOKIE, verifySessionEdge } from "@/lib/edge-auth";
+import { SESSION_COOKIE, verifySessionEdge } from "./lib/edge-auth";
 
 export async function middleware(request: NextRequest) {
   const isLoginPage = request.nextUrl.pathname.startsWith("/login");
