@@ -5,6 +5,8 @@ import { db } from "@repo/database";
 
 export interface AuditContext {
   adminId: string;
+  ip?: string | null;
+  userAgent?: string | null;
 }
 
 export async function auditLog(
@@ -19,6 +21,8 @@ export async function auditLog(
         adminId: ctx.adminId,
         eventType: action,
         actorId: targetId ?? "",
+        ipAddress: ctx.ip ?? null,
+        userAgent: ctx.userAgent ?? null,
         outcome: details ? JSON.stringify(details) : null,
       },
     });

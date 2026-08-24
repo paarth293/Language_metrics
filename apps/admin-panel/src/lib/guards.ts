@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { db } from "@repo/database";
 import { readSession } from "./session";
 import { permissionsForRole } from "./permissions";
@@ -24,10 +25,18 @@ export async function requireAdmin(): Promise<SessionUser> {
       isSuperAdmin: true,
       permissions: true,
       status: true,
+      mustChangePassword: true,
     },
   });
 
   if (!admin || admin.status !== "ACTIVE") redirect("/login");
+
+  // Force password change if the flag is set (except on the change-password page itself)
+  const h = await headers();
+  const pathname = h.get("x-pathname") ?? "";
+  if (admin.mustChangePassword && !pathname.includes("/settings/change-password")) {
+    redirect("/settings/change-password");
+  }
 
   return {
     id: admin.userId,
