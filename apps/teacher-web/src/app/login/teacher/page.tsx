@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { Presentation } from "lucide-react";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -60,7 +61,7 @@ export default function TeacherLoginPage() {
     <AuthLayout>
       <div className="mb-8 text-center sm:text-left">
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-navy/10 text-navy mb-4">
-          <span className="text-2xl">👨‍🏫</span>
+          <Presentation className="w-6 h-6" />
         </div>
         <h1 className="font-display text-3xl font-bold text-text mb-2">Teacher Login</h1>
         <p className="text-text-muted">Sign in to manage your classes</p>

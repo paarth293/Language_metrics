@@ -3,18 +3,18 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/cn"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-pill text-sm font-medium transition-all focus-ring disabled:pointer-events-none disabled:opacity-50 active:scale-[.98]",
+  "inline-flex items-center justify-center whitespace-nowrap rounded-pill text-sm font-medium transition-all duration-200 ease-out focus-ring disabled:pointer-events-none disabled:opacity-50 active:scale-[.98]",
   {
     variants: {
       variant: {
         primary:
-          "bg-navy text-cream hover:bg-navy-2 hover:shadow-md hover:-translate-y-[2px] dark:bg-gold dark:text-navy dark:hover:bg-gold-soft",
+          "bg-navy text-cream hover:bg-navy-2 hover:shadow-lg hover:scale-[1.02] dark:bg-gold dark:text-navy dark:hover:bg-gold-soft",
         gold:
-          "bg-gold text-white hover:bg-gold-soft hover:shadow-glow-gold hover:-translate-y-[2px]",
+          "bg-gold text-white hover:bg-gold-soft hover:shadow-xl hover:scale-[1.02]",
         outline:
-          "border-[1.5px] border-border text-navy dark:text-text hover:bg-gold/10 hover:border-gold hover:-translate-y-[2px]",
+          "border-[1.5px] border-border text-navy dark:text-text hover:bg-gold/10 hover:border-gold",
         "outline-cream":
-          "border-[1.5px] border-cream/35 text-cream hover:bg-cream/10 hover:border-gold-soft hover:-translate-y-[2px]",
+          "border-[1.5px] border-cream/35 text-cream hover:bg-cream/10 hover:border-gold-soft",
         ghost: "hover:bg-surface-inset text-text-muted hover:text-text",
         danger:
           "bg-danger text-white hover:bg-danger/90 hover:shadow-md hover:-translate-y-[2px]",

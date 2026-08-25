@@ -76,7 +76,7 @@ export default function Features() {
           <h2 className="font-display text-3xl md:text-5xl font-bold text-brand mb-5 leading-tight">
             Built for real language learning
           </h2>
-          <p className="text-lg text-text-muted max-w-2xl mx-auto">
+          <p className="text-lg text-text-muted max-w-2xl mx-auto text-balance">
             Everything a student needs — from discovering the right teacher to managing their entire learning journey — on one secure platform.
           </p>
         </motion.div>

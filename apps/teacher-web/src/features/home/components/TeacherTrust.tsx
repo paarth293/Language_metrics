@@ -68,9 +68,9 @@ export default function TeacherTrust() {
             <ShieldCheck className="w-3.5 h-3.5" /> Teacher Verification
           </div>
           <h2 className="font-display text-3xl md:text-5xl font-bold text-brand mb-5 leading-tight">
-            Every teacher is manually verified. <span className="italic font-medium">No exceptions.</span>
+            Every teacher is manually verified. <span className="font-medium">No exceptions.</span>
           </h2>
-          <p className="text-lg text-text-muted max-w-2xl mx-auto">
+          <p className="text-lg text-text-muted max-w-2xl mx-auto text-balance">
             We don&apos;t let anyone teach on our platform. Before a teacher can accept your booking, they go through a rigorous multi-step verification process — document review, a language test, and a human interview.
           </p>
         </motion.div>
@@ -128,10 +128,10 @@ export default function TeacherTrust() {
           transition={{ duration: 0.5, delay: 0.3 }}
         >
           <BadgeCheck className="w-8 h-8 text-trust mx-auto mb-3" />
-          <p className="text-text font-semibold text-lg mb-1">
+          <p className="text-text font-semibold text-lg mb-1 text-balance">
             Zero unverified teachers on the platform.
           </p>
-          <p className="text-text-muted text-sm">
+          <p className="text-text-muted text-sm text-balance">
             Only teachers who have passed document verification, a language proficiency test, and a manual interview can appear in your search results.
           </p>
         </motion.div>

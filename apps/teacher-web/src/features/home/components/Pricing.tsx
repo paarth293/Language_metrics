@@ -115,7 +115,7 @@ export default function Pricing() {
           <h2 className="font-display text-3xl md:text-5xl font-bold text-text mb-5 leading-tight">
             Simple, upfront pricing for students
           </h2>
-          <p className="text-lg text-text-muted max-w-2xl mx-auto">
+          <p className="text-lg text-text-muted max-w-2xl mx-auto text-balance">
             Start with a ₹29 demo class. Then choose hourly sessions or a full course — you decide the pace.
           </p>
         </motion.div>

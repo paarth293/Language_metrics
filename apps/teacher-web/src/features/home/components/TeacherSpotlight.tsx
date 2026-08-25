@@ -85,7 +85,7 @@ export default function TeacherSpotlight() {
             <h2 className="font-display text-3xl md:text-5xl font-bold text-text mb-4 leading-tight">
               Learn from the best
             </h2>
-            <p className="text-lg text-text-muted max-w-2xl">
+            <p className="text-lg text-text-muted max-w-2xl text-balance">
               Every teacher on Language Metrics is manually verified. Browse by availability, experience, and rate — not by their personal contact details.
             </p>
           </div>

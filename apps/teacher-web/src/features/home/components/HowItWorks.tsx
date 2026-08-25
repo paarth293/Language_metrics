@@ -110,7 +110,7 @@ export default function HowItWorks() {
           <h2 className="font-display text-3xl md:text-5xl font-bold text-text mb-5 leading-tight">
             From first search to live class in minutes
           </h2>
-          <p className="text-lg text-text-muted max-w-2xl mx-auto">
+          <p className="text-lg text-text-muted max-w-2xl mx-auto text-balance">
             A seamless, student-first flow — from picking your language to attending your first live session.
           </p>
         </motion.div>

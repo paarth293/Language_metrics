@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ChevronDown, Star, ShieldCheck, Video, Lock } from "lucide-react";
@@ -12,20 +12,39 @@ export default function Hero() {
   const y1 = useTransform(scrollY, [0, 1000], [0, -150]);
   const y2 = useTransform(scrollY, [0, 1000], [0, -250]);
 
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const { clientX, clientY } = e;
+    const { innerWidth, innerHeight } = window;
+    const x = (clientX / innerWidth) * 2 - 1;
+    const y = (clientY / innerHeight) * 2 - 1;
+    setMousePos({ x, y });
+  };
+
+  const handleMouseLeave = () => {
+    setMousePos({ x: 0, y: 0 });
+  };
+
   const fadeUpVariant = {
-    hidden: { opacity: 0, y: 24 },
+    hidden: { opacity: 0, y: 15 },
     visible: (i: number) => ({
       opacity: 1,
       y: 0,
       transition: {
-        delay: i * 0.1,
-        duration: 0.6,
+        delay: i * 0.08,
+        duration: 0.5,
+        ease: "easeOut"
       },
     }),
   };
 
   return (
-    <section className="relative min-h-[100dvh] flex flex-col overflow-hidden pt-32 pb-32 bg-bg text-text">
+    <section 
+      className="relative min-h-[100dvh] flex flex-col overflow-hidden pt-20 pb-24 bg-bg text-text"
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+    >
       {/* Aurora Mesh Gradient Background */}
       <div className="absolute inset-0 z-0 overflow-hidden transform-gpu">
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-gold/15 blur-3xl" />
@@ -81,7 +100,7 @@ export default function Hero() {
             initial="hidden"
             animate="visible"
             variants={fadeUpVariant}
-            className="font-display text-[clamp(2rem,7vw,5rem)] font-semibold leading-[1.08] tracking-tight mb-5 text-balance"
+            className="font-display text-[clamp(1.75rem,5.5vw,3.75rem)] font-semibold leading-[1.1] tracking-tight mb-5 text-balance"
           >
             A place to find a language teacher who&apos;s actually been checked out.
           </motion.h1>
@@ -91,7 +110,7 @@ export default function Hero() {
             initial="hidden"
             animate="visible"
             variants={fadeUpVariant}
-            className="text-base sm:text-lg md:text-xl text-text-muted mb-8 text-balance max-w-2xl mx-auto lg:mx-0"
+            className="text-base sm:text-lg md:text-xl text-text-muted mb-6 text-balance max-w-2xl mx-auto lg:mx-0"
           >
             Language Metrics is a global language learning platform connecting students with verified language professionals. Discover new languages, explore cultures, and build meaningful connections across the world.
           </motion.p>
@@ -101,7 +120,7 @@ export default function Hero() {
             initial="hidden"
             animate="visible"
             variants={fadeUpVariant}
-            className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3 mb-10"
+            className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3 mb-8"
           >
             <Button asChild variant="gold" size="lg" className="w-full sm:w-auto text-base sm:text-lg shadow-glow-gold">
               <Link href="/register/student">Find a Teacher</Link>
@@ -137,8 +156,20 @@ export default function Hero() {
           <div className="absolute inset-0 bg-gradient-to-tr from-gold/20 to-transparent rounded-[2rem] blur-xl transform rotate-3" />
           <motion.div
             initial={{ opacity: 0, scale: 0.9, rotate: -5 }}
-            animate={{ opacity: 1, scale: 1, rotate: 0 }}
-            transition={{ duration: 0.8, delay: 0.5, ease: [0.2, 0.8, 0.2, 1] }}
+            animate={{ 
+              opacity: 1, 
+              scale: 1, 
+              rotate: mousePos.x * 4, 
+              x: mousePos.x * -15, 
+              y: mousePos.y * -15 
+            }}
+            transition={{ 
+              opacity: { duration: 0.8, delay: 0.5, ease: [0.2, 0.8, 0.2, 1] },
+              scale: { duration: 0.8, delay: 0.5, ease: [0.2, 0.8, 0.2, 1] },
+              rotate: { type: "spring", stiffness: 100, damping: 30 },
+              x: { type: "spring", stiffness: 100, damping: 30 },
+              y: { type: "spring", stiffness: 100, damping: 30 }
+            }}
             className="relative bg-surface/80 backdrop-blur-md border border-border-strong rounded-[2rem] p-6 shadow-xl max-w-sm ml-auto transform-gpu"
           >
             <div className="flex items-center gap-4 mb-6">
