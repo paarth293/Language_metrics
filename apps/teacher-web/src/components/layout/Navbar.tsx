@@ -53,7 +53,7 @@ export default function Navbar() {
                 initial={{ opacity: 0, rotate: -45, scale: 0.5 }}
                 animate={{ opacity: 1, rotate: 0, scale: 1 }}
                 exit={{ opacity: 0, rotate: 45, scale: 0.5 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
+                transition={{ duration: 0.2, ease: "easeOut" as const }}
                 className="absolute inset-0 flex items-center justify-center"
               >
                 {theme === "light" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
@@ -97,7 +97,7 @@ export default function Navbar() {
                       initial={{ opacity: 0, rotate: -45, scale: 0.5 }}
                       animate={{ opacity: 1, rotate: 0, scale: 1 }}
                       exit={{ opacity: 0, rotate: 45, scale: 0.5 }}
-                      transition={{ duration: 0.2, ease: "easeOut" }}
+                      transition={{ duration: 0.2, ease: "easeOut" as const }}
                       className="absolute inset-0 flex items-center justify-center"
                     >
                       {theme === "light" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
