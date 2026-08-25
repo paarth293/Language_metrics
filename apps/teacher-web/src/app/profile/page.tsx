@@ -54,7 +54,7 @@ type ProfileData = {
   experienceLevel?: string;
 };
 
-function StatusBadge({ status, role }: { status: string | undefined; role: string }) {
+function StatusBadge({ status }: { status: string | undefined; }) {
   const map: Record<string, { label: string; icon: React.ReactNode; cls: string }> = {
     ACTIVE:               { label: "Active",               icon: <CheckCircle2 className="w-3.5 h-3.5" />, cls: "bg-success/10 text-success border-success/20" },
     PENDING:              { label: "Pending Review",        icon: <Clock className="w-3.5 h-3.5" />,        cls: "bg-warning/10 text-warning border-warning/20" },
@@ -150,7 +150,7 @@ export default function ProfilePage() {
   }
 
   const isStudent = profile?.role === "STUDENT";
-  const accentColor = isStudent ? "gold" : "brand";
+
 
   return (
     <div className="min-h-screen bg-bg">
@@ -219,7 +219,7 @@ export default function ProfilePage() {
                     )}
                     {isStudent ? "Student" : "Teacher"}
                   </span>
-                  <StatusBadge status={profile?.status} role={profile?.role ?? "STUDENT"} />
+                  <StatusBadge status={profile?.status} />
                   {profile?.emailVerified && (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border bg-success/10 text-success border-success/20">
                       <ShieldCheck className="w-3.5 h-3.5" />

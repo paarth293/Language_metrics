@@ -19,19 +19,6 @@ import { jwtVerify, importSPKI } from "jose";
  */
 
 const PROTECTED_PREFIXES = ["/student", "/teacher", "/dashboard", "/onboarding", "/profile"];
-const PUBLIC_PREFIXES = [
-  "/",
-  "/login",
-  "/register",
-  "/forgot-password",
-  "/reset-password",
-  "/verify-email",
-  "/coming-soon",
-  "/api",
-  "/_next",
-  "/favicon.ico",
-  "/brand",
-];
 
 const ISSUER = "lm-auth";
 const AUDIENCE = "lm-teacher-web";
@@ -48,12 +35,6 @@ async function getPublicKey() {
 
 function isProtected(pathname: string): boolean {
   return PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
-}
-
-function isPublic(pathname: string): boolean {
-  return PUBLIC_PREFIXES.some((prefix) =>
-    pathname === prefix || pathname.startsWith(prefix + "/")
-  );
 }
 
 export async function proxy(request: NextRequest) {

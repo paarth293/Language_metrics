@@ -17,8 +17,10 @@ function VerifyEmailContent() {
 
   useEffect(() => {
     if (!token) {
-      setStatus("error");
-      setMessage("No verification token found. Please use the link from your email.");
+      setTimeout(() => {
+        setStatus("error");
+        setMessage("No verification token found. Please use the link from your email.");
+      }, 0);
       return;
     }
 
