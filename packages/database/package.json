@@ -5,7 +5,8 @@
   "main": "./index.ts",
   "types": "./index.ts",
   "scripts": {
-    "postinstall": "echo postinstall disabled"
+    "postinstall": "prisma generate || true",
+    "generate": "prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^5.16.1"

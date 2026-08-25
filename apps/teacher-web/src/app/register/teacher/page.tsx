@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -17,7 +17,7 @@ type Step2Errors = Partial<Record<"language" | "gender", string>>;
 type Step3Errors = Partial<Record<"experienceType", string>>;
 
 export default function TeacherRegisterPage() {
-  const router = useRouter();
+
   const { login } = useAuth();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -118,7 +118,7 @@ export default function TeacherRegisterPage() {
             login(data.token, data.user);
           }, 1500);
         }
-      } catch (err) {
+      } catch {
         setServerError("Network error. Please try again.");
       } finally {
         setIsLoading(false);

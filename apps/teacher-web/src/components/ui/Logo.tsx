@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import Image from "next/image";
 
 interface LogoProps {
@@ -24,7 +24,7 @@ export function Logo({ variant = "full", size = 36, className = "" }: LogoProps)
         .filter(Boolean)
         .join(" ")}
     >
-      {/* Full logo image — no crop, no background box, aspect-ratio preserved */}
+      {/* Full logo image � no crop, no background box, aspect-ratio preserved */}
       <Image
         src="/brand/logo-full.png"
         alt="Language Metrics"
