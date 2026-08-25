@@ -24,23 +24,23 @@ export default function TeacherSchedule() {
     <div className="flex flex-col h-full gap-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl font-bold text-text mb-2">My Schedule</h1>
+          <h1 className="font-display text-3xl font-bold text-brand mb-2">My Schedule</h1>
           <p className="text-text-muted">Manage your availability and upcoming classes. Timezone: Local</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" className="flex items-center gap-2">
             <Clock className="w-4 h-4" /> Bulk Edit Availability
           </Button>
-          <Button variant="primary" className="flex items-center gap-2">
+          <Button variant="gold" className="flex items-center gap-2">
             <Plus className="w-4 h-4" /> Time Off
           </Button>
         </div>
       </div>
 
-      <Card className="flex-1 overflow-hidden flex flex-col">
+      <Card className="flex-1 overflow-hidden flex flex-col rounded-md border border-border">
         {/* Calendar Header */}
         <div className="flex items-center justify-between p-4 border-b border-border bg-surface-inset">
-          <div className="font-semibold text-lg text-text">August 15 - 21, 2026</div>
+          <div className="font-semibold text-lg text-brand">August 15 - 21, 2026</div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="icon" className="w-8 h-8"><ChevronLeft className="w-4 h-4" /></Button>
             <Button variant="outline" size="sm">Today</Button>
@@ -59,8 +59,12 @@ export default function TeacherSchedule() {
               {days.map((day, i) => (
                 <div key={day} className="p-4 text-center border-r border-border last:border-r-0">
                   <div className="text-sm font-medium text-text-muted uppercase">{day}</div>
-                  <div className={`text-xl font-semibold mt-1 ${i === 1 ? 'text-gold' : 'text-text'}`}>
-                    {15 + i}
+                  <div className="flex items-center justify-center mt-1">
+                    <div className={`text-lg font-semibold w-8 h-8 flex items-center justify-center rounded-full ${
+                      i === 1 ? 'bg-brand text-brand-on shadow-sm' : 'text-text'
+                    }`}>
+                      {15 + i}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -80,12 +84,12 @@ export default function TeacherSchedule() {
                     return (
                       <div key={`${day}-${time}`} className="border-r border-border p-1 min-h-[80px] last:border-r-0 group hover:bg-surface-inset/50 transition-colors relative cursor-pointer">
                         {booked ? (
-                          <div className="absolute inset-1 bg-accent/10 border border-accent/20 rounded-md p-2 flex flex-col justify-between">
-                            <div className="text-xs font-semibold text-accent">Alex S.</div>
-                            <div className="flex items-center gap-1 text-xs text-accent/80"><Video className="w-3 h-3" /> Class</div>
+                          <div className="absolute inset-1 bg-brand-subtle border border-brand-muted/20 rounded-md p-2 flex flex-col justify-between">
+                            <div className="text-xs font-semibold text-brand">Alex S.</div>
+                            <div className="flex items-center gap-1 text-xs text-brand-muted"><Video className="w-3 h-3" /> Class</div>
                           </div>
                         ) : available ? (
-                          <div className="absolute inset-2 bg-success/5 border border-dashed border-success/30 rounded-md flex items-center justify-center text-success opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="absolute inset-2 bg-trust-subtle border border-dashed border-trust-muted/30 rounded-md flex items-center justify-center text-trust opacity-0 group-hover:opacity-100 transition-opacity">
                             <span className="text-xs font-medium">Available</span>
                           </div>
                         ) : (
@@ -94,7 +98,7 @@ export default function TeacherSchedule() {
                           </div>
                         )}
                         {available && !booked && (
-                          <div className="absolute inset-y-0 left-0 w-1 bg-success/20 group-hover:bg-success/40 transition-colors" />
+                          <div className="absolute inset-y-0 left-0 w-1 bg-trust-muted/20 group-hover:bg-trust/40 transition-colors" />
                         )}
                       </div>
                     );

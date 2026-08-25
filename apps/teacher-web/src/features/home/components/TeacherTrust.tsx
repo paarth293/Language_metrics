@@ -27,7 +27,7 @@ const steps = [
     icon: ShieldCheck,
     title: "Admin Review & Approval",
     description:
-      "Our team manually reviews all submitted documents. Once verified, teachers pay a one-time registration fee of ₹249 upon account activation. Rejected applications are not charged.",
+      "Once verified, teachers pay a one-time registration fee of ₹249 upon account activation. Rejected applications are not charged.",
     color: "text-success",
     bg: "bg-success/10",
     step: "03",
@@ -64,14 +64,11 @@ export default function TeacherTrust() {
           viewport={{ once: true, margin: "-60px" }}
           transition={{ duration: 0.6 }}
         >
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-success/30 bg-success/5 text-success text-xs font-semibold uppercase tracking-widest mb-6">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-trust-muted/30 bg-trust-subtle text-trust text-xs font-semibold uppercase tracking-widest mb-6">
             <ShieldCheck className="w-3.5 h-3.5" /> Teacher Verification
           </div>
-          <h2 className="font-display text-3xl md:text-5xl font-bold text-text mb-5 leading-tight">
-            Every teacher is manually verified.{" "}
-            <span className="bg-gradient-to-r from-success to-gold bg-clip-text text-transparent">
-              No exceptions.
-            </span>
+          <h2 className="font-display text-3xl md:text-5xl font-bold text-brand mb-5 leading-tight">
+            Every teacher is manually verified. <span className="italic font-medium">No exceptions.</span>
           </h2>
           <p className="text-lg text-text-muted max-w-2xl mx-auto">
             We don&apos;t let anyone teach on our platform. Before a teacher can accept your booking, they go through a rigorous multi-step verification process — document review, a language test, and a human interview.
@@ -85,43 +82,52 @@ export default function TeacherTrust() {
           viewport={{ once: true, margin: "-80px" }}
           variants={containerVariants}
         >
-          {steps.map((step, idx) => (
-            <motion.div
-              key={idx}
-              variants={itemVariants}
-              className="group flex gap-5 bg-surface border border-border rounded-2xl p-7 hover:border-border-strong hover:shadow-lg transition-all duration-300"
-            >
-              {/* Icon + step number */}
-              <div className="relative shrink-0">
-                <div className={`w-12 h-12 rounded-xl ${step.bg} flex items-center justify-center ${step.color}`}>
-                  <step.icon className="w-6 h-6" />
+          {steps.map((step, idx) => {
+            const isHighlighted = step.step === "02";
+            return (
+              <motion.div
+                key={idx}
+                variants={itemVariants}
+                className={`group flex gap-5 border rounded-2xl p-7 hover:shadow-lg transition-all duration-300 ${
+                  isHighlighted 
+                    ? "bg-brand-subtle border-brand-muted/35 hover:border-brand-muted/60" 
+                    : "bg-surface border-border hover:border-border-strong"
+                }`}
+              >
+                {/* Icon + step number */}
+                <div className="relative shrink-0">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                    isHighlighted ? "bg-surface text-brand" : "bg-brand-subtle text-brand"
+                  }`}>
+                    <step.icon className="w-6 h-6" />
+                  </div>
+                  <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-surface border border-border text-[9px] font-bold text-text-muted flex items-center justify-center">
+                    {step.step}
+                  </span>
                 </div>
-                <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-surface border border-border text-[9px] font-bold text-text-subtle flex items-center justify-center">
-                  {step.step}
-                </span>
-              </div>
 
-              <div>
-                <h3 className="text-lg font-bold text-text mb-2 group-hover:text-gold transition-colors duration-300">
-                  {step.title}
-                </h3>
-                <p className="text-text-muted text-sm leading-relaxed">
-                  {step.description}
-                </p>
-              </div>
-            </motion.div>
-          ))}
+                <div>
+                  <h3 className="text-lg font-bold text-text mb-2 group-hover:text-brand-hover transition-colors duration-300">
+                    {step.title}
+                  </h3>
+                  <p className="text-text-muted text-sm leading-relaxed">
+                    {step.description}
+                  </p>
+                </div>
+              </motion.div>
+            );
+          })}
         </motion.div>
 
         {/* Trust callout */}
         <motion.div
-          className="mt-12 max-w-2xl mx-auto text-center bg-surface border border-success/20 rounded-2xl px-8 py-6"
+          className="mt-12 max-w-2xl mx-auto text-center bg-surface border border-trust-muted/30 rounded-2xl px-8 py-6"
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.3 }}
         >
-          <BadgeCheck className="w-8 h-8 text-success mx-auto mb-3" />
+          <BadgeCheck className="w-8 h-8 text-trust mx-auto mb-3" />
           <p className="text-text font-semibold text-lg mb-1">
             Zero unverified teachers on the platform.
           </p>
