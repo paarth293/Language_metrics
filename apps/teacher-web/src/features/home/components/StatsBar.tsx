@@ -18,7 +18,7 @@ function AnimatedNumber({ value, isFloat, isInView }: { value: number, isFloat?:
     if (node && isInView) {
       const controls = animate(0, value, {
         duration: 1.5,
-        ease: "easeOut",
+        ease: "easeOut" as const,
         onUpdate(v) {
           if (isFloat) {
             node.textContent = v.toFixed(1);
@@ -61,7 +61,7 @@ export default function StatsBar() {
                 visible: {
                   opacity: 1,
                   y: 0,
-                  transition: { delay: i * 0.1, duration: 0.6, ease: "easeOut" },
+                  transition: { duration: 0.3, ease: "easeInOut" } as const,
                 },
               }}
               className="flex flex-col items-center justify-center text-center px-4"
