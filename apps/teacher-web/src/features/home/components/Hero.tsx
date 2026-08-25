@@ -34,7 +34,7 @@ export default function Hero() {
       transition: {
         delay: i * 0.08,
         duration: 0.5,
-        ease: "easeOut"
+        ease: "easeOut" as const
       },
     }),
   };

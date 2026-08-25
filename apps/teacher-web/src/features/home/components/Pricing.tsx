@@ -215,7 +215,7 @@ export default function Pricing() {
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                      transition={{ duration: 0.3, ease: "easeInOut" as const }}
                       className="overflow-hidden"
                     >
                       <div className="px-4 sm:px-6 pb-4 sm:pb-5 text-text-muted leading-relaxed text-sm sm:text-base border-t border-border/50 pt-3 sm:pt-4">
