@@ -53,9 +53,10 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(authResult, { status: 200 });
-  } catch (err) {
+  } catch (err: unknown) {
     console.error("login error:", err);
-    return NextResponse.json({ message: "Internal server error." }, { status: 500 });
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
+    return NextResponse.json({ message: "Internal server error: " + errorMessage }, { status: 500 });
   }
 }
 
