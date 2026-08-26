@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { OAuthErrorAlert } from "@/components/auth/OAuthErrorAlert";
@@ -41,7 +42,8 @@ export default function StudentRegisterPage() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const { login } = useAuth();
+  const { refreshUser } = useAuth();
+  const router = useRouter();
 
   const clearError = (field: keyof FieldErrors) =>
     setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
@@ -89,8 +91,9 @@ export default function StudentRegisterPage() {
         setServerError(data.message || "Registration failed");
       } else {
         setSuccess(true);
-        setTimeout(() => {
-          login(data.token, data.user);
+        setTimeout(async () => {
+          await refreshUser();
+          router.push("/coming-soon");
         }, 1500);
       }
     } catch (err) {
