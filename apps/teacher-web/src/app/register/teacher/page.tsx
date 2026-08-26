@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { OAuthErrorAlert } from "@/components/auth/OAuthErrorAlert";
@@ -19,7 +20,8 @@ type Step3Errors = Partial<Record<"experienceType", string>>;
 
 export default function TeacherRegisterPage() {
 
-  const { login } = useAuth();
+  const { refreshUser } = useAuth();
+  const router = useRouter();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -115,8 +117,9 @@ export default function TeacherRegisterPage() {
           setServerError(data.message || "Registration failed");
         } else {
           setSuccess(true);
-          setTimeout(() => {
-            login(data.token, data.user);
+          setTimeout(async () => {
+            await refreshUser();
+            router.push("/coming-soon");
           }, 1500);
         }
       } catch {

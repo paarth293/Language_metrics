@@ -9,12 +9,12 @@ import { motion } from "framer-motion";
 export default function LoginPage() {
   return (
     <AuthLayout>
-      <div className="mb-8 text-center sm:text-left flex flex-col items-center sm:items-start">
-        <Link href="/" className="inline-flex items-center gap-2 text-sm font-medium text-text-muted hover:text-text mb-6 transition-colors">
+      <div className="mb-6 text-center sm:text-left flex flex-col items-center sm:items-start">
+        <Link href="/" className="inline-flex items-center gap-2 text-sm font-medium text-text-muted hover:text-text mb-4 transition-colors">
           <ArrowLeft className="w-4 h-4" />
           Back to home
         </Link>
-        <h1 className="font-display text-3xl font-bold text-text mb-2">Welcome back</h1>
+        <h1 className="font-display text-2xl font-bold text-text mb-1">Welcome back</h1>
         <p className="text-text-muted">Choose your account type to sign in</p>
       </div>
 
@@ -46,7 +46,7 @@ export default function LoginPage() {
         </Link>
       </div>
       
-      <p className="mt-8 text-center text-sm text-text-muted">
+      <p className="mt-5 text-center text-sm text-text-muted">
         Don&apos;t have an account? <Link href="/register" className="font-medium text-gold hover:underline">Sign up</Link>
       </p>
     </AuthLayout>

@@ -182,15 +182,14 @@ export default async function DashboardPage() {
   const dateLabel = now.toLocaleDateString("en-GB", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
 
   return (
-    <div className="mx-auto max-w-[1230px] px-9 pb-12 pt-9 max-[900px]:px-5 max-[640px]:px-4">
+    <div className="mx-auto max-w-[1230px] px-9 pb-12 pt-6 max-[900px]:px-5 max-[640px]:px-4">
       <div className="flex items-end justify-between gap-6 max-[780px]:flex-col max-[780px]:items-start">
         <div>
-          <div className="mb-3 flex items-center gap-2 text-[11px] font-medium text-[var(--lm-subtle)]">
+          <div className="mb-2 flex items-center gap-2 text-[11px] font-medium text-[var(--lm-subtle)]">
             <span>Overview</span><span aria-hidden="true">/</span><span className="text-[var(--lm-muted)]">Dashboard</span>
           </div>
-          <h1 className="lm-page-title">Executive Overview</h1>
-          <p className="lm-body-copy mt-2">Welcome back, {admin.name}. A clear view of today&apos;s platform health and the work that needs your attention.</p>
-          <p className="mt-3 text-[10px] text-[var(--lm-subtle)]">{dateLabel} <span className="mx-1">·</span> IST <span className="mx-1">·</span> Live data</p>
+          <h1 className="lm-page-title text-[24px]">Executive Overview</h1>
+          <p className="mt-1 text-[10px] text-[var(--lm-subtle)]">{dateLabel} <span className="mx-1">·</span> IST <span className="mx-1">·</span> Live data</p>
         </div>
         <div className="flex items-center gap-3 max-[780px]:w-full">
           <button type="button" className="lm-button-secondary px-3.5 max-[640px]:flex-1">
@@ -204,29 +203,29 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <div className="mt-7">
+      <div className="mt-5">
         <PlatformPulse preview={preview} />
       </div>
 
-      <section aria-label="Priority metrics" className="mt-5 grid grid-cols-4 gap-4 max-[1100px]:grid-cols-2">
+      <section aria-label="Priority metrics" className="mt-4 grid grid-cols-4 gap-4 max-[1100px]:grid-cols-2">
         {metrics.map((metric, index) => <MetricCard key={metric.label} metric={metric} index={index} />)}
       </section>
 
-      <div className="mt-5 grid grid-cols-[minmax(0,1.65fr)_minmax(250px,0.85fr)] gap-5 max-[1080px]:grid-cols-1">
+      <div className="mt-4 grid grid-cols-[minmax(0,1.65fr)_minmax(250px,0.85fr)] gap-4 max-[1080px]:grid-cols-1">
         <PlatformPulseChart data={trend} preview={preview} totalRevenue={formatCurrency(stats.totalRevenue)} />
         <ActionQueue items={queue} />
       </div>
 
-      <div className="mt-5 grid grid-cols-[minmax(0,1.35fr)_minmax(250px,0.85fr)] gap-5 max-[1080px]:grid-cols-1">
+      <div className="mt-4 grid grid-cols-[minmax(0,1.35fr)_minmax(250px,0.85fr)] gap-4 max-[1080px]:grid-cols-1">
         <RecentActivity items={buildActivity(stats)} />
         <SystemHealth metrics={buildHealth(dbConnected, preview)} />
       </div>
 
-      <div className="mt-5">
+      <div className="mt-4">
         <TeacherApprovalTable rows={teacherRows} pendingCount={stats.pendingApprovals} />
       </div>
 
-      <footer className="mt-6 flex items-center justify-between gap-4 text-[10px] text-[var(--lm-subtle)] max-[640px]:flex-col max-[640px]:items-start">
+      <footer className="mt-5 flex items-center justify-between gap-4 text-[10px] text-[var(--lm-subtle)] max-[640px]:flex-col max-[640px]:items-start">
         <span>Language Metrics Admin Portal · Internal operations workspace</span>
         <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-[var(--lm-teal)]" /> Data refreshed moments ago</span>
       </footer>
