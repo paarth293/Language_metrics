@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { AuthService } from "@/features/auth/services/auth-service";
 import { loginSchema } from "@/features/auth/validators/auth";
-import { rateLimit, exceedsMaxBodySize } from "@/lib/rate-limit";
+import { rateLimit, rateLimitRedis, exceedsMaxBodySize } from "@/lib/rate-limit";
 import {
   signAccessToken,
   signRefreshToken,
@@ -28,10 +28,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Request body too large." }, { status: 413 });
   }
 
-  // 2. Rate limiting — 10 attempts per IP per 60s
+  // 2. Rate limiting — 10 attempts per IP per 60s (Redis sliding window)
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  if (rateLimit(ip, { windowMs: 60_000, max: 10 })) {
+  const isLimited = await rateLimitRedis(ip, "login", { windowMs: 60_000, max: 10 });
+  if (isLimited) {
     return NextResponse.json(
       { message: "Too many login attempts. Please wait 60 seconds and try again." },
       { status: 429, headers: { "Retry-After": "60" } }
@@ -54,7 +55,10 @@ export async function POST(request: NextRequest) {
 
   // 4. Authenticate
   const authResult = await AuthService.login(result.data);
-  if (!authResult) {
+  if ('error' in authResult) {
+    if (authResult.error === "USER_NOT_FOUND") {
+      return NextResponse.json({ message: "USER_NOT_FOUND" }, { status: 404 });
+    }
     return NextResponse.json({ message: "Invalid credentials." }, { status: 401 });
   }
 

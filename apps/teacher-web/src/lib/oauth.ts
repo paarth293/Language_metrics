@@ -10,8 +10,13 @@ function getConfig() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const privateKey = process.env.JWT_PRIVATE_KEY;
+  const publicKey = process.env.JWT_PUBLIC_KEY;
   if (!clientId || !clientSecret) {
     throw new Error("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set.");
+  }
+  if (!privateKey || !publicKey) {
+    throw new Error("JWT_PRIVATE_KEY and JWT_PUBLIC_KEY must be set for token signing.");
   }
   return {
     clientId,
@@ -69,5 +74,12 @@ export async function exchangeGoogleCode(code: string): Promise<GoogleUserInfo> 
   });
 
   if (!userRes.ok) throw new Error("Failed to fetch Google user profile.");
-  return userRes.json() as Promise<GoogleUserInfo>;
+  const profile = (await userRes.json()) as GoogleUserInfo;
+
+  // Industry requirement: reject accounts where Google hasn't verified the email
+  if (!profile.email_verified) {
+    throw new Error("GOOGLE_EMAIL_NOT_VERIFIED");
+  }
+
+  return profile;
 }

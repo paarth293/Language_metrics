@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { requireRole } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth";
 import { TeacherService } from "@/features/teacher/services/teacher-service";
 import type { VerificationStatus } from "@repo/database";
 
@@ -15,8 +15,8 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = requireRole(request, "ADMIN");
-  if (auth.response) return auth.response;
+  const auth = await requireAuth(request, "ADMIN");
+  if (auth.error) return auth.error;
 
   try {
     const { id } = await params;

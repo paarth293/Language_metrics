@@ -77,13 +77,17 @@ export async function rotateRefreshSession(
   const newKey = rtKey(userId, newSessionId);
   const value = JSON.stringify({ userId, ...meta, createdAt: Date.now() });
 
-  const pipeline = client.pipeline();
-  pipeline.del(oldKey);
-  pipeline.set(newKey, value, "EX", REFRESH_TTL_SECONDS);
-  const results = await pipeline.exec();
+  // GETDEL atomically reads and deletes the old key in one round trip.
+  // If it returns null, the key never existed (already rotated or stolen token).
+  const oldValue = await client.getdel(oldKey);
+  if (!oldValue) {
+    // Old session not found — do NOT create new session. Signal theft.
+    return false;
+  }
 
-  const deleted = results?.[0]?.[1] as number;
-  return deleted > 0;
+  // Old session existed and is now deleted. Create the new one.
+  await client.set(newKey, value, "EX", REFRESH_TTL_SECONDS);
+  return true;
 }
 
 export async function revokeRefreshSession(userId: string, sessionId: string): Promise<void> {

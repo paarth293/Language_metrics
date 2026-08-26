@@ -232,6 +232,18 @@ export default function LoginForm({ csrfToken }: { csrfToken: string }) {
                 <p className="mt-1.5 text-[10px] text-[var(--text-subtle)]">
                   Enter the code from your authenticator app, or a backup code.
                 </p>
+
+                <div className="mt-4 flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="trust-device"
+                    name="trust_device"
+                    className="h-3.5 w-3.5 rounded border-[var(--border-strong)] bg-transparent text-[var(--brand-navy)] focus:ring-[var(--brand-navy)]"
+                  />
+                  <label htmlFor="trust-device" className="text-[11px] text-[var(--text-subtle)]">
+                    Don&apos;t ask again on this device for 30 days
+                  </label>
+                </div>
               </div>
             )}
 

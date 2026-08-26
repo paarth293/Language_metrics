@@ -19,6 +19,8 @@ import { jwtVerify, importSPKI } from "jose";
  */
 
 const PROTECTED_PREFIXES = ["/student", "/teacher", "/dashboard", "/onboarding", "/profile"];
+// API routes are never protected by middleware — they handle auth themselves
+const EXCLUDED_PREFIXES = ["/api/", "/_next/", "/favicon"];
 
 const ISSUER = "lm-auth";
 const AUDIENCE = "lm-teacher-web";
@@ -40,6 +42,11 @@ function isProtected(pathname: string): boolean {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Never protect API routes, static files, or internal routes
+  if (EXCLUDED_PREFIXES.some((p) => pathname.startsWith(p))) {
+    return NextResponse.next();
+  }
+
   // Only enforce auth on explicitly protected routes
   if (!isProtected(pathname)) {
     return NextResponse.next();
@@ -51,8 +58,8 @@ export async function proxy(request: NextRequest) {
   if (!accessToken) {
     // No token at all
     if (refreshToken) {
-      // Has refresh token → try to silently refresh
-      const refreshUrl = new URL("/api/auth/refresh", request.url);
+      // Has refresh token → attempt silent refresh via GET endpoint, then redirect to `next`
+      const refreshUrl = new URL("/api/auth/silent-refresh", request.url);
       refreshUrl.searchParams.set("next", pathname);
       return NextResponse.redirect(refreshUrl);
     }
@@ -91,7 +98,7 @@ export async function proxy(request: NextRequest) {
     // Token is invalid or expired
     if (refreshToken) {
       // Try silent refresh
-      const refreshUrl = new URL("/api/auth/refresh", request.url);
+      const refreshUrl = new URL("/api/auth/silent-refresh", request.url);
       refreshUrl.searchParams.set("next", pathname);
       return NextResponse.redirect(refreshUrl);
     }
@@ -111,9 +118,9 @@ export const config = {
      * Match all request paths EXCEPT:
      * - _next/static (static files)
      * - _next/image (image optimization)
+     * - api/* (all API routes handle their own auth)
      * - favicon.ico, brand assets
-     * This ensures middleware runs on all page routes.
      */
-    "/((?!_next/static|_next/image|favicon.ico|brand).*)",
+    "/((?!_next/static|_next/image|api/|favicon.ico|brand).*)",
   ],
 };

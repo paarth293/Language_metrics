@@ -35,9 +35,10 @@ model User {
   backupCodes  String[] @default([])
 
   /// Email verification
-  emailVerified            Boolean   @default(false)
-  emailVerificationToken   String?   // bcrypt hash of the one-time token
-  emailVerificationExpiry  DateTime?
+  emailVerified                  Boolean   @default(false)
+  emailVerificationToken         String?   // bcrypt hash of the one-time token
+  emailVerificationTokenPrefix   String?   // first 8 chars of token (plaintext) for fast lookup
+  emailVerificationExpiry        DateTime?
 
   /// Password reset
   passwordResetToken   String?   // bcrypt hash of the one-time token
