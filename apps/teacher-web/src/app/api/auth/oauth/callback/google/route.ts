@@ -210,11 +210,7 @@ export async function GET(request: NextRequest) {
   });
 
   // 5. Redirect: new users → onboarding, returning users → dashboard
-  const destination = isNewUser
-    ? "/onboarding"
-    : userRole === "TEACHER"
-    ? "/teacher/dashboard"
-    : "/student/dashboard";
+  const destination = isNewUser ? "/onboarding" : "/coming-soon";
 
   const redirectResponse = NextResponse.redirect(new URL(destination, APP_URL));
   redirectResponse.cookies.set("lm_access_token", accessToken, accessCookieOptions);

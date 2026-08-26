@@ -10,7 +10,7 @@ export default function NotFound() {
       style={{ backgroundColor: "var(--lm-bg)" }} 
       className="min-h-screen flex flex-col items-center justify-center p-6 text-center"
     >
-      <div className="max-w-md w-full flex flex-col items-center space-y-6">
+      <div className="max-w-md w-full flex flex-col items-center space-y-3">
         {/* Icon */}
         <div 
           style={{ backgroundColor: "var(--lm-surface2)", color: "var(--lm-accent)" }} 
@@ -23,7 +23,7 @@ export default function NotFound() {
         <div>
           <h1 
             style={{ color: "var(--lm-text)" }} 
-            className="text-3xl font-bold tracking-tight mb-2"
+            className="text-3xl font-bold tracking-tight mb-1"
           >
             Page Not Found
           </h1>
