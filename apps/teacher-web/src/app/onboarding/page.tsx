@@ -68,7 +68,7 @@ export default function OnboardingPage() {
       .then(({ user }) => {
         if (!user) { router.replace("/login"); return; }
         if (user.onboardingComplete) {
-          router.replace(user.role === "TEACHER" ? "/teacher/dashboard" : "/student/dashboard");
+          router.replace("/coming-soon");
           return;
         }
         setUser(user);
@@ -100,7 +100,7 @@ export default function OnboardingPage() {
         setSubmitting(false);
         return;
       }
-      router.push(user?.role === "TEACHER" ? "/teacher/dashboard" : "/student/dashboard");
+      router.push("/coming-soon");
     } catch {
       setError("Network error. Please try again.");
       setSubmitting(false);
@@ -124,7 +124,7 @@ export default function OnboardingPage() {
   return (
     <AuthLayout>
       {/* Progress dots */}
-      <div className="flex items-center gap-2 mb-8">
+      <div className="flex items-center gap-2 mb-6">
         {Array.from({ length: totalSteps }).map((_, i) => (
           <div
             key={i}
@@ -154,7 +154,7 @@ export default function OnboardingPage() {
               transition={{ duration: 0.2 }}
             >
               {/* Avatar */}
-              <div className="flex flex-col items-center mb-8">
+              <div className="flex flex-col items-center mb-4">
                 <div className="relative mb-4">
                   {user?.avatarUrl ? (
                     <Image
@@ -180,7 +180,7 @@ export default function OnboardingPage() {
                   </span>
                 </div>
                 <div
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold mb-4 ${
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold mb-2 ${
                     isStudent
                       ? "bg-gold/10 text-gold"
                       : "bg-brand/10 text-brand"
@@ -195,8 +195,8 @@ export default function OnboardingPage() {
                 </div>
               </div>
 
-              <div className="mb-6">
-                <h1 className="font-display text-3xl font-bold text-text mb-2">
+              <div className="mb-4">
+                <h1 className="font-display text-2xl font-bold text-text mb-1">
                   Welcome! Let&apos;s get you set up
                 </h1>
                 <p className="text-text-muted text-sm">
@@ -204,7 +204,7 @@ export default function OnboardingPage() {
                 </p>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-text">Full Name</label>
                   <Input
@@ -235,7 +235,7 @@ export default function OnboardingPage() {
               <Button
                 type="button"
                 variant={isStudent ? "gold" : "primary"}
-                className="w-full mt-6"
+                className="w-full mt-4"
                 onClick={() => setStep(2)}
                 disabled={name.trim().length < 2}
               >
@@ -254,17 +254,17 @@ export default function OnboardingPage() {
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
             >
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gold/10 text-gold mb-4">
-                <Globe className="w-6 h-6" />
+              <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gold/10 text-gold mb-3">
+                <Globe className="w-5 h-5" />
               </div>
-              <h1 className="font-display text-3xl font-bold text-text mb-2">
+              <h1 className="font-display text-2xl font-bold text-text mb-1">
                 What are you learning?
               </h1>
-              <p className="text-text-muted text-sm mb-6">
+              <p className="text-text-muted text-sm mb-4">
                 Tell us about your language goals so we can match you with the perfect teacher.
               </p>
 
-              <div className="space-y-5">
+              <div className="space-y-4">
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-text">Language to Learn</label>
                   <select
@@ -324,7 +324,7 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              <div className="flex gap-3 mt-6">
+              <div className="flex gap-3 mt-4">
                 <Button
                   type="button"
                   variant="ghost"
@@ -356,17 +356,17 @@ export default function OnboardingPage() {
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
             >
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-brand/10 text-brand mb-4">
-                <BookOpen className="w-6 h-6" />
+              <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-brand/10 text-brand mb-3">
+                <BookOpen className="w-5 h-5" />
               </div>
-              <h1 className="font-display text-3xl font-bold text-text mb-2">
+              <h1 className="font-display text-2xl font-bold text-text mb-1">
                 Tell us about your teaching
               </h1>
-              <p className="text-text-muted text-sm mb-6">
+              <p className="text-text-muted text-sm mb-4">
                 Help students discover you. This info will appear on your profile.
               </p>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-text">Language You Teach</label>
                   <select
@@ -443,7 +443,7 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              <div className="flex gap-3 mt-6">
+              <div className="flex gap-3 mt-4">
                 <Button
                   type="button"
                   variant="ghost"
