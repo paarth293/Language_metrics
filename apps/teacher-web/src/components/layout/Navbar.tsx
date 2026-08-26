@@ -65,7 +65,7 @@ export default function Navbar() {
             Sign in
           </Link>
           <Button asChild variant="gold">
-            <Link href="/register/student">Get Started</Link>
+            <Link href="/register">Get Started</Link>
           </Button>
         </div>
 
@@ -109,7 +109,7 @@ export default function Navbar() {
                 <Link href="/login" onClick={() => setMobileMenuOpen(false)}>Sign in</Link>
               </Button>
               <Button asChild variant="gold" className="w-full justify-center">
-                <Link href="/register/student" onClick={() => setMobileMenuOpen(false)}>Get Started</Link>
+                <Link href="/register" onClick={() => setMobileMenuOpen(false)}>Get Started</Link>
               </Button>
             </div>
           </div>

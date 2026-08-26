@@ -11,7 +11,7 @@ import { Prisma } from "@prisma/client";
 export const dynamic = "force-dynamic";
 
 const tabs = [
-  { key: "all", label: "All teachers", href: "/teachers?filter=all" },
+  { key: "approved", label: "Approved teachers", href: "/teachers?filter=approved" },
   { key: "pending", label: "Pending approval", href: "/teachers?filter=pending" },
   { key: "suspended", label: "Suspended / rejected", href: "/teachers?filter=suspended" },
 ] as const;
@@ -30,7 +30,7 @@ export default async function TeachersPage(props: {
   await requireAdmin();
   const searchParams = await props.searchParams;
 
-  const filter = searchParams.filter || "all";
+  const filter = searchParams.filter || "approved";
   const q = searchParams.q || "";
   const page = Math.max(parseInt(searchParams.page || "1", 10), 1);
   const pageSize = 20;
@@ -39,7 +39,8 @@ export default async function TeachersPage(props: {
   const whereClause: Prisma.TeacherProfileWhereInput = {};
 
   if (q) whereClause.name = { contains: q, mode: "insensitive" };
-  if (filter === "pending") whereClause.status = "PENDING";
+  if (filter === "approved") whereClause.status = "APPROVED";
+  if (filter === "pending") whereClause.status = { in: ["PENDING", "INTERVIEW_SCHEDULED"] };
   if (filter === "suspended") whereClause.status = "REJECTED";
 
   const [teachers, totalCount] = await Promise.all([
@@ -54,7 +55,7 @@ export default async function TeachersPage(props: {
   ]);
 
   const totalPages = Math.ceil(totalCount / pageSize);
-  const hasFilters = Boolean(q) || filter !== "all";
+  const hasFilters = Boolean(q) || filter !== "approved";
 
   return (
     <div className="mx-auto max-w-[1230px] px-9 pb-12 pt-9 max-[900px]:px-5 max-[640px]:px-4">

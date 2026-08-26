@@ -93,12 +93,12 @@ export default function HowItWorks() {
   const isInView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section id="how-it-works" className="py-28 bg-surface-2 border-y border-border overflow-hidden">
+    <section id="how-it-works" className="py-20 bg-surface-2 border-y border-border overflow-hidden">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
         {/* Header */}
         <motion.div
-          className="text-center mb-20"
+          className="text-center mb-16"
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-60px" }}

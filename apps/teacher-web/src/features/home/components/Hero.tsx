@@ -41,7 +41,7 @@ export default function Hero() {
 
   return (
     <section 
-      className="relative min-h-[100dvh] flex flex-col overflow-hidden pt-20 pb-24 bg-bg text-text"
+      className="relative min-h-[100dvh] flex flex-col overflow-hidden pt-20 pb-16 bg-bg text-text"
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >

@@ -100,7 +100,7 @@ export default function Pricing() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   return (
-    <section id="pricing" className="py-28 bg-bg">
+    <section id="pricing" className="py-20 bg-bg">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           className="text-center mb-16"

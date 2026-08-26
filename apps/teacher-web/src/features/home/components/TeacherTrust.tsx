@@ -55,7 +55,7 @@ const itemVariants = {
 
 export default function TeacherTrust() {
   return (
-    <section className="py-28 bg-surface-2 border-y border-border overflow-hidden">
+    <section className="py-20 bg-surface-2 border-y border-border overflow-hidden">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           className="text-center mb-16"

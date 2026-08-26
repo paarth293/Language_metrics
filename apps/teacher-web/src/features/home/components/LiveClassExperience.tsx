@@ -49,7 +49,7 @@ const itemVariants = {
 
 export default function LiveClassExperience() {
   return (
-    <section className="py-28 bg-bg relative overflow-hidden">
+    <section className="py-20 bg-bg relative overflow-hidden">
       {/* Background glow — aligned with brand */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-brand/5 blur-[120px] rounded-full pointer-events-none" />
 

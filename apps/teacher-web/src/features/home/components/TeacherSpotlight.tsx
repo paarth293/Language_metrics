@@ -69,7 +69,7 @@ const cardVariants = {
 
 export default function TeacherSpotlight() {
   return (
-    <section id="teachers" className="py-28 bg-surface-2 overflow-hidden">
+    <section id="teachers" className="py-20 bg-surface-2 overflow-hidden">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-14"

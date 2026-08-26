@@ -55,7 +55,7 @@ export default function ComingSoonPage() {
       </header>
 
       {/* Main Stage */}
-      <main className="flex-1 flex flex-col items-center justify-center px-6 pb-20 relative z-10">
+      <main className="flex-1 flex flex-col items-center justify-center px-6 pb-0 relative z-10">
         <motion.div
           variants={stagger.container}
           initial="hidden"
@@ -64,7 +64,7 @@ export default function ComingSoonPage() {
         >
 
           {/* Logo mark */}
-          <motion.div variants={stagger.item} className="mb-10">
+          <motion.div variants={stagger.item} className="mb-4">
             <div className="relative inline-block">
               <div className="absolute -inset-4 bg-gold/20 blur-2xl rounded-full" />
               <Image
@@ -81,7 +81,7 @@ export default function ComingSoonPage() {
 
 
           {/* Status pill */}
-          <motion.div variants={stagger.item} className="mb-8">
+          <motion.div variants={stagger.item} className="mb-3">
             <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-navy/5 border border-navy/10 text-navy/60 text-[11px] font-bold uppercase tracking-[0.15em]">
               <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
               In Development &middot; {new Date().getFullYear()}
@@ -89,7 +89,7 @@ export default function ComingSoonPage() {
           </motion.div>
 
           {/* Primary wordmark headline */}
-          <motion.div variants={stagger.item} className="mb-6">
+          <motion.div variants={stagger.item} className="mb-2">
             <h1 className="font-display text-[2.75rem] md:text-[4.5rem] lg:text-[5.5rem] font-bold text-navy tracking-[-0.03em] leading-[1.05]">
               Language Metrics
             </h1>
@@ -101,7 +101,7 @@ export default function ComingSoonPage() {
           {/* Divider */}
           <motion.div
             variants={stagger.item}
-            className="w-16 h-px bg-gradient-to-r from-transparent via-gold to-transparent my-8 opacity-50"
+            className="w-16 h-px bg-gradient-to-r from-transparent via-gold to-transparent my-4 opacity-50"
           />
 
           {/* Body text — personalised when logged in */}
@@ -113,7 +113,7 @@ export default function ComingSoonPage() {
 
           {/* User role badge */}
           {user && (
-            <motion.div variants={stagger.item} className="mt-6">
+            <motion.div variants={stagger.item} className="mt-4">
               <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gold/10 border border-gold/25 text-gold text-xs font-bold uppercase tracking-widest">
                 {user.role} Account
               </span>
@@ -123,7 +123,7 @@ export default function ComingSoonPage() {
           {/* CTA buttons */}
           <motion.div
             variants={stagger.item}
-            className="flex flex-col sm:flex-row gap-3 mt-12 w-full justify-center"
+            className="flex flex-col sm:flex-row gap-3 mt-6 w-full justify-center"
           >
             <Link
               href="/"
