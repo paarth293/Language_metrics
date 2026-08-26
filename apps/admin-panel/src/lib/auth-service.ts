@@ -143,7 +143,7 @@ export async function authenticateAdmin(
     email: admin.email,
     roleKey: admin.roleKey,
     isSuperAdmin: admin.isSuperAdmin,
-  });
+  }, ip ?? undefined);
   
   await recordLoginAttempt(email, ip, "SUCCESS", admin.userId);
   await auditLog({ adminId: admin.userId, ip }, "LOGIN_SUCCESS", admin.userId);

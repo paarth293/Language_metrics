@@ -34,7 +34,7 @@ export default function Hero() {
       transition: {
         delay: i * 0.08,
         duration: 0.5,
-        ease: "easeOut"
+        ease: "easeOut" as const
       },
     }),
   };
@@ -130,13 +130,13 @@ export default function Hero() {
             </Button>
           </motion.div>
 
-          {/* Trust Row — wraps cleanly on mobile */}
+          {/* Trust Row — kept on a single line on larger screens */}
           <motion.div
             custom={4}
             initial="hidden"
             animate="visible"
             variants={fadeUpVariant}
-            className="flex flex-wrap items-center justify-center lg:justify-start gap-x-4 gap-y-2 text-xs sm:text-sm font-medium text-text-subtle"
+            className="flex flex-wrap lg:flex-nowrap items-center justify-center lg:justify-start gap-x-3 xl:gap-x-4 gap-y-2 text-xs xl:text-sm font-medium text-text-subtle"
           >
             <div className="flex items-center gap-2 whitespace-nowrap"><ShieldCheck className="w-4 h-4 text-success shrink-0" /> Verified Teachers</div>
             <div className="h-4 w-px bg-border hidden sm:block shrink-0" />

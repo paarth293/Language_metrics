@@ -33,11 +33,22 @@ model User {
   totpEnabled  Boolean  @default(false)
   /// bcrypt-hashed single-use backup codes
   backupCodes  String[] @default([])
+
+  /// Email verification
+  emailVerified            Boolean   @default(false)
+  emailVerificationToken   String?   // bcrypt hash of the one-time token
+  emailVerificationExpiry  DateTime?
+
+  /// Password reset
+  passwordResetToken   String?   // bcrypt hash of the one-time token
+  passwordResetExpiry  DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   studentProfile StudentProfile?
   teacherProfile TeacherProfile?
+  oauthAccounts  OAuthAccount[]
 
   // Relations
   sentMessages     ChatMessage[]     @relation("SentMessages")
@@ -49,7 +60,30 @@ model User {
   adminUser        AdminUser?
 
   @@index([createdAt])
+  @@index([emailVerificationToken])
+  @@index([passwordResetToken])
 }
+
+/// OAuth provider accounts linked to a User.
+/// A single User can have multiple OAuth accounts (one per provider).
+model OAuthAccount {
+  id                String @id @default(uuid())
+  userId            String @db.Uuid
+  user              User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  provider          String // "google", "github", etc.
+  providerAccountId String // The user's ID from the provider
+
+  /// Optional — store the provider's access token if you need to call their API
+  accessToken  String?
+  refreshToken String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
 
 enum ProficiencyLevel {
   BEGINNER
@@ -70,9 +104,11 @@ model StudentProfile {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   name             String
+  avatarUrl        String?   // Profile picture URL (from Google or uploaded)
   languageToLearn  String
   proficiencyLevel ProficiencyLevel
   status           StudentStatus @default(ACTIVE)
+  onboardingComplete Boolean @default(false)
 
   // Relations
   bookings Booking[]
@@ -98,10 +134,12 @@ model TeacherProfile {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   name            String
+  avatarUrl       String?   // Profile picture URL (from Google or uploaded)
   gender          String?
   bio             String?
   experienceLevel TeacherExperienceLevel
   status          VerificationStatus     @default(PENDING)
+  onboardingComplete Boolean @default(false)
 
   language     String?
   demoVideoUrl String?

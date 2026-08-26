@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Video, Star, Users, ArrowUpRight, TrendingUp, Calendar } from "lucide-react";
+import { Video, Star, Users, ArrowUpRight, Calendar } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -29,7 +29,7 @@ const strengthLabels = ["", "Weak", "Fair", "Good", "Strong"];
 const strengthColors = ["", "bg-danger", "bg-warning", "bg-info", "bg-success"];
 
 export default function StudentRegisterPage() {
-  const router = useRouter();
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
