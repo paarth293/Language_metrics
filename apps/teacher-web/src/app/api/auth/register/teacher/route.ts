@@ -58,8 +58,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Generate email verification token
-  const verificationToken = crypto.randomUUID() + crypto.randomUUID();
+  // Generate email verification token with a prefix for fast DB lookup
+  // Format: "{8-hex-prefix}:{uuid}" — prefix stored plain, full token bcrypt-hashed
+  const tokenUUID = crypto.randomUUID();
+  const tokenPrefix = tokenUUID.replace(/-/g, "").slice(0, 8);
+  const verificationToken = `${tokenPrefix}:${tokenUUID}`;
   const tokenHash = await bcrypt.hash(verificationToken, 10);
   const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
@@ -67,6 +70,7 @@ export async function POST(request: NextRequest) {
     where: { id: authResult.user.id },
     data: {
       emailVerificationToken: tokenHash,
+      emailVerificationTokenPrefix: tokenPrefix,
       emailVerificationExpiry: expiry,
     },
   });

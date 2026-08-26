@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireRole } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth";
 import { TeacherService } from "@/features/teacher/services/teacher-service";
 
 /**
@@ -7,11 +7,11 @@ import { TeacherService } from "@/features/teacher/services/teacher-service";
  * Returns the authenticated teacher's profile.
  */
 export async function GET(request: Request) {
-  const auth = requireRole(request, "TEACHER");
-  if (auth.response) return auth.response;
+  const auth = await requireAuth(request, "TEACHER");
+  if (auth.error) return auth.error;
 
   try {
-    const teacher = await TeacherService.getProfileByUserId(auth.user.userId);
+    const teacher = await TeacherService.getProfileByUserId(auth.user.sub);
     if (!teacher) {
       return NextResponse.json({ message: "Teacher profile not found." }, { status: 404 });
     }

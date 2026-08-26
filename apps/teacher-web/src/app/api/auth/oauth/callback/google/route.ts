@@ -38,6 +38,11 @@ export async function GET(request: NextRequest) {
   try {
     googleUser = await exchangeGoogleCode(code);
   } catch (err) {
+    const errMsg = err instanceof Error ? err.message : "";
+    if (errMsg === "GOOGLE_EMAIL_NOT_VERIFIED") {
+      console.warn("[OAuth] Google account email is not verified.");
+      return NextResponse.redirect(new URL("/login?error=oauth_email_unverified", APP_URL));
+    }
     console.error("[OAuth] Google code exchange failed:", err);
     return NextResponse.redirect(new URL("/login?error=oauth_exchange_failed", APP_URL));
   }
@@ -88,6 +93,18 @@ export async function GET(request: NextRequest) {
     });
 
     if (existingUser) {
+      // Role conflict: same email but user signed up under a different role
+      // Example: signed up as STUDENT, now trying OAuth as TEACHER
+      if (existingUser.role !== (role === "teacher" ? "TEACHER" : "STUDENT")) {
+        const existingRoleLabel = existingUser.role.toLowerCase();
+        return NextResponse.redirect(
+          new URL(
+            `/login?error=oauth_role_conflict&existing_role=${existingRoleLabel}`,
+            APP_URL
+          )
+        );
+      }
+
       // Link the OAuth account to the existing user
       userId = existingUser.id;
       userRole = existingUser.role as typeof userRole;

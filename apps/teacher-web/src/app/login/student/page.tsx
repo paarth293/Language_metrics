@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { GraduationCap, ArrowLeft } from "lucide-react";
 import { AuthLayout } from "@/components/layout/AuthLayout";
+import { OAuthErrorAlert } from "@/components/auth/OAuthErrorAlert";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { loginSchema } from "@/features/auth/validators/auth";
@@ -62,6 +63,10 @@ export default function StudentLoginPage() {
 
     const outcome = await login(email, password, "STUDENT");
     if (!outcome.success) {
+      if (outcome.message === "USER_NOT_FOUND") {
+        window.location.href = `/register/student?email=${encodeURIComponent(email)}`;
+        return;
+      }
       setServerError(outcome.message ?? "Login failed.");
     }
     setIsLoading(false);
@@ -110,6 +115,10 @@ export default function StudentLoginPage() {
           {serverError}
         </div>
       )}
+
+      <React.Suspense fallback={null}>
+        <OAuthErrorAlert />
+      </React.Suspense>
 
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <div className="space-y-1">

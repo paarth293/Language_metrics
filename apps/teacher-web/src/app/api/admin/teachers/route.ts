@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireRole } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth";
 import { TeacherService } from "@/features/teacher/services/teacher-service";
 import type { VerificationStatus } from "@repo/database";
 
@@ -10,8 +10,8 @@ const VALID_STATUSES: VerificationStatus[] = ["PENDING", "APPROVED", "REJECTED"]
  * Lists teachers for the admin verification queue. Optional status filter.
  */
 export async function GET(request: Request) {
-  const auth = requireRole(request, "ADMIN");
-  if (auth.response) return auth.response;
+  const auth = await requireAuth(request, "ADMIN");
+  if (auth.error) return auth.error;
 
   try {
     const { searchParams } = new URL(request.url);

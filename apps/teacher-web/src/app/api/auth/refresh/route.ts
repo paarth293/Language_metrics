@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { verifyRefreshToken, signAccessToken, signRefreshToken, accessCookieOptions, refreshCookieOptions } from "@/lib/tokens";
-import { rotateRefreshSession } from "@/lib/redis-session";
+import { rotateRefreshSession, revokeAllRefreshSessions } from "@/lib/redis-session";
 
 /**
  * POST /api/auth/refresh
@@ -42,9 +42,17 @@ export async function POST(request: NextRequest) {
   });
 
   if (!rotated) {
-    // Old session not found → possible token reuse/theft. Clear all cookies.
+    // Old session not found → possible token reuse/theft.
+    // Revoke ALL sessions for this user to contain the breach.
+    await revokeAllRefreshSessions(userId).catch(() => {});
+    console.error(
+      `[Refresh] Rotation failed for userId=${userId}. Possible token theft. All sessions revoked.`
+    );
     const res = NextResponse.json(
-      { message: "Session not found. Please log in again." },
+      {
+        code: "SESSION_STOLEN",
+        message: "Security alert: your session was invalidated. Please log in again.",
+      },
       { status: 401 }
     );
     res.cookies.set("lm_access_token", "", { maxAge: 0, path: "/" });

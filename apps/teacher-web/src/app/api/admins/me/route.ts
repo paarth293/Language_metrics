@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireRole } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth";
 import { AdminService } from "@/features/admin/services/admin-service";
 
 /**
@@ -7,11 +7,11 @@ import { AdminService } from "@/features/admin/services/admin-service";
  * Returns the authenticated admin's profile.
  */
 export async function GET(request: Request) {
-  const auth = requireRole(request, "ADMIN");
-  if (auth.response) return auth.response;
+  const auth = await requireAuth(request, "ADMIN");
+  if (auth.error) return auth.error;
 
   try {
-    const admin = await AdminService.getProfile(auth.user.userId);
+    const admin = await AdminService.getProfile(auth.user.sub);
     if (!admin) {
       return NextResponse.json({ message: "Admin profile not found." }, { status: 404 });
     }

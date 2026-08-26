@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireRole } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth";
 import { StudentService } from "@/features/student/services/student-service";
 
 /**
@@ -7,11 +7,11 @@ import { StudentService } from "@/features/student/services/student-service";
  * Returns the authenticated student's profile.
  */
 export async function GET(request: Request) {
-  const auth = requireRole(request, "STUDENT");
-  if (auth.response) return auth.response;
+  const auth = await requireAuth(request, "STUDENT");
+  if (auth.error) return auth.error;
 
   try {
-    const student = await StudentService.getProfile(auth.user.userId);
+    const student = await StudentService.getProfile(auth.user.sub);
     if (!student) {
       return NextResponse.json({ message: "Student profile not found." }, { status: 404 });
     }

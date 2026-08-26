@@ -12,6 +12,7 @@ export const REFRESH_TOKEN_TTL_SECONDS = 7 * 24 * 3600; // 7 days
 
 export const ACCESS_COOKIE = "lm_admin_access_token";
 export const REFRESH_COOKIE = "lm_admin_refresh_token";
+export const TRUSTED_DEVICE_COOKIE = "lm_trusted_device";
 
 const ISSUER = "lm-admin-panel";
 const AUDIENCE = "lm-admin";
@@ -99,6 +100,33 @@ export async function verifyRefreshToken(token: string): Promise<RefreshTokenPay
   }
 }
 
+// ── Trusted Device Token ──────────────────────────────────────────────────────
+
+export const TRUSTED_DEVICE_TTL_SECONDS = 30 * 24 * 3600; // 30 days
+
+export async function signTrustedDeviceToken(userId: string): Promise<string> {
+  const key = await getPrivateKey();
+  return new SignJWT({ purpose: "trusted_device" })
+    .setProtectedHeader({ alg: "RS256" })
+    .setSubject(userId)
+    .setIssuer(ISSUER)
+    .setAudience(AUDIENCE)
+    .setIssuedAt()
+    .setExpirationTime(`${TRUSTED_DEVICE_TTL_SECONDS}s`)
+    .sign(key);
+}
+
+export async function verifyTrustedDeviceToken(token: string): Promise<string | null> {
+  try {
+    const key = await getPublicKey();
+    const { payload } = await jwtVerify(token, key, { issuer: ISSUER, audience: AUDIENCE });
+    if (payload.purpose !== "trusted_device") return null;
+    return payload.sub ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // ── Cookie options ─────────────────────────────────────────────────────────────
 
 export const accessCookieOptions = {
@@ -115,4 +143,12 @@ export const refreshCookieOptions = {
   sameSite: "strict" as const,
   path: "/api/auth",
   maxAge: REFRESH_TOKEN_TTL_SECONDS,
+};
+
+export const trustedDeviceCookieOptions = {
+  httpOnly: true,
+  secure: isProd,
+  sameSite: "lax" as const,
+  path: "/",
+  maxAge: TRUSTED_DEVICE_TTL_SECONDS,
 };

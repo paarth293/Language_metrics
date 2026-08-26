@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 
 import { AuthLayout } from "@/components/layout/AuthLayout";
+import { OAuthErrorAlert } from "@/components/auth/OAuthErrorAlert";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 // Import standalone step schemas instead of using .pick() on the full schema.
@@ -164,6 +165,10 @@ export default function TeacherRegisterPage() {
           {serverError}
         </div>
       )}
+
+      <React.Suspense fallback={null}>
+        <OAuthErrorAlert />
+      </React.Suspense>
 
       <form onSubmit={handleNext} className="space-y-4 min-h-[300px] flex flex-col" noValidate>
         {/* ── Step 1: Basic info ──────────────────────────────────────────── */}
