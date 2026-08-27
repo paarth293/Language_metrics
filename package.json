@@ -13,14 +13,14 @@
     "lint": "npm run lint --workspaces --if-present",
     "setup": "husky",
     "postinstall": "npm run postinstall --workspaces --if-present",
-    "db:seed": "node --env-file=.env prisma/seed.mjs",
+    "db:seed": "node --env-file=.env packages/database/prisma/seed.mjs",
     "scan:sast": "semgrep --config p/owasp-top-ten --config p/nextjs --config p/secrets --config semgrep.yml --json --output sast-results.json apps/admin-panel/src/ && node security-tests/generate-sast-report.mjs",
     "scan:deps": "npm audit --json > npm-audit.json; echo 'npm audit done — see npm-audit.json'",
     "scan:secrets": "gitleaks detect --config .gitleaks.toml --source . --verbose",
     "test:security": "python security-tests/run_all.py"
   },
   "prisma": {
-    "seed": "node --env-file=.env prisma/seed.mjs"
+    "seed": "node --env-file=.env packages/database/prisma/seed.mjs"
   },
   "dependencies": {
     "@prisma/client": "^5.16.1",
