@@ -28,7 +28,7 @@ const liveFeatures = [
   {
     icon: Layers,
     title: "Multiple Simultaneous Classes",
-    description: "Our LiveKit engine handles many classes at once — no scheduling conflicts, no interference between rooms.",
+    description: "Our video engine handles many classes at once — no scheduling conflicts, no interference between rooms.",
   },
   {
     icon: Video,
@@ -68,7 +68,7 @@ export default function LiveClassExperience() {
             Classes built for learning — <span className="font-medium">not borrowed from video call apps.</span>
           </h2>
           <p className="text-lg text-text-muted max-w-2xl mx-auto mb-6 text-balance">
-            All live classes run on our own custom-built video system powered by <span className="font-semibold text-text">LiveKit</span> — an open-source, self-hosted WebRTC engine. No Google Meet. No Zoom. No Jio Meet.
+            All live classes run on our own custom-built, self-hosted video system. No Google Meet. No Zoom. No Jio Meet.
           </p>
           <div className="inline-flex items-center gap-2 text-sm font-medium text-text-muted bg-trust-subtle border border-trust-muted/20 rounded-full px-4 py-2">
             <Lock className="w-3.5 h-3.5 text-trust" />

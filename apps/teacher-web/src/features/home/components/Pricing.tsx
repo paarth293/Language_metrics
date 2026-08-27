@@ -35,7 +35,7 @@ const pricingPlans = [
     features: [
       "1-on-1 live class with your chosen teacher",
       "Rates set by each teacher (₹200–₹1,500/hr depending on experience)",
-      "Custom LiveKit video classroom — whiteboard & screen share included",
+      "Custom video classroom — whiteboard & screen share included",
       "Automatic class recording",
       "Pay per session — no subscription required",
     ],

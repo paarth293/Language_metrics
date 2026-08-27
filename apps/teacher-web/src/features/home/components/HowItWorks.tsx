@@ -40,10 +40,10 @@ const steps = [
     title: "Join Live Classroom",
     step: "04",
     description:
-      "Attend your class through our custom-built LiveKit video system — with whiteboard, screen sharing, and automatic recording. No Zoom, no Meet.",
+      "Attend your class through our custom-built video system — with whiteboard, screen sharing, and automatic recording. No Zoom, no Meet.",
     color: "text-danger",
     glow: "shadow-danger/20",
-    bg: "bg-danger/10",
+    bg: "bg-danger/10", 
   },
   {
     icon: MessageSquare,

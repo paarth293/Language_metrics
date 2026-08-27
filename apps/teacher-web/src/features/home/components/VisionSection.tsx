@@ -69,7 +69,7 @@ export default function VisionSection() {
               <p className="text-text-muted text-sm mt-1">Co-Founder, Language Metrics</p>
             </div>
             <div className="space-y-6 text-text-muted leading-relaxed">
-              <p>I joined Language Metrics because I believe language has the power to change how people learn, connect, and create opportunities.</p>
+              <p>As Co-Founder of Language Metrics, I set out to build a platform rooted in a simple conviction: language has the power to change how people learn, connect, and create opportunities.</p>
               <p>My vision is to help turn this idea into something practical, accessible, and impactful—something that genuinely makes a difference in the way people experience language learning.</p>
               <p className="font-script text-2xl text-text pt-4">— Mohit Gupta</p>
             </div>
