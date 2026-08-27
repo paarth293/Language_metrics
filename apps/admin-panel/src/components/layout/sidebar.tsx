@@ -59,7 +59,7 @@ export function Sidebar({ admin, isOpen, onClose }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav aria-label="Admin navigation" className="flex-1 overflow-y-auto py-4">
+      <nav aria-label="Admin navigation" className="flex-1 overflow-y-auto py-2">
         {modules.map((module, i) => {
           const Icon = module.icon;
           const isModuleActive = module.match.some((m) =>
@@ -84,7 +84,7 @@ export function Sidebar({ admin, isOpen, onClose }: SidebarProps) {
                         onClick={onClose}
                         aria-current={active ? "page" : undefined}
                         className={clsx(
-                          "relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150",
+                          "relative flex items-center gap-3 rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition-all duration-150",
                           active
                             ? "bg-[color-mix(in_srgb,var(--brand-gold)_10%,transparent)] text-[var(--brand-navy)]"
                             : "text-[var(--text-muted)] hover:bg-[var(--surface-inset)] hover:text-[var(--text)]"
@@ -115,7 +115,7 @@ export function Sidebar({ admin, isOpen, onClose }: SidebarProps) {
       </nav>
 
       {/* Footer / User */}
-      <div className="shrink-0 border-t border-[var(--border)] p-4">
+      <div className="shrink-0 border-t border-[var(--border)] p-3">
         <div className="flex items-center gap-2.5">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--brand-gold)_15%,transparent)] text-[11px] font-bold text-[var(--brand-navy)]">
             {admin.name

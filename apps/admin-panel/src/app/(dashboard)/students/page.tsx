@@ -45,14 +45,14 @@ export default async function StudentsPage(props: {
   const hasFilters = Boolean(q);
 
   return (
-    <div className="mx-auto max-w-[1230px] px-9 pb-12 pt-9 max-[900px]:px-5 max-[640px]:px-4">
-      <div className="flex flex-col gap-5">
+    <div className="mx-auto max-w-[1230px] px-6 pb-4 pt-2 max-[900px]:px-5 max-[640px]:px-4">
+      <div className="flex flex-col gap-3">
         <div>
-          <div className="mb-3 flex items-center gap-2 text-[11px] font-medium text-[var(--lm-subtle)]">
+          <div className="mb-1 flex items-center gap-2 text-[11px] font-medium text-[var(--lm-subtle)]">
             <span>People</span><span aria-hidden="true">/</span><span className="text-[var(--lm-muted)]">Students</span>
           </div>
           <h1 className="lm-page-title">Student Management</h1>
-          <p className="lm-body-copy mt-2">Manage student profiles, learning preferences, and platform access.</p>
+          <p className="lm-body-copy mt-1">Manage student profiles, learning preferences, and platform access.</p>
         </div>
 
         <div className="flex flex-wrap items-end justify-between gap-4 border-b border-[var(--lm-line)]">
@@ -67,8 +67,8 @@ export default async function StudentsPage(props: {
         </div>
       </div>
 
-      <section className="lm-panel mt-6 overflow-hidden" aria-labelledby="student-directory-title">
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--lm-line)] px-6 py-5">
+      <section className="lm-panel mt-3 overflow-hidden" aria-labelledby="student-directory-title">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--lm-line)] px-5 py-4">
           <div>
             <div className="flex items-center gap-2.5">
               <h2 id="student-directory-title" className="text-[16px] font-bold tracking-[-0.02em] text-[var(--lm-ink-strong)]">Student directory</h2>
@@ -83,17 +83,17 @@ export default async function StudentsPage(props: {
             <caption className="sr-only">Student directory</caption>
             <thead>
               <tr className="border-b border-[var(--lm-line)] bg-[var(--lm-paper-muted)]">
-                <th scope="col" className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Student Name</th>
-                <th scope="col" className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Joined On</th>
-                <th scope="col" className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Language</th>
-                <th scope="col" className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Proficiency</th>
-                <th scope="col" className="px-6 py-3 text-right text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Action</th>
+                <th scope="col" className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Student Name</th>
+                <th scope="col" className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Joined On</th>
+                <th scope="col" className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Language</th>
+                <th scope="col" className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Proficiency</th>
+                <th scope="col" className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--lm-line)]">
               {students.map((student) => (
                 <tr key={student.userId} className="group transition-colors hover:bg-[var(--lm-hover)]">
-                  <td className="px-6 py-4">
+                  <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--lm-teal-soft)] overflow-hidden">
                         <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(student.name)}&backgroundColor=transparent`} alt="Avatar" className="w-full h-full object-cover" />
@@ -104,18 +104,18 @@ export default async function StudentsPage(props: {
                       </div>
                     </div>
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-[12px] text-[var(--lm-muted)]">
+                  <td className="whitespace-nowrap px-5 py-3 text-[12px] text-[var(--lm-muted)]">
                     {student.user.createdAt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                   </td>
-                  <td className="px-6 py-4 text-[12px] text-[var(--lm-muted)]">
+                  <td className="px-5 py-3 text-[12px] text-[var(--lm-muted)]">
                     {student.languageToLearn || "Not specified"}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-5 py-3">
                     <span className="rounded bg-[var(--lm-surface-2)] border border-[var(--lm-line)] px-2 py-0.5 text-[11px] font-medium text-[var(--lm-muted)]">
                       {student.proficiencyLevel || "Beginner"}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-5 py-3 text-right">
                     <Link href={`/students/${student.userId}`} className="inline-flex min-h-9 items-center rounded-lg border border-[var(--lm-line)] px-3 text-[11px] font-bold text-[var(--lm-teal-deep)] transition-colors hover:border-[var(--lm-teal)] hover:bg-[var(--lm-teal-soft)]">
                       View Profile
                     </Link>

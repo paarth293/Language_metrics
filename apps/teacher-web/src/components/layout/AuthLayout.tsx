@@ -21,7 +21,7 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
       {/* Left side: Form */}
       <div className="flex w-full flex-col lg:w-1/2">
         {/* Header */}
-        <header className="flex items-center justify-between p-6 md:px-12">
+        <header className="flex items-center justify-between px-6 py-3 md:px-12">
           <Link href="/" aria-label="Language Metrics — home">
             <Logo variant="full" size={40} />
           </Link>
@@ -34,7 +34,7 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Form Container */}
-        <div className="flex flex-1 flex-col justify-center px-6 md:px-16 lg:px-24">
+        <div className="flex flex-1 flex-col justify-start px-6 md:px-16 lg:px-24">
           <div className="mx-auto w-full max-w-sm">
             {children}
           </div>

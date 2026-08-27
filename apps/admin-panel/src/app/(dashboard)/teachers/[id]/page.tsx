@@ -67,7 +67,7 @@ export default async function TeacherProfilePage({ params }: { params: Promise<{
               </div>
             </div>
             
-            <div className="mt-6">
+            <div className="mt-3">
               <p className="text-gray-500 mb-1 text-sm">Bio</p>
               <p className="text-white text-sm bg-gray-800/50 p-3 rounded">{teacher.bio || "No bio provided."}</p>
             </div>

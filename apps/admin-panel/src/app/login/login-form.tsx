@@ -144,11 +144,11 @@ export default function LoginForm({ csrfToken }: { csrfToken: string }) {
 
           {/* Heading */}
           <div className="mb-8">
-            <p className="lm-kicker mb-3">Authorized access</p>
+            <p className="lm-kicker mb-1">Authorized access</p>
             <h2 className="text-[26px] font-semibold tracking-tight text-[var(--text)]">
               Welcome back.
             </h2>
-            <p className="lm-body-copy mt-2">
+            <p className="lm-body-copy mt-1">
               Sign in to access the Language Metrics operations workspace.
             </p>
           </div>

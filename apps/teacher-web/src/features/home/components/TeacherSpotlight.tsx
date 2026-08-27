@@ -90,7 +90,7 @@ export default function TeacherSpotlight() {
             </p>
           </div>
           <Button asChild variant="outline" className="group w-full md:w-auto shrink-0 justify-center">
-            <Link href="/discover" className="flex items-center gap-2">
+            <Link href="/student/discover" className="flex items-center gap-2">
               View all teachers
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
             </Link>

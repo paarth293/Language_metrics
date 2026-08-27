@@ -129,7 +129,7 @@ export default async function CoursesPage() {
                   <input required type="number" name="classDurationMin" defaultValue={60} className="w-full px-3 py-2 text-sm rounded bg-gray-800 border border-gray-700 text-white focus:outline-none focus:border-indigo-500" />
                 </div>
               </div>
-              <button type="submit" className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white py-2 px-4 rounded text-sm transition-colors mt-2">
+              <button type="submit" className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white py-2 px-4 rounded text-sm transition-colors mt-1">
                 <Plus size={16} /> Create Course
               </button>
             </form>

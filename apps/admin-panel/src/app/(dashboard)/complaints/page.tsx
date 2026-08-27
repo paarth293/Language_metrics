@@ -73,14 +73,14 @@ export default async function ComplaintsPage(props: { searchParams: Promise<{ fi
   };
 
   return (
-    <div className="mx-auto max-w-[1230px] px-9 pb-12 pt-9 max-[900px]:px-5 max-[640px]:px-4">
-      <div className="flex flex-col gap-5">
+    <div className="mx-auto max-w-[1230px] px-6 pb-4 pt-2 max-[900px]:px-5 max-[640px]:px-4">
+      <div className="flex flex-col gap-3">
         <div>
-          <div className="mb-3 flex items-center gap-2 text-[11px] font-medium text-[var(--lm-subtle)]">
+          <div className="mb-1 flex items-center gap-2 text-[11px] font-medium text-[var(--lm-subtle)]">
             <span>Dashboard</span><span aria-hidden="true">/</span><span className="text-[var(--lm-muted)]">Complaints</span>
           </div>
           <h1 className="lm-page-title">Dispute Management</h1>
-          <p className="lm-body-copy mt-2">Manage student and teacher disputes, monitor resolutions, and enforce policies.</p>
+          <p className="lm-body-copy mt-1">Manage student and teacher disputes, monitor resolutions, and enforce policies.</p>
         </div>
 
         <div className="flex flex-wrap items-end justify-between gap-4 border-b border-[var(--lm-line)]">
@@ -107,8 +107,8 @@ export default async function ComplaintsPage(props: { searchParams: Promise<{ fi
         </div>
       </div>
 
-      <section className="lm-panel mt-6 overflow-hidden" aria-labelledby="complaints-directory-title">
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--lm-line)] px-6 py-5">
+      <section className="lm-panel mt-3 overflow-hidden" aria-labelledby="complaints-directory-title">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--lm-line)] px-5 py-4">
           <div>
             <div className="flex items-center gap-2.5">
               <h2 id="complaints-directory-title" className="text-[16px] font-bold tracking-[-0.02em] text-[var(--lm-ink-strong)]">Tickets</h2>
@@ -123,35 +123,35 @@ export default async function ComplaintsPage(props: { searchParams: Promise<{ fi
             <caption className="sr-only">Complaints directory</caption>
             <thead>
               <tr className="border-b border-[var(--lm-line)] bg-[var(--lm-paper-muted)]">
-                <th scope="col" className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Ticket ID</th>
-                <th scope="col" className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Subject</th>
-                <th scope="col" className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Student</th>
-                <th scope="col" className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Teacher</th>
-                <th scope="col" className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Status</th>
-                <th scope="col" className="px-6 py-3 text-right text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Action</th>
+                <th scope="col" className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Ticket ID</th>
+                <th scope="col" className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Subject</th>
+                <th scope="col" className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Student</th>
+                <th scope="col" className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Teacher</th>
+                <th scope="col" className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Status</th>
+                <th scope="col" className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--lm-line)]">
               {complaints.map((complaint) => (
                 <tr key={complaint.id} className="group transition-colors hover:bg-[var(--lm-hover)]">
-                  <td className="px-6 py-4">
+                  <td className="px-5 py-3">
                     <p className="lm-mono text-[12px] text-[var(--lm-muted)]">#{complaint.id.split('-')[0].toUpperCase()}</p>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-5 py-3">
                     <p className="truncate text-[12px] font-bold text-[var(--lm-ink)]">{complaint.subject || "No Subject"}</p>
                   </td>
-                  <td className="px-6 py-4 text-[12px] text-[var(--lm-muted)]">
+                  <td className="px-5 py-3 text-[12px] text-[var(--lm-muted)]">
                     {complaint.student.name}
                   </td>
-                  <td className="px-6 py-4 text-[12px] text-[var(--lm-muted)]">
+                  <td className="px-5 py-3 text-[12px] text-[var(--lm-muted)]">
                     {complaint.teacher.name}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-5 py-3">
                     <span className={getStatusStyle(complaint.status)}>
                       {complaint.status.replace('_', ' ')}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-5 py-3 text-right">
                     <Link href={`/complaints/${complaint.id}`} className="inline-flex min-h-9 items-center rounded-lg border border-[var(--lm-line)] px-3 text-[11px] font-bold text-[var(--lm-teal-deep)] transition-colors hover:border-[var(--lm-teal)] hover:bg-[var(--lm-teal-soft)]">
                       View Ticket
                     </Link>

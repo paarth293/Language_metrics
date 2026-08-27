@@ -79,7 +79,7 @@ export default async function SettingsPage() {
                 </div>
               </div>
               
-              <button type="submit" className="w-full sm:w-auto flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white py-2 px-6 rounded text-sm transition-colors mt-2">
+              <button type="submit" className="w-full sm:w-auto flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white py-2 px-6 rounded text-sm transition-colors mt-1">
                 <Save size={16} /> Save Settings
               </button>
             </form>
