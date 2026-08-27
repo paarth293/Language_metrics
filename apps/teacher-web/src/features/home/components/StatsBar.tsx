@@ -4,10 +4,10 @@ import React, { useEffect, useRef } from "react";
 import { motion, useAnimation, useInView, animate } from "framer-motion";
 
 const stats = [
-  { label: "Verified Teachers", value: 2500, suffix: "+", isFloat: false },
-  { label: "Languages Taught", value: 45, suffix: "+", isFloat: false },
-  { label: "Classes Delivered", value: 120, suffix: "k", isFloat: false },
-  { label: "Average Rating", value: 4.9, suffix: "/5", isFloat: true },
+  { label: "Verified Teachers", value: 73, suffix: "+", isFloat: false },
+  { label: "Languages Taught", value: 14, suffix: "+", isFloat: false },
+  { label: "Classes Delivered", value: 500, suffix: "+", isFloat: false },
+  { label: "Average Rating", value: 4.4, suffix: "/5", isFloat: true },
 ];
 
 function AnimatedNumber({ value, isFloat, isInView }: { value: number, isFloat?: boolean, isInView: boolean }) {
