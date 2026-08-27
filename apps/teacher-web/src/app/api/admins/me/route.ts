@@ -7,7 +7,7 @@ import { AdminService } from "@/features/admin/services/admin-service";
  * Returns the authenticated admin's profile.
  */
 export async function GET(request: Request) {
-  const auth = requireRole(request, "ADMIN");
+  const auth = await requireRole(request, "ADMIN");
   if (auth.response) return auth.response;
 
   try {

@@ -158,81 +158,87 @@ export default function LoginForm({ csrfToken }: { csrfToken: string }) {
             <span className="sr-only">2FA</span>
             <input type="hidden" name="csrf_token" value={csrfToken} />
 
-            <div>
-              <label
-                htmlFor="admin-email"
-                className="mb-1.5 block text-[12px] font-semibold text-[var(--text)]"
-              >
-                Admin email
-              </label>
-              <input
-                id="admin-email"
-                name="email"
-                type="email"
-                required
-                autoComplete="username"
-                autoCapitalize="none"
-                spellCheck={false}
-                placeholder="admin@languagemetrics.com"
-                className="lm-input w-full px-4 text-[13px]"
-              />
-            </div>
+            {!needs2FA ? (
+              <>
+                <div>
+                  <label
+                    htmlFor="admin-email"
+                    className="mb-1.5 block text-[12px] font-semibold text-[var(--text)]"
+                  >
+                    Admin email
+                  </label>
+                  <input
+                    id="admin-email"
+                    name="email"
+                    type="email"
+                    required
+                    autoComplete="username"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    placeholder="admin@languagemetrics.com"
+                    className="lm-input w-full px-4 text-[13px]"
+                  />
+                </div>
 
-            <div>
-              <div className="mb-1.5 flex items-center justify-between gap-3">
-                <label
-                  htmlFor="admin-password"
-                  className="block text-[12px] font-semibold text-[var(--text)]"
-                >
-                  Password
-                </label>
-                <span className="text-[10px] text-[var(--text-subtle)]">Required</span>
-              </div>
-              <div className="relative">
-                <input
-                  id="admin-password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  required
-                  autoComplete="current-password"
-                  placeholder="Enter your password"
-                  className="lm-input w-full px-4 pr-12 text-[13px]"
-                />
-                <button
-                  type="button"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[var(--text-subtle)] hover:bg-[var(--surface-inset)] hover:text-[var(--text)]"
-                >
-                  {showPassword
-                    ? <EyeOff size={15} aria-hidden="true" />
-                    : <Eye size={15} aria-hidden="true" />}
-                </button>
-              </div>
-            </div>
-
-            {needs2FA && (
-              <div>
-                <label htmlFor="admin-totp" className="mb-1.5 block text-[12px] font-semibold text-[var(--text)]">
-                  Two-factor code
-                </label>
-                <input
-                  id="admin-totp"
-                  name="totp"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="\d{6}"
-                  maxLength={10}
-                  required
-                  autoComplete="one-time-code"
-                  placeholder="Enter 6-digit code or backup code"
-                  className="lm-input w-full px-4 text-[13px]"
-                  autoFocus
-                />
-                <p className="mt-1.5 text-[10px] text-[var(--text-subtle)]">
-                  Enter the code from your authenticator app, or a backup code.
-                </p>
-              </div>
+                <div>
+                  <div className="mb-1.5 flex items-center justify-between gap-3">
+                    <label
+                      htmlFor="admin-password"
+                      className="block text-[12px] font-semibold text-[var(--text)]"
+                    >
+                      Password
+                    </label>
+                    <span className="text-[10px] text-[var(--text-subtle)]">Required</span>
+                  </div>
+                  <div className="relative">
+                    <input
+                      id="admin-password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      required
+                      autoComplete="current-password"
+                      placeholder="Enter your password"
+                      className="lm-input w-full px-4 pr-12 text-[13px]"
+                    />
+                    <button
+                      type="button"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[var(--text-subtle)] hover:bg-[var(--surface-inset)] hover:text-[var(--text)]"
+                    >
+                      {showPassword
+                        ? <EyeOff size={15} aria-hidden="true" />
+                        : <Eye size={15} aria-hidden="true" />}
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <input type="hidden" name="email" value={state?.email ?? ""} />
+                <input type="hidden" name="password" value={state?.password ?? ""} />
+                <div>
+                  <label htmlFor="admin-totp" className="mb-1.5 block text-[12px] font-semibold text-[var(--text)]">
+                    Two-factor code
+                  </label>
+                  <input
+                    id="admin-totp"
+                    name="totp"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="\d{6}"
+                    maxLength={10}
+                    required
+                    autoComplete="one-time-code"
+                    placeholder="Enter 6-digit code or backup code"
+                    className="lm-input w-full px-4 text-[13px]"
+                    autoFocus
+                  />
+                  <p className="mt-1.5 text-[10px] text-[var(--text-subtle)]">
+                    Enter the code from your authenticator app, or a backup code.
+                  </p>
+                </div>
+              </>
             )}
 
             {state?.error && state.error !== "2FA_REQUIRED" ? (

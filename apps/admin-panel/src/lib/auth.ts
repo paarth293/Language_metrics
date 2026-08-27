@@ -28,17 +28,18 @@ export interface VerifiedSession extends AdminSessionToken {
 }
 
 function getSecret(): string {
-  if (!JWT_SECRET) {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
     throw new Error(
       "JWT_SECRET is not configured. Refusing to start the admin panel without a signing secret."
     );
   }
-  if (JWT_SECRET.length < 32) {
+  if (secret.length < 32) {
     throw new Error(
       "JWT_SECRET is too short (< 32 chars). Generate a strong one with `openssl rand -base64 64`."
     );
   }
-  return JWT_SECRET;
+  return secret;
 }
 
 export function signSession(payload: AdminSessionToken): string {

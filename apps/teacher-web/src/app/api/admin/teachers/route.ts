@@ -10,7 +10,7 @@ const VALID_STATUSES: VerificationStatus[] = ["PENDING", "APPROVED", "REJECTED"]
  * Lists teachers for the admin verification queue. Optional status filter.
  */
 export async function GET(request: Request) {
-  const auth = requireRole(request, "ADMIN");
+  const auth = await requireRole(request, "ADMIN");
   if (auth.response) return auth.response;
 
   try {

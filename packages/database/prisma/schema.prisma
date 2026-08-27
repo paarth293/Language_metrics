@@ -8,135 +8,87 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ==========================================
-// 1. CORE USER & PROFILES
-// ==========================================
-
-enum UserRole {
-  STUDENT
-  TEACHER
-  ADMIN
-}
-
 /// RLS: Public read, self write. Admins full access.
 /// Read/Write: Auth webhook writes new users. All apps read.
 model User {
-  id        String   @id @db.Uuid // Matches Supabase auth.users.id
-  role      UserRole
-  email     String   @unique
-  /// Optional login handle (admin panel uses username "admin")
-  username     String?  @unique
-  /// bcrypt hash — required for local/admin-panel password auth
-  passwordHash String?
-  /// AES-256-GCM encrypted TOTP secret (base64 payload). Never store plaintext.
-  totpSecret   String?
-  totpEnabled  Boolean  @default(false)
+  email                        String            @unique
+  createdAt                    DateTime          @default(now())
+  updatedAt                    DateTime          @updatedAt
+  id                           String            @id @db.Uuid
+  role                         UserRole
   /// bcrypt-hashed single-use backup codes
-  backupCodes  String[] @default([])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  studentProfile StudentProfile?
-  teacherProfile TeacherProfile?
-
-  // Relations
-  sentMessages     ChatMessage[]     @relation("SentMessages")
-  receivedMessages ChatMessage[]     @relation("ReceivedMessages")
-  coinTransactions CoinTransaction[]
-  payments         Payment[]
-  notifications    Notification[]
-  adminLogs        AdminAuditLog[]
-  adminUser        AdminUser?
+  backupCodes                  String[]          @default([])
+  passwordHash                 String?
+  totpEnabled                  Boolean           @default(false)
+  /// AES-256-GCM encrypted TOTP secret (base64 payload). Never store plaintext.
+  totpSecret                   String?
+  /// Optional login handle (admin panel uses username "admin")
+  username                     String?           @unique
+  emailVerificationExpiry      DateTime?
+  emailVerificationToken       String?
+  /// When the user verified their email. NULL means unverified.
+  emailVerified                DateTime?
+  passwordResetExpiry          DateTime?
+  passwordResetToken           String?
+  emailVerificationTokenPrefix String?
+  adminLogs                    AdminAuditLog[]
+  adminUser                    AdminUser?
+  verificationCodes            EmailVerificationCode[]
+  receivedMessages             ChatMessage[]     @relation("ReceivedMessages")
+  sentMessages                 ChatMessage[]     @relation("SentMessages")
+  coinTransactions             CoinTransaction[]
+  notifications                Notification[]
+  OAuthAccount                 OAuthAccount[]
+  payments                     Payment[]
+  studentProfile               StudentProfile?
+  teacherProfile               TeacherProfile?
 
   @@index([createdAt])
-}
-
-enum ProficiencyLevel {
-  BEGINNER
-  INTERMEDIATE
-  ADVANCED
-}
-
-enum StudentStatus {
-  ACTIVE
-  SUSPENDED
-  BLOCKED
+  @@index([emailVerificationToken])
+  @@index([passwordResetToken])
 }
 
 /// RLS: Public read. Self write.
 /// Read/Write: Student app reads/writes. Teacher/Admin apps read.
 model StudentProfile {
-  userId String @id @db.Uuid
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  name             String
-  languageToLearn  String
-  proficiencyLevel ProficiencyLevel
-  status           StudentStatus @default(ACTIVE)
-
-  // Relations
-  bookings Booking[]
-  reviews  Review[]
-}
-
-enum TeacherExperienceLevel {
-  FRESHER
-  EXPERIENCED
-}
-
-enum VerificationStatus {
-  PENDING
-  INTERVIEW_SCHEDULED
-  APPROVED
-  REJECTED
+  userId             String           @id @db.Uuid
+  name               String
+  languageToLearn    String
+  proficiencyLevel   ProficiencyLevel
+  status             StudentStatus    @default(ACTIVE)
+  avatarUrl          String?
+  onboardingComplete Boolean          @default(false)
+  bookings           Booking[]
+  reviews            Review[]
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 /// RLS: Public read (only approved/active fields). Self write.
 /// Read/Write: Teacher app reads/writes. Student app reads. Admin app reads/writes (approvals).
 model TeacherProfile {
-  userId String @id @db.Uuid
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  name            String
-  gender          String?
-  bio             String?
-  experienceLevel TeacherExperienceLevel
-  status          VerificationStatus     @default(PENDING)
-
-  language     String?
-  demoVideoUrl String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  documents    TeacherDocument[]
-  interviews   Interview[]
-  rates        TeacherRate[]
-  availability AvailabilitySlot[]
-  bookings     Booking[]
-  payouts      Payout[]
-  reviews      Review[]
+  userId             String                 @id @db.Uuid
+  name               String
+  gender             String?
+  bio                String?
+  experienceLevel    TeacherExperienceLevel
+  status             VerificationStatus     @default(PENDING)
+  language           String?
+  demoVideoUrl       String?
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  avatarUrl          String?
+  onboardingComplete Boolean                @default(false)
+  availability       AvailabilitySlot[]
+  bookings           Booking[]
+  interviews         Interview[]
+  payouts            Payout[]
+  reviews            Review[]
+  documents          TeacherDocument[]
+  user               User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rates              TeacherRate[]
 
   @@index([status])
   @@index([language, status])
-}
-
-// ==========================================
-// 2. TEACHER VERIFICATION WORKFLOW
-// ==========================================
-
-enum DocumentType {
-  EDUCATION
-  LANGUAGE_CERTIFICATE
-  EXPERIENCE_LETTER
-  OTHER
-}
-
-enum DocumentStatus {
-  PENDING
-  APPROVED
-  REJECTED
 }
 
 /// RLS: Owner read/write. Admin read/write. Student no access.
@@ -144,87 +96,54 @@ enum DocumentStatus {
 model TeacherDocument {
   id        String         @id @default(uuid()) @db.Uuid
   teacherId String         @db.Uuid
+  type      DocumentType
+  url       String
+  status    DocumentStatus @default(PENDING)
+  notes     String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
   teacher   TeacherProfile @relation(fields: [teacherId], references: [userId], onDelete: Cascade)
-
-  type   DocumentType
-  url    String
-  status DocumentStatus @default(PENDING)
-  notes  String? // Admin rejection notes
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-enum InterviewStatus {
-  SCHEDULED
-  COMPLETED
-  CANCELLED
 }
 
 /// RLS: Owner read. Admin read/write.
 /// Read/Write: Admin app creates/updates. Teacher app reads.
 model Interview {
-  id        String         @id @default(uuid()) @db.Uuid
-  teacherId String         @db.Uuid
-  teacher   TeacherProfile @relation(fields: [teacherId], references: [userId], onDelete: Cascade)
-
+  id          String          @id @default(uuid()) @db.Uuid
+  teacherId   String          @db.Uuid
   scheduledAt DateTime
   status      InterviewStatus @default(SCHEDULED)
   meetingLink String?
   notes       String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// ==========================================
-// 3. COIN SYSTEM (LEDGER)
-// ==========================================
-
-enum CoinTransactionType {
-  PURCHASE // Bought coins with real money
-  BONUS // Sign-up bonus (Fresher)
-  SPEND // Spent to message student
-  REFUND // Admin manual refund
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  teacher     TeacherProfile  @relation(fields: [teacherId], references: [userId], onDelete: Cascade)
 }
 
 /// RLS: Owner read. Service role only write (via edge functions).
 /// Read/Write: Teacher/Admin apps read. Backend/Webhook writes.
 model CoinTransaction {
-  id     String @id @default(uuid()) @db.Uuid
-  userId String @db.Uuid
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  id          String              @id @default(uuid()) @db.Uuid
+  userId      String              @db.Uuid
   type        CoinTransactionType
-  amount      Int // Positive = credit, Negative = spend
+  amount      Int
   description String?
-
-  createdAt DateTime @default(now())
+  createdAt   DateTime            @default(now())
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
 }
-
-// ==========================================
-// 4. TEACHER AVAILABILITY & RATES
-// ==========================================
 
 /// RLS: Public read. Owner write.
 /// Read/Write: Teacher app writes. Student app reads for booking.
 model AvailabilitySlot {
   id        String         @id @default(uuid()) @db.Uuid
   teacherId String         @db.Uuid
+  dayOfWeek Int
+  startTime String
+  endTime   String
   teacher   TeacherProfile @relation(fields: [teacherId], references: [userId], onDelete: Cascade)
 
-  dayOfWeek Int // 0 (Sunday) to 6 (Saturday)
-  startTime String // HH:mm format
-  endTime   String // HH:mm format
-
   @@index([teacherId, dayOfWeek])
-}
-
-enum RateType {
-  HOURLY
-  COURSE
 }
 
 /// RLS: Public read. Owner write.
@@ -232,184 +151,108 @@ enum RateType {
 model TeacherRate {
   id        String         @id @default(uuid()) @db.Uuid
   teacherId String         @db.Uuid
+  type      RateType
+  amount    Int
   teacher   TeacherProfile @relation(fields: [teacherId], references: [userId], onDelete: Cascade)
 
-  type   RateType
-  amount Int // In paise
-
   @@unique([teacherId, type])
-}
-
-// ==========================================
-// 5. BOOKINGS & CLASS SESSIONS
-// ==========================================
-
-enum BookingType {
-  DEMO
-  HOURLY
-  COURSE
-}
-
-enum BookingStatus {
-  PENDING
-  CONFIRMED
-  COMPLETED
-  CANCELLED
 }
 
 /// RLS: Participants read. Service role only write (created via payment webhook).
 /// Read/Write: Student/Teacher apps read. Backend writes.
 model Booking {
-  id        String         @id @default(uuid()) @db.Uuid
-  studentId String         @db.Uuid
-  student   StudentProfile @relation(fields: [studentId], references: [userId])
-
-  teacherId String         @db.Uuid
-  teacher   TeacherProfile @relation(fields: [teacherId], references: [userId])
-
-  type   BookingType
-  status BookingStatus @default(PENDING)
-
-  // Financial Snapshots (in paise)
-  amountPaid       Int // Total paid by student
-  commissionPct    Int // Platform commission percentage at the time (e.g., 30 for 30%)
-  commissionAmount Int // Actual cut taken by platform
-  teacherEarnings  Int // Amount going to teacher
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  sessions ClassSession[]
-  payments Payment[]
-  review   Review?
+  id               String         @id @default(uuid()) @db.Uuid
+  studentId        String         @db.Uuid
+  teacherId        String         @db.Uuid
+  type             BookingType
+  status           BookingStatus  @default(PENDING)
+  amountPaid       Int
+  commissionPct    Int
+  commissionAmount Int
+  teacherEarnings  Int
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  student          StudentProfile @relation(fields: [studentId], references: [userId])
+  teacher          TeacherProfile @relation(fields: [teacherId], references: [userId])
+  sessions         ClassSession[]
+  payments         Payment[]
+  review           Review?
 
   @@index([studentId, status])
   @@index([teacherId, status])
   @@index([status])
 }
 
-enum SessionStatus {
-  SCHEDULED
-  ONGOING
-  COMPLETED
-  CANCELLED
-}
-
 /// RLS: Participants read. Backend updates status/recording.
 /// Read/Write: Student/Teacher apps read. Backend writes (LiveKit webhook).
 model ClassSession {
-  id        String  @id @default(uuid()) @db.Uuid
-  bookingId String  @db.Uuid
-  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-
-  scheduledStart DateTime
-  scheduledEnd   DateTime
-
-  actualStart DateTime?
-  actualEnd   DateTime?
-
-  status SessionStatus @default(SCHEDULED)
-
+  id              String        @id @default(uuid()) @db.Uuid
+  bookingId       String        @db.Uuid
+  scheduledStart  DateTime
+  scheduledEnd    DateTime
+  actualStart     DateTime?
+  actualEnd       DateTime?
+  status          SessionStatus @default(SCHEDULED)
   recordingUrl    String?
-  isRecordingPaid Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  isRecordingPaid Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  booking         Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
   @@index([bookingId])
   @@index([scheduledStart])
   @@index([status, scheduledStart])
 }
 
-// ==========================================
-// 6. PAYMENTS & PAYOUTS
-// ==========================================
-
-enum PaymentType {
-  BOOKING
-  COIN_PURCHASE
-  REGISTRATION_FEE
-  RECORDING_FEE
-}
-
-enum PaymentStatus {
-  PENDING
-  SUCCESS
-  FAILED
-  REFUNDED
-}
-
 /// RLS: Owner read. Service role only write (payment gateway webhooks).
 /// Read/Write: Admin app reads all. User apps read own. Backend writes.
 model Payment {
-  id     String @id @default(uuid()) @db.Uuid
-  userId String @db.Uuid
-  user   User   @relation(fields: [userId], references: [id])
-
-  bookingId String?  @db.Uuid // Optional, if linked to a booking
-  booking   Booking? @relation(fields: [bookingId], references: [id])
-
-  type   PaymentType
-  amount Int // In paise
-  status PaymentStatus @default(PENDING)
-
-  razorpayOrderId   String? @unique
-  razorpayPaymentId String? @unique
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                String        @id @default(uuid()) @db.Uuid
+  userId            String        @db.Uuid
+  bookingId         String?       @db.Uuid
+  type              PaymentType
+  amount            Int
+  status            PaymentStatus @default(PENDING)
+  razorpayOrderId   String?       @unique
+  razorpayPaymentId String?       @unique
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  booking           Booking?      @relation(fields: [bookingId], references: [id])
+  user              User          @relation(fields: [userId], references: [id])
 
   @@index([status])
-}
-
-enum PayoutStatus {
-  PENDING
-  PROCESSING
-  PAID
-  FAILED
 }
 
 /// RLS: Owner read. Admin read/write.
 /// Read/Write: Teacher app reads. Admin app reads/writes.
 model Payout {
-  id        String         @id @default(uuid()) @db.Uuid
-  teacherId String         @db.Uuid
-  teacher   TeacherProfile @relation(fields: [teacherId], references: [userId])
-
-  amount Int // In paise
-  status PayoutStatus @default(PENDING)
-
+  id             String         @id @default(uuid()) @db.Uuid
+  teacherId      String         @db.Uuid
+  amount         Int
+  status         PayoutStatus   @default(PENDING)
   periodStart    DateTime
   periodEnd      DateTime
-  transactionRef String? // Bank/transfer ref
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  transactionRef String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  teacher        TeacherProfile @relation(fields: [teacherId], references: [userId])
 
   @@index([status])
   @@index([createdAt])
 }
 
-// ==========================================
-// 7. CHAT, REVIEWS, NOTIFICATIONS
-// ==========================================
-
 /// RLS: Sender/Receiver read/write. Admin read (moderation).
 /// Read/Write: Student/Teacher apps read/write. Admin app reads.
 model ChatMessage {
-  id String @id @default(uuid()) @db.Uuid
-
-  senderId String @db.Uuid
-  sender   User   @relation("SentMessages", fields: [senderId], references: [id])
-
-  receiverId String @db.Uuid
-  receiver   User   @relation("ReceivedMessages", fields: [receiverId], references: [id])
-
+  id            String   @id @default(uuid()) @db.Uuid
+  senderId      String   @db.Uuid
+  receiverId    String   @db.Uuid
   content       String
   attachmentUrl String?
-
-  autoDeleteAt DateTime // Calculated from PlatformSetting
-  createdAt    DateTime @default(now())
+  autoDeleteAt  DateTime
+  createdAt     DateTime @default(now())
+  receiver      User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  sender        User     @relation("SentMessages", fields: [senderId], references: [id])
 
   @@index([senderId, receiverId])
   @@index([autoDeleteAt])
@@ -418,57 +261,38 @@ model ChatMessage {
 /// RLS: Public read. Owner (Student) write.
 /// Read/Write: Student app writes. Teacher app reads.
 model Review {
-  id        String  @id @default(uuid()) @db.Uuid
-  bookingId String  @unique @db.Uuid
-  booking   Booking @relation(fields: [bookingId], references: [id])
-
+  id        String         @id @default(uuid()) @db.Uuid
+  bookingId String         @unique @db.Uuid
   studentId String         @db.Uuid
-  student   StudentProfile @relation(fields: [studentId], references: [userId])
-
   teacherId String         @db.Uuid
+  rating    Int
+  comment   String?
+  createdAt DateTime       @default(now())
+  booking   Booking        @relation(fields: [bookingId], references: [id])
+  student   StudentProfile @relation(fields: [studentId], references: [userId])
   teacher   TeacherProfile @relation(fields: [teacherId], references: [userId])
 
-  rating  Int // 1 to 5
-  comment String?
-
-  createdAt DateTime @default(now())
-
   @@index([teacherId, rating])
-}
-
-enum NotificationType {
-  SYSTEM
-  BOOKING_UPDATE
-  PAYMENT_UPDATE
-  CHAT_MESSAGE
-  VERIFICATION_UPDATE
 }
 
 /// RLS: Owner read/write.
 /// Read/Write: All apps read own. Backend creates.
 model Notification {
-  id     String @id @default(uuid()) @db.Uuid
-  userId String @db.Uuid
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  type    NotificationType
-  title   String
-  message String
-  isRead  Boolean          @default(false)
-
-  createdAt DateTime @default(now())
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
-
-
-// ==========================================
-// 8. ADMIN SETTINGS & AUDIT
-// ==========================================
 
 /// RLS: Public read. Admin only write.
 /// Read/Write: Admin app writes. All apps read.
 model PlatformSetting {
-  key         String   @id // e.g., 'COMMISSION_PCT', 'REGISTRATION_FEE'
-  value       String // Stored as string, parsed to Int/JSON as needed
+  key         String   @id
+  value       String
   description String?
   updatedAt   DateTime @updatedAt
 }
@@ -477,62 +301,47 @@ model PlatformSetting {
 /// Read/Write: Admin app reads. Admin app / Backend writes.
 /// Column names are snake_case to match security-tests/test_audit_log.py.
 model AdminAuditLog {
-  id String @id @default(uuid()) @db.Uuid
-
-  /// e.g. LOGIN_SUCCESS, LOGIN_FAILURE, LOGOUT, APPROVE_TEACHER
-  eventType String @default("UNKNOWN") @map("event_type")
+  id        String   @id @default(uuid()) @db.Uuid
   /// User UUID when known; attempted username on failed login
-  actorId   String? @map("actor_id")
-  ipAddress String? @map("ip_address")
-  userAgent String? @map("user_agent")
+  actorId   String?  @map("actor_id")
+  adminId   String?  @map("admin_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  /// e.g. LOGIN_SUCCESS, LOGIN_FAILURE, LOGOUT, APPROVE_TEACHER
+  eventType String   @default("UNKNOWN") @map("event_type")
+  ipAddress String?  @map("ip_address")
   /// "success" | "failure"
   outcome   String?
-  createdAt DateTime @default(now()) @map("created_at")
-
-  adminId String? @map("admin_id") @db.Uuid
-  admin   User?   @relation(fields: [adminId], references: [id])
-}
-
-// ==========================================
-// 9. ADMIN AUTH, RBAC & SECURITY MONITORING
-// ==========================================
-
-enum AdminUserStatus {
-  ACTIVE
-  SUSPENDED
-  DISABLED
+  userAgent String?  @map("user_agent")
+  admin     User?    @relation(fields: [adminId], references: [id])
 }
 
 /// Admin panel credential store. Linked to a User row (which mirrors
 /// Supabase auth.users.id) so audit logs keep referential integrity.
 /// Password hashes are bcrypt; never stored in plain text.
 model AdminUser {
-  userId        String @id @db.Uuid
-  user          User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  name          String
-  email         String @unique
-  passwordHash  String
-  roleKey       String // SUPER_ADMIN | FINANCE_ADMIN | TEACHER_ADMIN | SUPPORT_ADMIN | CONTENT_ADMIN
-  isSuperAdmin  Boolean          @default(false)
-  permissions   String[] // Granular overrides; empty array = use role preset.
-  status        AdminUserStatus  @default(ACTIVE)
-  mustChangePassword Boolean       @default(false)
-
-  lastLoginAt      DateTime?
-  failedLoginCount Int      @default(0)
-  lockedUntil      DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  userId             String          @id @db.Uuid
+  name               String
+  email              String          @unique
+  passwordHash       String
+  roleKey            String
+  isSuperAdmin       Boolean         @default(false)
+  permissions        String[]
+  status             AdminUserStatus @default(ACTIVE)
+  mustChangePassword Boolean         @default(false)
+  lastLoginAt        DateTime?
+  failedLoginCount   Int             @default(0)
+  lockedUntil        DateTime?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model LoginAttempt {
-  id          String  @id @default(uuid()) @db.Uuid
+  id          String   @id @default(uuid()) @db.Uuid
   email       String
   ip          String?
-  result      String // SUCCESS | FAILED | RATE_LIMITED | LOCKED
-  adminUserId String? @db.Uuid
+  result      String
+  adminUserId String?  @db.Uuid
   createdAt   DateTime @default(now())
 
   @@index([email])
@@ -541,25 +350,16 @@ model LoginAttempt {
 
 /// Non-repudiation / monitoring events surfaced in Security & Monitoring.
 model SecurityEvent {
-  id          String  @id @default(uuid()) @db.Uuid
-  type        String // SUSPICIOUS_ACTIVITY | CONTACT_SHARING | LOGIN | SESSION_REVOKED ...
-  severity    String  @default("INFO") // INFO | WARN | CRITICAL
-  actorUserId String? @db.Uuid
-  details     String? // JSON
+  id          String   @id @default(uuid()) @db.Uuid
+  type        String
+  severity    String   @default("INFO")
+  actorUserId String?  @db.Uuid
+  details     String?
   ip          String?
   createdAt   DateTime @default(now())
 
   @@index([type])
   @@index([createdAt])
-}
-
-// ==========================================
-// 10. LANGUAGE & COURSE MANAGEMENT
-// ==========================================
-
-enum LanguageStatus {
-  ACTIVE
-  INACTIVE
 }
 
 model Language {
@@ -572,63 +372,38 @@ model Language {
   status    LanguageStatus @default(ACTIVE)
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
-
-  courses Course[]
-}
-
-enum CourseStatus {
-  DRAFT
-  ACTIVE
-  ARCHIVED
+  courses   Course[]
 }
 
 model Course {
-  id           String       @id @default(uuid()) @db.Uuid
-  languageId   String       @db.Uuid
-  language     Language     @relation(fields: [languageId], references: [id])
-
+  id               String       @id @default(uuid()) @db.Uuid
+  languageId       String       @db.Uuid
   name             String
   level            String
   description      String?
-  syllabus         String? // markdown
-  price            Int // paise
+  syllabus         String?
+  price            Int
   durationWeeks    Int
   classCount       Int
   classDurationMin Int
   status           CourseStatus @default(DRAFT)
   published        Boolean      @default(false)
-  teacherIds       String[] // Assigned teacher userIds
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  teacherIds       String[]
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  language         Language     @relation(fields: [languageId], references: [id])
 
   @@index([languageId])
   @@index([published])
-}
-
-// ==========================================
-// 11. COUPONS & OFFERS
-// ==========================================
-
-enum CouponDiscountType {
-  PERCENTAGE
-  FIXED
-}
-
-enum CouponScope {
-  GLOBAL
-  LANGUAGE
-  COURSE
-  FIRST_STUDENT
 }
 
 model Coupon {
   id            String             @id @default(uuid()) @db.Uuid
   code          String             @unique
   discountType  CouponDiscountType
-  discountValue Int // percentage OR fixed amount in paise
+  discountValue Int
   scope         CouponScope        @default(GLOBAL)
-  scopeTargetId String? // languageId / courseId when scoped
+  scopeTargetId String?
   minOrderValue Int                @default(0)
   maxUses       Int?
   usedCount     Int                @default(0)
@@ -638,23 +413,6 @@ model Coupon {
   updatedAt     DateTime           @updatedAt
 }
 
-// ==========================================
-// 12. GST & INVOICING
-// ==========================================
-
-enum InvoiceStatus {
-  DRAFT
-  ISSUED
-  PAID
-  CANCELLED
-  CREDIT_NOTE
-}
-
-enum BillingType {
-  B2B
-  B2C
-}
-
 model Invoice {
   id               String        @id @default(uuid()) @db.Uuid
   invoiceNumber    String        @unique
@@ -662,12 +420,12 @@ model Invoice {
   userId           String        @db.Uuid
   billingType      BillingType   @default(B2C)
   customerGstin    String?
-  grossAmount      Int // paise, before tax
+  grossAmount      Int
   cgstPct          Int
   sgstPct          Int
   igstPct          Int
-  taxAmount        Int // paise
-  totalAmount      Int // paise
+  taxAmount        Int
+  totalAmount      Int
   status           InvoiceStatus @default(ISSUED)
   pdfUrl           String?
   creditNoteNumber String?
@@ -675,29 +433,9 @@ model Invoice {
   updatedAt        DateTime      @updatedAt
 }
 
-// ==========================================
-// 13. COMPLAINTS / DISPUTE TICKETS
-// ==========================================
-
-enum ComplaintStatus {
-  NEW
-  INVESTIGATING
-  ACTION_REQUIRED
-  RESOLVED
-  CLOSED
-}
-
-enum ComplaintCategory {
-  CONTACT_SHARING
-  TEACHER_BEHAVIOUR
-  PAYMENT
-  REFUND
-  OTHER
-}
-
 model Complaint {
   id            String            @id @default(uuid()) @db.Uuid
-  ticketNumber  String            @unique // e.g. LM1024
+  ticketNumber  String            @unique
   studentId     String?           @db.Uuid
   teacherId     String?           @db.Uuid
   bookingId     String?           @db.Uuid
@@ -715,41 +453,230 @@ model Complaint {
   @@index([ticketNumber])
 }
 
-// ==========================================
-// 14. COMMUNICATION TEMPLATES
-// ==========================================
+model NotificationTemplate {
+  id         String              @id @default(uuid()) @db.Uuid
+  name       String
+  channel    NotificationChannel
+  title      String
+  body       String
+  audience   String
+  isActive   Boolean             @default(true)
+  lastSentAt DateTime?
+  createdAt  DateTime            @default(now())
+}
+
+model CmsContent {
+  id          String   @id @default(uuid()) @db.Uuid
+  slug        String   @unique
+  title       String
+  contentType String
+  content     String
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model EmailVerificationCode {
+  id        String   @id @default(cuid())
+  userId    String   @db.Uuid
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model OAuthAccount {
+  id                String   @id
+  userId            String   @db.Uuid
+  provider          String
+  providerAccountId String
+  accessToken       String?
+  refreshToken      String?
+  createdAt         DateTime @default(now())
+  User              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+enum UserRole {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+enum ProficiencyLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum StudentStatus {
+  ACTIVE
+  SUSPENDED
+  BLOCKED
+}
+
+enum TeacherExperienceLevel {
+  FRESHER
+  EXPERIENCED
+}
+
+enum VerificationStatus {
+  PENDING
+  INTERVIEW_SCHEDULED
+  APPROVED
+  REJECTED
+}
+
+enum DocumentType {
+  EDUCATION
+  LANGUAGE_CERTIFICATE
+  EXPERIENCE_LETTER
+  OTHER
+}
+
+enum DocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum InterviewStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum CoinTransactionType {
+  PURCHASE
+  BONUS
+  SPEND
+  REFUND
+}
+
+enum RateType {
+  HOURLY
+  COURSE
+}
+
+enum BookingType {
+  DEMO
+  HOURLY
+  COURSE
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum SessionStatus {
+  SCHEDULED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentType {
+  BOOKING
+  COIN_PURCHASE
+  REGISTRATION_FEE
+  RECORDING_FEE
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+}
+
+enum NotificationType {
+  SYSTEM
+  BOOKING_UPDATE
+  PAYMENT_UPDATE
+  CHAT_MESSAGE
+  VERIFICATION_UPDATE
+}
+
+enum AdminUserStatus {
+  ACTIVE
+  SUSPENDED
+  DISABLED
+}
+
+enum LanguageStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum CourseStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum CouponDiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+enum CouponScope {
+  GLOBAL
+  LANGUAGE
+  COURSE
+  FIRST_STUDENT
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PAID
+  CANCELLED
+  CREDIT_NOTE
+}
+
+enum BillingType {
+  B2B
+  B2C
+}
+
+enum ComplaintStatus {
+  NEW
+  INVESTIGATING
+  ACTION_REQUIRED
+  RESOLVED
+  CLOSED
+}
+
+enum ComplaintCategory {
+  CONTACT_SHARING
+  TEACHER_BEHAVIOUR
+  PAYMENT
+  REFUND
+  OTHER
+}
 
 enum NotificationChannel {
   PUSH
   EMAIL
   SMS
   INAPP
-}
-
-model NotificationTemplate {
-  id         String             @id @default(uuid()) @db.Uuid
-  name       String
-  channel    NotificationChannel
-  title      String
-  body       String
-  audience   String // ALL_STUDENTS | ALL_TEACHERS | SPECIFIC
-  isActive   Boolean            @default(true)
-  lastSentAt DateTime?
-  createdAt  DateTime           @default(now())
-}
-
-// ==========================================
-// 15. MARKETING / CMS
-// ==========================================
-
-model CmsContent {
-  id          String  @id @default(uuid()) @db.Uuid
-  slug        String  @unique
-  title       String
-  contentType String // HOMEPAGE_BANNER | FAQ | ABOUT | TESTIMONIAL | BLOG | ANNOUNCEMENT | PROMOTION
-  content     String // rich text / JSON
-  isActive    Boolean @default(true)
-  order       Int     @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 }

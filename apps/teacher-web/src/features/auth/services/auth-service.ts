@@ -4,13 +4,15 @@ import bcrypt from "bcryptjs";
 import { loginSchema, registerStudentSchema, registerTeacherSchema } from "@/features/auth/validators/auth";
 import type { User } from "@/types";
 import type { z } from "zod";
+import { generateEmailOTP, hashOTP } from "@/lib/otp";
+import { sendVerificationOTP } from "@/lib/email";
 
 type LoginInput = z.infer<typeof loginSchema>;
 type RegisterStudentInput = z.infer<typeof registerStudentSchema>;
 type RegisterTeacherInput = z.infer<typeof registerTeacherSchema>;
 
 export class AuthService {
-  static async login(data: LoginInput): Promise<{ token: string; user: User } | null> {
+  static async login(data: LoginInput): Promise<{ token: string; user: User } | { error: string } | null> {
     const user = await db.user.findUnique({
       where: { email: data.email },
       include: { studentProfile: true, teacherProfile: true },
@@ -22,6 +24,10 @@ export class AuthService {
 
     const isValid = await bcrypt.compare(data.password, user.passwordHash);
     if (!isValid) return null;
+
+    if (!user.emailVerified) {
+      return { error: "UNVERIFIED_EMAIL" };
+    }
 
     const token = signToken(user.id, user.role);
     const name = user.studentProfile?.name || user.teacherProfile?.name || "User";
@@ -37,12 +43,15 @@ export class AuthService {
     };
   }
 
-  static async registerStudent(data: RegisterStudentInput): Promise<{ token: string; user: User } | null> {
+  static async registerStudent(data: RegisterStudentInput): Promise<{ success: boolean; verificationRequired: boolean; message: string } | null> {
     const existing = await db.user.findUnique({ where: { email: data.email } });
     if (existing) return null;
 
     const userId = crypto.randomUUID();
     const passwordHash = await bcrypt.hash(data.password, 10);
+    const otp = generateEmailOTP();
+    const codeHash = hashOTP(otp);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
     const user = await db.user.create({
       data: {
@@ -57,28 +66,34 @@ export class AuthService {
             proficiencyLevel: data.proficiencyLevel === "advanced" ? "ADVANCED" : data.proficiencyLevel === "intermediate" ? "INTERMEDIATE" : "BEGINNER",
           },
         },
+        verificationCodes: {
+          create: {
+            codeHash,
+            expiresAt,
+          },
+        },
       },
       include: { studentProfile: true },
     });
 
-    const token = signToken(user.id, user.role);
+    await sendVerificationOTP(user.email, otp);
+
     return {
-      token,
-      user: {
-        id: user.id,
-        name: user.studentProfile!.name,
-        email: user.email,
-        role: user.role,
-      },
+      success: true,
+      verificationRequired: true,
+      message: "Please verify your email.",
     };
   }
 
-  static async registerTeacher(data: RegisterTeacherInput): Promise<{ token: string; user: User } | null> {
+  static async registerTeacher(data: RegisterTeacherInput): Promise<{ success: boolean; verificationRequired: boolean; message: string } | null> {
     const existing = await db.user.findUnique({ where: { email: data.email } });
     if (existing) return null;
 
     const userId = crypto.randomUUID();
     const passwordHash = await bcrypt.hash(data.password, 10);
+    const otp = generateEmailOTP();
+    const codeHash = hashOTP(otp);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
     const user = await db.user.create({
       data: {
@@ -95,19 +110,22 @@ export class AuthService {
             gender: data.gender,
           },
         },
+        verificationCodes: {
+          create: {
+            codeHash,
+            expiresAt,
+          },
+        },
       },
       include: { teacherProfile: true },
     });
 
-    const token = signToken(user.id, user.role);
+    await sendVerificationOTP(user.email, otp);
+
     return {
-      token,
-      user: {
-        id: user.id,
-        name: user.teacherProfile!.name,
-        email: user.email,
-        role: user.role,
-      },
+      success: true,
+      verificationRequired: true,
+      message: "Please verify your email.",
     };
   }
 }

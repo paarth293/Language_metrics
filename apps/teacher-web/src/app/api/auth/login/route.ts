@@ -52,6 +52,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Invalid credentials." }, { status: 401 });
     }
 
+    if ('error' in authResult) {
+      if (authResult.error === "UNVERIFIED_EMAIL") {
+        return NextResponse.json({ error: "UNVERIFIED_EMAIL", message: "Please verify your email." }, { status: 403 });
+      }
+      return NextResponse.json({ message: authResult.error }, { status: 400 });
+    }
+
     return NextResponse.json(authResult, { status: 200 });
   } catch (err) {
     console.error("login error:", err);

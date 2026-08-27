@@ -7,7 +7,7 @@ import { TeacherService } from "@/features/teacher/services/teacher-service";
  * Returns the authenticated teacher's profile.
  */
 export async function GET(request: Request) {
-  const auth = requireRole(request, "TEACHER");
+  const auth = await requireRole(request, "TEACHER");
   if (auth.response) return auth.response;
 
   try {

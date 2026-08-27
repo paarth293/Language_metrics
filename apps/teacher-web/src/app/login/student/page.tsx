@@ -44,7 +44,11 @@ export default function StudentLoginPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        setServerError(data.message || "Login failed");
+        if (data.error === "UNVERIFIED_EMAIL") {
+          window.location.href = `/verify-email?email=${encodeURIComponent(email)}`;
+        } else {
+          setServerError(data.message || "Login failed");
+        }
       } else {
         login(data.token, data.user);
       }

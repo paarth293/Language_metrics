@@ -7,7 +7,7 @@ import { StudentService } from "@/features/student/services/student-service";
  * Returns the authenticated student's profile.
  */
 export async function GET(request: Request) {
-  const auth = requireRole(request, "STUDENT");
+  const auth = await requireRole(request, "STUDENT");
   if (auth.response) return auth.response;
 
   try {
