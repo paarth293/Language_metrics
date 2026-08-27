@@ -92,9 +92,9 @@ export default function LoginForm({ csrfToken }: { csrfToken: string }) {
             {/* Trust stats */}
             <div className="flex w-full max-w-[340px] items-center justify-between divide-x divide-white/10">
               {[
-                { icon: Globe,    value: "20+",    label: "Languages" },
-                { icon: Users,    value: "1,200+", label: "Teachers"  },
-                { icon: BookOpen, value: "50K+",   label: "Students"  },
+                { icon: Globe, value: "20+", label: "Languages" },
+                { icon: Users, value: "1,200+", label: "Teachers" },
+                { icon: BookOpen, value: "50K+", label: "Students" },
               ].map(({ icon: Icon, value, label }) => (
                 <div key={label} className="flex flex-1 flex-col items-center gap-1 px-4 first:pl-0 last:pr-0">
                   <Icon size={15} className="text-[var(--brand-gold)]" strokeWidth={1.8} aria-hidden="true" />
@@ -158,7 +158,7 @@ export default function LoginForm({ csrfToken }: { csrfToken: string }) {
             <span className="sr-only">2FA</span>
             <input type="hidden" name="csrf_token" value={csrfToken} />
 
-            {!needs2FA ? (
+            {!needs2FA && (
               <>
                 <div>
                   <label
@@ -166,130 +166,124 @@ export default function LoginForm({ csrfToken }: { csrfToken: string }) {
                     className="mb-1.5 block text-[12px] font-semibold text-[var(--text)]"
                   >
                     Admin email
-            {!needs2FA && (
-              <div>
-                <label
-                  htmlFor="admin-email"
-                  className="mb-1.5 block text-[12px] font-semibold text-[var(--text)]"
-                >
-                  Admin email
-                </label>
-                <input
-                  id="admin-email"
-                  name="email"
-                  type="email"
-                  required
-                  autoComplete="username"
-                  autoCapitalize="none"
-                  spellCheck={false}
-                  placeholder="admin@languagemetrics.com"
-                  className="lm-input w-full px-4 text-[13px]"
-                />
-              </div>
-            )}
-
-            <div>
-              <div className="mb-1.5 flex items-center justify-between gap-3">
-                <label
-                  htmlFor="admin-password"
-                  className="block text-[12px] font-semibold text-[var(--text)]"
-                >
-                  Password
-                </label>
-                <span className="text-[10px] text-[var(--text-subtle)]">Required</span>
-              </div>
-              <div className="relative">
-                <input
-                  id="admin-password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  required
-                  autoComplete="current-password"
-                  placeholder="Enter your password"
-                  className="lm-input w-full px-4 pr-12 text-[13px]"
-                />
-                <button
-                  type="button"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[var(--text-subtle)] hover:bg-[var(--surface-inset)] hover:text-[var(--text)]"
-                >
-                  {showPassword
-                    ? <EyeOff size={15} aria-hidden="true" />
-                    : <Eye size={15} aria-hidden="true" />}
-                </button>
-              </div>
-            </div>
-
-            {needs2FA && (
-              <div>
-                <input type="hidden" name="email" value={state?.email ?? ""} />
-                <label htmlFor="admin-totp" className="mb-1.5 block text-[12px] font-semibold text-[var(--text)]">
-                  Two-factor code
-                </label>
-                <input
-                  id="admin-totp"
-                  name="totp"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="\d{6}"
-                  maxLength={10}
-                  required
-                  autoComplete="one-time-code"
-                  placeholder="Enter 6-digit code or backup code"
-                  className="lm-input w-full px-4 text-[13px]"
-                  autoFocus
-                />
-                <p className="mt-1.5 text-[10px] text-[var(--text-subtle)]">
-                  Enter the code from your authenticator app, or a backup code.
-                </p>
-
-                <div className="mt-4 flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="trust-device"
-                    name="trust_device"
-                    className="h-3.5 w-3.5 rounded border-[var(--border-strong)] bg-transparent text-[var(--brand-navy)] focus:ring-[var(--brand-navy)]"
-                  />
-                  <label htmlFor="trust-device" className="text-[11px] text-[var(--text-subtle)]">
-                    Don&apos;t ask again on this device for 30 days
                   </label>
+                  <input
+                    id="admin-email"
+                    name="email"
+                    type="email"
+                    required
+                    autoComplete="username"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    placeholder="admin@languagemetrics.com"
+                    className="lm-input w-full px-4 text-[13px]"
+                  />
                 </div>
-              </div>
-            )}
 
-            {state?.error && state.error !== "2FA_REQUIRED" ? (
-              <p
-                role="alert"
-                className="rounded-lg border border-[var(--danger)]/25 bg-[var(--lm-red-soft)] px-4 py-3 text-[12px] font-semibold leading-5 text-[var(--danger)]"
-              >
-                {state.error}
-              </p>
-            ) : null}
+                <div>
+                      <div className="mb-1.5 flex items-center justify-between gap-3">
+                        <label
+                          htmlFor="admin-password"
+                          className="block text-[12px] font-semibold text-[var(--text)]"
+                        >
+                          Password
+                        </label>
+                        <span className="text-[10px] text-[var(--text-subtle)]">Required</span>
+                      </div>
+                      <div className="relative">
+                        <input
+                          id="admin-password"
+                          name="password"
+                          type={showPassword ? "text" : "password"}
+                          required
+                          autoComplete="current-password"
+                          placeholder="Enter your password"
+                          className="lm-input w-full px-4 pr-12 text-[13px]"
+                        />
+                        <button
+                          type="button"
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                          onClick={() => setShowPassword((v) => !v)}
+                          className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[var(--text-subtle)] hover:bg-[var(--surface-inset)] hover:text-[var(--text)]"
+                        >
+                          {showPassword
+                            ? <EyeOff size={15} aria-hidden="true" />
+                            : <Eye size={15} aria-hidden="true" />}
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
 
-            <button
-              type="submit"
-              disabled={isPending}
-              className="lm-button-primary mt-1 w-full gap-2 px-4"
-            >
-              {isPending ? "Authenticating…" : needs2FA ? "Verify & sign in" : "Continue to admin portal"}
-              <ArrowRight size={15} aria-hidden="true" />
-            </button>
-          </form>
+                {needs2FA && (
+                  <div>
+                        <input type="hidden" name="email" value={state?.email ?? ""} />
+                        <label htmlFor="admin-totp" className="mb-1.5 block text-[12px] font-semibold text-[var(--text)]">
+                          Two-factor code
+                        </label>
+                        <input
+                          id="admin-totp"
+                          name="totp"
+                          type="text"
+                          inputMode="numeric"
+                          pattern="\d{6}"
+                          maxLength={10}
+                          required
+                          autoComplete="one-time-code"
+                          placeholder="Enter 6-digit code or backup code"
+                          className="lm-input w-full px-4 text-[13px]"
+                          autoFocus
+                        />
+                        <p className="mt-1.5 text-[10px] text-[var(--text-subtle)]">
+                          Enter the code from your authenticator app, or a backup code.
+                        </p>
 
-          {/* Security note */}
-          <div className="mt-7 flex items-start gap-3 border-t border-[var(--border)] pt-5">
-            <ShieldCheck
-              size={15}
-              className="mt-0.5 shrink-0 text-[var(--success)]"
-              aria-hidden="true"
-            />
-            <p className="text-[11px] leading-5 text-[var(--text-subtle)]">
-              Access is logged, rate-limited, and protected for authorized personnel only.
-            </p>
-          </div>
-        </div>
-      </section>
-    </main>
-  );
+                        <div className="mt-4 flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="trust-device"
+                            name="trust_device"
+                            className="h-3.5 w-3.5 rounded border-[var(--border-strong)] bg-transparent text-[var(--brand-navy)] focus:ring-[var(--brand-navy)]"
+                          />
+                          <label htmlFor="trust-device" className="text-[11px] text-[var(--text-subtle)]">
+                            Don&apos;t ask again on this device for 30 days
+                          </label>
+                        </div>
+                      </div>
+                    )}
+
+                    {state?.error && state.error !== "2FA_REQUIRED" ? (
+                      <p
+                        role="alert"
+                        className="rounded-lg border border-[var(--danger)]/25 bg-[var(--lm-red-soft)] px-4 py-3 text-[12px] font-semibold leading-5 text-[var(--danger)]"
+                      >
+                        {state.error}
+                      </p>
+                    ) : null}
+
+                    <button
+                      type="submit"
+                      disabled={isPending}
+                      className="lm-button-primary mt-1 w-full gap-2 px-4"
+                    >
+                      {isPending ? "Authenticating…" : needs2FA ? "Verify & sign in" : "Continue to admin portal"}
+                      <ArrowRight size={15} aria-hidden="true" />
+                    </button>
+                  </form>
+
+                  {/* Security note */}
+                  <div className="mt-7 flex items-start gap-3 border-t border-[var(--border)] pt-5">
+                    <ShieldCheck
+                      size={15}
+                      className="mt-0.5 shrink-0 text-[var(--success)]"
+                      aria-hidden="true"
+                    />
+                    <p className="text-[11px] leading-5 text-[var(--text-subtle)]">
+                      Access is logged, rate-limited, and protected for authorized personnel only.
+                    </p>
+                  </div>
+                </div>
+              </section>
+          </main>
+          );
 }
