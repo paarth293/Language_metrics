@@ -44,7 +44,7 @@ export default function LanguageMarquee() {
           {repeatedLanguages.map((lang, idx) => (
             <Link
               key={`${lang.name}-${idx}`}
-              href={`/discover?lang=${lang.name.toLowerCase()}`}
+              href={`/student/discover?lang=${lang.name.toLowerCase()}`}
               prefetch={false}
               className="flex items-center gap-2.5 px-6 py-3 mx-2 rounded-xl border border-border bg-surface text-text shadow-sm hover:border-gold hover:shadow-md hover:-translate-y-0.5 transition-all duration-300"
             >
@@ -73,7 +73,7 @@ export default function LanguageMarquee() {
           {repeatedLanguages.slice().reverse().map((lang, idx) => (
             <Link
               key={`rev-${lang.name}-${idx}`}
-              href={`/discover?lang=${lang.name.toLowerCase()}`}
+              href={`/student/discover?lang=${lang.name.toLowerCase()}`}
               prefetch={false}
               className="flex items-center gap-2.5 px-6 py-3 mx-2 rounded-xl border border-border bg-surface text-text shadow-sm hover:border-gold hover:shadow-md hover:-translate-y-0.5 transition-all duration-300"
             >

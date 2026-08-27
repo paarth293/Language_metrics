@@ -46,28 +46,28 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
   };
 
   return (
-    <div className="mx-auto max-w-[1230px] px-9 pb-12 pt-9 max-[900px]:px-5 max-[640px]:px-4">
+    <div className="mx-auto max-w-[1230px] px-6 pb-4 pt-2 max-[900px]:px-5 max-[640px]:px-4">
       <div className="flex items-start gap-4">
         <Link href="/payments" className="lm-icon-button mt-1 bg-[var(--lm-paper-muted)]" aria-label="Back to payments">
           <ArrowLeft size={18} />
         </Link>
         <div>
-          <div className="mb-3 flex items-center gap-2 text-[11px] font-medium text-[var(--lm-subtle)]">
+          <div className="mb-1 flex items-center gap-2 text-[11px] font-medium text-[var(--lm-subtle)]">
             <span>Payments</span><span aria-hidden="true">/</span><span className="text-[var(--lm-muted)]">Transaction</span>
           </div>
           <h1 className="lm-page-title">Transaction <span className="lm-mono">#{payment.id.split('-')[0].toUpperCase()}</span></h1>
-          <p className="lm-body-copy mt-2">Detailed view of payment authorization, fees, and revenue splits.</p>
+          <p className="lm-body-copy mt-1">Detailed view of payment authorization, fees, and revenue splits.</p>
         </div>
       </div>
 
       <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
         <section className="lm-panel overflow-hidden" aria-labelledby="payment-details-title">
-          <div className="flex items-center justify-between border-b border-[var(--lm-line)] bg-[var(--lm-paper-muted)] px-6 py-4">
+          <div className="flex items-center justify-between border-b border-[var(--lm-line)] bg-[var(--lm-paper-muted)] px-5 py-3">
             <h2 id="payment-details-title" className="text-[14px] font-bold text-[var(--lm-ink-strong)]">Payment Details</h2>
             <span className={getStatusStyle(payment.status)}>{payment.status}</span>
           </div>
           
-          <div className="px-6 py-5 space-y-4">
+          <div className="px-5 py-4 space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--lm-line)] pb-4">
               <span className="text-[12px] font-medium text-[var(--lm-muted)]">Transaction Date</span>
               <span className="text-[13px] font-semibold text-[var(--lm-ink)]">{payment.createdAt.toLocaleString()}</span>
@@ -96,11 +96,11 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
         </section>
 
         <section className="lm-panel overflow-hidden" aria-labelledby="financial-breakdown-title">
-          <div className="flex items-center justify-between border-b border-[var(--lm-line)] bg-[var(--lm-paper-muted)] px-6 py-4">
+          <div className="flex items-center justify-between border-b border-[var(--lm-line)] bg-[var(--lm-paper-muted)] px-5 py-3">
             <h2 id="financial-breakdown-title" className="text-[14px] font-bold text-[var(--lm-ink-strong)]">Financial Breakdown</h2>
           </div>
           
-          <div className="px-6 py-5 space-y-4">
+          <div className="px-5 py-4 space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--lm-line)] pb-4">
               <span className="text-[12px] font-medium text-[var(--lm-muted)]">Course Fee (Base)</span>
               <span className="text-[13px] font-semibold text-[var(--lm-ink)]">{(courseFee / 100).toFixed(2)} INR</span>

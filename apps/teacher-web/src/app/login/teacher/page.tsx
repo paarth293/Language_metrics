@@ -61,15 +61,15 @@ export default function TeacherLoginPage() {
 
   return (
     <AuthLayout>
-      <div className="mb-8 text-center sm:text-left flex flex-col items-center sm:items-start">
+      <div className="mb-5 text-center sm:text-left flex flex-col items-center sm:items-start">
         <Link
           href="/login"
-          className="inline-flex items-center gap-2 text-sm font-medium text-text-muted hover:text-text mb-6 transition-colors"
+          className="inline-flex items-center gap-2 text-sm font-medium text-text-muted hover:text-text mb-3 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Back
         </Link>
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-brand/10 text-brand mb-4">
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-brand/10 text-brand mb-2">
           <BookOpen className="w-6 h-6" />
         </div>
         <h1 className="font-display text-3xl font-bold text-text mb-2">Teacher Login</h1>
@@ -79,14 +79,14 @@ export default function TeacherLoginPage() {
       {/* Google OAuth */}
       <a
         href="/api/auth/oauth/google?role=teacher"
-        className="flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm font-semibold text-text hover:bg-surface-inset transition-colors mb-6"
+        className="flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm font-semibold text-text hover:bg-surface-inset transition-colors mb-4"
       >
         <GoogleIcon />
         Continue with Google
       </a>
 
       {/* Divider */}
-      <div className="relative mb-6">
+      <div className="relative mb-4">
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-border" />
         </div>

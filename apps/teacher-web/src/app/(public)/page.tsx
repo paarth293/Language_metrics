@@ -9,6 +9,8 @@ import TeacherSpotlight from "@/features/home/components/TeacherSpotlight";
 import Pricing from "@/features/home/components/Pricing";
 import CoinSystem from "@/features/home/components/CoinSystem";
 import CTASection from "@/features/home/components/CTASection";
+import VisionSection from "@/features/home/components/VisionSection";
+import FAQSection from "@/features/home/components/FAQSection";
 
 export default function HomePage() {
   return (
@@ -24,6 +26,8 @@ export default function HomePage() {
       <Pricing />
       <CoinSystem />
       <CTASection />
+      <VisionSection />
+      <FAQSection />
     </main>
   );
 }

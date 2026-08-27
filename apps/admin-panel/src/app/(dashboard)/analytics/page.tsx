@@ -45,15 +45,15 @@ export default async function AnalyticsPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-[1230px] px-9 pb-12 pt-9 max-[900px]:px-5 max-[640px]:px-4">
-      <div className="flex flex-col gap-5 mb-8">
+    <div className="mx-auto max-w-[1230px] px-6 pb-4 pt-2 max-[900px]:px-5 max-[640px]:px-4">
+      <div className="flex flex-col gap-3 mb-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <div className="mb-3 flex items-center gap-2 text-[11px] font-medium text-[var(--lm-subtle)]">
+            <div className="mb-1 flex items-center gap-2 text-[11px] font-medium text-[var(--lm-subtle)]">
               <span>Overview</span><span aria-hidden="true">/</span><span className="text-[var(--lm-muted)]">Reports & Analytics</span>
             </div>
             <h1 className="lm-page-title">Reports & Analytics</h1>
-            <p className="lm-body-copy mt-2">Revenue, teacher, student, language, and operations insights.</p>
+            <p className="lm-body-copy mt-1">Revenue, teacher, student, language, and operations insights.</p>
           </div>
           <button className="lm-button-secondary min-h-9 px-4 text-[12px] flex items-center gap-2">
             <ArrowDownToLine size={14} /> Export Report
@@ -61,7 +61,7 @@ export default async function AnalyticsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {metrics.map((m) => {
           const Icon = m.icon;
           return (
@@ -81,7 +81,7 @@ export default async function AnalyticsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="lm-panel overflow-hidden">
-          <div className="border-b border-[var(--lm-line)] px-6 py-5 bg-[var(--lm-paper-muted)]">
+          <div className="border-b border-[var(--lm-line)] px-5 py-4 bg-[var(--lm-paper-muted)]">
             <h2 className="text-[15px] font-bold tracking-tight text-[var(--lm-ink-strong)]">Top Performing Teachers</h2>
             <p className="mt-1 text-[11px] text-[var(--lm-muted)]">Based on highest number of student reviews.</p>
           </div>
@@ -114,7 +114,7 @@ export default async function AnalyticsPage() {
         </div>
 
         <div className="lm-panel overflow-hidden">
-          <div className="border-b border-[var(--lm-line)] px-6 py-5 bg-[var(--lm-paper-muted)]">
+          <div className="border-b border-[var(--lm-line)] px-5 py-4 bg-[var(--lm-paper-muted)]">
             <h2 className="text-[15px] font-bold tracking-tight text-[var(--lm-ink-strong)]">Language Distribution</h2>
             <p className="mt-1 text-[11px] text-[var(--lm-muted)]">Active languages and their total published courses.</p>
           </div>

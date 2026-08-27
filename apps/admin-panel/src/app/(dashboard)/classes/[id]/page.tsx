@@ -87,7 +87,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
                           Scheduled: {session.scheduledStart.toLocaleString()} - {session.scheduledEnd.toLocaleTimeString()}
                         </p>
                         {session.recordingUrl && (
-                          <a href={session.recordingUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-indigo-400 mt-2 hover:underline">
+                          <a href={session.recordingUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-indigo-400 mt-1 hover:underline">
                             <Video size={14} /> View Recording
                           </a>
                         )}

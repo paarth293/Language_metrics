@@ -72,7 +72,7 @@ export default async function ComplaintDetailPage({ params }: { params: Promise<
               {complaint.description || "No description provided."}
             </div>
             
-            <div className="grid grid-cols-2 gap-4 mt-6 text-sm">
+            <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
               <div className="border border-gray-700 rounded p-3">
                 <p className="text-gray-500 mb-1 text-xs uppercase font-semibold tracking-wider">Submitted By (Student)</p>
                 <p className="text-white">{complaint.student.name}</p>

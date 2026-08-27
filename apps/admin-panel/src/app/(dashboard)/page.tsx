@@ -182,7 +182,7 @@ export default async function DashboardPage() {
   const dateLabel = now.toLocaleDateString("en-GB", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
 
   return (
-    <div className="mx-auto max-w-[1230px] px-9 pb-12 pt-6 max-[900px]:px-5 max-[640px]:px-4">
+    <div className="mx-auto max-w-[1230px] px-6 pb-4 pt-4 max-[900px]:px-5 max-[640px]:px-4">
       <div className="flex items-end justify-between gap-6 max-[780px]:flex-col max-[780px]:items-start">
         <div>
           <div className="mb-2 flex items-center gap-2 text-[11px] font-medium text-[var(--lm-subtle)]">

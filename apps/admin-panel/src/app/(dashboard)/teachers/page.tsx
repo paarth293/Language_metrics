@@ -58,12 +58,12 @@ export default async function TeachersPage(props: {
   const hasFilters = Boolean(q) || filter !== "approved";
 
   return (
-    <div className="mx-auto max-w-[1230px] px-9 pb-12 pt-9 max-[900px]:px-5 max-[640px]:px-4">
-      <div className="flex flex-col gap-5">
+    <div className="mx-auto max-w-[1230px] px-6 pb-4 pt-2 max-[900px]:px-5 max-[640px]:px-4">
+      <div className="flex flex-col gap-3">
         <div>
-          <div className="mb-3 flex items-center gap-2 text-[11px] font-medium text-[var(--lm-subtle)]"><span>People</span><span aria-hidden="true">/</span><span className="text-[var(--lm-muted)]">Teachers</span></div>
+          <div className="mb-1 flex items-center gap-2 text-[11px] font-medium text-[var(--lm-subtle)]"><span>People</span><span aria-hidden="true">/</span><span className="text-[var(--lm-muted)]">Teachers</span></div>
           <h1 className="lm-page-title">Teacher approvals</h1>
-          <p className="lm-body-copy mt-2">Review applications, verify teaching profiles, and keep the network healthy.</p>
+          <p className="lm-body-copy mt-1">Review applications, verify teaching profiles, and keep the network healthy.</p>
         </div>
 
         <div className="flex flex-wrap items-end justify-between gap-4 border-b border-[var(--lm-line)]">
@@ -77,8 +77,8 @@ export default async function TeachersPage(props: {
         </div>
       </div>
 
-      <section className="lm-panel mt-6 overflow-hidden" aria-labelledby="teacher-directory-title">
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--lm-line)] px-6 py-5">
+      <section className="lm-panel mt-3 overflow-hidden" aria-labelledby="teacher-directory-title">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--lm-line)] px-5 py-4">
           <div>
             <div className="flex items-center gap-2.5"><h2 id="teacher-directory-title" className="text-[16px] font-bold tracking-[-0.02em] text-[var(--lm-ink-strong)]">Teacher directory</h2><span className="rounded-full bg-[var(--lm-teal-soft)] px-2 py-1 font-mono text-[10px] font-semibold text-[var(--lm-teal-deep)]">{totalCount} records</span></div>
             <p className="mt-1.5 text-[11px] text-[var(--lm-muted)]">Latest applications appear first. Select a profile to review documents and actions.</p>
@@ -91,11 +91,11 @@ export default async function TeachersPage(props: {
             <caption className="sr-only">Teacher approval directory</caption>
             <thead>
               <tr className="border-b border-[var(--lm-line)] bg-[var(--lm-paper-muted)]">
-                <th scope="col" className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Teacher</th>
-                <th scope="col" className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Applied on</th>
-                <th scope="col" className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Language</th>
-                <th scope="col" className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Status</th>
-                <th scope="col" className="px-6 py-3 text-right text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Action</th>
+                <th scope="col" className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Teacher</th>
+                <th scope="col" className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Applied on</th>
+                <th scope="col" className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Language</th>
+                <th scope="col" className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Status</th>
+                <th scope="col" className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--lm-line)]">
@@ -103,11 +103,11 @@ export default async function TeachersPage(props: {
                 const approvalStatus = teacher.status as ApprovalStatus;
                 return (
                   <tr key={teacher.userId} className="group transition-colors hover:bg-[var(--lm-hover)]">
-                    <td className="px-6 py-4"><div className="flex items-center gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--lm-teal-soft)] text-[11px] font-bold text-[var(--lm-teal-deep)]">{initials(teacher.name)}</span><div className="min-w-0"><p className="truncate text-[12px] font-bold text-[var(--lm-ink)]">{teacher.name}</p><p className="mt-0.5 truncate text-[10px] text-[var(--lm-subtle)]">{teacher.user.email}</p></div></div></td>
-                    <td className="whitespace-nowrap px-6 py-4 text-[12px] text-[var(--lm-muted)]">{formatDate(teacher.createdAt)}</td>
-                    <td className="px-6 py-4 text-[12px] text-[var(--lm-muted)]">{teacher.language || "Not specified"}</td>
-                    <td className="px-6 py-4"><span className={statusClass(approvalStatus)}>{statusLabel(approvalStatus)}</span></td>
-                    <td className="px-6 py-4 text-right"><Link href={`/teachers/${teacher.userId}`} className="inline-flex min-h-9 items-center rounded-lg border border-[var(--lm-line)] px-3 text-[11px] font-bold text-[var(--lm-teal-deep)] transition-colors hover:border-[var(--lm-teal)] hover:bg-[var(--lm-teal-soft)]">{approvalStatus === "PENDING" || approvalStatus === "REJECTED" ? "Review profile" : "View profile"}</Link></td>
+                    <td className="px-5 py-3"><div className="flex items-center gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--lm-teal-soft)] text-[11px] font-bold text-[var(--lm-teal-deep)]">{initials(teacher.name)}</span><div className="min-w-0"><p className="truncate text-[12px] font-bold text-[var(--lm-ink)]">{teacher.name}</p><p className="mt-0.5 truncate text-[10px] text-[var(--lm-subtle)]">{teacher.user.email}</p></div></div></td>
+                    <td className="whitespace-nowrap px-5 py-3 text-[12px] text-[var(--lm-muted)]">{formatDate(teacher.createdAt)}</td>
+                    <td className="px-5 py-3 text-[12px] text-[var(--lm-muted)]">{teacher.language || "Not specified"}</td>
+                    <td className="px-5 py-3"><span className={statusClass(approvalStatus)}>{statusLabel(approvalStatus)}</span></td>
+                    <td className="px-5 py-3 text-right"><Link href={`/teachers/${teacher.userId}`} className="inline-flex min-h-9 items-center rounded-lg border border-[var(--lm-line)] px-3 text-[11px] font-bold text-[var(--lm-teal-deep)] transition-colors hover:border-[var(--lm-teal)] hover:bg-[var(--lm-teal-soft)]">{approvalStatus === "PENDING" || approvalStatus === "REJECTED" ? "Review profile" : "View profile"}</Link></td>
                   </tr>
                 );
               })}

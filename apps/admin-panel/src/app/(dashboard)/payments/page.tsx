@@ -39,14 +39,14 @@ export default async function PaymentsPage(props: { searchParams: Promise<{ q?: 
   };
 
   return (
-    <div className="mx-auto max-w-[1230px] px-9 pb-12 pt-9 max-[900px]:px-5 max-[640px]:px-4">
-      <div className="flex flex-col gap-5">
+    <div className="mx-auto max-w-[1230px] px-6 pb-4 pt-2 max-[900px]:px-5 max-[640px]:px-4">
+      <div className="flex flex-col gap-3">
         <div>
-          <div className="mb-3 flex items-center gap-2 text-[11px] font-medium text-[var(--lm-subtle)]">
+          <div className="mb-1 flex items-center gap-2 text-[11px] font-medium text-[var(--lm-subtle)]">
             <span>Dashboard</span><span aria-hidden="true">/</span><span className="text-[var(--lm-muted)]">Payments</span>
           </div>
           <h1 className="lm-page-title">Payments & Revenue Management</h1>
-          <p className="lm-body-copy mt-2">Monitor transactions, track platform commissions, and manage teacher earnings.</p>
+          <p className="lm-body-copy mt-1">Monitor transactions, track platform commissions, and manage teacher earnings.</p>
         </div>
 
         <div className="flex flex-wrap items-end justify-between gap-4 border-b border-[var(--lm-line)]">
@@ -58,8 +58,8 @@ export default async function PaymentsPage(props: { searchParams: Promise<{ q?: 
         </div>
       </div>
 
-      <section className="lm-panel mt-6 overflow-hidden" aria-labelledby="payments-directory-title">
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--lm-line)] px-6 py-5">
+      <section className="lm-panel mt-3 overflow-hidden" aria-labelledby="payments-directory-title">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--lm-line)] px-5 py-4">
           <div>
             <div className="flex items-center gap-2.5">
               <h2 id="payments-directory-title" className="text-[16px] font-bold tracking-[-0.02em] text-[var(--lm-ink-strong)]">Transactions</h2>
@@ -74,13 +74,13 @@ export default async function PaymentsPage(props: { searchParams: Promise<{ q?: 
             <caption className="sr-only">Payments directory</caption>
             <thead>
               <tr className="border-b border-[var(--lm-line)] bg-[var(--lm-paper-muted)]">
-                <th scope="col" className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Order ID</th>
-                <th scope="col" className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Student</th>
-                <th scope="col" className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Total Paid</th>
-                <th scope="col" className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">LM Share</th>
-                <th scope="col" className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Teacher Share</th>
-                <th scope="col" className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Status</th>
-                <th scope="col" className="px-6 py-3 text-right text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Action</th>
+                <th scope="col" className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Order ID</th>
+                <th scope="col" className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Student</th>
+                <th scope="col" className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Total Paid</th>
+                <th scope="col" className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">LM Share</th>
+                <th scope="col" className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Teacher Share</th>
+                <th scope="col" className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Status</th>
+                <th scope="col" className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lm-subtle)]">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--lm-line)]">
@@ -91,28 +91,28 @@ export default async function PaymentsPage(props: { searchParams: Promise<{ q?: 
                 
                 return (
                   <tr key={payment.id} className="group transition-colors hover:bg-[var(--lm-hover)]">
-                    <td className="px-6 py-4">
+                    <td className="px-5 py-3">
                       <p className="lm-mono text-[12px] text-[var(--lm-muted)]">{payment.id.split('-')[0].toUpperCase()}</p>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-5 py-3">
                       <p className="text-[12px] font-bold text-[var(--lm-ink)]">{payment.user.email}</p>
                       <p className="mt-0.5 text-[10px] text-[var(--lm-subtle)] capitalize">{payment.user.role.toLowerCase()}</p>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-5 py-3">
                       <p className="text-[12px] font-semibold text-[var(--lm-ink-strong)]">{(payment.amount / 100).toFixed(2)}</p>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-5 py-3">
                       <p className="text-[12px] font-medium text-[var(--lm-teal)]">{(lmShare / 100).toFixed(2)}</p>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-5 py-3">
                       <p className="text-[12px] font-medium text-[var(--lm-ink)]">{(teacherShare / 100).toFixed(2)}</p>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-5 py-3">
                       <span className={getStatusStyle(payment.status)}>
                         {payment.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-5 py-3 text-right">
                       <Link href={`/payments/${payment.id}`} className="inline-flex min-h-9 items-center rounded-lg border border-[var(--lm-line)] px-3 text-[11px] font-bold text-[var(--lm-teal-deep)] transition-colors hover:border-[var(--lm-teal)] hover:bg-[var(--lm-teal-soft)]">
                         View
                       </Link>

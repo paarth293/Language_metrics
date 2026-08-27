@@ -25,7 +25,7 @@ export default function ChangePasswordPage() {
         <h1 className="text-[28px] font-semibold tracking-[-0.04em] text-[var(--lm-ink-strong)]">
           Change your password
         </h1>
-        <p className="mt-2 text-[13px] leading-6 text-[var(--lm-muted)]">
+        <p className="mt-1 text-[13px] leading-6 text-[var(--lm-muted)]">
           Your administrator account requires a password update. Choose a strong, unique password that you don&apos;t use anywhere else.
         </p>
       </div>
@@ -87,7 +87,7 @@ export default function ChangePasswordPage() {
             </p>
           ) : null}
 
-          <button type="submit" disabled={isPending} className="lm-button-primary mt-2 w-full px-4">
+          <button type="submit" disabled={isPending} className="lm-button-primary mt-1 w-full px-4">
             {isPending ? "Updating…" : "Update password"}
           </button>
         </form>
