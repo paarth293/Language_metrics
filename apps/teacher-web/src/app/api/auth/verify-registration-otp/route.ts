@@ -15,6 +15,7 @@ const MAX_ATTEMPTS = 5;
  * that the registration endpoint can check.
  */
 export async function POST(request: NextRequest) {
+  try {
   if (exceedsMaxBodySize(request)) {
     return NextResponse.json({ message: "Request body too large." }, { status: 413 });
   }
@@ -112,4 +113,11 @@ export async function POST(request: NextRequest) {
     { success: true, message: "Email verified successfully." },
     { status: 200 }
   );
+  } catch (err) {
+    console.error("[verify-registration-otp] Unhandled error:", err);
+    return NextResponse.json(
+      { message: "An unexpected error occurred. Please try again." },
+      { status: 500 }
+    );
+  }
 }

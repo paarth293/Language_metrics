@@ -115,7 +115,21 @@ function OtpVerifyContent({ email }: { email: string }) {
   useEffect(() => {
     if (!email) {
       router.replace("/login");
+      return;
     }
+    // Auto-send OTP on mount so the user has a code to enter
+    const autoSend = async () => {
+      try {
+        await fetch("/api/auth/resend-verification", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+      } catch {
+        // Silently ignore — user can click Resend manually
+      }
+    };
+    autoSend();
   }, [email, router]);
 
   const handleVerify = async (e: React.FormEvent) => {

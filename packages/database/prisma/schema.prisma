@@ -90,7 +90,8 @@ model TeacherProfile {
   status             VerificationStatus     @default(PENDING)
   onboardingComplete Boolean                @default(false)
 
-  language           String?
+  language           String?       // Primary teaching language
+  languages          String[]      @default([]) // All languages the teacher can teach
   demoVideoUrl       String?
 
   createdAt          DateTime               @default(now())
@@ -557,6 +558,7 @@ enum VerificationStatus {
 
 enum DocumentType {
   EDUCATION
+  ID_PROOF
   LANGUAGE_CERTIFICATE
   EXPERIENCE_LETTER
   OTHER

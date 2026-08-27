@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { getRedisClient } from "@/lib/redis-client";
 import { generateOtp, hashOtp } from "@/lib/otp";
-import { sendMail } from "@/lib/zoho-mailer";
+import { sendVerificationOTP } from "@/lib/email";
 import { exceedsMaxBodySize } from "@/lib/rate-limit";
 
 /**
@@ -17,9 +17,10 @@ import { exceedsMaxBodySize } from "@/lib/rate-limit";
  *  1. Check email isn't already registered (reject if so).
  *  2. Rate-limit (60s cooldown + 5/hour cap).
  *  3. Generate OTP, hash, store in Redis with 10-minute TTL.
- *  4. Send OTP via Zoho SMTP.
+ *  4. Send OTP via Resend.
  */
 export async function POST(request: NextRequest) {
+  try {
   if (exceedsMaxBodySize(request)) {
     return NextResponse.json({ message: "Request body too large." }, { status: 413 });
   }
@@ -114,36 +115,9 @@ export async function POST(request: NextRequest) {
   }
 
   // ── 4. Send OTP email ───────────────────────────────────────────────────────
-  try {
-    await sendMail({
-      to: normalizedEmail,
-      subject: "Your Language Metrics verification code",
-      html: `
-        <div style="font-family:'Segoe UI',Roboto,sans-serif;max-width:480px;margin:0 auto;padding:32px">
-          <div style="text-align:center;margin-bottom:24px">
-            <h1 style="font-size:24px;font-weight:700;color:#1a1a2e;margin:0">Language Metrics</h1>
-          </div>
-          <p style="color:#4e5674;margin-bottom:8px">Welcome! 👋</p>
-          <p style="color:#4e5674;margin-bottom:24px">
-            Use the following code to verify your email address. It expires in <strong>10 minutes</strong>.
-          </p>
-          <div style="background:#f8f6f1;border:2px solid #c7982f;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px">
-            <span style="font-size:36px;font-weight:700;letter-spacing:8px;color:#1a1a2e;font-family:monospace">${otp}</span>
-          </div>
-          <p style="color:#8a93a6;font-size:13px">
-            If you didn't request this code, you can safely ignore this email.
-            Do not share this code with anyone.
-          </p>
-          <hr style="border:none;border-top:1px solid #e8e5de;margin:24px 0" />
-          <p style="color:#b0aaa0;font-size:11px;text-align:center">
-            This is an automated message from Language Metrics. Please do not reply to this email.<br />
-            © ${new Date().getFullYear()} Language Metrics. All rights reserved.
-          </p>
-        </div>
-      `,
-    });
-  } catch (err) {
-    console.error("[send-registration-otp] Email send error:", err);
+  const emailSent = await sendVerificationOTP(normalizedEmail, otp);
+  if (!emailSent) {
+    console.error("[send-registration-otp] Email send failed.");
     return NextResponse.json(
       { message: "Failed to send verification email. Please try again." },
       { status: 500 }
@@ -154,4 +128,11 @@ export async function POST(request: NextRequest) {
     { message: "Verification code sent." },
     { status: 200 }
   );
+  } catch (err) {
+    console.error("[send-registration-otp] Unhandled error:", err);
+    return NextResponse.json(
+      { message: "An unexpected error occurred. Please try again." },
+      { status: 500 }
+    );
+  }
 }

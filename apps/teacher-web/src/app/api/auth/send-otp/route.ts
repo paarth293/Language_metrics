@@ -3,15 +3,15 @@ import type { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { getRedisClient } from "@/lib/redis-client";
 import { generateOtp, hashOtp } from "@/lib/otp";
-import { sendMail } from "@/lib/zoho-mailer";
+import { sendVerificationOTP } from "@/lib/email";
 import { exceedsMaxBodySize } from "@/lib/rate-limit";
 
 /**
  * POST /api/auth/send-otp
  * Body: { email }
  *
- * Generates a 6-digit OTP, hashes it, stores it on the User row,
- * and sends it via Zoho SMTP.
+ * Generates a 6-digit OTP, hashes it, stores it in the EmailVerificationCode
+ * table, and sends it via Resend.
  *
  * Rate limiting (Redis):
  *  - 60-second cooldown per email (prevents spamming)
@@ -19,8 +19,8 @@ import { exceedsMaxBodySize } from "@/lib/rate-limit";
  *
  * Security:
  *  - OTP is bcrypt-hashed before storage — never stored in plaintext.
- *  - Only the first 3 digits are kept as a plaintext prefix for
- *    support/debug lookups (not enough to reconstruct the full code).
+ *  - OTP is stored in the EmailVerificationCode table with a bcrypt hash,
+ *    consistent with the verify-email POST route.
  *  - OTP is NEVER returned in the API response.
  */
 export async function POST(request: NextRequest) {
@@ -105,49 +105,25 @@ export async function POST(request: NextRequest) {
   // ── 5. Generate OTP, hash, and save to DB ───────────────────────────────────
   const otp = generateOtp();
   const otpHash = await hashOtp(otp);
-  const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-  const prefix = otp.slice(0, 3); // First 3 digits for debug/support lookup
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-  await db.user.update({
-    where: { id: user.id },
+  // Clean up any old verification codes for this user, then store the new one
+  await db.emailVerificationCode.deleteMany({
+    where: { userId: user.id },
+  });
+
+  await db.emailVerificationCode.create({
     data: {
-      emailVerificationToken: otpHash,
-      emailVerificationTokenPrefix: prefix,
-      emailVerificationExpiry: expiry,
+      userId: user.id,
+      codeHash: otpHash,
+      expiresAt,
     },
   });
 
   // ── 6. Send OTP email ───────────────────────────────────────────────────────
-  try {
-    await sendMail({
-      to: user.email,
-      subject: "Your Language Metrics verification code",
-      html: `
-        <div style="font-family:'Segoe UI',Roboto,sans-serif;max-width:480px;margin:0 auto;padding:32px">
-          <div style="text-align:center;margin-bottom:24px">
-            <h1 style="font-size:24px;font-weight:700;color:#1a1a2e;margin:0">Language Metrics</h1>
-          </div>
-          <p style="color:#4e5674;margin-bottom:8px">Hi ${user.username || "there"} 👋</p>
-          <p style="color:#4e5674;margin-bottom:24px">
-            Use the following code to verify your email address. It expires in <strong>10 minutes</strong>.
-          </p>
-          <div style="background:#f8f6f1;border:2px solid #c7982f;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px">
-            <span style="font-size:36px;font-weight:700;letter-spacing:8px;color:#1a1a2e;font-family:monospace">${otp}</span>
-          </div>
-          <p style="color:#8a93a6;font-size:13px">
-            If you didn't request this code, you can safely ignore this email.
-            Do not share this code with anyone.
-          </p>
-          <hr style="border:none;border-top:1px solid #e8e5de;margin:24px 0" />
-          <p style="color:#b0aaa0;font-size:11px;text-align:center">
-            This is an automated message from Language Metrics. Please do not reply to this email.<br />
-            © ${new Date().getFullYear()} Language Metrics. All rights reserved.
-          </p>
-        </div>
-      `,
-    });
-  } catch (err) {
-    console.error("[send-otp] Failed to send OTP email:", err);
+  const emailSent = await sendVerificationOTP(user.email, otp);
+  if (!emailSent) {
+    console.error("[send-otp] Failed to send OTP email.");
     return NextResponse.json(
       { message: "Failed to send verification email. Please try again." },
       { status: 500 }
