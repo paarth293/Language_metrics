@@ -106,3 +106,35 @@ export const refreshCookieOptions = {
   path: "/api/auth",
   maxAge: REFRESH_TOKEN_TTL_SECONDS,
 };
+
+// ── Password Reset token ──────────────────────────────────────────────────────
+
+export interface ResetSessionTokenPayload extends JWTPayload {
+  sub: string;
+  purpose: "password-reset";
+}
+
+export const RESET_SESSION_TTL_SECONDS = 10 * 60; // 10 minutes
+
+export async function signResetSessionToken(userId: string): Promise<string> {
+  const key = await getPrivateKey();
+  return new SignJWT({ purpose: "password-reset" })
+    .setProtectedHeader({ alg: "RS256" })
+    .setSubject(userId)
+    .setIssuer(ISSUER)
+    .setAudience(AUDIENCE)
+    .setIssuedAt()
+    .setExpirationTime(`${RESET_SESSION_TTL_SECONDS}s`)
+    .sign(key);
+}
+
+export async function verifyResetSessionToken(token: string): Promise<ResetSessionTokenPayload | null> {
+  try {
+    const key = await getPublicKey();
+    const { payload } = await jwtVerify(token, key, { issuer: ISSUER, audience: AUDIENCE });
+    if (payload.purpose !== "password-reset") return null;
+    return payload as ResetSessionTokenPayload;
+  } catch {
+    return null;
+  }
+}

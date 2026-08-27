@@ -63,3 +63,20 @@ export function PasswordResetEmail({ name, link }: PasswordResetEmailProps) {
     </div>
   );
 }
+
+export function OTPPasswordResetEmail({ otp }: OTPVerificationEmailProps) {
+  return (
+    <div style={{ fontFamily: 'sans-serif', maxWidth: '600px', margin: '0 auto', padding: '20px' }}>
+      <h2>Reset your password</h2>
+      <p>We received a request to reset the password for your Language Metrics account.</p>
+      <p>Your password reset code is:</p>
+      <div style={{ fontSize: '24px', fontWeight: 'bold', padding: '10px', backgroundColor: '#f4f4f5', textAlign: 'center', borderRadius: '6px', letterSpacing: '4px', margin: '20px 0' }}>
+        {otp}
+      </div>
+      <p>This code expires in 10 minutes.</p>
+      <p style={{ color: '#71717a', fontSize: '14px', marginTop: '40px' }}>
+        If you did not request a password reset, you can safely ignore this email. Your password will not be changed.
+      </p>
+    </div>
+  );
+}

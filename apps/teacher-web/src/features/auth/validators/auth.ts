@@ -122,6 +122,19 @@ export const registerTeacherSchema = z
   })
   .strict();
 
+// ─── resetPasswordSchema ──────────────────────────────────────────────────────
+export const resetPasswordSchema = z
+  .object({
+    resetSessionToken: z.string().min(1, "Reset session token is required."),
+    newPassword: passwordSchema,
+    confirmPassword: z.string({ message: "Please confirm your password." }),
+  })
+  .strict()
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords do not match.",
+    path: ["confirmPassword"],
+  });
+
 // ─── Inferred types ───────────────────────────────────────────────────────────
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterStudentInput = z.infer<typeof registerStudentSchema>;
@@ -129,3 +142,4 @@ export type RegisterTeacherInput = z.infer<typeof registerTeacherSchema>;
 export type TeacherStep1Input = z.infer<typeof teacherStep1Schema>;
 export type TeacherStep2Input = z.infer<typeof teacherStep2Schema>;
 export type TeacherStep3Input = z.infer<typeof teacherStep3Schema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
