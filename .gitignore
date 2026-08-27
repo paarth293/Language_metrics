@@ -110,3 +110,11 @@ yarn-error.log*
 .turbo/
 proposal.txt
 apps/student-app/
+
+# ── Python / Security Tests / Dumps ──
+__pycache__/
+*.pyc
+*.pyo
+sast-results.json
+security-tests/*.txt
+*.sql
