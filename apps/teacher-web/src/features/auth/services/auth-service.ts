@@ -131,6 +131,30 @@ export class AuthService {
     const codeHash = await hashOtp(otp);
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
+    // Build document records for the teacher
+    const documentsToCreate = [
+      {
+        type: "EDUCATION" as const,
+        url: data.qualificationDocUrl,
+        status: "PENDING" as const,
+      },
+      {
+        type: "ID_PROOF" as const,
+        url: data.idProofDocUrl,
+        status: "PENDING" as const,
+      },
+      // Only include experience document if provided
+      ...(data.experienceDocUrl
+        ? [
+            {
+              type: "EXPERIENCE_LETTER" as const,
+              url: data.experienceDocUrl,
+              status: "PENDING" as const,
+            },
+          ]
+        : []),
+    ];
+
     if (existing) {
       if (existing.passwordHash) return null;
       if (existing.role !== "TEACHER") return null;
@@ -147,14 +171,26 @@ export class AuthService {
                 experienceLevel: data.experienceType === "experienced" ? "EXPERIENCED" : "FRESHER",
                 status: "PENDING",
                 language: data.language,
+                languages: data.languages,
                 gender: data.gender,
+                bio: data.experienceDescription?.trim() || null,
                 onboardingComplete: true,
-              }
+              },
             }
           })
         },
         include: { teacherProfile: true },
       });
+
+      // Create document records for the teacher
+      if (user.teacherProfile) {
+        await db.teacherDocument.createMany({
+          data: documentsToCreate.map((doc) => ({
+            ...doc,
+            teacherId: user.teacherProfile!.userId,
+          })),
+        });
+      }
 
       return {
         user: { id: user.id, name: user.teacherProfile!.name, email: user.email, role: user.role },
@@ -175,8 +211,13 @@ export class AuthService {
             experienceLevel: data.experienceType === "experienced" ? "EXPERIENCED" : "FRESHER",
             status: "PENDING",
             language: data.language,
+            languages: data.languages,
             gender: data.gender,
+            bio: data.experienceDescription?.trim() || null,
             onboardingComplete: true,
+            documents: {
+              create: documentsToCreate,
+            },
           },
         },
         verificationCodes: {
