@@ -17,9 +17,9 @@ export default function Footer() {
               Find your perfect language teacher and actually book them in minutes. Learn naturally with 1-on-1 live video classes.
             </p>
             <div className="flex gap-4 text-sm font-medium text-text-muted">
-              <Link href="#" className="hover:text-gold transition-colors">Twitter</Link>
-              <Link href="#" className="hover:text-gold transition-colors">GitHub</Link>
-              <Link href="#" className="hover:text-gold transition-colors">LinkedIn</Link>
+              <a href="https://www.facebook.com/share/1DMjvSQGrU/" target="_blank" rel="noopener noreferrer" className="hover:text-gold transition-colors">Facebook</a>
+              <a href="https://www.instagram.com/languagemetrics?utm_source=qr&igsi=MW0wd25vZDExcWtvYg==" target="_blank" rel="noopener noreferrer" className="hover:text-gold transition-colors">Instagram</a>
+              <a href="https://www.linkedin.com/company/languagemetrics/" target="_blank" rel="noopener noreferrer" className="hover:text-gold transition-colors">LinkedIn</a>
             </div>
           </div>
 
