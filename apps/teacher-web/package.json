@@ -12,6 +12,8 @@
     "db:seed": "node --env-file=.env prisma/seed.mjs"
   },
   "dependencies": {
+    "@react-email/components": "^1.0.12",
+    "@react-email/render": "^2.1.0",
     "@repo/auth": "*",
     "@repo/database": "*",
     "@types/nodemailer": "^8.0.1",

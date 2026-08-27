@@ -50,6 +50,10 @@ export default function TeacherLoginPage() {
 
     const outcome = await login(email, password, "TEACHER");
     if (!outcome.success) {
+      if (outcome.message === "UNVERIFIED_EMAIL") {
+        window.location.href = `/verify-email?email=${encodeURIComponent(email)}`;
+        return;
+      }
       if (outcome.message === "USER_NOT_FOUND") {
         window.location.href = `/register/teacher?email=${encodeURIComponent(email)}`;
         return;
@@ -58,6 +62,7 @@ export default function TeacherLoginPage() {
     }
     setIsLoading(false);
   };
+
 
   return (
     <AuthLayout>

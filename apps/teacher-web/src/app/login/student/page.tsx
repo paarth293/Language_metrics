@@ -63,6 +63,10 @@ export default function StudentLoginPage() {
 
     const outcome = await login(email, password, "STUDENT");
     if (!outcome.success) {
+      if (outcome.message === "UNVERIFIED_EMAIL") {
+        window.location.href = `/verify-email?email=${encodeURIComponent(email)}`;
+        return;
+      }
       if (outcome.message === "USER_NOT_FOUND") {
         window.location.href = `/register/student?email=${encodeURIComponent(email)}`;
         return;
@@ -71,6 +75,7 @@ export default function StudentLoginPage() {
     }
     setIsLoading(false);
   };
+
 
   return (
     <AuthLayout>

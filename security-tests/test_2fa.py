@@ -64,7 +64,7 @@ def test_login_without_totp_is_rejected():
     print("\n  Attempt with correct credentials but missing TOTP code:")
     r = session.post(
         LOGIN_ENDPOINT,
-        data={"email": "admin@example.com", "password": "12345678", "totp_code": "000000", "csrf_token": csrf_token},
+        data={"email": "admin@languagemetrics.com", "password": "Password123!", "totp_code": "000000", "csrf_token": csrf_token},
         headers={"Origin": TARGET},
         allow_redirects=False,
         timeout=15,
@@ -93,7 +93,7 @@ def test_login_without_totp_is_rejected():
             print(f"\n  Attempt with correct credentials + valid TOTP ({valid_code}):")
             r2 = session.post(
                 LOGIN_ENDPOINT,
-                data={"email": "admin@example.com", "password": "12345678", "totp_code": valid_code, "csrf_token": csrf_token},
+                data={"email": "admin@languagemetrics.com", "password": "Password123!", "totp_code": valid_code, "csrf_token": csrf_token},
                 headers={"Origin": TARGET},
                 allow_redirects=False,
                 timeout=15,

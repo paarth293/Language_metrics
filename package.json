@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "concurrently \"npm run dev -w language_metrics\" \"npm run dev -w admin-panel\"",
     "start": "concurrently \"npm start -w language_metrics\" \"npm start -w admin-panel\"",
-    "build": "npx prisma generate --schema=packages/database/prisma/schema.prisma && npm run build --workspaces --if-present",
+    "build": "npx prisma@5 generate --schema=packages/database/prisma/schema.prisma && npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "setup": "husky",
     "postinstall": "npm run postinstall --workspaces --if-present",
@@ -23,7 +23,7 @@
     "seed": "node --env-file=.env packages/database/prisma/seed.mjs"
   },
   "dependencies": {
-    "@prisma/client": "^5.16.1",
+    "@prisma/client": "^5.22.0",
     "axios": "^1.19.0",
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.1",
@@ -54,7 +54,7 @@
     "eslint-plugin-security": "^3.0.1",
     "husky": "^9.1.4",
     "lint-staged": "^15.2.8",
-    "prisma": "^5.16.1",
+    "prisma": "^5.22.0",
     "tailwindcss": "^4"
   },
   "lint-staged": {
