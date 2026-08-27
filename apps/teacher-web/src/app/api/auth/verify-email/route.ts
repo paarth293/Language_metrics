@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
-import { hashOtp } from "@/lib/otp";
+import { compareOtp } from "@/lib/otp";
 import { rateLimit } from "@/lib/rate-limit";
 
 /**
@@ -68,8 +68,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const submittedHash = await hashOtp(otp);
-    if (submittedHash !== verificationCode.codeHash) {
+    const isValid = await compareOtp(otp, verificationCode.codeHash);
+    if (!isValid) {
       await db.emailVerificationCode.update({
         where: { id: verificationCode.id },
         data: { attempts: { increment: 1 } },

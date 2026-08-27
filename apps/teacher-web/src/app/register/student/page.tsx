@@ -68,7 +68,7 @@ export default function StudentRegisterPage() {
   }, [cooldown]);
 
   // ── Send OTP ────────────────────────────────────────────────────────────────
-  const sendOtp = useCallback(async () => {
+  const sendOtp = async () => {
     setOtpError(null);
     setOtpSending(true);
 
@@ -98,10 +98,10 @@ export default function StudentRegisterPage() {
     } finally {
       setOtpSending(false);
     }
-  }, [email]);
+  };
 
   // ── Verify OTP ──────────────────────────────────────────────────────────────
-  const verifyOtp = useCallback(async (code: string) => {
+  const verifyOtp = async (code: string) => {
     setOtpError(null);
     setOtpVerifying(true);
 
@@ -130,7 +130,7 @@ export default function StudentRegisterPage() {
     } finally {
       setOtpVerifying(false);
     }
-  }, [email]);
+  };
 
   // ── OTP input handlers ──────────────────────────────────────────────────────
   const handleOtpChange = (index: number, value: string) => {
