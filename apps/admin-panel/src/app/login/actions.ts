@@ -11,6 +11,8 @@ import { TRUSTED_DEVICE_COOKIE, trustedDeviceCookieOptions, signTrustedDeviceTok
 
 export interface LoginState {
   error?: string;
+  email?: string;
+  password?: string;
 }
 
 async function getClientIp(): Promise<string | null> {
@@ -40,6 +42,9 @@ export async function loginAction(
   const result = await authenticateAdmin(email, password, ip, csrfCookie, csrfForm, totpCode, trustedDeviceToken);
 
   if (!result.success) {
+    if (result.error === "2FA_REQUIRED") {
+      return { error: result.error, email, password };
+    }
     return { error: result.error };
   }
 
@@ -59,3 +64,4 @@ export async function logoutAction(): Promise<void> {
   await destroySession();
   redirect("/login");
 }
+

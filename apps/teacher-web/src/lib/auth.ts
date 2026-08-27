@@ -23,6 +23,7 @@ import type { AccessTokenPayload } from "@/lib/tokens";
 export type AuthErrorCode =
   | "MISSING_TOKEN"       // No access token cookie present
   | "INVALID_TOKEN"       // Token signature bad / expired
+  | "UNVERIFIED_EMAIL"    // Token valid but email not yet verified
   | "INSUFFICIENT_ROLE"   // Token valid but role not allowed
   | "INTERNAL_ERROR";     // Unexpected server error during verification
 
@@ -43,6 +44,7 @@ export interface AuthFailure {
 /**
  * Reads and verifies the lm_access_token cookie (RS256).
  * Optionally checks that the user's role is one of `allowedRoles`.
+ * Also enforces email verification — unverified users are rejected with 403.
  *
  * @returns { user } on success — { error: NextResponse } on failure.
  *
@@ -83,6 +85,19 @@ export async function requireAuth(
             message: "Your session has expired. Please log in again.",
           },
           { status: 401 }
+        ),
+      };
+    }
+
+    // Email verification enforcement
+    if (!payload.emailVerified) {
+      return {
+        error: NextResponse.json(
+          {
+            code: "UNVERIFIED_EMAIL",
+            message: "Please verify your email address before continuing.",
+          },
+          { status: 403 }
         ),
       };
     }

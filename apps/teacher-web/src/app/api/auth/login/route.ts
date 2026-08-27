@@ -19,7 +19,7 @@ import { storeRefreshSession } from "@/lib/redis-session";
  *  1. Body size guard
  *  2. Rate limiter — 10 attempts per IP per minute
  *  3. Zod strict schema validation
- *  4. AuthService — constant-time bcrypt comparison
+ *  4. AuthService — constant-time bcrypt comparison + email verification check
  *  5. Issues httpOnly access + refresh token cookies (no token in response body)
  */
 export async function POST(request: NextRequest) {
@@ -55,7 +55,13 @@ export async function POST(request: NextRequest) {
 
   // 4. Authenticate
   const authResult = await AuthService.login(result.data);
-  if ('error' in authResult) {
+  if ("error" in authResult) {
+    if (authResult.error === "UNVERIFIED_EMAIL") {
+      return NextResponse.json(
+        { error: "UNVERIFIED_EMAIL", message: "Please verify your email address." },
+        { status: 403 }
+      );
+    }
     if (authResult.error === "USER_NOT_FOUND") {
       return NextResponse.json({ message: "USER_NOT_FOUND" }, { status: 404 });
     }

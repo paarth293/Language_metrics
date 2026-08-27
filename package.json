@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "concurrently \"npm run dev -w language_metrics\" \"npm run dev -w admin-panel\"",
     "start": "concurrently \"npm start -w language_metrics\" \"npm start -w admin-panel\"",
-    "build": "npx prisma generate --schema=packages/database/prisma/schema.prisma && npm run build --workspaces --if-present",
+    "build": "npx prisma@5 generate --schema=packages/database/prisma/schema.prisma && npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "setup": "husky",
     "postinstall": "npm run postinstall --workspaces --if-present",

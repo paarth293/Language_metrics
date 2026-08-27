@@ -3,25 +3,34 @@ import bcrypt from "bcryptjs";
 import { loginSchema, registerStudentSchema, registerTeacherSchema } from "@/features/auth/validators/auth";
 import type { User } from "@/types";
 import type { z } from "zod";
+import { generateEmailOTP, hashOTP } from "@/lib/otp";
+import { sendVerificationOTP } from "@/lib/email";
 
 type LoginInput = z.infer<typeof loginSchema>;
 type RegisterStudentInput = z.infer<typeof registerStudentSchema>;
 type RegisterTeacherInput = z.infer<typeof registerTeacherSchema>;
 
 export class AuthService {
-  static async login(data: LoginInput): Promise<{ user: User } | { error: "USER_NOT_FOUND" | "INVALID_CREDENTIALS" }> {
+  static async login(
+    data: LoginInput
+  ): Promise<{ user: User } | { error: "USER_NOT_FOUND" | "INVALID_CREDENTIALS" | "UNVERIFIED_EMAIL" }> {
     const user = await db.user.findUnique({
       where: { email: data.email },
       include: { studentProfile: true, teacherProfile: true },
     });
     if (!user) return { error: "USER_NOT_FOUND" };
     if (!user.passwordHash) return { error: "INVALID_CREDENTIALS" };
-    
+
     // Strict role check: if the login form specified a role, it MUST match the user's role.
     if (data.role && user.role !== data.role) return { error: "INVALID_CREDENTIALS" };
 
     const isValid = await bcrypt.compare(data.password, user.passwordHash);
     if (!isValid) return { error: "INVALID_CREDENTIALS" };
+
+    // Email verification enforcement — unverified users cannot receive tokens
+    if (!user.emailVerified) {
+      return { error: "UNVERIFIED_EMAIL" };
+    }
 
     const name = user.studentProfile?.name ?? user.teacherProfile?.name ?? "User";
     return {
@@ -35,12 +44,15 @@ export class AuthService {
   }
 
   static async registerStudent(data: RegisterStudentInput): Promise<{ user: User } | null> {
-    const existing = await db.user.findUnique({ 
+    const existing = await db.user.findUnique({
       where: { email: data.email },
       include: { studentProfile: true }
     });
 
     const passwordHash = await bcrypt.hash(data.password, 10);
+    const otp = generateEmailOTP();
+    const codeHash = hashOTP(otp);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
     if (existing) {
       // If they already have a password, they should login
@@ -87,9 +99,17 @@ export class AuthService {
             onboardingComplete: true,
           },
         },
+        verificationCodes: {
+          create: {
+            codeHash,
+            expiresAt,
+          },
+        },
       },
       include: { studentProfile: true },
     });
+
+    await sendVerificationOTP(user.email, otp);
 
     return {
       user: { id: user.id, name: user.studentProfile!.name, email: user.email, role: user.role },
@@ -97,12 +117,15 @@ export class AuthService {
   }
 
   static async registerTeacher(data: RegisterTeacherInput): Promise<{ user: User } | null> {
-    const existing = await db.user.findUnique({ 
+    const existing = await db.user.findUnique({
       where: { email: data.email },
       include: { teacherProfile: true }
     });
 
     const passwordHash = await bcrypt.hash(data.password, 10);
+    const otp = generateEmailOTP();
+    const codeHash = hashOTP(otp);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
     if (existing) {
       if (existing.passwordHash) return null;
@@ -150,9 +173,17 @@ export class AuthService {
             onboardingComplete: true,
           },
         },
+        verificationCodes: {
+          create: {
+            codeHash,
+            expiresAt,
+          },
+        },
       },
       include: { teacherProfile: true },
     });
+
+    await sendVerificationOTP(user.email, otp);
 
     return {
       user: { id: user.id, name: user.teacherProfile!.name, email: user.email, role: user.role },

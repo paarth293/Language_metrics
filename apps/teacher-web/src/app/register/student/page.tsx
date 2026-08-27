@@ -89,6 +89,8 @@ export default function StudentRegisterPage() {
       const data = await res.json();
       if (!res.ok) {
         setServerError(data.message || "Registration failed");
+      } else if (data.verificationRequired) {
+        window.location.href = `/verify-email?email=${encodeURIComponent(email)}`;
       } else {
         setSuccess(true);
         setTimeout(async () => {
