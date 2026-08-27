@@ -1,12 +1,35 @@
-import crypto from "crypto";
+/**
+ * src/lib/otp.ts — OTP generation & verification helpers
+ *
+ * Uses crypto.randomInt for cryptographically secure generation
+ * and bcryptjs for hashing/comparison (timing-safe).
+ */
 
-export function generateEmailOTP(): string {
-  // Generate a random 6-digit number between 100000 and 999999
-  const otp = crypto.randomInt(100000, 1000000);
-  return otp.toString();
+import crypto from "crypto";
+import bcrypt from "bcryptjs";
+
+const OTP_LENGTH = 6;
+const BCRYPT_ROUNDS = 10;
+
+/**
+ * Generate a cryptographically random 6-digit numeric OTP.
+ * Always returns exactly 6 digits (range: 100000–999999).
+ */
+export function generateOtp(): string {
+  return crypto.randomInt(100_000, 1_000_000).toString();
 }
 
-export function hashOTP(otp: string): string {
-  // Use SHA-256 to hash the OTP for secure database storage
-  return crypto.createHash("sha256").update(otp).digest("hex");
+/**
+ * Hash an OTP string using bcrypt (10 rounds).
+ */
+export async function hashOtp(otp: string): Promise<string> {
+  return bcrypt.hash(otp, BCRYPT_ROUNDS);
+}
+
+/**
+ * Compare a plaintext OTP against a bcrypt hash.
+ * Returns true if they match.
+ */
+export async function compareOtp(otp: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(otp, hash);
 }
