@@ -8,8 +8,8 @@
 
 | App | URL | Description |
 |-----|-----|-------------|
-| **Main Web App** | [language-metrics.vercel.app](https://language-metrics.vercel.app) | Public landing page, student & teacher dashboards |
-| **Admin Panel** | [language-metrics-teacher-web.vercel.app](https://language-metrics-teacher-web.vercel.app) | Internal dashboard for platform administrators |
+| **Main Web App** | [language-metrics-teacher-web.vercel.app](https://language-metrics-teacher-web.vercel.app/) | Public landing page, student & teacher dashboards |
+| **Admin Panel** | [language-metrics-admin-panel.vercel.app/login](https://language-metrics-admin-panel.vercel.app/login) | Internal dashboard for platform administrators |
 
 ---
 

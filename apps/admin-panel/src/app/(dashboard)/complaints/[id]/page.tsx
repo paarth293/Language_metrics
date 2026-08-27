@@ -7,9 +7,9 @@ import { updateComplaintStatus } from "./actions";
 
 export const dynamic = 'force-dynamic';
 
-export default async function ComplaintDetailPage({ params }: { params: { id: string } }) {
+export default async function ComplaintDetailPage({ params }: { params: Promise<{ id: string }> }) {
   await requireAdmin();
-  const { id } = params;
+  const { id } = await params;
 
   const complaintData = await db.complaint.findUnique({
     where: { id }

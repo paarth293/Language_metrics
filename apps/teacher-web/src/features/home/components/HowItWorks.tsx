@@ -93,12 +93,12 @@ export default function HowItWorks() {
   const isInView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section id="how-it-works" className="py-28 bg-surface-2 border-y border-border overflow-hidden">
+    <section id="how-it-works" className="py-20 bg-surface-2 border-y border-border overflow-hidden">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
         {/* Header */}
         <motion.div
-          className="text-center mb-20"
+          className="text-center mb-16"
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-60px" }}
@@ -110,7 +110,7 @@ export default function HowItWorks() {
           <h2 className="font-display text-3xl md:text-5xl font-bold text-text mb-5 leading-tight">
             From first search to live class in minutes
           </h2>
-          <p className="text-lg text-text-muted max-w-2xl mx-auto">
+          <p className="text-lg text-text-muted max-w-2xl mx-auto text-balance">
             A seamless, student-first flow — from picking your language to attending your first live session.
           </p>
         </motion.div>

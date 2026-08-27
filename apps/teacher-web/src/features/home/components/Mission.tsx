@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 
 export default function Mission() {
   return (
-    <section className="py-24 relative overflow-hidden bg-bg">
+    <section className="py-20 relative overflow-hidden bg-bg">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           className="bg-surface border border-border rounded-[2.5rem] overflow-hidden shadow-sm flex flex-col lg:flex-row items-stretch"

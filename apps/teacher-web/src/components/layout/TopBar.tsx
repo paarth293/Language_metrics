@@ -15,6 +15,7 @@ interface TopBarProps {
 export function TopBar({ onMenuClick, user }: TopBarProps) {
   const { theme, setTheme } = useTheme();
   const { logout } = useAuth();
+  const isTeacherRoute = typeof window !== "undefined" && window.location.pathname.startsWith("/teacher");
 
   const toggleTheme = () => {
     setTheme(theme === "light" ? "dark" : "light");
@@ -43,7 +44,8 @@ export function TopBar({ onMenuClick, user }: TopBarProps) {
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      {/* Right Actions */}
+      <div className="flex items-center gap-4">
         {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
@@ -68,7 +70,9 @@ export function TopBar({ onMenuClick, user }: TopBarProps) {
         <div className="flex items-center gap-3 ml-1">
           <div className="hidden text-right md:block">
             <div className="text-sm font-semibold text-text leading-tight">{user?.name || "User"}</div>
-            <div className="text-[11px] text-text-muted capitalize">{user?.role?.toLowerCase() || "Student"}</div>
+            <div className="text-[11px] text-text-muted capitalize">
+              {user?.role?.toLowerCase() || (isTeacherRoute ? "Teacher" : "Student")}
+            </div>
           </div>
           <button className="focus:outline-none focus-ring rounded-full" title="Profile">
             <Avatar initials={user?.name?.[0] || "U"} online={true} />

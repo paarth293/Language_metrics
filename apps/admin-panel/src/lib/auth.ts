@@ -1,79 +1,154 @@
-import jwt from "jsonwebtoken";
+/**
+ * lib/auth.ts — RS256 JWT tokens for Admin Panel (access + refresh)
+ *
+ * Access tokens:  15-minute TTL, RS256, contain admin identity details
+ * Refresh tokens: 7-day TTL, RS256, contain { sub, sid }
+ */
 
-// ---------------------------------------------------------------------------
-// Admin session signing. Sessions are short-lived JWTs held in an httpOnly,
-// SameSite=strict cookie (never localStorage). The signature is verified on
-// every protected request — presence of a cookie alone grants nothing.
-// ---------------------------------------------------------------------------
+import { SignJWT, jwtVerify, importPKCS8, importSPKI, type JWTPayload } from "jose";
 
-const JWT_SECRET = process.env.JWT_SECRET;
+export const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;        // 15 minutes
+export const REFRESH_TOKEN_TTL_SECONDS = 7 * 24 * 3600; // 7 days
+
+export const ACCESS_COOKIE = "lm_admin_access_token";
+export const REFRESH_COOKIE = "lm_admin_refresh_token";
+export const TRUSTED_DEVICE_COOKIE = "lm_trusted_device";
+
 const ISSUER = "lm-admin-panel";
 const AUDIENCE = "lm-admin";
 
-export const SESSION_COOKIE = "lm_admin_session";
+const isProd = process.env.NODE_ENV === "production";
 
-export const SESSION_TTL_SECONDS = 8 * 60 * 60; // 8 hours
-
-export interface AdminSessionToken {
-  sub: string; // AdminUser.userId (== User.id)
+export interface AdminSessionToken extends JWTPayload {
+  sub: string;
   email: string;
   roleKey: string;
   isSuperAdmin: boolean;
 }
 
-export interface VerifiedSession extends AdminSessionToken {
-  jti: string;
-  iat: number;
-  exp: number;
+export interface RefreshTokenPayload extends JWTPayload {
+  sub: string;
+  sid: string;
 }
 
-function getSecret(): string {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    throw new Error(
-      "JWT_SECRET is not configured. Refusing to start the admin panel without a signing secret."
-    );
-  }
-  if (secret.length < 32) {
-    throw new Error(
-      "JWT_SECRET is too short (< 32 chars). Generate a strong one with `openssl rand -base64 64`."
-    );
-  }
-  return secret;
+async function getPrivateKey() {
+  const pem = process.env.JWT_PRIVATE_KEY;
+  if (!pem) throw new Error("JWT_PRIVATE_KEY is not set. Refusing to start.");
+  return importPKCS8(pem.replace(/\\n/g, "\n"), "RS256");
 }
 
-export function signSession(payload: AdminSessionToken): string {
-  const secret = getSecret();
-  return jwt.sign(
-    {
-      email: payload.email,
-      roleKey: payload.roleKey,
-      isSuperAdmin: payload.isSuperAdmin,
-    },
-    secret,
-    {
-      subject: payload.sub,
-      issuer: ISSUER,
-      audience: AUDIENCE,
-      expiresIn: SESSION_TTL_SECONDS,
-      jwtid: crypto.randomUUID(),
-    }
-  );
+async function getPublicKey() {
+  const pem = process.env.JWT_PUBLIC_KEY;
+  if (!pem) throw new Error("JWT_PUBLIC_KEY is not set. Refusing to start.");
+  return importSPKI(pem.replace(/\\n/g, "\n"), "RS256");
 }
 
-/**
- * Verifies signature, issuer, audience and expiry. Returns null on any failure.
- * This is the ONLY path that turns a cookie into a trusted identity.
- */
-export function verifySession(token: string): VerifiedSession | null {
+// ── Access token ─────────────────────────────────────────────────────────────
+
+export async function signSession(payload: {
+  sub: string;
+  email: string;
+  roleKey: string;
+  isSuperAdmin: boolean;
+}): Promise<string> {
+  const key = await getPrivateKey();
+  return new SignJWT({
+    email: payload.email,
+    roleKey: payload.roleKey,
+    isSuperAdmin: payload.isSuperAdmin,
+  })
+    .setProtectedHeader({ alg: "RS256" })
+    .setSubject(payload.sub)
+    .setIssuer(ISSUER)
+    .setAudience(AUDIENCE)
+    .setIssuedAt()
+    .setExpirationTime(`${ACCESS_TOKEN_TTL_SECONDS}s`)
+    .sign(key);
+}
+
+export async function verifySession(token: string): Promise<AdminSessionToken | null> {
   try {
-    const secret = getSecret();
-    const decoded = jwt.verify(token, secret, {
-      issuer: ISSUER,
-      audience: AUDIENCE,
-    }) as VerifiedSession;
-    return decoded;
+    const key = await getPublicKey();
+    const { payload } = await jwtVerify(token, key, { issuer: ISSUER, audience: AUDIENCE });
+    return payload as AdminSessionToken;
   } catch {
     return null;
   }
 }
+
+// ── Refresh token ─────────────────────────────────────────────────────────────
+
+export async function signRefreshToken(userId: string, sessionId: string): Promise<string> {
+  const key = await getPrivateKey();
+  return new SignJWT({ sid: sessionId })
+    .setProtectedHeader({ alg: "RS256" })
+    .setSubject(userId)
+    .setIssuer(ISSUER)
+    .setAudience(AUDIENCE)
+    .setIssuedAt()
+    .setExpirationTime(`${REFRESH_TOKEN_TTL_SECONDS}s`)
+    .sign(key);
+}
+
+export async function verifyRefreshToken(token: string): Promise<RefreshTokenPayload | null> {
+  try {
+    const key = await getPublicKey();
+    const { payload } = await jwtVerify(token, key, { issuer: ISSUER, audience: AUDIENCE });
+    return payload as RefreshTokenPayload;
+  } catch {
+    return null;
+  }
+}
+
+// ── Trusted Device Token ──────────────────────────────────────────────────────
+
+export const TRUSTED_DEVICE_TTL_SECONDS = 30 * 24 * 3600; // 30 days
+
+export async function signTrustedDeviceToken(userId: string): Promise<string> {
+  const key = await getPrivateKey();
+  return new SignJWT({ purpose: "trusted_device" })
+    .setProtectedHeader({ alg: "RS256" })
+    .setSubject(userId)
+    .setIssuer(ISSUER)
+    .setAudience(AUDIENCE)
+    .setIssuedAt()
+    .setExpirationTime(`${TRUSTED_DEVICE_TTL_SECONDS}s`)
+    .sign(key);
+}
+
+export async function verifyTrustedDeviceToken(token: string): Promise<string | null> {
+  try {
+    const key = await getPublicKey();
+    const { payload } = await jwtVerify(token, key, { issuer: ISSUER, audience: AUDIENCE });
+    if (payload.purpose !== "trusted_device") return null;
+    return payload.sub ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// ── Cookie options ─────────────────────────────────────────────────────────────
+
+export const accessCookieOptions = {
+  httpOnly: true,
+  secure: isProd,
+  sameSite: "strict" as const,
+  path: "/",
+  maxAge: ACCESS_TOKEN_TTL_SECONDS,
+};
+
+export const refreshCookieOptions = {
+  httpOnly: true,
+  secure: isProd,
+  sameSite: "strict" as const,
+  path: "/api/auth",
+  maxAge: REFRESH_TOKEN_TTL_SECONDS,
+};
+
+export const trustedDeviceCookieOptions = {
+  httpOnly: true,
+  secure: isProd,
+  sameSite: "lax" as const,
+  path: "/",
+  maxAge: TRUSTED_DEVICE_TTL_SECONDS,
+};

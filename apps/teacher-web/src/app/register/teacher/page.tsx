@@ -3,7 +3,9 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+
 import { AuthLayout } from "@/components/layout/AuthLayout";
+import { OAuthErrorAlert } from "@/components/auth/OAuthErrorAlert";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 // Import standalone step schemas instead of using .pick() on the full schema.
@@ -17,8 +19,9 @@ type Step2Errors = Partial<Record<"language" | "gender", string>>;
 type Step3Errors = Partial<Record<"experienceType", string>>;
 
 export default function TeacherRegisterPage() {
+
+  const { refreshUser } = useAuth();
   const router = useRouter();
-  const { login } = useAuth();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -116,11 +119,12 @@ export default function TeacherRegisterPage() {
           window.location.href = `/verify-email?email=${encodeURIComponent(email)}`;
         } else {
           setSuccess(true);
-          setTimeout(() => {
-            login(data.token, data.user);
+          setTimeout(async () => {
+            await refreshUser();
+            router.push("/coming-soon");
           }, 1500);
         }
-      } catch (err) {
+      } catch {
         setServerError("Network error. Please try again.");
       } finally {
         setIsLoading(false);
@@ -132,12 +136,12 @@ export default function TeacherRegisterPage() {
     return (
       <AuthLayout>
         <div className="flex flex-col items-center justify-center text-center py-12 animate-fade-up">
-          <div className="w-16 h-16 rounded-full bg-success/20 text-success flex items-center justify-center mb-6">
+          <div className="w-16 h-16 rounded-full bg-trust-subtle text-trust flex items-center justify-center mb-6">
             <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="font-display text-2xl font-bold text-text mb-2">Application Submitted</h2>
+          <h2 className="font-display text-2xl font-bold text-brand mb-2">Application Submitted</h2>
           <p className="text-text-muted">Our team will review your profile shortly. Taking you to your portal...</p>
         </div>
       </AuthLayout>
@@ -147,14 +151,14 @@ export default function TeacherRegisterPage() {
   return (
     <AuthLayout>
       <div className="mb-8 text-center sm:text-left">
-        <h1 className="font-display text-3xl font-bold text-text mb-2">Apply to teach</h1>
+        <h1 className="font-display text-3xl font-bold text-brand mb-2">Apply to teach</h1>
         <p className="text-text-muted">Join our global community of educators.</p>
 
         {/* Stepper */}
         <div className="flex items-center gap-2 mt-6" role="progressbar" aria-valuenow={step} aria-valuemin={1} aria-valuemax={3} aria-label={`Step ${step} of 3`}>
-          <div className={`h-1.5 flex-1 rounded-full ${step >= 1 ? "bg-gold" : "bg-surface-inset"}`} />
-          <div className={`h-1.5 flex-1 rounded-full ${step >= 2 ? "bg-gold" : "bg-surface-inset"}`} />
-          <div className={`h-1.5 flex-1 rounded-full ${step >= 3 ? "bg-gold" : "bg-surface-inset"}`} />
+          <div className={`h-1.5 flex-1 rounded-full ${step >= 1 ? "bg-brand" : "bg-surface-inset"}`} />
+          <div className={`h-1.5 flex-1 rounded-full ${step >= 2 ? "bg-brand" : "bg-surface-inset"}`} />
+          <div className={`h-1.5 flex-1 rounded-full ${step >= 3 ? "bg-brand" : "bg-surface-inset"}`} />
         </div>
         <div className="text-xs font-semibold text-text-muted uppercase tracking-wider mt-2 text-right">
           Step {step} of 3
@@ -166,6 +170,10 @@ export default function TeacherRegisterPage() {
           {serverError}
         </div>
       )}
+
+      <React.Suspense fallback={null}>
+        <OAuthErrorAlert />
+      </React.Suspense>
 
       <form onSubmit={handleNext} className="space-y-4 min-h-[300px] flex flex-col" noValidate>
         {/* ── Step 1: Basic info ──────────────────────────────────────────── */}
@@ -182,10 +190,10 @@ export default function TeacherRegisterPage() {
                 onChange={(e) => { setName(e.target.value); clearStep1("name"); }}
                 aria-invalid={!!step1Errors.name}
                 aria-describedby={step1Errors.name ? "teacher-name-error" : undefined}
-                className={step1Errors.name ? "border-danger focus:ring-danger" : ""}
+                className={step1Errors.name ? "border-alert focus:ring-alert/30" : ""}
               />
               {step1Errors.name && (
-                <p id="teacher-name-error" role="alert" className="text-xs text-danger mt-1">{step1Errors.name}</p>
+                <p id="teacher-name-error" role="alert" className="text-xs text-alert mt-1">{step1Errors.name}</p>
               )}
             </div>
             {/* Email */}
@@ -199,10 +207,10 @@ export default function TeacherRegisterPage() {
                 onChange={(e) => { setEmail(e.target.value); clearStep1("email"); }}
                 aria-invalid={!!step1Errors.email}
                 aria-describedby={step1Errors.email ? "teacher-email-error" : undefined}
-                className={step1Errors.email ? "border-danger focus:ring-danger" : ""}
+                className={step1Errors.email ? "border-alert focus:ring-alert/30" : ""}
               />
               {step1Errors.email && (
-                <p id="teacher-email-error" role="alert" className="text-xs text-danger mt-1">{step1Errors.email}</p>
+                <p id="teacher-email-error" role="alert" className="text-xs text-alert mt-1">{step1Errors.email}</p>
               )}
             </div>
             {/* Password */}
@@ -216,10 +224,10 @@ export default function TeacherRegisterPage() {
                 onChange={(e) => { setPassword(e.target.value); clearStep1("password"); }}
                 aria-invalid={!!step1Errors.password}
                 aria-describedby={step1Errors.password ? "teacher-password-error" : undefined}
-                className={step1Errors.password ? "border-danger focus:ring-danger" : ""}
+                className={step1Errors.password ? "border-alert focus:ring-alert/30" : ""}
               />
               {step1Errors.password && (
-                <p id="teacher-password-error" role="alert" className="text-xs text-danger mt-1">{step1Errors.password}</p>
+                <p id="teacher-password-error" role="alert" className="text-xs text-alert mt-1">{step1Errors.password}</p>
               )}
             </div>
           </div>
@@ -283,7 +291,7 @@ export default function TeacherRegisterPage() {
               <select
                 id="teacher-experience"
                 className={`flex h-11 w-full rounded-md border bg-surface-inset px-3 py-2 text-sm text-text focus-ring ${
-                  step3Errors.experienceType ? "border-danger" : "border-border"
+                  step3Errors.experienceType ? "border-alert" : "border-border"
                 }`}
                 value={experienceType}
                 aria-invalid={!!step3Errors.experienceType}
@@ -297,7 +305,7 @@ export default function TeacherRegisterPage() {
                 <option value="experienced">Experienced teacher</option>
               </select>
               {step3Errors.experienceType && (
-                <p id="teacher-experience-error" role="alert" className="text-xs text-danger mt-1">{step3Errors.experienceType}</p>
+                <p id="teacher-experience-error" role="alert" className="text-xs text-alert mt-1">{step3Errors.experienceType}</p>
               )}
             </div>
             <div className="space-y-1">
@@ -318,7 +326,7 @@ export default function TeacherRegisterPage() {
               Back
             </Button>
           )}
-          <Button type="submit" variant="primary" className="flex-1" disabled={isLoading}>
+          <Button type="submit" variant="gold" className="flex-1" disabled={isLoading}>
             {step === 3 ? (isLoading ? "Submitting..." : "Submit Application") : "Continue"}
           </Button>
         </div>
@@ -326,7 +334,7 @@ export default function TeacherRegisterPage() {
 
       {step === 1 && (
         <p className="mt-8 text-center text-sm text-text-muted">
-          Already have an account? <Link href="/login" className="font-medium text-gold hover:underline">Sign in</Link>
+          Already have an account? <Link href="/login" className="font-medium text-brand hover:underline">Sign in</Link>
         </p>
       )}
     </AuthLayout>

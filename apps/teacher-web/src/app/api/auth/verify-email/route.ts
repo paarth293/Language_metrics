@@ -1,9 +1,17 @@
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { signToken } from "@/lib/auth";
+import bcrypt from "bcryptjs";
 import { hashOTP } from "@/lib/otp";
 import { rateLimit } from "@/lib/rate-limit";
 
+/**
+ * POST /api/auth/verify-email
+ * Body: { email, otp }
+ *
+ * OTP-based email verification (6-digit code).
+ * Used by the verify-email page when the user enters a code from their inbox.
+ */
 export async function POST(request: Request) {
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
   if (rateLimit(ip, { windowMs: 60_000, max: 10 })) {
@@ -62,7 +70,6 @@ export async function POST(request: Request) {
 
     const submittedHash = hashOTP(otp);
     if (submittedHash !== verificationCode.codeHash) {
-      // Increment attempts
       await db.emailVerificationCode.update({
         where: { id: verificationCode.id },
         data: { attempts: { increment: 1 } },
@@ -74,28 +81,83 @@ export async function POST(request: Request) {
     await db.$transaction([
       db.user.update({
         where: { id: user.id },
-        data: { emailVerified: new Date() },
+        data: { emailVerified: true },
       }),
       db.emailVerificationCode.delete({
         where: { id: verificationCode.id },
       }),
     ]);
 
-    const token = signToken(user.id, user.role, true);
-    const name = user.studentProfile?.name || user.teacherProfile?.name || "User";
-
-    return NextResponse.json({
-      success: true,
-      token,
-      user: {
-        id: user.id,
-        name,
-        email: user.email,
-        role: user.role,
-      },
-    });
+    return NextResponse.json({ success: true }, { status: 200 });
   } catch (err) {
-    console.error("verify-email error:", err);
+    console.error("verify-email (POST) error:", err);
     return NextResponse.json({ message: "Internal server error." }, { status: 500 });
   }
+}
+
+/**
+ * GET /api/auth/verify-email?token=xxx
+ *
+ * Token-link email verification.
+ * Validates the one-time email verification token sent via link in the email.
+ *
+ * Token format: "{prefix}:{uuid}" where prefix is 8 hex chars stored in plain
+ * text for fast indexed lookup, and the full token is bcrypt-hashed for security.
+ *
+ * On success: marks user as verified and clears the token from DB.
+ * On failure: returns 400 (never reveals whether the token is wrong or expired).
+ */
+export async function GET(request: NextRequest) {
+  const token = request.nextUrl.searchParams.get("token");
+
+  // Minimum length check (prefix 8 + ":" + UUID 36 = 45 chars)
+  if (!token || token.length < 45) {
+    return NextResponse.json({ message: "Invalid verification link." }, { status: 400 });
+  }
+
+  // Extract prefix for fast DB lookup (no bcrypt needed for filtering)
+  const prefix = token.slice(0, 8);
+
+  const now = new Date();
+  const candidate = await db.user.findFirst({
+    where: {
+      emailVerificationTokenPrefix: prefix,
+      emailVerificationToken: { not: null },
+      emailVerificationExpiry: { gt: now },
+      emailVerified: false,
+    },
+    select: {
+      id: true,
+      emailVerificationToken: true,
+    },
+  });
+
+  if (!candidate?.emailVerificationToken) {
+    return NextResponse.json(
+      { message: "This verification link is invalid or has expired." },
+      { status: 400 }
+    );
+  }
+
+  // Timing-safe comparison against the single candidate
+  const isValid = await bcrypt.compare(token, candidate.emailVerificationToken);
+
+  if (!isValid) {
+    return NextResponse.json(
+      { message: "This verification link is invalid or has expired." },
+      { status: 400 }
+    );
+  }
+
+  await db.user.update({
+    where: { id: candidate.id },
+    data: {
+      emailVerified: true,
+      emailVerificationToken: null,
+      emailVerificationTokenPrefix: null,
+      emailVerificationExpiry: null,
+    },
+  });
+
+  return NextResponse.json({ success: true }, { status: 200 });
 }

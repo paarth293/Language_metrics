@@ -100,7 +100,7 @@ export default function Pricing() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   return (
-    <section id="pricing" className="py-28 bg-bg">
+    <section id="pricing" className="py-20 bg-bg">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           className="text-center mb-16"
@@ -115,7 +115,7 @@ export default function Pricing() {
           <h2 className="font-display text-3xl md:text-5xl font-bold text-text mb-5 leading-tight">
             Simple, upfront pricing for students
           </h2>
-          <p className="text-lg text-text-muted max-w-2xl mx-auto">
+          <p className="text-lg text-text-muted max-w-2xl mx-auto text-balance">
             Start with a ₹29 demo class. Then choose hourly sessions or a full course — you decide the pace.
           </p>
         </motion.div>
@@ -215,7 +215,7 @@ export default function Pricing() {
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                      transition={{ duration: 0.3, ease: "easeInOut" as const }}
                       className="overflow-hidden"
                     >
                       <div className="px-4 sm:px-6 pb-4 sm:pb-5 text-text-muted leading-relaxed text-sm sm:text-base border-t border-border/50 pt-3 sm:pt-4">

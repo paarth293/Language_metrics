@@ -1,12 +1,13 @@
 "use server";
-import { db } from "@repo/database";
+
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { createSession, destroySession, readSession } from "@/lib/session";
+import { destroySession, readSession } from "@/lib/session";
 import { auditLog } from "@/lib/audit";
 import { authenticateAdmin } from "@/lib/auth-service";
 import { CSRF_COOKIE } from "@/lib/csrf";
 import { cookies } from "next/headers";
+import { TRUSTED_DEVICE_COOKIE, trustedDeviceCookieOptions, signTrustedDeviceToken } from "@/lib/auth";
 
 export interface LoginState {
   error?: string;
@@ -33,14 +34,23 @@ export async function loginAction(
   const csrfCookie = (await cookies()).get(CSRF_COOKIE)?.value;
   const csrfForm = String(formData.get("csrf_token") ?? "");
   const totpCode = String(formData.get("totp") ?? "");
+  const trustDevice = formData.get("trust_device") === "on";
 
-  const result = await authenticateAdmin(email, password, ip, csrfCookie, csrfForm, totpCode);
+  const store = await cookies();
+  const trustedDeviceToken = store.get(TRUSTED_DEVICE_COOKIE)?.value;
+
+  const result = await authenticateAdmin(email, password, ip, csrfCookie, csrfForm, totpCode, trustedDeviceToken);
 
   if (!result.success) {
     if (result.error === "2FA_REQUIRED") {
       return { error: result.error, email, password };
     }
     return { error: result.error };
+  }
+
+  if (trustDevice && result.userId) {
+    const newToken = await signTrustedDeviceToken(result.userId);
+    store.set(TRUSTED_DEVICE_COOKIE, newToken, trustedDeviceCookieOptions);
   }
 
   redirect("/");

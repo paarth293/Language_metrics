@@ -69,7 +69,7 @@ const cardVariants = {
 
 export default function TeacherSpotlight() {
   return (
-    <section id="teachers" className="py-28 bg-surface-2 overflow-hidden">
+    <section id="teachers" className="py-20 bg-surface-2 overflow-hidden">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-14"
@@ -85,7 +85,7 @@ export default function TeacherSpotlight() {
             <h2 className="font-display text-3xl md:text-5xl font-bold text-text mb-4 leading-tight">
               Learn from the best
             </h2>
-            <p className="text-lg text-text-muted max-w-2xl">
+            <p className="text-lg text-text-muted max-w-2xl text-balance">
               Every teacher on Language Metrics is manually verified. Browse by availability, experience, and rate — not by their personal contact details.
             </p>
           </div>

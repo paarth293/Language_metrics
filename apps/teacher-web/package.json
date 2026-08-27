@@ -6,23 +6,27 @@
     "dev": "next dev -p 3000",
     "prebuild": "node -e \"const fs=require('fs'); fs.rmSync('node_modules/.prisma', { recursive: true, force: true })\"",
     "build": "next build",
-  "prisma:generate": "prisma generate --schema=../../packages/database/prisma/schema.prisma",
+    "prisma:generate": "prisma generate --schema=../../packages/database/prisma/schema.prisma",
     "start": "next start",
     "lint": "eslint",
     "db:seed": "node --env-file=.env prisma/seed.mjs"
   },
   "dependencies": {
+    "@repo/auth": "*",
     "@repo/database": "*",
     "axios": "^1.19.0",
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^13.1.0",
+    "ioredis": "^6.0.0",
+    "jose": "^6.2.10",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^1.31.0",
     "next": "16.3.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "resend": "^6.22.1",
     "tailwind-merge": "^3.6.0",
     "zod": "^4.4.3"
   },
@@ -35,6 +39,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.0",
+    "puppeteer": "^25.9.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

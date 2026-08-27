@@ -6,6 +6,7 @@ import { assertSameOrigin } from "@/lib/security";
 import { recordLoginAttempt, auditLog } from "@/lib/audit";
 import { verifyTotpCode, consumeBackupCode } from "@/lib/totp";
 import { csrfTokensMatch } from "@/lib/csrf";
+import { verifyTrustedDeviceToken } from "@/lib/auth";
 
 const MAX_FAILED_LOGINS = 5;
 const LOCKOUT_MS = 15 * 60 * 1000;
@@ -15,6 +16,7 @@ const IP_MAX_ATTEMPTS = 10;
 export interface AuthResult {
   success: boolean;
   error?: string;
+  userId?: string;
 }
 
 // A valid bcrypt hash compared against unknown emails so the code path (and
@@ -31,7 +33,8 @@ export async function authenticateAdmin(
   ipInput: string | null,
   csrfCookie: string | undefined,
   csrfForm: string,
-  totpCodeInput: string
+  totpCodeInput: string,
+  trustedDeviceToken?: string
 ): Promise<AuthResult> {
   const email = emailInput.trim().toLowerCase();
   const password = passwordInput;
@@ -105,10 +108,19 @@ export async function authenticateAdmin(
 
   // ── TOTP gate ──────────────────────────────────────────────────────────
   if (admin.user?.totpEnabled && admin.user?.totpSecret) {
-    if (!totpCode) {
-      // No code submitted — tell the client to show the TOTP field.
-      return { success: false, error: "2FA_REQUIRED" };
+    let bypassTotp = false;
+    if (trustedDeviceToken) {
+      const trustedUserId = await verifyTrustedDeviceToken(trustedDeviceToken);
+      if (trustedUserId === admin.userId) {
+        bypassTotp = true;
+      }
     }
+
+    if (!bypassTotp) {
+      if (!totpCode) {
+        // No code submitted — tell the client to show the TOTP field.
+        return { success: false, error: "2FA_REQUIRED" };
+      }
 
     // Try TOTP first, then backup code
     const totpOk = await verifyTotpCode(admin.user.totpSecret, totpCode);
@@ -128,6 +140,7 @@ export async function authenticateAdmin(
         data: { backupCodes: remaining },
       });
     }
+    }
   }
 
   // ── Session creation (only reached after all gates pass) ──────────────
@@ -138,15 +151,15 @@ export async function authenticateAdmin(
     data: { lastLoginAt: new Date(), failedLoginCount: 0, lockedUntil: null },
   });
   
-  const session = await createSession({
+  await createSession({
     sub: admin.userId,
     email: admin.email,
     roleKey: admin.roleKey,
     isSuperAdmin: admin.isSuperAdmin,
-  });
+  }, ip ?? undefined);
   
   await recordLoginAttempt(email, ip, "SUCCESS", admin.userId);
   await auditLog({ adminId: admin.userId, ip }, "LOGIN_SUCCESS", admin.userId);
 
-  return { success: true };
+  return { success: true, userId: admin.userId };
 }

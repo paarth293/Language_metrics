@@ -15,6 +15,8 @@ const eslintConfig = defineConfig([
       "no-secrets": noSecretsPlugin,
     },
     rules: {
+      // Disable pages dir check since we use app router
+      "@next/next/no-html-link-for-pages": "off",
       // Detects potential ReDoS vulnerabilities
       "security/detect-unsafe-regex": "error",
       // Detects object injection via bracket notation

@@ -1,33 +1,63 @@
 import { cookies } from "next/headers";
-import { SESSION_COOKIE, SESSION_TTL_SECONDS, signSession, verifySession } from "./auth";
-import type { AdminSessionToken, VerifiedSession } from "./auth";
+import {
+  ACCESS_COOKIE,
+  REFRESH_COOKIE,
+  accessCookieOptions,
+  refreshCookieOptions,
+  signSession,
+  signRefreshToken,
+  verifySession,
+} from "./auth";
+import type { AdminSessionToken } from "./auth";
+import { storeRefreshSession, revokeRefreshSession, revokeAllRefreshSessions } from "./redis-session";
 
-const isProd = process.env.NODE_ENV === "production";
+export async function createSession(
+  payload: { sub: string; email: string; roleKey: string; isSuperAdmin: boolean },
+  ip?: string,
+  userAgent?: string
+): Promise<void> {
+  const sessionId = crypto.randomUUID();
+  const [accessToken, refreshToken] = await Promise.all([
+    signSession(payload),
+    signRefreshToken(payload.sub, sessionId),
+  ]);
 
-const baseCookieOptions = {
-  httpOnly: true, // JS can never read the token -> XSS cannot exfiltrate the session
-  secure: isProd, // only sent over TLS in production
-  sameSite: "strict" as const, // blocks cross-site request forgery
-  path: "/",
-};
+  await storeRefreshSession(payload.sub, sessionId, { ip, ua: userAgent });
 
-export async function createSession(payload: AdminSessionToken): Promise<void> {
-  const token = signSession(payload);
   const store = await cookies();
-  store.set(SESSION_COOKIE, token, {
-    ...baseCookieOptions,
-    maxAge: SESSION_TTL_SECONDS,
-  });
+  store.set(ACCESS_COOKIE, accessToken, accessCookieOptions);
+  store.set(REFRESH_COOKIE, refreshToken, refreshCookieOptions);
 }
 
 export async function destroySession(): Promise<void> {
   const store = await cookies();
-  store.set(SESSION_COOKIE, "", { ...baseCookieOptions, maxAge: 0 });
+  const refreshToken = store.get(REFRESH_COOKIE)?.value;
+
+  if (refreshToken) {
+    // Best-effort extraction to revoke in Redis (if available/valid)
+    try {
+      const { verifyRefreshToken } = await import("./auth");
+      const payload = await verifyRefreshToken(refreshToken);
+      if (payload?.sub && payload?.sid) {
+        await revokeRefreshSession(payload.sub, payload.sid);
+      }
+    } catch {
+      // Ignore
+    }
+  }
+
+  store.set(ACCESS_COOKIE, "", { ...accessCookieOptions, maxAge: 0 });
+  store.set(REFRESH_COOKIE, "", { ...refreshCookieOptions, maxAge: 0, path: "/api/auth" });
 }
 
-export async function readSession(): Promise<VerifiedSession | null> {
+export async function readSession(): Promise<AdminSessionToken | null> {
   const store = await cookies();
-  const token = store.get(SESSION_COOKIE)?.value;
+  const token = store.get(ACCESS_COOKIE)?.value;
   if (!token) return null;
   return verifySession(token);
+}
+
+export async function invalidateAllUserSessions(userId: string): Promise<void> {
+  await revokeAllRefreshSessions(userId);
+  await destroySession();
 }

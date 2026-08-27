@@ -3,7 +3,9 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+
 import { AuthLayout } from "@/components/layout/AuthLayout";
+import { OAuthErrorAlert } from "@/components/auth/OAuthErrorAlert";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { registerStudentSchema, PASSWORD_RULES } from "@/features/auth/validators/auth";
@@ -29,7 +31,7 @@ const strengthLabels = ["", "Weak", "Fair", "Good", "Strong"];
 const strengthColors = ["", "bg-danger", "bg-warning", "bg-info", "bg-success"];
 
 export default function StudentRegisterPage() {
-  const router = useRouter();
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -40,7 +42,8 @@ export default function StudentRegisterPage() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const { login } = useAuth();
+  const { refreshUser } = useAuth();
+  const router = useRouter();
 
   const clearError = (field: keyof FieldErrors) =>
     setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
@@ -90,8 +93,9 @@ export default function StudentRegisterPage() {
         window.location.href = `/verify-email?email=${encodeURIComponent(email)}`;
       } else {
         setSuccess(true);
-        setTimeout(() => {
-          login(data.token, data.user);
+        setTimeout(async () => {
+          await refreshUser();
+          router.push("/coming-soon");
         }, 1500);
       }
     } catch (err) {
@@ -132,6 +136,10 @@ export default function StudentRegisterPage() {
           {serverError}
         </div>
       )}
+
+      <React.Suspense fallback={null}>
+        <OAuthErrorAlert />
+      </React.Suspense>
 
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         {/* Name */}

@@ -1,36 +1,27 @@
 /**
  * src/lib/rate-limit.ts
  *
- * A lightweight, in-process rate limiter for Next.js API route handlers.
+ * Two-tier rate limiting for Next.js API route handlers.
  *
- * WHY IN-PROCESS?
- * For a single-server deployment this is sufficient. If you later move to
- * multiple Next.js instances (Vercel edge replicas, etc.) replace the
- * in-memory `Map` with a Redis-backed store (e.g. upstash/ratelimit).
+ * Tier 1 — rateLimitRedis(): Redis sliding-window (Upstash).
+ *   Use this in production. Survives cold starts across serverless replicas.
+ *   Uses a sorted set per key; scores are epoch-ms timestamps.
  *
- * USAGE (in any route handler):
+ * Tier 2 — rateLimit(): In-process Map (fallback / dev).
+ *   Resets on every cold start. Safe for single-instance dev use only.
  *
- *   import { rateLimit } from "@/lib/rate-limit";
- *
- *   export async function POST(request: Request) {
- *     const ip = request.headers.get("x-forwarded-for") ?? "unknown";
- *     const limited = rateLimit(ip, { windowMs: 60_000, max: 10 });
- *     if (limited) {
- *       return NextResponse.json(
- *         { message: "Too many requests. Please try again later." },
- *         { status: 429, headers: { "Retry-After": "60" } }
- *       );
- *     }
- *     // ... rest of handler
- *   }
+ * USAGE (production pattern):
+ *   const limited = await rateLimitRedis(ip, "login", { windowMs: 60_000, max: 10 });
+ *   if (limited) return NextResponse.json({ ... }, { status: 429 });
  */
+
+// ── In-process fallback ────────────────────────────────────────────────────────
 
 interface Window {
   count: number;
   resetAt: number;
 }
 
-// IP → sliding-window state. Cleared automatically as windows expire.
 const store = new Map<string, Window>();
 
 interface RateLimitOptions {
@@ -41,8 +32,9 @@ interface RateLimitOptions {
 }
 
 /**
- * Returns `true` if the caller is rate-limited (should receive 429),
- * `false` if the request is allowed through.
+ * In-process rate limiter.
+ * Returns `true` if the caller is rate-limited (should receive 429).
+ * NOTE: Resets on cold start — use rateLimitRedis() in production.
  */
 export function rateLimit(
   identifier: string,
@@ -52,34 +44,83 @@ export function rateLimit(
   const existing = store.get(identifier);
 
   if (!existing || now > existing.resetAt) {
-    // Start a fresh window
     store.set(identifier, { count: 1, resetAt: now + windowMs });
     return false;
   }
 
   existing.count += 1;
-  if (existing.count > max) {
-    return true; // rate-limited
-  }
-  return false;
+  return existing.count > max;
 }
 
+// ── Redis sliding-window rate limiter ─────────────────────────────────────────
+
 /**
- * Guards a route against unreasonably large request bodies (e.g. a 50 MB JSON
- * blob designed to exhaust server memory before Zod even runs).
+ * Redis-backed sliding-window rate limiter using a sorted set.
  *
- * Returns `true` (blocked) if the Content-Length header exceeds `maxBytes`.
- * Defaults to 16 KB — more than enough for any auth form payload.
+ * Key:   rl:{namespace}:{identifier}
+ * Value: sorted set of request timestamps (score = timestamp)
+ * TTL:   automatically set to windowMs
  *
- * NOTE: Content-Length can be spoofed; this is a first-line guard only.
- * Production deployments should also set a body size limit at the reverse
- * proxy / CDN layer.
+ * Returns `true` if the caller is rate-limited.
+ *
+ * @param identifier  Unique key (e.g., IP address, userId)
+ * @param namespace   Logical bucket (e.g., "login", "register", "reset-pw")
+ */
+export async function rateLimitRedis(
+  identifier: string,
+  namespace: string,
+  { windowMs = 60_000, max = 10 }: RateLimitOptions = {}
+): Promise<boolean> {
+  const redisUrl = process.env.REDIS_URL;
+  if (!redisUrl) {
+    // Graceful degradation: fall back to in-process limiter if Redis not configured
+    return rateLimit(`${namespace}:${identifier}`, { windowMs, max });
+  }
+
+  try {
+    const { default: Redis } = await import("ioredis");
+    const client = new Redis(redisUrl, {
+      lazyConnect: true,
+      maxRetriesPerRequest: 1,
+      enableReadyCheck: false,
+    });
+
+    const now = Date.now();
+    const windowStart = now - windowMs;
+    const key = `rl:${namespace}:${identifier}`;
+
+    // Remove expired entries, add current request, count within window — all atomic
+    const pipeline = client.pipeline();
+    pipeline.zremrangebyscore(key, "-inf", windowStart);  // prune old entries
+    pipeline.zadd(key, now, `${now}-${Math.random()}`);   // add current request
+    pipeline.zcard(key);                                   // count in window
+    pipeline.pexpire(key, windowMs);                       // set TTL
+    const results = await pipeline.exec();
+
+    await client.quit();
+
+    const count = results?.[2]?.[1] as number;
+    return count > max;
+  } catch (err) {
+    console.error("[rateLimitRedis] Redis error, falling back to in-process limiter:", err);
+    // Fail open: allow the request if Redis is temporarily unavailable
+    return false;
+  }
+}
+
+// ── Body size guard ────────────────────────────────────────────────────────────
+
+/**
+ * Guards a route against unreasonably large request bodies.
+ * Returns `true` (blocked) if Content-Length exceeds `maxBytes`.
+ * Defaults to 16 KB — sufficient for any auth form payload.
  */
 export function exceedsMaxBodySize(
   request: Request,
   maxBytes = 16_384 // 16 KB
 ): boolean {
   const contentLength = request.headers.get("content-length");
-  if (!contentLength) return false; // unknown — let the handler proceed
+  if (!contentLength) return false;
   return parseInt(contentLength, 10) > maxBytes;
 }
+

@@ -4,11 +4,11 @@ import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
-import { ArrowRight, ShieldCheck } from "lucide-react";
+import { ArrowRight, ShieldCheck, GraduationCap, Presentation } from "lucide-react";
 
 export default function CTASection() {
   return (
-    <section className="py-24 relative overflow-hidden bg-surface-2 border-t border-border">
+    <section className="py-20 relative overflow-hidden bg-surface-2 border-t border-border">
       {/* Subtle radial glow */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-gold/10 blur-[120px] rounded-full" />
@@ -26,7 +26,7 @@ export default function CTASection() {
             className="bg-surface border border-border rounded-2xl p-6 sm:p-10 flex flex-col items-start hover:border-gold/40 hover:shadow-lg transition-all duration-300 group"
           >
             <div className="w-12 h-12 rounded-xl bg-gold/10 flex items-center justify-center mb-6">
-              <span className="text-2xl">🎓</span>
+              <GraduationCap className="w-6 h-6 text-gold" />
             </div>
             <h2 className="font-display text-2xl md:text-3xl font-bold text-text mb-3 group-hover:text-gold transition-colors duration-300">
               Ready to start learning?
@@ -55,7 +55,7 @@ export default function CTASection() {
             className="bg-surface border border-border rounded-2xl p-6 sm:p-10 flex flex-col items-start hover:border-accent/40 hover:shadow-lg transition-all duration-300 group"
           >
             <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center mb-6">
-              <span className="text-2xl">👨‍🏫</span>
+              <Presentation className="w-6 h-6 text-accent" />
             </div>
             <h2 className="font-display text-2xl md:text-3xl font-bold text-text mb-3 group-hover:text-accent transition-colors duration-300">
               Teach on your terms.

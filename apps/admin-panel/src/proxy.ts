@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { SESSION_COOKIE, verifySessionEdge } from "@/lib/edge-auth";
+import { ACCESS_COOKIE, REFRESH_COOKIE, verifySession } from "./lib/auth";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const isLoginPage = request.nextUrl.pathname.startsWith("/login");
-  const token = request.cookies.get(SESSION_COOKIE)?.value;
+  const token = request.cookies.get(ACCESS_COOKIE)?.value;
+  const refreshToken = request.cookies.get(REFRESH_COOKIE)?.value;
 
   // Set the current pathname in a custom header so server components (guards.ts) can read it
   const requestHeaders = new Headers(request.headers);
@@ -31,14 +32,31 @@ export async function middleware(request: NextRequest) {
       httpOnly: true,
     });
   }
-  if (!token && !isLoginPage) {
-    response = NextResponse.redirect(new URL("/login", request.url));
-  } else if (token) {
-    // Token exists → verify its signature, issuer, audience, and expiry
-    const result = await verifySessionEdge(token);
 
-    if (!result.valid) {
-      // Invalid/expired/forged token → clear cookie and redirect to login
+  if (!token) {
+    if (refreshToken && !isLoginPage) {
+      // Missing access token but has refresh token -> silent refresh
+      const refreshUrl = new URL("/api/auth/refresh", request.url);
+      refreshUrl.searchParams.set("next", request.nextUrl.pathname);
+      return NextResponse.redirect(refreshUrl);
+    }
+    
+    if (!isLoginPage) {
+      response = NextResponse.redirect(new URL("/login", request.url));
+    }
+  } else {
+    // Token exists → verify its signature, issuer, audience, and expiry
+    const result = await verifySession(token);
+
+    if (!result) {
+      // Invalid/expired/forged token
+      if (refreshToken && !isLoginPage) {
+        // Has refresh token -> silent refresh
+        const refreshUrl = new URL("/api/auth/refresh", request.url);
+        refreshUrl.searchParams.set("next", request.nextUrl.pathname);
+        return NextResponse.redirect(refreshUrl);
+      }
+
       if (!isLoginPage) {
         response = NextResponse.redirect(new URL("/login", request.url));
       } else {
@@ -49,7 +67,11 @@ export async function middleware(request: NextRequest) {
           },
         });
       }
-      response.cookies.set(SESSION_COOKIE, "", { maxAge: 0, path: "/" });
+      response.cookies.set(ACCESS_COOKIE, "", { maxAge: 0, path: "/" });
+    } else {
+      // Valid token -> inject sub/role into headers
+      requestHeaders.set("x-user-id", result.sub);
+      requestHeaders.set("x-user-role", result.roleKey);
     }
   }
 

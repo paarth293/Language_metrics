@@ -7,9 +7,9 @@ import { updateTeacherStatus } from "./actions";
 
 export const dynamic = 'force-dynamic';
 
-export default async function TeacherProfilePage({ params }: { params: { id: string } }) {
+export default async function TeacherProfilePage({ params }: { params: Promise<{ id: string }> }) {
   await requireAdmin();
-  const { id } = params;
+  const { id } = await params;
 
   const teacher = await db.teacherProfile.findUnique({
     where: { userId: id },

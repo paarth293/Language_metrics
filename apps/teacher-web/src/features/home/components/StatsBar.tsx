@@ -1,20 +1,44 @@
 "use client";
 
-import React, { useEffect } from "react";
-import { motion, useAnimation, useInView } from "framer-motion";
+import React, { useEffect, useRef } from "react";
+import { motion, useAnimation, useInView, animate } from "framer-motion";
 
 const stats = [
-  { label: "Verified Teachers", value: "2,500+", suffix: "" },
-  { label: "Languages Taught", value: "45", suffix: "+" },
-  { label: "Classes Delivered", value: "120", suffix: "k" },
-  { label: "Average Rating", value: "4.9", suffix: "/5" },
+  { label: "Verified Teachers", value: 2500, suffix: "+", isFloat: false },
+  { label: "Languages Taught", value: 45, suffix: "+", isFloat: false },
+  { label: "Classes Delivered", value: 120, suffix: "k", isFloat: false },
+  { label: "Average Rating", value: 4.9, suffix: "/5", isFloat: true },
 ];
 
+function AnimatedNumber({ value, isFloat, isInView }: { value: number, isFloat?: boolean, isInView: boolean }) {
+  const nodeRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const node = nodeRef.current;
+    if (node && isInView) {
+      const controls = animate(0, value, {
+        duration: 1.5,
+        ease: "easeOut" as const,
+        onUpdate(v) {
+          if (isFloat) {
+            node.textContent = v.toFixed(1);
+          } else {
+            node.textContent = Math.round(v).toLocaleString();
+          }
+        }
+      });
+      return () => controls.stop();
+    }
+  }, [value, isFloat, isInView]);
+
+  return <span ref={nodeRef}>{isFloat ? "0.0" : "0"}</span>;
+}
+
 export default function StatsBar() {
-  const ref = React.useRef(null);
+  const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
   const controls = useAnimation();
-  const hasAnimated = React.useRef(false);
+  const hasAnimated = useRef(false);
 
   useEffect(() => {
     if (isInView && !hasAnimated.current) {
@@ -37,13 +61,15 @@ export default function StatsBar() {
                 visible: {
                   opacity: 1,
                   y: 0,
-                  transition: { delay: i * 0.1, duration: 0.6, ease: "easeOut" },
+                  transition: { duration: 0.3, ease: "easeInOut" } as const,
                 },
               }}
               className="flex flex-col items-center justify-center text-center px-4"
             >
               <div className="font-display text-3xl md:text-4xl font-bold text-text mb-2 tracking-tight">
-                <span className="tabular-nums">{stat.value}</span>
+                <span className="tabular-nums">
+                  <AnimatedNumber value={stat.value} isFloat={stat.isFloat} isInView={isInView} />
+                </span>
                 <span className="text-gold">{stat.suffix}</span>
               </div>
               <div className="text-sm font-medium text-text-muted uppercase tracking-wider">

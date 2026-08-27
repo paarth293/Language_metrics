@@ -15,7 +15,7 @@ const eslintConfig = defineConfig([
   ]),
   {
     rules: {
-      "no-html-link-for-pages": "off",
+      "@next/next/no-html-link-for-pages": "off",
       "@typescript-eslint/ban-ts-comment": "off",
     },
   },

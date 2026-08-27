@@ -9,18 +9,18 @@
   "scripts": {
     "dev": "concurrently \"npm run dev -w language_metrics\" \"npm run dev -w admin-panel\"",
     "start": "concurrently \"npm start -w language_metrics\" \"npm start -w admin-panel\"",
-    "build": "npm run build --workspaces --if-present",
+    "build": "npx prisma generate --schema=packages/database/prisma/schema.prisma && npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "setup": "husky",
     "postinstall": "npm run postinstall --workspaces --if-present",
-    "db:seed": "node --env-file=.env prisma/seed.mjs",
+    "db:seed": "node --env-file=.env packages/database/prisma/seed.mjs",
     "scan:sast": "semgrep --config p/owasp-top-ten --config p/nextjs --config p/secrets --config semgrep.yml --json --output sast-results.json apps/admin-panel/src/ && node security-tests/generate-sast-report.mjs",
     "scan:deps": "npm audit --json > npm-audit.json; echo 'npm audit done — see npm-audit.json'",
     "scan:secrets": "gitleaks detect --config .gitleaks.toml --source . --verbose",
     "test:security": "python security-tests/run_all.py"
   },
   "prisma": {
-    "seed": "node --env-file=.env prisma/seed.mjs"
+    "seed": "node --env-file=.env packages/database/prisma/seed.mjs"
   },
   "dependencies": {
     "@prisma/client": "^5.16.1",
@@ -29,12 +29,14 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^13.1.0",
+    "ioredis": "^6.0.0",
     "jose": "^6.2.10",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^1.31.0",
     "next": "16.3.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "resend": "^6.22.1",
     "tailwind-merge": "^3.6.0",
     "zod": "^4.4.3"
   },

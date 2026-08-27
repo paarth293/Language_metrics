@@ -3,6 +3,7 @@
 import { db } from "@repo/database";
 import { requireAdmin } from "@/lib/guards";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 export async function updateTeacherStatus(teacherId: string, status: "PENDING" | "INTERVIEW_SCHEDULED" | "APPROVED" | "REJECTED") {
   await requireAdmin();
@@ -12,6 +13,15 @@ export async function updateTeacherStatus(teacherId: string, status: "PENDING" |
   });
   revalidatePath(`/teachers/${teacherId}`);
   revalidatePath(`/teachers`);
+  
+  const filterParams: Record<string, string> = {
+    APPROVED: 'approved',
+    REJECTED: 'suspended',
+    INTERVIEW_SCHEDULED: 'pending',
+    PENDING: 'pending',
+  };
+  
+  redirect(`/teachers?filter=${filterParams[status]}`);
 }
 
 export async function markDocumentStatus(documentId: string, teacherId: string, status: "PENDING" | "APPROVED" | "REJECTED") {

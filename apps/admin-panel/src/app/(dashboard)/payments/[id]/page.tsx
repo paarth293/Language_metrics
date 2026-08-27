@@ -6,9 +6,9 @@ import { ArrowLeft } from "lucide-react";
 
 export const dynamic = 'force-dynamic';
 
-export default async function PaymentDetailPage({ params }: { params: { id: string } }) {
+export default async function PaymentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   await requireAdmin();
-  const { id } = params;
+  const { id } = await params;
 
   const paymentData = await db.payment.findUnique({
     where: { id },

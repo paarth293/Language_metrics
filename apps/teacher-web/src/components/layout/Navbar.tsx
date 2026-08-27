@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Sun, Moon, Monitor, Menu, X } from "lucide-react";
+import { Sun, Moon, Menu, X } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "@/components/ThemeProvider";
@@ -53,7 +53,7 @@ export default function Navbar() {
                 initial={{ opacity: 0, rotate: -45, scale: 0.5 }}
                 animate={{ opacity: 1, rotate: 0, scale: 1 }}
                 exit={{ opacity: 0, rotate: 45, scale: 0.5 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
+                transition={{ duration: 0.2, ease: "easeOut" as const }}
                 className="absolute inset-0 flex items-center justify-center"
               >
                 {theme === "light" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
@@ -65,7 +65,7 @@ export default function Navbar() {
             Sign in
           </Link>
           <Button asChild variant="gold">
-            <Link href="/register/student">Get Started</Link>
+            <Link href="/register">Get Started</Link>
           </Button>
         </div>
 
@@ -97,7 +97,7 @@ export default function Navbar() {
                       initial={{ opacity: 0, rotate: -45, scale: 0.5 }}
                       animate={{ opacity: 1, rotate: 0, scale: 1 }}
                       exit={{ opacity: 0, rotate: 45, scale: 0.5 }}
-                      transition={{ duration: 0.2, ease: "easeOut" }}
+                      transition={{ duration: 0.2, ease: "easeOut" as const }}
                       className="absolute inset-0 flex items-center justify-center"
                     >
                       {theme === "light" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
@@ -109,7 +109,7 @@ export default function Navbar() {
                 <Link href="/login" onClick={() => setMobileMenuOpen(false)}>Sign in</Link>
               </Button>
               <Button asChild variant="gold" className="w-full justify-center">
-                <Link href="/register/student" onClick={() => setMobileMenuOpen(false)}>Get Started</Link>
+                <Link href="/register" onClick={() => setMobileMenuOpen(false)}>Get Started</Link>
               </Button>
             </div>
           </div>
