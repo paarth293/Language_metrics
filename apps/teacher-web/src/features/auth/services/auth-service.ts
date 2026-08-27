@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { loginSchema, registerStudentSchema, registerTeacherSchema } from "@/features/auth/validators/auth";
 import type { User } from "@/types";
 import type { z } from "zod";
-import { generateEmailOTP, hashOTP } from "@/lib/otp";
+import { generateOtp, hashOtp } from "@/lib/otp";
 import { sendVerificationOTP } from "@/lib/email";
 
 type LoginInput = z.infer<typeof loginSchema>;
@@ -50,8 +50,8 @@ export class AuthService {
     });
 
     const passwordHash = await bcrypt.hash(data.password, 10);
-    const otp = generateEmailOTP();
-    const codeHash = hashOTP(otp);
+    const otp = generateOtp();
+    const codeHash = await hashOtp(otp);
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
     if (existing) {
@@ -123,8 +123,8 @@ export class AuthService {
     });
 
     const passwordHash = await bcrypt.hash(data.password, 10);
-    const otp = generateEmailOTP();
-    const codeHash = hashOTP(otp);
+    const otp = generateOtp();
+    const codeHash = await hashOtp(otp);
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
     if (existing) {

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { generateEmailOTP, hashOTP } from "@/lib/otp";
+import { generateOtp, hashOtp } from "@/lib/otp";
 import { sendVerificationOTP } from "@/lib/email";
 import { rateLimit } from "@/lib/rate-limit";
 
@@ -59,8 +59,8 @@ export async function POST(request: Request) {
     });
 
     // Generate new code
-    const otp = generateEmailOTP();
-    const codeHash = hashOTP(otp);
+    const otp = generateOtp();
+    const codeHash = await hashOtp(otp);
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
     await db.emailVerificationCode.create({
