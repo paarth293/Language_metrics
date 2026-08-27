@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { loginSchema, registerStudentSchema, registerTeacherSchema } from "@/features/auth/validators/auth";
 import type { User } from "@/types";
 import type { z } from "zod";
-import { generateEmailOTP, hashOTP } from "@/lib/otp";
+import { generateOtp, hashOtp } from "@/lib/otp";
 import { sendVerificationOTP } from "@/lib/email";
 
 type LoginInput = z.infer<typeof loginSchema>;
@@ -28,6 +28,7 @@ export class AuthService {
     if (!isValid) return { error: "INVALID_CREDENTIALS" };
 
     // Email verification enforcement — unverified users cannot receive tokens
+    console.log("LOGIN CHECK for", user.email, "-> emailVerified is:", user.emailVerified);
     if (!user.emailVerified) {
       return { error: "UNVERIFIED_EMAIL" };
     }
@@ -43,15 +44,15 @@ export class AuthService {
     };
   }
 
-  static async registerStudent(data: RegisterStudentInput): Promise<{ user: User } | null> {
+  static async registerStudent(data: RegisterStudentInput, emailVerified: boolean = false): Promise<{ user: User } | null> {
     const existing = await db.user.findUnique({
       where: { email: data.email },
       include: { studentProfile: true }
     });
 
     const passwordHash = await bcrypt.hash(data.password, 10);
-    const otp = generateEmailOTP();
-    const codeHash = hashOTP(otp);
+    const otp = generateOtp();
+    const codeHash = await hashOtp(otp);
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
     if (existing) {
@@ -91,6 +92,7 @@ export class AuthService {
         email: data.email,
         passwordHash,
         role: "STUDENT",
+        emailVerified,
         studentProfile: {
           create: {
             name: data.name,
@@ -109,22 +111,24 @@ export class AuthService {
       include: { studentProfile: true },
     });
 
-    await sendVerificationOTP(user.email, otp);
+    if (!emailVerified) {
+      await sendVerificationOTP(user.email, otp);
+    }
 
     return {
       user: { id: user.id, name: user.studentProfile!.name, email: user.email, role: user.role },
     };
   }
 
-  static async registerTeacher(data: RegisterTeacherInput): Promise<{ user: User } | null> {
+  static async registerTeacher(data: RegisterTeacherInput, emailVerified: boolean = false): Promise<{ user: User } | null> {
     const existing = await db.user.findUnique({
       where: { email: data.email },
       include: { teacherProfile: true }
     });
 
     const passwordHash = await bcrypt.hash(data.password, 10);
-    const otp = generateEmailOTP();
-    const codeHash = hashOTP(otp);
+    const otp = generateOtp();
+    const codeHash = await hashOtp(otp);
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
     if (existing) {
@@ -135,6 +139,7 @@ export class AuthService {
         where: { id: existing.id },
         data: {
           passwordHash,
+          emailVerified,
           ...(existing.teacherProfile?.onboardingComplete ? {} : {
             teacherProfile: {
               update: {
@@ -163,6 +168,7 @@ export class AuthService {
         email: data.email,
         passwordHash,
         role: "TEACHER",
+        emailVerified,
         teacherProfile: {
           create: {
             name: data.name,
@@ -182,8 +188,9 @@ export class AuthService {
       },
       include: { teacherProfile: true },
     });
-
-    await sendVerificationOTP(user.email, otp);
+    if (!emailVerified) {
+      await sendVerificationOTP(user.email, otp);
+    }
 
     return {
       user: { id: user.id, name: user.teacherProfile!.name, email: user.email, role: user.role },

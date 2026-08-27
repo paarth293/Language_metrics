@@ -35,7 +35,7 @@ describe("LoginForm Component", () => {
 
   it("renders email and password fields initially", () => {
     render(<LoginForm csrfToken="token" />);
-    
+
     expect(screen.getByLabelText(/Admin email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^Password$/)).toBeInTheDocument();
     expect(screen.queryByLabelText(/Two-factor code/i)).not.toBeInTheDocument();
@@ -49,7 +49,7 @@ describe("LoginForm Component", () => {
     ]);
 
     render(<LoginForm csrfToken="token" />);
-    
+
     expect(screen.getByText("Invalid credentials")).toBeInTheDocument();
   });
 
@@ -61,21 +61,21 @@ describe("LoginForm Component", () => {
     ]);
 
     render(<LoginForm csrfToken="token" />);
-    
+
     // Original inputs should be hidden (not accessible by label)
     expect(screen.queryByLabelText(/Admin email/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/^Password$/)).not.toBeInTheDocument();
-    
+
     // TOTP input should be visible
     expect(screen.getByLabelText(/Two-factor code/i)).toBeInTheDocument();
-    
+
     // Hidden inputs should exist with preserved state
     const hiddenEmail = document.querySelector('input[name="email"][type="hidden"]') as HTMLInputElement;
     const hiddenPassword = document.querySelector('input[name="password"][type="hidden"]') as HTMLInputElement;
-    
+
     expect(hiddenEmail).not.toBeNull();
     expect(hiddenEmail.value).toBe("test@example.com");
-    
+
     expect(hiddenPassword).not.toBeNull();
     expect(hiddenPassword.value).toBe("password");
   });
@@ -88,7 +88,7 @@ describe("LoginForm Component", () => {
     ]);
 
     render(<LoginForm csrfToken="token" />);
-    
+
     const button = screen.getByRole("button", { name: /Authenticating/i });
     expect(button).toBeDisabled();
   });

@@ -6,6 +6,7 @@
  */
 
 import { Resend } from "resend";
+import { VerificationEmail, PasswordResetEmail } from "./templates";
 
 let _resend: Resend | null = null;
 
@@ -37,20 +38,7 @@ export async function sendVerificationEmail(
     from: FROM,
     to,
     subject: "Verify your Language Metrics account",
-    html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px">
-        <h2 style="margin-bottom:8px">Hi ${name} 👋</h2>
-        <p style="color:#4e5674;margin-bottom:24px">
-          Thanks for joining Language Metrics! Please verify your email address to activate your account.
-        </p>
-        <a href="${link}" style="display:inline-block;background:#c7982f;color:#fff;font-weight:600;padding:12px 28px;border-radius:8px;text-decoration:none">
-          Verify Email Address
-        </a>
-        <p style="color:#8a93a6;font-size:13px;margin-top:24px">
-          This link expires in 24 hours. If you didn't create an account, you can safely ignore this email.
-        </p>
-      </div>
-    `,
+    react: VerificationEmail({ name, link }),
   });
 }
 
@@ -68,20 +56,6 @@ export async function sendPasswordResetEmail(
     from: FROM,
     to,
     subject: "Reset your Language Metrics password",
-    html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px">
-        <h2 style="margin-bottom:8px">Reset your password</h2>
-        <p style="color:#4e5674;margin-bottom:24px">
-          Hi ${name}, we received a request to reset your password. Click the button below to choose a new one.
-        </p>
-        <a href="${link}" style="display:inline-block;background:#c7982f;color:#fff;font-weight:600;padding:12px 28px;border-radius:8px;text-decoration:none">
-          Reset Password
-        </a>
-        <p style="color:#8a93a6;font-size:13px;margin-top:24px">
-          This link expires in 1 hour. If you didn't request a password reset, you can safely ignore this email.
-          Your password will not be changed.
-        </p>
-      </div>
-    `,
+    react: PasswordResetEmail({ name, link }),
   });
 }

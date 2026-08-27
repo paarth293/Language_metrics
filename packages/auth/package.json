@@ -5,9 +5,11 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "dependencies": {
+    "@react-email/components": "^1.0.12",
+    "@react-email/render": "^2.1.0",
+    "bcryptjs": "*",
     "ioredis": "*",
-    "resend": "*",
     "jose": "*",
-    "bcryptjs": "*"
+    "resend": "*"
   }
 }

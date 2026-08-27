@@ -34,7 +34,7 @@ export default function CTASection() {
             <p className="text-text-muted mb-8 text-balance">
               Find a verified teacher, book a ₹29 demo class, and join your first live session today — no long-term commitment required.
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 w-full">
+            <div className="flex flex-col sm:flex-row gap-3 w-full mt-auto">
               <Button asChild variant="gold" size="lg" className="shadow-glow-gold flex items-center gap-2">
                 <Link href="/register/student">
                   Find a Teacher <ArrowRight className="w-4 h-4" />
@@ -67,11 +67,13 @@ export default function CTASection() {
               <ShieldCheck className="w-4 h-4 text-success" />
               Manual review — not instant. Quality matters.
             </div>
-            <Button asChild variant="outline" size="lg" className="flex items-center gap-2 border-accent/40 hover:border-accent text-accent hover:bg-accent/5">
-              <Link href="/register/teacher">
-                Apply to Teach <ArrowRight className="w-4 h-4" />
-              </Link>
-            </Button>
+            <div className="w-full mt-auto">
+              <Button asChild variant="outline" size="lg" className="w-full flex items-center justify-center gap-2 border-accent/40 hover:border-accent text-accent hover:bg-accent/5">
+                <Link href="/register/teacher">
+                  Apply to Teach <ArrowRight className="w-4 h-4" />
+                </Link>
+              </Button>
+            </div>
           </motion.div>
 
         </div>

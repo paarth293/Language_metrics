@@ -23,7 +23,7 @@
     "seed": "node --env-file=.env packages/database/prisma/seed.mjs"
   },
   "dependencies": {
-    "@prisma/client": "^5.16.1",
+    "@prisma/client": "^5.22.0",
     "axios": "^1.19.0",
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.1",
@@ -54,7 +54,7 @@
     "eslint-plugin-security": "^3.0.1",
     "husky": "^9.1.4",
     "lint-staged": "^15.2.8",
-    "prisma": "^5.16.1",
+    "prisma": "^5.22.0",
     "tailwindcss": "^4"
   },
   "lint-staged": {

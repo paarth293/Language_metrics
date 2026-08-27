@@ -23,7 +23,7 @@ const coinPerks = [
 
 export default function CoinSystem() {
   return (
-    <section className="py-20 bg-bg">
+    <section className="pb-20 pt-10 bg-bg">
       <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
         <motion.div
           className="bg-surface border border-border rounded-[2rem] overflow-hidden shadow-sm"

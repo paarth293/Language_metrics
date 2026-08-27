@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
+import { getRedisClient } from "@/lib/redis-client";
 import { sendVerificationEmail } from "@/lib/email";
 import { rateLimit, exceedsMaxBodySize } from "@/lib/rate-limit";
 import { registerStudentSchema } from "@/features/auth/validators/auth";
@@ -50,7 +51,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message }, { status: 400 });
   }
 
-  const authResult = await AuthService.registerStudent(result.data);
+  const redis = getRedisClient();
+  let emailVerified = false;
+  if (redis) {
+    const isVerified = await redis.get(`reg-otp:verified:${result.data.email.toLowerCase().trim()}`);
+    if (isVerified) {
+      emailVerified = true;
+    }
+  }
+
+  const authResult = await AuthService.registerStudent(result.data, emailVerified);
   if (!authResult) {
     return NextResponse.json(
       { message: "An account with this email already exists." },
@@ -58,29 +68,31 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Generate email verification token with a prefix for fast DB lookup
-  // Format: "{8-hex-prefix}:{uuid}" — prefix stored plain, full token bcrypt-hashed
-  const tokenUUID = crypto.randomUUID();
-  const tokenPrefix = tokenUUID.replace(/-/g, "").slice(0, 8);
-  const verificationToken = `${tokenPrefix}:${tokenUUID}`;
-  const tokenHash = await bcrypt.hash(verificationToken, 10);
-  const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+  if (!emailVerified) {
+    // Generate email verification token with a prefix for fast DB lookup
+    // Format: "{8-hex-prefix}:{uuid}" — prefix stored plain, full token bcrypt-hashed
+    const tokenUUID = crypto.randomUUID();
+    const tokenPrefix = tokenUUID.replace(/-/g, "").slice(0, 8);
+    const verificationToken = `${tokenPrefix}:${tokenUUID}`;
+    const tokenHash = await bcrypt.hash(verificationToken, 10);
+    const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-  await db.user.update({
-    where: { id: authResult.user.id },
-    data: {
-      emailVerificationToken: tokenHash,
-      emailVerificationTokenPrefix: tokenPrefix,
-      emailVerificationExpiry: expiry,
-    },
-  });
+    await db.user.update({
+      where: { id: authResult.user.id },
+      data: {
+        emailVerificationToken: tokenHash,
+        emailVerificationTokenPrefix: tokenPrefix,
+        emailVerificationExpiry: expiry,
+      },
+    });
 
-  // Send verification email (non-blocking — don't fail registration if email fails)
-  sendVerificationEmail(
-    authResult.user.email,
-    authResult.user.name,
-    verificationToken
-  ).catch((err) => console.error("[Email] Failed to send verification email:", err));
+    // Send verification email (non-blocking — don't fail registration if email fails)
+    sendVerificationEmail(
+      authResult.user.email,
+      authResult.user.name,
+      verificationToken
+    ).catch((err) => console.error("[Email] Failed to send verification email:", err));
+  }
 
   // Issue session cookies so the user is immediately logged in
   const sessionId = crypto.randomUUID();
@@ -95,7 +107,7 @@ export async function POST(request: NextRequest) {
   });
 
   const response = NextResponse.json(
-    { user: authResult.user, requiresVerification: true },
+    { user: authResult.user, requiresVerification: !emailVerified },
     { status: 201 }
   );
 
@@ -107,3 +119,4 @@ export async function POST(request: NextRequest) {
 
   return response;
 }
+
