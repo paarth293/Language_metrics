@@ -218,6 +218,7 @@ export default function LoginForm({ csrfToken }: { csrfToken: string }) {
                 {needs2FA && (
                   <div>
                         <input type="hidden" name="email" value={state?.email ?? ""} />
+                        <input type="hidden" name="password" value={state?.password ?? ""} />
                         <label htmlFor="admin-totp" className="mb-1.5 block text-[12px] font-semibold text-[var(--text)]">
                           Two-factor code
                         </label>
