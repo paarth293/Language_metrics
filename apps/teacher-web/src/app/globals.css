@@ -461,6 +461,16 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+/* Fix iOS Safari auto-linking data detectors (blue text bug) */
+a[x-apple-data-detectors] {
+  color: inherit !important;
+  text-decoration: none !important;
+  font-size: inherit !important;
+  font-family: inherit !important;
+  font-weight: inherit !important;
+  line-height: inherit !important;
+}
+
 /* Smooth transitions for all interactive elements */
 a, button, input, select, textarea {
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);

@@ -104,7 +104,7 @@ export default function Pricing() {
         </motion.div>
 
         <motion.div
-          className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-24"
+          className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto"
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-80px" }}
