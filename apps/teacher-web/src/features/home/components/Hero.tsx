@@ -142,7 +142,7 @@ export default function Hero() {
             <div className="h-4 w-px bg-border hidden sm:block shrink-0" />
             <div className="flex items-center gap-2 whitespace-nowrap"><Lock className="w-4 h-4 text-gold shrink-0" /> No Contact Info Shared</div>
             <div className="h-4 w-px bg-border hidden sm:block shrink-0" />
-            <div className="flex items-center gap-2 whitespace-nowrap"><Star className="w-4 h-4 text-gold fill-gold shrink-0" /> Rated 4.9/5</div>
+            <div className="flex items-center gap-2 whitespace-nowrap"><Star className="w-4 h-4 text-gold fill-gold shrink-0" /> Rated 4.4/5</div>
           </motion.div>
         </div>
 
