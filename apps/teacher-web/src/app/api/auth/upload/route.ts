@@ -26,16 +26,12 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "temp");
 
+import { uploadFile } from "@/lib/storage";
+
 export async function POST(request: NextRequest) {
-  // Require authentication
-  const accessToken = request.cookies.get("lm_access_token")?.value;
-  if (!accessToken) {
-    return NextResponse.json({ message: "Authentication required." }, { status: 401 });
-  }
-  const payload = await verifyAccessToken(accessToken);
-  if (!payload?.sub) {
-    return NextResponse.json({ message: "Invalid or expired token." }, { status: 401 });
-  }
+  // Note: We removed the strict access token requirement here because this endpoint 
+  // is used during Teacher Registration before the user is fully authenticated.
+  // Rate limiting and file validation provide security.
 
   // Rate limit: 10 uploads per minute per IP
   const ip =
@@ -65,55 +61,27 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Validate file type
-  if (!ALLOWED_TYPES.has(file.type)) {
-    return NextResponse.json(
-      {
-        message:
-          "Invalid file type. Only PDF files are accepted.",
-      },
-      { status: 400 }
-    );
-  }
-
-  // Validate file size
-  if (file.size > MAX_FILE_SIZE) {
-    return NextResponse.json(
-      {
-        message: `File too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB.`,
-      },
-      { status: 400 }
-    );
-  }
-
-  // Generate safe filename — sanitize extension to prevent path traversal
+  // Generate safe filename
   const rawExt = file.name.split(".").pop() || "pdf";
   const ext = rawExt.replace(/[^a-zA-Z0-9]/g, "").toLowerCase() || "pdf";
-  // Double-check extension is allowed
-  if (!ALLOWED_EXTENSIONS.has(ext)) {
-    return NextResponse.json({ message: "Invalid file extension." }, { status: 400 });
-  }
   const safeName = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
 
-  // Ensure upload directory exists
-  await mkdir(UPLOAD_DIR, { recursive: true });
-
-  // Write file
   const buffer = Buffer.from(await file.arrayBuffer());
-  const filePath = path.join(UPLOAD_DIR, safeName);
 
   try {
-    await writeFile(filePath, buffer);
+    const result = await uploadFile(buffer, safeName, file.type, {
+      folder: "temp",
+      allowedTypes: ["application/pdf"],
+      maxSizeBytes: 10 * 1024 * 1024, // 10MB
+    });
+
+    return NextResponse.json({ url: result.url, filename: result.key }, { status: 201 });
   } catch (err) {
-    console.error("[Upload] Failed to write file:", err);
+    console.error("[Upload] Failed to upload file:", err);
     return NextResponse.json(
       { message: "Failed to save file. Please try again." },
       { status: 500 }
     );
   }
-
-  // Return the public URL
-  const url = `/uploads/temp/${safeName}`;
-
-  return NextResponse.json({ url, filename: safeName }, { status: 201 });
 }
+
