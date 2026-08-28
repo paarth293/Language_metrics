@@ -288,7 +288,7 @@ export class TeacherService {
     });
 
     // Group by student
-    const studentMap = new Map<string, any>();
+    const studentMap = new Map<string, Record<string, unknown>>();
     for (const booking of bookings) {
       const sid = booking.studentId;
       if (!studentMap.has(sid)) {

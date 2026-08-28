@@ -66,7 +66,7 @@ describe("authenticateAdmin", () => {
   };
 
   it("authenticates successfully with valid credentials (no 2FA)", async () => {
-    vi.mocked(db.adminUser.findUnique).mockResolvedValueOnce(mockAdminWithNo2FA as any);
+    vi.mocked(db.adminUser.findUnique).mockResolvedValueOnce(mockAdminWithNo2FA as never);
 
     const result = await authenticateAdmin(
       "admin@example.com",
@@ -82,7 +82,7 @@ describe("authenticateAdmin", () => {
   });
 
   it("rejects with invalid password", async () => {
-    vi.mocked(db.adminUser.findUnique).mockResolvedValueOnce(mockAdminWithNo2FA as any);
+    vi.mocked(db.adminUser.findUnique).mockResolvedValueOnce(mockAdminWithNo2FA as never);
 
     const result = await authenticateAdmin(
       "admin@example.com",
@@ -114,7 +114,7 @@ describe("authenticateAdmin", () => {
   });
 
   it("returns 2FA_REQUIRED when user has 2FA enabled but no TOTP provided", async () => {
-    vi.mocked(db.adminUser.findUnique).mockResolvedValueOnce(mockAdminWith2FA as any);
+    vi.mocked(db.adminUser.findUnique).mockResolvedValueOnce(mockAdminWith2FA as never);
 
     const result = await authenticateAdmin(
       "admin@example.com",
@@ -129,7 +129,7 @@ describe("authenticateAdmin", () => {
   });
 
   it("rejects when 2FA is enabled and invalid TOTP is provided", async () => {
-    vi.mocked(db.adminUser.findUnique).mockResolvedValueOnce(mockAdminWith2FA as any);
+    vi.mocked(db.adminUser.findUnique).mockResolvedValueOnce(mockAdminWith2FA as never);
 
     const result = await authenticateAdmin(
       "admin@example.com",
@@ -145,7 +145,7 @@ describe("authenticateAdmin", () => {
   });
 
   it("authenticates successfully when 2FA is enabled and valid TOTP is provided", async () => {
-    vi.mocked(db.adminUser.findUnique).mockResolvedValueOnce(mockAdminWith2FA as any);
+    vi.mocked(db.adminUser.findUnique).mockResolvedValueOnce(mockAdminWith2FA as never);
 
     const result = await authenticateAdmin(
       "admin@example.com",

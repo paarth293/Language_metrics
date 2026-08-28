@@ -19,24 +19,8 @@ const AUDIENCE = "lm-teacher-web";
 
 const isProd = process.env.NODE_ENV === "production";
 
-const DEV_PRIVATE_KEY = `-----BEGIN RSA PRIVATE KEY-----
-MIIEogIBAAKCAQEAsJv6bV3d8Kj3GvXrYvE8X2R8N0pJ+6l0Q4p2V5JXGZ9Yp3Kk
-Vf0z6nB6KJw3uN5F8JYdZlV9KXh4bQX3fYfWc3hXg3G8ZL9V6bM3cT6B6hJkL2tX
-+Tg9p6Q5Kf/7aB3L9QeJq5c3nQ5K4V2U3EwWcX9T+V0F3a8I7cG5F9L4R2c6Z3qV
-YVbT+K8kK2Jb4k3U9V7Z8bF2a5cD7F3jL9M7Q8R3J4aK5l2c3pV6R9U5Z2cH3f4L
-K3aP5f4c7R8J3pD1Y3wD8r2xV4k6c5L7E9V1j
------END RSA PRIVATE KEY-----`;
-const DEV_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsJv6bV3d8Kj3GvXrYvE8
-X2R8N0pJ+6l0Q4p2V5JXGZ9Yp3KkVf0z6nB6KJw3uN5F8JYdZlV9KXh4bQX3fYfWc
-3hXg3G8ZL9V6bM3cT6B6hJkL2tX+Tg9p6Q5Kf/7aB3L9QeJq5c3nQ5K4V2U3EwWcX
-9T+V0F3a8I7cG5F9L4R2c6Z3qVYVbT+K8kK2Jb4k3U9V7Z8bF2a5cD7F3jL9M7Q8
-R3J4aK5l2c3pV6R9U5Z2cH3f4LK3aP5f4c7R8J3pD1Y3wD8r2xV4k6c5L7E9V1j
------END PUBLIC KEY-----`;
-
-
 async function getPrivateKey() {
-  let pem = process.env.JWT_PRIVATE_KEY ?? DEV_PRIVATE_KEY;
+  let pem = process.env.JWT_PRIVATE_KEY;
   if (!pem) throw new Error("JWT_PRIVATE_KEY is not set");
   // Remove leading and trailing quotes if present
   pem = pem.replace(/^["']|["']$/g, "");
@@ -44,7 +28,7 @@ async function getPrivateKey() {
 }
 
 async function getPublicKey() {
-  let pem = process.env.JWT_PUBLIC_KEY ?? DEV_PUBLIC_KEY;
+  let pem = process.env.JWT_PUBLIC_KEY;
   if (!pem) throw new Error("JWT_PUBLIC_KEY is not set");
   // Remove leading and trailing quotes if present
   pem = pem.replace(/^["']|["']$/g, "");

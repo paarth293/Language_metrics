@@ -21,14 +21,11 @@ export async function GET(request: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    const upcoming: any[] = [];
-    const past: any[] = [];
-
-    allBookings.forEach((booking) => {
+    const mappedBookings = allBookings.map((booking) => {
       // Find the next session
       const nextSession = booking.sessions.find(s => new Date(s.scheduledEnd) > now);
       
-      const mapped = {
+      return {
         id: booking.id,
         status: booking.status,
         student: booking.student,
@@ -41,13 +38,10 @@ export async function GET(request: Request) {
         totalSessions: booking.sessions.length,
         completedSessions: booking.sessions.filter(s => s.status === "COMPLETED").length,
       };
-
-      if (booking.status === "COMPLETED" || booking.status === "CANCELLED" || (!nextSession && booking.status !== "PENDING")) {
-        past.push(mapped);
-      } else {
-        upcoming.push(mapped);
-      }
     });
+
+    const past = mappedBookings.filter(b => b.status === "COMPLETED" || b.status === "CANCELLED" || (!b.nextSession && b.status !== "PENDING"));
+    const upcoming = mappedBookings.filter(b => !(b.status === "COMPLETED" || b.status === "CANCELLED" || (!b.nextSession && b.status !== "PENDING")));
 
     return NextResponse.json({ upcoming, past }, { status: 200 });
 
