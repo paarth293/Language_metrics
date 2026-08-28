@@ -121,17 +121,26 @@ export default function ComingSoonPage() {
             className="flex flex-col sm:flex-row gap-3 mt-6 w-full justify-center"
           >
             <Link
-              href="/"
+              href="/login"
               className="px-7 py-3 rounded-full bg-brand text-brand-on text-sm font-semibold hover:bg-brand-hover hover:-translate-y-px hover:shadow-glow-blue transition-all duration-300"
             >
-              &larr; Back to Home
+              Sign In
             </Link>
-            <a
-              href="mailto:hello@languagemetrics.com"
-              className="px-7 py-3 rounded-full border border-border bg-surface text-text text-sm font-semibold hover:border-gold hover:text-gold hover:-translate-y-px transition-all duration-300 shadow-sm"
+            <Link
+              href="/register"
+              className="px-7 py-3 rounded-full bg-gold text-navy text-sm font-semibold hover:bg-gold/90 hover:-translate-y-px transition-all duration-300 shadow-sm"
             >
-              Contact Us
-            </a>
+              Get Started
+            </Link>
+          </motion.div>
+
+          {/* Quick links */}
+          <motion.div variants={stagger.item} className="mt-8 flex flex-wrap justify-center gap-4 text-xs text-text-muted">
+            <Link href="/about" className="hover:text-brand transition-colors">About</Link>
+            <Link href="/faq" className="hover:text-brand transition-colors">FAQ</Link>
+            <Link href="/contact" className="hover:text-brand transition-colors">Contact</Link>
+            <Link href="/login/teacher" className="hover:text-brand transition-colors">Teacher Login</Link>
+            <Link href="/login/student" className="hover:text-brand transition-colors">Student Login</Link>
           </motion.div>
 
         </motion.div>

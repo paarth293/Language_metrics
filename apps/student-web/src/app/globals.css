@@ -1,0 +1,494 @@
+@import "tailwindcss";
+@source "..";
+
+/* ============================================================
+   LANGUAGE METRICS — DESIGN TOKEN SYSTEM v2
+   Single source of truth. All components consume tokens,
+   never raw hex values.
+
+   LAYERS
+   ──────
+   1. Primitive palette      → named hex values (not for direct use in components)
+   2. Semantic tokens        → purpose-scoped, theme-aware CSS vars on :root / [data-theme=dark]
+   3. @theme block           → maps semantic vars into Tailwind utility classes
+
+   TOKEN TAXONOMY
+   ──────────────
+   --color-brand-*           Primary structural / heading brand colour (deep indigo-violet)
+   --color-action-*          Warm gold — conversion CTAs ONLY (Book Demo, Find a Teacher, Join Classroom)
+   --color-trust-*           Teal/emerald — verification & success signals ONLY
+   --color-alert-*           Coral/amber-red — human-action-required states ONLY
+   --color-neutral-*         Full gray scale 50–900
+   --color-surface-*         Layered backgrounds (page → card → inset)
+   --color-text-*            Text contrast hierarchy
+   --color-border-*          Border strength levels
+   ============================================================ */
+
+/* ── 1. PRIMITIVE PALETTE (internal — do NOT use directly in components) ── */
+:root {
+  /* Brand primaries */
+  --primitive-indigo-950:  #0f0c29;
+  --primitive-indigo-900:  #1a1547;
+  --primitive-indigo-800:  #231d5e;
+  --primitive-indigo-700:  #2e2578;
+  --primitive-indigo-600:  #3d32a0;
+  --primitive-indigo-500:  #5046c8;
+  --primitive-indigo-400:  #7b73e4;
+  --primitive-indigo-300:  #a9a5f0;
+  --primitive-indigo-200:  #d4d2f9;
+  --primitive-indigo-100:  #eeedfd;
+
+  /* Action gold */
+  --primitive-gold-900:    #6b4c10;
+  --primitive-gold-700:    #a36e1a;
+  --primitive-gold-500:    #c7982f;   /* current gold — keep for compat */
+  --primitive-gold-400:    #d8b45e;
+  --primitive-gold-200:    #edd99a;
+  --primitive-gold-100:    #faf1d5;
+
+  /* Trust teal */
+  --primitive-teal-900:    #0a3d34;
+  --primitive-teal-700:    #0f6b58;
+  --primitive-teal-500:    #0f9d6b;   /* current success — repurposed as trust */
+  --primitive-teal-300:    #5ed4b0;
+  --primitive-teal-100:    #d0f5ec;
+
+  /* Alert coral */
+  --primitive-coral-900:   #5c1515;
+  --primitive-coral-700:   #a0271e;
+  --primitive-coral-500:   #dc4c3e;
+  --primitive-coral-300:   #f08d88;
+  --primitive-coral-100:   #fde8e7;
+
+  /* Neutral grays */
+  --primitive-neutral-50:  #f9fafb;
+  --primitive-neutral-100: #f3f4f6;
+  --primitive-neutral-200: #e5e7eb;
+  --primitive-neutral-300: #d1d5db;
+  --primitive-neutral-400: #9ca3af;
+  --primitive-neutral-500: #6b7280;
+  --primitive-neutral-600: #4b5563;
+  --primitive-neutral-700: #374151;
+  --primitive-neutral-800: #1f2937;
+  --primitive-neutral-900: #111827;
+
+  /* Cream heritage (light-mode background identity) */
+  --primitive-cream-bg:    #f8f4ea;
+  --primitive-cream-card:  #ffffff;
+  --primitive-cream-inset: #f2ecdd;
+}
+
+
+/* ── 2a. SEMANTIC TOKENS — LIGHT MODE ── */
+:root {
+  /* ---- Brand Primary (deep indigo-violet) ---- */
+  --color-brand:            var(--primitive-indigo-800);
+  --color-brand-hover:      var(--primitive-indigo-700);
+  --color-brand-subtle:     var(--primitive-indigo-100);
+  --color-brand-muted:      var(--primitive-indigo-300);
+  --color-brand-on:         #ffffff;              /* text on brand bg */
+
+  /* ---- Action (gold — conversion CTAs only) ---- */
+  --color-action:           var(--primitive-gold-500);
+  --color-action-hover:     var(--primitive-gold-700);
+  --color-action-subtle:    var(--primitive-gold-100);
+  --color-action-muted:     var(--primitive-gold-200);
+  --color-action-on:        var(--primitive-indigo-950); /* text on action bg */
+  --color-action-glow:      0 0 30px rgba(199,152,47,.32);
+
+  /* ---- Trust (teal — verified/success signals only) ---- */
+  --color-trust:            var(--primitive-teal-500);
+  --color-trust-hover:      var(--primitive-teal-700);
+  --color-trust-subtle:     var(--primitive-teal-100);
+  --color-trust-muted:      var(--primitive-teal-300);
+  --color-trust-on:         #ffffff;
+
+  /* ---- Alert (coral — human action required only) ---- */
+  --color-alert:            var(--primitive-coral-500);
+  --color-alert-hover:      var(--primitive-coral-700);
+  --color-alert-subtle:     var(--primitive-coral-100);
+  --color-alert-muted:      var(--primitive-coral-300);
+  --color-alert-on:         #ffffff;
+
+  /* ---- Neutral scale ---- */
+  --color-neutral-50:       var(--primitive-neutral-50);
+  --color-neutral-100:      var(--primitive-neutral-100);
+  --color-neutral-200:      var(--primitive-neutral-200);
+  --color-neutral-300:      var(--primitive-neutral-300);
+  --color-neutral-400:      var(--primitive-neutral-400);
+  --color-neutral-500:      var(--primitive-neutral-500);
+  --color-neutral-600:      var(--primitive-neutral-600);
+  --color-neutral-700:      var(--primitive-neutral-700);
+  --color-neutral-800:      var(--primitive-neutral-800);
+  --color-neutral-900:      var(--primitive-neutral-900);
+
+  /* ---- Surface hierarchy (page → card → inset) ---- */
+  --bg:                     var(--primitive-cream-bg);
+  --bg-subtle:              var(--primitive-cream-inset);
+  --surface:                var(--primitive-cream-card);
+  --surface-2:              #faf7ef;
+  --surface-inset:          var(--primitive-cream-inset);
+
+  /* ---- Border hierarchy ---- */
+  --border:                 rgba(35,29,94,.10);   /* indigo-tinted, not navy */
+  --border-strong:          rgba(35,29,94,.18);
+
+  /* ---- Text hierarchy (5 levels) ---- */
+  --text:                   var(--primitive-indigo-900);   /* primary — headings, body */
+  --text-secondary:         var(--primitive-indigo-700);   /* subheadings */
+  --text-muted:             #4e5674;                       /* body supporting */
+  --text-subtle:            #8a93a6;                       /* captions, hints */
+  --text-disabled:          var(--primitive-neutral-400);
+
+  /* ---- LEGACY aliases (keeps existing components from breaking) ---- */
+  --brand-gold:             var(--color-action);
+  --brand-gold-soft:        var(--color-action-muted);
+  --brand-gold-pale:        var(--color-action-subtle);
+  --brand-navy:             var(--color-brand);
+  --brand-navy-2:           var(--primitive-indigo-700);
+  --brand-cream:            var(--primitive-cream-bg);
+  --brand-cream-2:          var(--primitive-cream-inset);
+  --brand-accent-2:         var(--primitive-indigo-500);
+  --success:                var(--color-trust);
+  --warning:                var(--color-action);
+  --danger:                 var(--color-alert);
+  --info:                   var(--primitive-indigo-500);
+
+  /* ---- Shadow tokens ---- */
+  --shadow-sm:              0 4px 20px -4px rgba(35,29,94,.18);
+  --shadow-md:              0 8px 40px -8px rgba(35,29,94,.25);
+  --shadow-lg:              0 20px 60px -20px rgba(35,29,94,.40);
+  --glow-gold:              var(--color-action-glow);
+  --glow-blue:              0 0 30px rgba(80,70,200,.28);
+
+  /* ---- Typography scale tokens ---- */
+  --type-display:           clamp(3rem, 6.5vw, 5.5rem) / 1.02;   /* hero H1 */
+  --type-h1:                clamp(2.25rem, 4vw, 3.5rem) / 1.08;
+  --type-h2:                clamp(1.75rem, 3vw, 2.5rem) / 1.12;
+  --type-h3:                clamp(1.25rem, 2vw, 1.75rem) / 1.2;
+  --type-body-lg:           1.125rem / 1.7;
+  --type-body:              1rem / 1.65;
+  --type-small:             0.875rem / 1.6;
+  --type-caption:           0.75rem / 1.5;
+  --type-label:             0.6875rem / 1;   /* uppercase tracking labels */
+
+  /* ---- Spacing scale ---- */
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-5:  1.25rem;
+  --space-6:  1.5rem;
+  --space-8:  2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  /* ---- Radius tokens (two values + pill) ---- */
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   16px;
+  --radius-xl:   24px;
+  --radius-2xl:  32px;
+  --radius-pill: 999px;
+
+  color-scheme: light;
+}
+
+
+/* ── 2b. SEMANTIC TOKENS — DARK MODE ── */
+[data-theme="dark"] {
+  /* Brand primary lifts to lighter indigo on dark bg */
+  --color-brand:            var(--primitive-indigo-400);
+  --color-brand-hover:      var(--primitive-indigo-300);
+  --color-brand-subtle:     rgba(80,70,200,.15);
+  --color-brand-muted:      var(--primitive-indigo-600);
+  --color-brand-on:         #ffffff;
+
+  /* Action gold brightens slightly */
+  --color-action:           #e0b24a;
+  --color-action-hover:     #f0cf7e;
+  --color-action-subtle:    rgba(224,178,74,.12);
+  --color-action-muted:     rgba(224,178,74,.35);
+  --color-action-on:        #0f0c29;
+  --color-action-glow:      0 0 40px rgba(224,178,74,.25);
+
+  /* Trust teal brightens */
+  --color-trust:            #34d399;
+  --color-trust-hover:      #5ed4b0;
+  --color-trust-subtle:     rgba(52,211,153,.12);
+  --color-trust-muted:      rgba(52,211,153,.35);
+  --color-trust-on:         #0a3d34;
+
+  /* Alert coral brightens */
+  --color-alert:            #f87171;
+  --color-alert-hover:      #f08d88;
+  --color-alert-subtle:     rgba(248,113,113,.12);
+  --color-alert-muted:      rgba(248,113,113,.35);
+  --color-alert-on:         #5c1515;
+
+  /* Surface hierarchy */
+  --bg:                     #0d1424;
+  --bg-subtle:              #131c31;
+  --surface:                #18233c;
+  --surface-2:              #1e2b48;
+  --surface-inset:          #0f1728;
+
+  /* Border */
+  --border:                 rgba(248,244,234,.08);
+  --border-strong:          rgba(248,244,234,.16);
+
+  /* Text */
+  --text:                   #f3efe4;
+  --text-secondary:         var(--primitive-indigo-200);
+  --text-muted:             #9aa6bd;
+  --text-subtle:            #6b7688;
+  --text-disabled:          #3d4558;
+
+  /* Legacy aliases */
+  --brand-gold:             var(--color-action);
+  --brand-gold-soft:        var(--color-action-hover);
+  --brand-gold-pale:        var(--color-action-subtle);
+  --brand-navy:             var(--primitive-indigo-950);
+  --brand-navy-2:           var(--primitive-indigo-900);
+  --brand-cream:            #f8f4ea;
+  --brand-cream-2:          #f2ecdd;
+  --brand-accent-2:         var(--primitive-indigo-400);
+  --success:                var(--color-trust);
+  --warning:                var(--color-action);
+  --danger:                 var(--color-alert);
+  --info:                   var(--primitive-indigo-400);
+
+  /* Shadows */
+  --shadow-sm:              none;
+  --shadow-md:              0 8px 40px -12px rgba(0,0,0,.6);
+  --shadow-lg:              0 24px 70px -30px rgba(0,0,0,.7);
+  --glow-gold:              var(--color-action-glow);
+  --glow-blue:              0 0 40px rgba(80,70,200,.28);
+
+  color-scheme: dark;
+}
+
+
+/* ── 3. TAILWIND v4 @theme — exposes tokens as utility classes ── */
+@theme {
+  /* Brand primary → bg-brand, text-brand, border-brand */
+  --color-brand:            var(--color-brand);
+  --color-brand-hover:      var(--color-brand-hover);
+  --color-brand-subtle:     var(--color-brand-subtle);
+  --color-brand-muted:      var(--color-brand-muted);
+  --color-brand-on:         var(--color-brand-on);
+
+  /* Action → bg-action, text-action */
+  --color-action:           var(--color-action);
+  --color-action-hover:     var(--color-action-hover);
+  --color-action-subtle:    var(--color-action-subtle);
+  --color-action-muted:     var(--color-action-muted);
+  --color-action-on:        var(--color-action-on);
+
+  /* Trust → text-trust, bg-trust-subtle */
+  --color-trust:            var(--color-trust);
+  --color-trust-hover:      var(--color-trust-hover);
+  --color-trust-subtle:     var(--color-trust-subtle);
+  --color-trust-muted:      var(--color-trust-muted);
+  --color-trust-on:         var(--color-trust-on);
+
+  /* Alert → text-alert, bg-alert-subtle */
+  --color-alert:            var(--color-alert);
+  --color-alert-hover:      var(--color-alert-hover);
+  --color-alert-subtle:     var(--color-alert-subtle);
+  --color-alert-muted:      var(--color-alert-muted);
+  --color-alert-on:         var(--color-alert-on);
+
+  /* Neutral scale → bg-neutral-50 … text-neutral-900 */
+  --color-neutral-50:       var(--color-neutral-50);
+  --color-neutral-100:      var(--color-neutral-100);
+  --color-neutral-200:      var(--color-neutral-200);
+  --color-neutral-300:      var(--color-neutral-300);
+  --color-neutral-400:      var(--color-neutral-400);
+  --color-neutral-500:      var(--color-neutral-500);
+  --color-neutral-600:      var(--color-neutral-600);
+  --color-neutral-700:      var(--color-neutral-700);
+  --color-neutral-800:      var(--color-neutral-800);
+  --color-neutral-900:      var(--color-neutral-900);
+
+  /* Semantic surfaces / text / border (legacy compat names kept) */
+  --color-bg:               var(--bg);
+  --color-bg-subtle:        var(--bg-subtle);
+  --color-surface:          var(--surface);
+  --color-surface-2:        var(--surface-2);
+  --color-surface-inset:    var(--surface-inset);
+  --color-border:           var(--border);
+  --color-border-strong:    var(--border-strong);
+  --color-text:             var(--text);
+  --color-text-secondary:   var(--text-secondary);
+  --color-text-muted:       var(--text-muted);
+  --color-text-subtle:      var(--text-subtle);
+  --color-text-disabled:    var(--text-disabled);
+
+  /* Legacy brand aliases (keeps existing components unbroken) */
+  --color-gold:             var(--brand-gold);
+  --color-gold-soft:        var(--brand-gold-soft);
+  --color-gold-pale:        var(--brand-gold-pale);
+  --color-navy:             var(--brand-navy);
+  --color-navy-2:           var(--brand-navy-2);
+  --color-cream:            var(--brand-cream);
+  --color-cream-2:          var(--brand-cream-2);
+  --color-accent:           var(--brand-accent-2);
+  --color-success:          var(--success);
+  --color-warning:          var(--warning);
+  --color-danger:           var(--danger);
+  --color-info:             var(--info);
+
+  /* Fonts */
+  --font-display: var(--font-fraunces), "Fraunces", Georgia, serif;
+  --font-body:    var(--font-manrope), "Manrope", system-ui, sans-serif;
+  --font-script:  var(--font-script), "Caveat", cursive;
+
+  /* Radius */
+  --radius-sm:   var(--radius-sm);
+  --radius-md:   var(--radius-md);
+  --radius-lg:   var(--radius-lg);
+  --radius-xl:   var(--radius-xl);
+  --radius-2xl:  var(--radius-2xl);
+  --radius-pill: var(--radius-pill);
+
+  /* Shadows */
+  --shadow-sm:          var(--shadow-sm);
+  --shadow-md:          var(--shadow-md);
+  --shadow-lg:          var(--shadow-lg);
+  --shadow-glow-gold:   var(--glow-gold);
+  --shadow-glow-blue:   var(--glow-blue);
+  --shadow-glow-trust:  0 0 24px rgba(15,157,107,.28);
+  --shadow-glow-brand:  0 0 30px rgba(80,70,200,.28);
+
+  /* Animations */
+  --animate-float-drift:  floatDrift 6s ease-in-out infinite;
+  --animate-marquee:      marqueeMove 34s linear infinite;
+  --animate-fade-up:      fadeUp 0.6s ease forwards;
+  --animate-pulse-gold:   pulseGold 2s ease-in-out infinite;
+  --animate-spin-slow:    spin 8s linear infinite;
+  --animate-pulse-trust:  pulseTrust 2s ease-in-out infinite;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  margin: 0;
+  overflow-x: hidden;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+::selection {
+  background: var(--brand-gold);
+  color: #fff;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+.font-script {
+  font-family: var(--font-script);
+}
+.font-body {
+  font-family: var(--font-body);
+}
+
+@keyframes floatDrift {
+  0%   { transform: translateZ(0) rotate(-2deg); }
+  50%  { transform: translate3d(18px, -34px, 0) rotate(2deg); }
+  100% { transform: translateZ(0) rotate(-2deg); }
+}
+@keyframes marqueeMove {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulseGold {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(199, 152, 47, 0.4); }
+  50%      { box-shadow: 0 0 0 12px rgba(199, 152, 47, 0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@utility text-balance {
+  text-wrap: balance;
+}
+
+@utility focus-ring {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(199, 152, 47, 0.45);
+}
+
+@utility hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility glass {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Fix iOS Safari auto-linking data detectors (blue text bug) */
+a[x-apple-data-detectors] {
+  color: inherit !important;
+  text-decoration: none !important;
+  font-size: inherit !important;
+  font-family: inherit !important;
+  font-weight: inherit !important;
+  line-height: inherit !important;
+}
+
+/* Smooth transitions for all interactive elements */
+a, button, input, select, textarea {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Better scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-subtle);
+}
+

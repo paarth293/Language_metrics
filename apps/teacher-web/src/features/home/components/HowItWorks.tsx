@@ -10,7 +10,7 @@ const steps = [
     title: "Pick Your Language",
     step: "01",
     description:
-      "Select the language you want to learn and set your proficiency level — Beginner, Intermediate, or Advanced.",
+      "Select the language you want to learn and set your proficiency level — from A1 beginner to C2 mastery.",
     color: "text-accent",
     glow: "shadow-accent/20",
     bg: "bg-accent/10",

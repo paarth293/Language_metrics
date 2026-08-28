@@ -71,7 +71,7 @@ export class AuthService {
               update: {
                 name: data.name,
                 languageToLearn: data.languageToLearn,
-                proficiencyLevel: data.proficiencyLevel === "advanced" ? "ADVANCED" : data.proficiencyLevel === "intermediate" ? "INTERMEDIATE" : "BEGINNER",
+                proficiencyLevel: data.proficiencyLevel?.toUpperCase() || "A1",
                 onboardingComplete: true,
               }
             }

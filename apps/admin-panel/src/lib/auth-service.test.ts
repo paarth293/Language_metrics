@@ -77,7 +77,8 @@ describe("authenticateAdmin", () => {
       ""
     );
 
-    expect(result).toEqual({ success: true });
+    expect(result.success).toBe(true);
+    expect(result.userId).toBeDefined();
   });
 
   it("rejects with invalid password", async () => {
@@ -155,6 +156,7 @@ describe("authenticateAdmin", () => {
       "valid_totp" // Matches the mock setup
     );
 
-    expect(result).toEqual({ success: true });
+    expect(result.success).toBe(true);
+    expect(result.userId).toBeDefined();
   });
 });

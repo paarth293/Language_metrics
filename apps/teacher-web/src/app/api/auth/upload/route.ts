@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { rateLimit } from "@/lib/rate-limit";
+import { verifyAccessToken } from "@/lib/tokens";
 
 /**
  * POST /api/auth/upload
@@ -19,11 +20,23 @@ const ALLOWED_TYPES = new Set([
   "application/pdf",
 ]);
 
+const ALLOWED_EXTENSIONS = new Set(["pdf"]);
+
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "temp");
 
 export async function POST(request: NextRequest) {
+  // Require authentication
+  const accessToken = request.cookies.get("lm_access_token")?.value;
+  if (!accessToken) {
+    return NextResponse.json({ message: "Authentication required." }, { status: 401 });
+  }
+  const payload = await verifyAccessToken(accessToken);
+  if (!payload?.sub) {
+    return NextResponse.json({ message: "Invalid or expired token." }, { status: 401 });
+  }
+
   // Rate limit: 10 uploads per minute per IP
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
@@ -73,8 +86,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Generate safe filename
-  const ext = file.name.split(".").pop() || "pdf";
+  // Generate safe filename — sanitize extension to prevent path traversal
+  const rawExt = file.name.split(".").pop() || "pdf";
+  const ext = rawExt.replace(/[^a-zA-Z0-9]/g, "").toLowerCase() || "pdf";
+  // Double-check extension is allowed
+  if (!ALLOWED_EXTENSIONS.has(ext)) {
+    return NextResponse.json({ message: "Invalid file extension." }, { status: 400 });
+  }
   const safeName = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
 
   // Ensure upload directory exists
