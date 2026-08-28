@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    sendVerificationEmail(
+    await sendVerificationEmail(
       authResult.user.email,
       authResult.user.name,
       verificationToken

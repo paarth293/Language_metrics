@@ -67,8 +67,8 @@ export async function POST(request: Request) {
         },
       });
 
-      // Send email (non-blocking)
-      sendPasswordResetOTP(user.email, otp).catch(console.error);
+      // Send email (blocking so Vercel doesn't kill it)
+      await sendPasswordResetOTP(user.email, otp).catch(console.error);
     }
 
     // Update Redis rate limits
