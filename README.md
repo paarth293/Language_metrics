@@ -2,6 +2,13 @@
 
 A full-stack language learning platform connecting students with verified language teachers for 1-on-1 live video classes.
 
+## Deployed Environments
+
+- **Teacher & Student Portal**: [https://language-metrics-teacher-web.vercel.app/](https://language-metrics-teacher-web.vercel.app/)
+  - *Note: Student login redirects to the Student Web portal.*
+- **Student Web Portal**: [https://language-metrics-student-web.vercel.app/](https://language-metrics-student-web.vercel.app/)
+- **Admin Panel**: [https://language-metrics-admin-panel.vercel.app/](https://language-metrics-admin-panel.vercel.app/)
+
 ## Architecture
 
 ```

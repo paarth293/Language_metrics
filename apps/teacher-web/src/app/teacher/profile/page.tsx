@@ -99,7 +99,7 @@ export default function TeacherProfileSettings() {
   const [profileLanguages, setProfileLanguages] = useState<string[]>([]);
   const [profileExperience, setProfileExperience] = useState("");
   const [profileEmail, setProfileEmail] = useState("");
-  const [documents, setDocuments] = useState<{ id: string; type: string; status: string; url: string; notes?: string; createdAt: string }[]>([]);
+  const [documents, setDocuments] = useState<{ id: string; type: string; status: string; url: string; notes?: string | null; createdAt: string }[]>([]);
 
   const fetchSettings = async () => {
     try {
@@ -446,7 +446,7 @@ export default function TeacherProfileSettings() {
                             {doc.notes && ` · ${doc.notes}`}
                           </div>
                         </div>
-                        <Badge variant={statusColor as "default" | "secondary" | "destructive" | "outline"} className="text-xs">
+                        <Badge variant={statusColor as "default" | "info" | "success" | "outline" | "danger" | "warning"} className="text-xs">
                           {doc.status}
                         </Badge>
                         <a

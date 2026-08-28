@@ -8,7 +8,8 @@ import { useEffect } from "react";
  */
 export default function StudentLoginPage() {
   useEffect(() => {
-    window.location.replace("http://localhost:3002/login");
+    const studentUrl = process.env.NEXT_PUBLIC_STUDENT_URL || (process.env.NODE_ENV === "production" ? "https://language-metrics-student-web.vercel.app" : "http://localhost:3002");
+    window.location.replace(`${studentUrl}/login`);
   }, []);
 
   return (
