@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { getRedisClient } from "@/lib/redis-client";
 import { compareOtp } from "@/lib/otp";
-import { exceedsMaxBodySize } from "@/lib/rate-limit";
+import { exceedsMaxBodySize, rateLimitRedis } from "@/lib/rate-limit";
 
 const MAX_ATTEMPTS = 5;
 
@@ -23,6 +23,20 @@ export async function POST(request: NextRequest) {
   // ── 1. Body size guard ──────────────────────────────────────────────────────
   if (exceedsMaxBodySize(request)) {
     return NextResponse.json({ message: "Request body too large." }, { status: 413 });
+  }
+
+  // ── 1b. Per-IP rate limiting — 20 OTP verifications per IP per 15 min ──────
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const isLimited = await rateLimitRedis(ip, "verify-otp", {
+    windowMs: 15 * 60_000,
+    max: 20,
+  });
+  if (isLimited) {
+    return NextResponse.json(
+      { message: "Too many attempts. Please wait and try again." },
+      { status: 429, headers: { "Retry-After": "900" } }
+    );
   }
 
   // ── 2. Parse & validate body ────────────────────────────────────────────────

@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+const isProd = process.env.NODE_ENV === "production";
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
 
@@ -86,7 +88,10 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              `script-src 'self' 'unsafe-eval' 'unsafe-inline'`,
+              // Scripts: self + Next.js dev overlay in dev only
+              // unsafe-eval is ONLY needed for Next.js HMR in development
+              `script-src 'self'${isProd ? "" : " 'unsafe-eval'"} 'unsafe-inline'`,
+              // Styles: self + inline (required by Next.js)
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https://lh3.googleusercontent.com https://i.pravatar.cc https://avatars.githubusercontent.com https://flagcdn.com",
