@@ -316,7 +316,7 @@ export default function TeacherRegisterPage() {
         setSuccess(true);
         setTimeout(async () => {
           await refreshUser();
-          router.push("/coming-soon");
+          router.push("/teacher/dashboard");
         }, 1500);
       }
     } catch (err) {
@@ -468,24 +468,34 @@ export default function TeacherRegisterPage() {
 
               {/* Additional Languages */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-text">
-                  Additional languages{" "}
-                  <span className="text-text-muted font-normal">(optional — select all that apply)</span>
-                </label>
-                <div className="flex flex-wrap gap-2 max-h-[180px] overflow-y-auto p-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-text">
+                    Additional languages <span className="text-text-muted font-normal">(optional)</span>
+                  </label>
+                  {additionalLanguages.length > 0 && (
+                    <span className="text-xs font-semibold text-brand bg-brand/10 px-2 py-0.5 rounded-full">
+                      {additionalLanguages.length} selected
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-3 gap-1.5 max-h-[180px] overflow-y-auto pr-1">
                   {TEACHING_LANGUAGES.filter((l) => l.code !== primaryLanguage).map((lang) => {
                     const isSelected = additionalLanguages.includes(lang.code);
                     return (
-                      <button key={lang.code} type="button" onClick={() => toggleAdditionalLanguage(lang.code)}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all cursor-pointer ${
+                      <button
+                        key={lang.code}
+                        type="button"
+                        onClick={() => toggleAdditionalLanguage(lang.code)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-all cursor-pointer text-left ${
                           isSelected
-                            ? "border-brand bg-brand/10 text-brand"
-                            : "border-border bg-surface-inset text-text-muted hover:border-brand/40 hover:text-text"
-                        }`}>
-                        <span>{lang.flag}</span>
-                        <span>{lang.name}</span>
+                            ? "border-brand bg-brand/10 text-brand shadow-sm"
+                            : "border-border bg-surface-inset text-text-muted hover:border-brand/30 hover:bg-surface hover:text-text"
+                        }`}
+                      >
+                        <span className="text-base leading-none flex-shrink-0">{lang.flag}</span>
+                        <span className="truncate">{lang.name}</span>
                         {isSelected && (
-                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <svg className="w-3 h-3 ml-auto flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                           </svg>
                         )}
@@ -493,15 +503,12 @@ export default function TeacherRegisterPage() {
                     );
                   })}
                 </div>
-                {additionalLanguages.length > 0 && (
-                  <p className="text-xs text-brand">{additionalLanguages.length + 1} language{additionalLanguages.length > 0 ? "s" : ""} selected</p>
-                )}
                 {step2Errors.languages && <p role="alert" className="text-xs text-danger mt-1">{step2Errors.languages}</p>}
               </div>
 
               {/* Gender */}
               <div className="space-y-1">
-                <label htmlFor="teacher-gender" className="text-sm font-medium text-text">Gender (Optional)</label>
+                <label htmlFor="teacher-gender" className="text-sm font-medium text-text">Gender</label>
                 <select id="teacher-gender"
                   className="flex h-11 w-full rounded-md border border-border bg-surface-inset px-3 py-2 text-sm text-text focus-ring"
                   value={gender} onChange={(e) => setGender(e.target.value as "male" | "female" | "other" | "")}>

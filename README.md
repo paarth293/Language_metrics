@@ -1,142 +1,174 @@
 # Language Metrics
 
-> A full-stack language learning marketplace that connects students with verified native-speaker teachers for live 1-on-1 video sessions.
+A full-stack language learning platform connecting students with verified language teachers for 1-on-1 live video classes.
 
----
-
-## 🚀 Live Apps
-
-| App | URL | Description |
-|-----|-----|-------------|
-| **Main Web App** | [language-metrics-teacher-web.vercel.app](https://language-metrics-teacher-web.vercel.app/) | Public landing page, student & teacher dashboards |
-| **Admin Panel** | [language-metrics-admin-panel.vercel.app/login](https://language-metrics-admin-panel.vercel.app/login) | Internal dashboard for platform administrators |
-
----
-
-## 📦 Monorepo Structure
-
-This project is structured as an **npm workspaces monorepo** with two independent Next.js applications sharing a single PostgreSQL database via a common Prisma package.
+## Architecture
 
 ```
-Language_metrics/
+language-metrics/
 ├── apps/
-│   ├── teacher-web/        # Main web app (port 3000) — landing page, auth, student & teacher dashboards
-│   └── admin-panel/        # Admin dashboard (port 3001) — internal operations panel
+│   ├── teacher-web/          # Next.js 16 — Student & Teacher dashboards + public pages
+│   └── admin-panel/          # Next.js 16 — Admin dashboard with RBAC
 ├── packages/
-│   └── database/           # Shared Prisma schema, migrations & generated client
-├── docs/                   # Project specification documents
-├── .env.example            # Environment variable template
-└── package.json            # Root workspace configuration
+│   ├── database/             # Prisma schema + PostgreSQL client
+│   └── auth/                 # Shared auth utilities
+├── security-tests/           # Python security test suite
+└── docs/                     # Specifications & documentation
 ```
 
-### `apps/teacher-web` — Main Web App (`:3000`)
-The primary public-facing application. Serves:
-- **Landing page** — marketing site for prospective students and teachers
-- **Authentication** — student & teacher registration/login
-- **Student dashboard** — browse teachers, book sessions, manage coin wallet
-- **Teacher dashboard** — manage schedule, view bookings, track earnings
-
-### `apps/admin-panel` — Admin Panel (`:3001`)
-A completely separate, internally-accessed Next.js application. Provides platform administrators with tools to:
-- Approve/reject teacher applications
-- Manage users, classes, payouts, and complaints
-- View platform analytics and system health
-- Manage coupons, courses, and platform settings
-
-### `packages/database`
-Shared Prisma ORM package consumed by both apps. Contains the PostgreSQL schema, seed scripts, and the generated Prisma client.
-
----
-
-## 🛠 Tech Stack
+## Tech Stack
 
 | Layer | Technology |
-|-------|------------|
-| **Framework** | Next.js 16 (App Router, React 19) |
-| **Styling** | Tailwind CSS v4 + Framer Motion |
-| **Database** | PostgreSQL via [Prisma ORM](https://prisma.io/) |
-| **Authentication** | JWT + httpOnly cookies |
-| **Payments** | Razorpay (coin wallet system) |
-| **Video** | LiveKit (1-on-1 classroom) |
-| **Language** | TypeScript (strict) |
+|-------|-----------|
+| Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS 4 |
+| Backend | Next.js API Routes, Prisma ORM |
+| Database | PostgreSQL (Supabase) |
+| Cache | Redis (Upstash) |
+| Auth | RS256 JWT (jose), httpOnly cookies |
+| Video | LiveKit (optional) |
+| Storage | S3 / Supabase Storage / Local |
+| Email | Resend / Zoho SMTP |
+| Payments | Razorpay |
 
----
-
-## 💻 Local Development
+## Getting Started
 
 ### Prerequisites
-- Node.js ≥ 20
-- A running PostgreSQL database (local, [Supabase](https://supabase.com/), [Neon](https://neon.tech/), or [Railway](https://railway.app/))
 
-### 1. Clone & Install
+- Node.js 18+
+- PostgreSQL database
+- Redis (optional, for production rate limiting)
+
+### Installation
 
 ```bash
-git clone https://github.com/paarth293/Language_metrics.git
-cd Language_metrics
+# Install dependencies
 npm install
-```
 
-### 2. Configure Environment
-
-```bash
-cp .env.example .env
-# Fill in DATABASE_URL, JWT_SECRET, and other required variables
-```
-
-See [`.env.example`](.env.example) for all available options.
-
-### 3. Database Setup
-
-```bash
 # Generate Prisma client
 npx prisma generate --schema=packages/database/prisma/schema.prisma
 
-# Push schema to your database
+# Set up environment
+cp .env.example .env
+# Edit .env with your database URL, JWT keys, etc.
+
+# Run database migrations
 npx prisma db push --schema=packages/database/prisma/schema.prisma
 
-# Seed initial admin user & platform settings
-npm run db:seed
-```
-
-### 4. Start Both Dev Servers
-
-```bash
+# Start development servers
 npm run dev
 ```
 
-- **Main Web App** → [http://localhost:3000](http://localhost:3000)
-- **Admin Panel** → [http://localhost:3001](http://localhost:3001)
+### Environment Variables
 
----
+Copy `.env.example` to `.env` and configure:
 
-## 👥 User Roles
+```bash
+# Database
+DATABASE_URL="postgresql://..."
+DIRECT_URL="postgresql://..."
 
-| Role | Access |
-|------|--------|
-| `student` | Browse & book teachers, manage coin wallet, join live sessions |
-| `teacher` | Set availability, manage bookings, track earnings (requires admin approval) |
-| `admin` | Full platform oversight via the Admin Panel at `:3001` |
+# JWT (RS256 key pair)
+JWT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----..."
+JWT_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----..."
 
----
+# Redis (optional)
+REDIS_URL="redis://..."
 
-## 🔒 Security & Code Quality
+# OAuth
+GOOGLE_CLIENT_ID="..."
+GOOGLE_CLIENT_SECRET="..."
 
-- **Pre-commit hooks** via Husky: ESLint auto-fix runs on every staged file before commit.
-- **Secrets scanning**: Gitleaks integration checks for accidentally committed credentials.
-- **JWT Auth**: Short-lived access tokens (15m) with httpOnly refresh cookies.
-- **Rate limiting**: Applied to all auth and sensitive API endpoints.
+# App
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+```
 
----
+### Generate JWT Keys
 
-## 🤝 Contributing
+```bash
+# Generate private key
+openssl genpkey -algorithm RSA -out jwt-private.pem -pkeyopt rsa_keygen_bits:2048
 
-1. Branch from `main` using `contributor/<your-name>` or `feature/<feature-name>`.
-2. Write atomic commits using [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:`, `refactor:`, `docs:`.
-3. Run `npx tsc --noEmit` before opening a PR — zero TypeScript errors required.
-4. Open a Pull Request against `main`.
+# Generate public key
+openssl rsa -pubout -in jwt-private.pem -out jwt-public.pem
 
----
+# Convert to single-line for .env
+awk '{printf "%s\\n", $0}' jwt-private.pem
+awk '{printf "%s\\n", $0}' jwt-public.pem
+```
 
-## 📄 License
+## Scripts
 
-Proprietary — Language Metrics © 2025. All rights reserved.
+```bash
+npm run dev              # Start all dev servers
+npm run dev:teacher      # Start teacher-web only
+npm run dev:admin        # Start admin-panel only
+npm run build            # Production build
+npm run lint             # Run ESLint
+npm run scan:sast        # Static security analysis
+npm run scan:secrets     # Scan for leaked secrets
+npm run test:security    # Run security test suite
+```
+
+## Features
+
+### Student Dashboard
+- **Discover** — Browse verified teachers by language, rating, and availability
+- **Book Classes** — Book demo or regular classes using coins
+- **Live Video** — Join 1-on-1 video sessions with whiteboard and screen sharing
+- **Wallet** — Purchase coins via Razorpay, track transactions
+- **Profile** — Manage language preferences and proficiency level
+
+### Teacher Dashboard
+- **Schedule** — Manage availability slots and upcoming classes
+- **Students** — View student list and booking history
+- **Earnings** — Track earnings and payout history
+- **Sessions** — Join live classes, view session recordings
+- **Profile** — Update bio, languages, rates, and documents
+
+### Admin Panel
+- **Dashboard** — Platform metrics and recent activity
+- **Teacher Management** — Review applications, approve/reject teachers
+- **Student Management** — View student list and activity
+- **Payments** — Track payments and process payouts
+- **Complaints** — Handle support tickets
+- **Analytics** — Platform usage statistics
+- **Settings** — Platform configuration
+
+## Security
+
+- **Authentication** — RS256 JWT with httpOnly cookies, 15-minute access tokens
+- **Authorization** — Role-based access control (Student, Teacher, Admin)
+- **Rate Limiting** — Edge + API rate limiting (Redis in production)
+- **CSRF Protection** — Origin header validation + sameSite cookies
+- **Input Validation** — Zod schemas on all API routes
+- **File Upload** — Type validation, size limits, safe filenames
+- **Security Headers** — CSP, HSTS, X-Frame-Options, X-Content-Type-Options
+
+## Database Schema
+
+Key models: `User`, `StudentProfile`, `TeacherProfile`, `Booking`, `ClassSession`, `CoinTransaction`, `Payment`, `Payout`, `Review`, `Notification`
+
+See `packages/database/prisma/schema.prisma` for the full schema.
+
+## Deployment
+
+### Vercel (Recommended)
+
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy
+vercel
+```
+
+### Docker
+
+```bash
+docker build -t language-metrics .
+docker run -p 3000:3000 language-metrics
+```
+
+## License
+
+Proprietary — Language Metrics. All rights reserved.

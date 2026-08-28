@@ -19,17 +19,7 @@ import {
   XCircle,
 } from "lucide-react";
 
-const LANGUAGES = [
-  "English", "Spanish", "French", "German", "Italian", "Portuguese",
-  "Japanese", "Korean", "Mandarin Chinese", "Arabic", "Hindi", "Russian",
-  "Dutch", "Swedish", "Turkish", "Polish", "Vietnamese", "Thai",
-];
-
-const PROFICIENCY_LEVELS = [
-  { value: "BEGINNER", label: "Beginner", bars: 1 },
-  { value: "INTERMEDIATE", label: "Intermediate", bars: 2 },
-  { value: "ADVANCED", label: "Advanced", bars: 3 },
-];
+import { LANGUAGES, getLevelsForLanguage } from "@/lib/languages";
 
 const EXPERIENCE_LEVELS = [
   { value: "FRESHER", label: "New Teacher", desc: "Just starting my teaching journey" },
@@ -157,7 +147,7 @@ export default function ProfilePage() {
       {/* Top nav bar */}
       <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-bg/80 backdrop-blur-md px-6 py-4">
         <Link
-          href={isStudent ? "/student/dashboard" : "/teacher/dashboard"}
+          href={isStudent ? "http://localhost:3002/dashboard" : "/teacher/dashboard"}
           className="inline-flex items-center gap-2 text-sm font-medium text-text-muted hover:text-text transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -290,42 +280,24 @@ export default function ProfilePage() {
                 >
                   <option value="">Select a language…</option>
                   {LANGUAGES.map((l) => (
-                    <option key={l} value={l}>{l}</option>
+                    <option key={l.code} value={l.name}>{l.flag} {l.name}</option>
                   ))}
                 </select>
               </div>
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-text">Proficiency Level</label>
-                <div className="flex flex-wrap gap-2">
-                  {PROFICIENCY_LEVELS.map((lvl) => (
-                    <button
-                      key={lvl.value}
-                      type="button"
-                      onClick={() => setProficiencyLevel(lvl.value)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-all ${
-                        proficiencyLevel === lvl.value
-                          ? "border-gold bg-gold/10 text-gold shadow-glow-gold"
-                          : "border-border bg-surface text-text-muted hover:border-gold/40 hover:text-text"
-                      }`}
-                    >
-                      <div className="flex items-end gap-0.5 h-4">
-                        {[1, 2, 3].map((b) => (
-                          <div
-                            key={b}
-                            className={`w-1 rounded-sm ${
-                              b <= lvl.bars
-                                ? proficiencyLevel === lvl.value ? "bg-gold" : "bg-text-muted"
-                                : "bg-border"
-                            }`}
-                            style={{ height: `${b * 4 + 4}px` }}
-                          />
-                        ))}
-                      </div>
-                      {lvl.label}
-                    </button>
+                <select
+                  value={proficiencyLevel}
+                  onChange={(e) => setProficiencyLevel(e.target.value)}
+                  disabled={!languageToLearn}
+                  className="w-full rounded-xl border border-border bg-surface text-text px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold transition-colors"
+                >
+                  <option value="">{languageToLearn ? "Select your level..." : "Pick language first"}</option>
+                  {getLevelsForLanguage(languageToLearn).map((lvl) => (
+                    <option key={lvl.value} value={lvl.value}>{lvl.label}</option>
                   ))}
-                </div>
+                </select>
               </div>
             </motion.div>
           )}
@@ -353,7 +325,7 @@ export default function ProfilePage() {
                 >
                   <option value="">Select a language…</option>
                   {LANGUAGES.map((l) => (
-                    <option key={l} value={l}>{l}</option>
+                    <option key={l.code} value={l.code}>{l.flag} {l.name}</option>
                   ))}
                 </select>
               </div>

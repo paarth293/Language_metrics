@@ -18,12 +18,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { TEACHING_LANGUAGES } from "@/lib/languages";
-
-const PROFICIENCY_LEVELS = [
-  { value: "BEGINNER", label: "Beginner", desc: "I know little to no words", icon: BarChart3, bars: 1 },
-  { value: "INTERMEDIATE", label: "Intermediate", desc: "I can hold basic conversations", icon: BarChart3, bars: 2 },
-  { value: "ADVANCED", label: "Advanced", desc: "I'm nearly fluent", icon: BarChart3, bars: 3 },
-];
+import { getLevelsForLanguage, type LanguageLevel } from "@/lib/languages";
 
 const EXPERIENCE_LEVELS = [
   { value: "FRESHER", label: "New Teacher", desc: "Just starting my teaching journey" },
@@ -89,7 +84,11 @@ export default function OnboardingPage() {
       .then(({ user }) => {
         if (!user) { router.replace("/login"); return; }
         if (user.onboardingComplete) {
-          router.replace("/coming-soon");
+          if (user.role === "STUDENT") {
+            window.location.href = "http://localhost:3002/dashboard";
+          } else {
+            router.replace("/teacher/dashboard");
+          }
           return;
         }
         setUser(user);
@@ -132,7 +131,11 @@ export default function OnboardingPage() {
         setSubmitting(false);
         return;
       }
-      router.push("/coming-soon");
+      if (user?.role === "STUDENT") {
+        window.location.href = "http://localhost:3002/dashboard";
+      } else {
+        router.push("/teacher/dashboard");
+      }
     } catch {
       setError("Network error. Please try again.");
       setSubmitting(false);
@@ -314,39 +317,28 @@ export default function OnboardingPage() {
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-text">Your Current Level</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {PROFICIENCY_LEVELS.map((lvl) => (
-                      <button
-                        key={lvl.value}
-                        type="button"
-                        onClick={() => setProficiencyLevel(lvl.value)}
-                        className={`flex flex-col items-center gap-2 rounded-xl border p-4 text-center transition-all ${
-                          proficiencyLevel === lvl.value
-                            ? "border-gold bg-gold/10 shadow-glow-gold"
-                            : "border-border bg-surface hover:border-gold/40 hover:bg-surface-inset"
-                        }`}
-                      >
-                        {/* bars icon */}
-                        <div className="flex items-end gap-0.5 h-5">
-                          {[1, 2, 3].map((b) => (
-                            <div
-                              key={b}
-                              className={`w-1.5 rounded-sm transition-colors ${
-                                b <= lvl.bars
-                                  ? proficiencyLevel === lvl.value
-                                    ? "bg-gold"
-                                    : "bg-text-muted"
-                                  : "bg-border"
-                              }`}
-                              style={{ height: `${b * 5 + 5}px` }}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-xs font-semibold text-text">{lvl.label}</span>
-                        <span className="text-[10px] text-text-muted leading-tight">{lvl.desc}</span>
-                      </button>
-                    ))}
-                  </div>
+                  {!languageToLearn ? (
+                    <p className="text-xs text-text-muted">Select a language first to see available levels.</p>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {getLevelsForLanguage(languageToLearn).map((lvl: LanguageLevel, idx: number) => (
+                        <button
+                          key={lvl.value}
+                          type="button"
+                          onClick={() => setProficiencyLevel(lvl.value)}
+                          className={`flex flex-col items-center gap-1.5 rounded-xl border p-3 text-center transition-all ${
+                            proficiencyLevel === lvl.value
+                              ? "border-gold bg-gold/10 shadow-glow-gold"
+                              : "border-border bg-surface hover:border-gold/40 hover:bg-surface-inset"
+                          }`}
+                        >
+                          <span className="text-lg font-bold text-brand">{lvl.shortLabel}</span>
+                          <span className="text-[10px] font-semibold text-text leading-tight">{lvl.label}</span>
+                          <span className="text-[9px] text-text-muted leading-tight">{lvl.description}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -416,23 +408,34 @@ export default function OnboardingPage() {
 
                 {/* Additional Languages */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-text">
-                    Additional Languages <span className="text-text-subtle font-normal">(optional)</span>
-                  </label>
-                  <div className="flex flex-wrap gap-2 max-h-[140px] overflow-y-auto p-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-text">
+                      Additional Languages <span className="text-text-subtle font-normal">(optional)</span>
+                    </label>
+                    {additionalLanguages.length > 0 && (
+                      <span className="text-xs font-semibold text-brand bg-brand/10 px-2 py-0.5 rounded-full">
+                        {additionalLanguages.length} selected
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5 max-h-[180px] overflow-y-auto pr-1">
                     {TEACHING_LANGUAGES.filter((l) => l.code !== language).map((lang) => {
                       const isSelected = additionalLanguages.includes(lang.code);
                       return (
-                        <button key={lang.code} type="button" onClick={() => toggleAdditionalLanguage(lang.code)}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all cursor-pointer ${
+                        <button
+                          key={lang.code}
+                          type="button"
+                          onClick={() => toggleAdditionalLanguage(lang.code)}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-all cursor-pointer text-left ${
                             isSelected
-                              ? "border-brand bg-brand/10 text-brand"
-                              : "border-border bg-surface-inset text-text-muted hover:border-brand/40 hover:text-text"
-                          }`}>
-                          <span>{lang.flag}</span>
-                          <span>{lang.name}</span>
+                              ? "border-brand bg-brand/10 text-brand shadow-sm"
+                              : "border-border bg-surface-inset text-text-muted hover:border-brand/30 hover:bg-surface hover:text-text"
+                          }`}
+                        >
+                          <span className="text-base leading-none flex-shrink-0">{lang.flag}</span>
+                          <span className="truncate">{lang.name}</span>
                           {isSelected && (
-                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <svg className="w-3 h-3 ml-auto flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                             </svg>
                           )}
@@ -440,9 +443,6 @@ export default function OnboardingPage() {
                       );
                     })}
                   </div>
-                  {additionalLanguages.length > 0 && (
-                    <p className="text-xs text-brand">{additionalLanguages.length + (language ? 1 : 0)} language{(additionalLanguages.length + (language ? 1 : 0)) !== 1 ? "s" : ""} selected</p>
-                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -467,10 +467,7 @@ export default function OnboardingPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-text">
-                    Gender{" "}
-                    <span className="text-text-subtle font-normal">(optional)</span>
-                  </label>
+                  <label className="text-sm font-medium text-text">Gender</label>
                   <select
                     className="w-full rounded-xl border border-border bg-surface text-text px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand transition-colors"
                     value={gender}

@@ -113,9 +113,11 @@ export const registerStudentSchema = z
       .min(2, "Please specify a valid language.")
       .max(30, "Language name is too long."),
     proficiencyLevel: z
-      .enum(["beginner", "intermediate", "advanced"])
+      .string()
+      .min(1, "Please select a proficiency level.")
+      .max(50, "Level name is too long.")
       .optional()
-      .default("beginner"),
+      .default("A1"),
   })
   .strict();
 

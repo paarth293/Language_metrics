@@ -7,8 +7,11 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev -w language_metrics\" \"npm run dev -w admin-panel\"",
-    "start": "concurrently \"npm start -w language_metrics\" \"npm start -w admin-panel\"",
+    "dev": "concurrently \"npm run dev -w teacher-web\" \"npm run dev -w admin-panel\" \"npm run dev -w student-web\"",
+    "dev:teacher": "npm run dev -w teacher-web",
+    "dev:admin": "npm run dev -w admin-panel",
+    "dev:student": "npm run dev -w student-web",
+    "start": "concurrently \"npm start -w teacher-web\" \"npm start -w admin-panel\" \"npm start -w student-web\"",
     "build": "npx prisma@5 generate --schema=packages/database/prisma/schema.prisma && npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "setup": "husky",
@@ -64,5 +67,10 @@
     "apps/admin-panel/**/*.{js,jsx,ts,tsx}": [
       "eslint --config apps/admin-panel/eslint.config.mjs --fix"
     ]
+  },
+  "allowScripts": {
+    "@prisma/client@5.22.0": true,
+    "@prisma/engines@5.22.0": true,
+    "prisma@5.22.0": true
   }
 }

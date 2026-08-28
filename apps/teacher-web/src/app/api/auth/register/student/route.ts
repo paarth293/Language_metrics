@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
   // Issue session cookies so the user is immediately logged in
   const sessionId = crypto.randomUUID();
   const [accessToken, refreshToken] = await Promise.all([
-    signAccessToken(authResult.user.id, authResult.user.role),
+    signAccessToken(authResult.user.id, authResult.user.role, emailVerified),
     signRefreshToken(authResult.user.id, sessionId),
   ]);
 

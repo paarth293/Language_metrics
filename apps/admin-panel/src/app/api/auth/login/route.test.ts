@@ -12,7 +12,7 @@ describe("POST /api/auth/login", () => {
     vi.clearAllMocks();
   });
 
-  function createMockRequest(body: any) {
+  function createMockRequest(body: Record<string, unknown>) {
     return new NextRequest("http://localhost:3000/api/auth/login", {
       method: "POST",
       headers: {

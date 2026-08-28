@@ -1,63 +1,89 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
-import { Logo } from "@/components/ui/Logo";
-import { Input } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
+import { ExternalLink, Mail, Globe } from "lucide-react";
+
+const footerLinks = {
+  Product: [
+    { label: "Find a Teacher", href: "/student/discover" },
+    { label: "How It Works", href: "/about" },
+    { label: "Pricing", href: "/faq" },
+    { label: "Demo Class", href: "/register/student" },
+  ],
+  Teachers: [
+    { label: "Apply to Teach", href: "/register/teacher" },
+    { label: "Teacher Dashboard", href: "/login/teacher" },
+    { label: "Teacher FAQ", href: "/faq" },
+    { label: "Earnings Guide", href: "/faq" },
+  ],
+  Company: [
+    { label: "About Us", href: "/about" },
+    { label: "Contact", href: "/contact" },
+    { label: "FAQ", href: "/faq" },
+    { label: "Join Waitlist", href: "/waitlist" },
+  ],
+  Legal: [
+    { label: "Privacy Policy", href: "/privacy" },
+    { label: "Terms of Service", href: "/terms" },
+    { label: "Cancellation Policy", href: "/cancellation" },
+    { label: "Cookie Policy", href: "/cookies" },
+  ],
+};
 
 export default function Footer() {
   return (
-    <footer className="border-t border-border bg-surface text-text">
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 gap-12 md:grid-cols-4 lg:gap-8">
-          <div className="space-y-4">
-            <Link href="/" className="inline-flex" aria-label="Language Metrics — home">
-              <Logo variant="full" size={40} />
+    <footer className="border-t border-border bg-white">
+      <div className="max-w-6xl mx-auto px-4 py-12">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
+          {/* Brand */}
+          <div className="col-span-2 md:col-span-1">
+            <Link href="/" className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
+                <span className="text-white font-bold text-xs">LM</span>
+              </div>
+              <span className="font-display font-bold text-text">Language Metrics</span>
             </Link>
-            <p className="text-sm text-text-muted text-balance">
-              Find your perfect language teacher and actually book them in minutes. Learn naturally with 1-on-1 live video classes.
+            <p className="text-sm text-text-muted mb-4">
+              Connect with verified language professionals for live 1-on-1 video classes.
             </p>
-            <div className="flex gap-4 text-sm font-medium text-text-muted">
-              <a href="https://www.facebook.com/share/1DMjvSQGrU/" target="_blank" rel="noopener noreferrer" className="hover:text-gold transition-colors">Facebook</a>
-              <a href="https://www.instagram.com/languagemetrics?utm_source=qr&igsi=MW0wd25vZDExcWtvYg==" target="_blank" rel="noopener noreferrer" className="hover:text-gold transition-colors">Instagram</a>
-              <a href="https://www.linkedin.com/company/languagemetrics/" target="_blank" rel="noopener noreferrer" className="hover:text-gold transition-colors">LinkedIn</a>
+            <div className="flex gap-3">
+              <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-lg bg-surface-inset flex items-center justify-center text-text-muted hover:text-brand hover:bg-brand/10 transition-colors" aria-label="Twitter">
+                <Globe className="w-4 h-4" />
+              </a>
+              <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-lg bg-surface-inset flex items-center justify-center text-text-muted hover:text-brand hover:bg-brand/10 transition-colors" aria-label="LinkedIn">
+                <ExternalLink className="w-4 h-4" />
+              </a>
+              <a href="mailto:hello@languagemetrics.com" className="w-8 h-8 rounded-lg bg-surface-inset flex items-center justify-center text-text-muted hover:text-brand hover:bg-brand/10 transition-colors">
+                <Mail className="w-4 h-4" />
+              </a>
             </div>
           </div>
 
-          <div>
-            <h3 className="font-semibold mb-4 text-text">Product</h3>
-            <ul className="space-y-3 text-sm text-text-muted">
-              <li><a href="#students" className="hover:text-gold transition-colors">For Students</a></li>
-              <li><a href="#pricing" className="hover:text-gold transition-colors">Pricing & Coins</a></li>
-              <li><Link href="#" className="hover:text-gold transition-colors">Browse Languages</Link></li>
-              <li><Link href="#" className="hover:text-gold transition-colors">Student Reviews</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="font-semibold mb-4 text-text">For Teachers</h3>
-            <ul className="space-y-3 text-sm text-text-muted">
-              <li><Link href="/register/teacher" className="hover:text-gold transition-colors">Apply to Teach</Link></li>
-              <li><Link href="#" className="hover:text-gold transition-colors">Teacher Handbook</Link></li>
-              <li><Link href="#" className="hover:text-gold transition-colors">Earnings & Payouts</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="font-semibold mb-4 text-text">Stay Updated</h3>
-            <p className="text-sm text-text-muted mb-4">Subscribe to our newsletter for language learning tips.</p>
-            <form className="flex flex-col gap-2">
-              <Input type="email" placeholder="Enter your email" className="bg-bg" />
-              <Button variant="primary" className="w-full">Subscribe</Button>
-            </form>
-          </div>
+          {/* Link Columns */}
+          {Object.entries(footerLinks).map(([title, links]) => (
+            <div key={title}>
+              <h3 className="text-sm font-semibold text-text mb-3">{title}</h3>
+              <ul className="space-y-2">
+                {links.map((link) => (
+                  <li key={link.label}>
+                    <Link href={link.href} className="text-sm text-text-muted hover:text-brand transition-colors">
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
 
-        <div className="mt-16 border-t border-border pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-text-subtle text-center md:text-left">
+        {/* Bottom */}
+        <div className="mt-10 pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-text-subtle">
           <p>© {new Date().getFullYear()} Language Metrics. All rights reserved.</p>
-          <div className="flex flex-wrap justify-center md:justify-end gap-4 md:gap-6">
-            <Link href="#" className="hover:text-text transition-colors">Privacy (DPDP Act)</Link>
-            <Link href="#" className="hover:text-text transition-colors">Terms of Service</Link>
-            <Link href="#" className="hover:text-text transition-colors">Secure Payments via Razorpay</Link>
+          <div className="flex gap-4">
+            <Link href="/privacy" className="hover:text-text transition-colors">Privacy</Link>
+            <Link href="/terms" className="hover:text-text transition-colors">Terms</Link>
+            <Link href="/cookies" className="hover:text-text transition-colors">Cookies</Link>
           </div>
         </div>
       </div>

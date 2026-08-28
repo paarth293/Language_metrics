@@ -37,8 +37,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Please select a valid language to learn." }, { status: 400 });
       }
 
-      const validLevels = ["BEGINNER", "INTERMEDIATE", "ADVANCED"];
-      if (!proficiencyLevel || !validLevels.includes(proficiencyLevel)) {
+      if (!proficiencyLevel || typeof proficiencyLevel !== "string" || proficiencyLevel.length > 50) {
         return NextResponse.json({ error: "Please select a valid proficiency level." }, { status: 400 });
       }
 
@@ -47,7 +46,7 @@ export async function POST(request: NextRequest) {
         data: {
           name: name.trim(),
           languageToLearn,
-          proficiencyLevel: proficiencyLevel as "BEGINNER" | "INTERMEDIATE" | "ADVANCED",
+          proficiencyLevel: proficiencyLevel.toUpperCase(),
           onboardingComplete: true,
         },
       });

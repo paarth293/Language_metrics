@@ -36,7 +36,7 @@ export function VerificationEmail({ name, link }: VerificationEmailProps) {
         Verify Email Address
       </a>
       <p style={{ color: '#8a93a6', fontSize: '13px', marginTop: '24px' }}>
-        This link expires in 24 hours. If you didn't create an account, you can safely ignore this email.
+        This link expires in 24 hours. If you didn&apos;t create an account, you can safely ignore this email.
       </p>
     </div>
   );
@@ -58,7 +58,7 @@ export function PasswordResetEmail({ name, link }: PasswordResetEmailProps) {
         Reset Password
       </a>
       <p style={{ color: '#8a93a6', fontSize: '13px', marginTop: '24px' }}>
-        This link expires in 1 hour. If you didn't request this, you can safely ignore this email.
+        This link expires in 1 hour. If you didn&apos;t request this, you can safely ignore this email.
       </p>
     </div>
   );
