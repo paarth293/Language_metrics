@@ -1,7 +1,60 @@
 "use client";
-
 import React from "react";
 import { motion } from "framer-motion";
+
+interface FounderCardProps {
+  role: string;
+  initials: string;
+  name: string;
+  subtitle: string;
+  paragraphs: string[];
+  signature: string;
+  delay?: number;
+}
+
+function FounderCard({ role, initials, name, subtitle, paragraphs, signature, delay = 0 }: FounderCardProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-50px" }}
+      transition={{ duration: 0.6, delay }}
+      className="relative bg-surface rounded-[2rem] p-8 md:p-10 shadow-sm border border-border overflow-hidden"
+    >
+      {/* Decorative quotation mark */}
+      <span
+        aria-hidden="true"
+        className="absolute top-4 right-6 font-display text-[5rem] leading-none text-text-muted opacity-10 select-none pointer-events-none"
+      >
+        &ldquo;
+      </span>
+
+      {/* Role label */}
+      <span className="font-script text-lg text-gold mb-4 block">{role}</span>
+
+      {/* Avatar + Name row */}
+      <div className="flex items-center gap-4 mb-6">
+        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-[hsl(220,15%,88%)] flex items-center justify-center">
+          <span className="font-display text-sm font-bold text-text tracking-wide">{initials}</span>
+        </div>
+        <div>
+          <h3 className="font-display text-2xl font-bold text-text leading-tight">{name}</h3>
+          <p className="text-text-muted text-sm mt-0.5">{subtitle}</p>
+        </div>
+      </div>
+
+      {/* Body paragraphs */}
+      <div className="space-y-4 text-text-muted text-sm leading-relaxed">
+        {paragraphs.map((p, i) => (
+          <p key={i}>{p}</p>
+        ))}
+      </div>
+
+      {/* Signature */}
+      <p className="font-script text-xl text-text mt-6">— {signature}</p>
+    </motion.div>
+  );
+}
 
 export default function VisionSection() {
   return (
@@ -21,8 +74,9 @@ export default function VisionSection() {
       </div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-12 text-center">
-          <div className="flex items-center justify-center gap-3 mb-4">
+        {/* Section heading */}
+        <div className="mb-12 text-center lg:text-left">
+          <div className="flex items-center justify-center lg:justify-start gap-3 mb-4">
             <div className="w-8 h-px bg-gold"></div>
             <span className="font-script text-xl text-gold">Leadership</span>
           </div>
@@ -31,83 +85,46 @@ export default function VisionSection() {
           </h2>
         </div>
 
+        {/* Cards grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-          {/* Riyansh Gupta Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-50px" }}
-            transition={{ duration: 0.6 }}
-            className="bg-surface rounded-[2rem] p-8 md:p-12 shadow-sm border border-border relative overflow-hidden"
-          >
-            {/* Quote Icon */}
-            <div className="absolute top-8 right-8 text-brand/5 pointer-events-none">
-              <svg width="80" height="80" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                <path d="M14.017 21L16.417 14.591V3H21V14.591L18.583 21H14.017ZM3 21L5.4 14.591V3H10V14.591L7.583 21H3Z" />
-              </svg>
-            </div>
+          {/* Riyansh Gupta */}
+          <FounderCard
+            role="Founder"
+            initials="RG"
+            name="Riyansh Gupta"
+            subtitle="Founder, Language Metrics"
+            delay={0}
+            paragraphs={[
+              "I started Language Metrics with a simple belief: language should open doors, not create barriers.",
+              "For many people, learning a language is not just about knowing words or grammar. It is about being able to express yourself, connect with others, study, work, travel, and feel confident in a world that is becoming more connected every day.",
+              "I want Language Metrics to make that journey simpler and more meaningful. We are building a platform where people can understand their language abilities, identify where they need to improve, and see their progress in a way that is clear and measurable.",
+              "My vision is to build something that genuinely helps people—not just another platform, but a trusted space where learners, teachers, and institutions can come together.",
+              "We are starting from India, but the dream is much bigger. I want Language Metrics to eventually help people across the world measure their language, understand their potential, and communicate without limits.",
+            ]}
+            signature="Riyansh Gupta"
+          />
 
-            <div className="mb-8 relative z-10">
-              <span className="font-script text-xl text-gold mb-4 block">Founder</span>
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-brand/5 border border-brand/10 flex items-center justify-center flex-shrink-0 text-brand font-display font-semibold text-lg">
-                  RG
-                </div>
-                <div>
-                  <h3 className="font-display text-2xl font-bold text-text">Riyansh Gupta</h3>
-                  <p className="text-text-muted text-sm mt-0.5">Founder, Language Metrics</p>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-6 text-text-muted leading-relaxed relative z-10">
-              <p>I started Language Metrics with a simple belief: language should open doors, not create barriers.</p>
-              <p>For many people, learning a language is not just about knowing words or grammar. It is about being able to express yourself, connect with others, study, work, travel, and feel confident in a world that is becoming more connected every day.</p>
-              <p>I want Language Metrics to make that journey simpler and more meaningful. We are building a platform where people can understand their language abilities, identify where they need to improve, and see their progress in a way that is clear and measurable.</p>
-              <p>My vision is to build something that genuinely helps people—not just another platform, but a trusted space where learners, teachers, and institutions can come together.</p>
-              <p>We are starting from India, but the dream is much bigger. I want Language Metrics to eventually help people across the world measure their language, understand their potential, and communicate without limits.</p>
-              <p className="font-script text-2xl text-text pt-4">— Riyansh Gupta</p>
-            </div>
-          </motion.div>
-
-          {/* Priyanshu Raj Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-50px" }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="bg-surface rounded-[2rem] p-8 md:p-12 shadow-sm border border-border relative overflow-hidden"
-          >
-            {/* Quote Icon */}
-            <div className="absolute top-8 right-8 text-brand/5 pointer-events-none">
-              <svg width="80" height="80" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                <path d="M14.017 21L16.417 14.591V3H21V14.591L18.583 21H14.017ZM3 21L5.4 14.591V3H10V14.591L7.583 21H3Z" />
-              </svg>
-            </div>
-
-            <div className="mb-8 relative z-10">
-              <span className="font-script text-xl text-gold mb-4 block">Co-Founder</span>
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-brand/5 border border-brand/10 flex items-center justify-center flex-shrink-0 text-brand font-display font-semibold text-lg">
-                  PR
-                </div>
-                <div>
-                  <h3 className="font-display text-2xl font-bold text-text">Priyanshu Raj</h3>
-                  <p className="text-text-muted text-sm mt-0.5">Co-Founder, Language Metrics</p>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-6 text-text-muted leading-relaxed relative z-10">
-              <p>I&apos;m joining Language Metrics because I believe technology should make learning more personal, measurable, and accessible.</p>
-              <p>As the technical co-founder, I, with my team, am responsible for turning the vision behind Language Metrics into something people can actually experience. We enjoy working through complex problems, building the systems that power the product, and finding better ways to make technology serve the people using it.</p>
-              <p>What excites me most is taking an idea and turning it into something people can actually use—whether that involves designing a backend system or figuring out how AI can make learning smarter. I&apos;m particularly interested in how intelligent systems can move language learning beyond traditional methods to make it more adaptive and meaningful.</p>
-              <p>With Language Metrics, we want to build more than just another learning platform – technology that understands where a learner stands, identifies where they can improve, and helps them see their progress clearly. We&apos;re starting from India, but the ambition is global.</p>
-              <p className="font-script text-2xl text-text pt-4">— Priyanshu Raj</p>
-            </div>
-          </motion.div>
+          {/* Priyanshu Raj */}
+          <FounderCard
+            role="Co-Founder"
+            initials="PR"
+            name="Priyanshu Raj"
+            subtitle="Co-Founder,  Language Metrics"
+            delay={0.2}
+            paragraphs={[
+              "I'm building Language Metrics because I believe technology should make learning more personal, measurable, and accessible.",
+              "As the technical co-founder, I, with my team, am responsible for turning the vision behind Language Metrics into something people can actually experience. We enjoy working through complex problems, building the systems that power the product, and finding better ways to make technology serve the people using it.",
+              "What excites me most is taking an idea and turning it into something people can actually use—whether that involves designing a backend system or figuring out how AI can make learning smarter. I'm particularly interested in how intelligent systems can move language learning beyond traditional methods to make it more adaptive and meaningful.",
+              "With Language Metrics, we want to build more than just another learning platform—technology that understands where a learner stands, identifies where they can improve, and helps them see their progress clearly. We're starting from India, but the ambition is global.",
+            ]}
+            signature="Priyanshu Raj"
+          />
         </div>
       </div>
     </section>
   );
 }
+
+
 
 
