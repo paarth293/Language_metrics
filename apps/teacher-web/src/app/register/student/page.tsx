@@ -202,7 +202,8 @@ export default function StudentRegisterPage() {
         setSuccess(true);
         setTimeout(async () => {
           await refreshUser();
-          window.location.href = "http://localhost:3002/dashboard";
+          const studentUrl = process.env.NEXT_PUBLIC_STUDENT_URL || (process.env.NODE_ENV === "production" ? "https://language-metrics-student-web.vercel.app" : "http://localhost:3002");
+          window.location.href = `${studentUrl}/dashboard`;
         }, 1500);
       }
     } catch (err) {
