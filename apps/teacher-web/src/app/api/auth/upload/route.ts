@@ -1,30 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 import { rateLimit } from "@/lib/rate-limit";
-import { verifyAccessToken } from "@/lib/tokens";
-
-/**
- * POST /api/auth/upload
- * Accepts a multipart/form-data file upload for teacher registration documents.
- * Files are stored in public/uploads/temp/ with a unique name.
- *
- * Allowed types: PDF only
- * Max size: 10MB
- *
- * Returns: { url: string, filename: string }
- */
-
-const ALLOWED_TYPES = new Set([
-  "application/pdf",
-]);
-
-const ALLOWED_EXTENSIONS = new Set(["pdf"]);
-
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "temp");
 
 import { uploadFile } from "@/lib/storage";
 
