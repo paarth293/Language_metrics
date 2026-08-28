@@ -197,7 +197,7 @@ export default function StudentRegisterPage() {
       if (!res.ok) {
         setServerError(data.message || "Registration failed");
       } else if (data.verificationRequired) {
-        window.location.href = `/verify-email?email=${encodeURIComponent(email)}`;
+        window.location.assign(`/verify-email?email=${encodeURIComponent(email)}`);
       } else {
         setSuccess(true);
         setTimeout(async () => {
