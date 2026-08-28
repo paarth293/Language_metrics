@@ -177,7 +177,7 @@ export default function TeacherSessions() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-semibold text-text truncate">{booking.student.name}</h3>
-                        <Badge variant={statusConfig.variant as "default" | "secondary" | "destructive" | "outline"} className="text-[10px]">
+                        <Badge variant={statusConfig.variant as "default" | "success" | "warning" | "danger"} className="text-[10px]">
                           {statusConfig.label}
                         </Badge>
                         <Badge variant={booking.type === "DEMO" ? "warning" : "default"} className="text-[10px]">

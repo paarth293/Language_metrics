@@ -99,7 +99,7 @@ export async function verifyRefreshToken(token: string): Promise<RefreshTokenPay
 export const accessCookieOptions = {
   httpOnly: true,
   secure: isProd,
-  sameSite: (isProd ? "none" : "lax") as const,
+  sameSite: (isProd ? "none" : "lax") as "none" | "lax",
   ...(isProd ? { domain: ".localhost" } : {}),
   path: "/",
   maxAge: ACCESS_TOKEN_TTL_SECONDS,
@@ -108,7 +108,7 @@ export const accessCookieOptions = {
 export const refreshCookieOptions = {
   httpOnly: true,
   secure: isProd,
-  sameSite: (isProd ? "none" : "lax") as const,
+  sameSite: (isProd ? "none" : "lax") as "none" | "lax",
   ...(isProd ? { domain: ".localhost" } : {}),
   path: "/api/auth",
   maxAge: REFRESH_TOKEN_TTL_SECONDS,

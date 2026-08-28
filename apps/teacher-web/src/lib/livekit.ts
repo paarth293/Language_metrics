@@ -48,7 +48,8 @@ export async function generateLiveKitToken(params: {
 
   // Dynamic import — livekit-server-sdk is an optional dependency
   // Install it with: npm install livekit-server-sdk
-  const { AccessToken } = await Function('return import("livekit-server-sdk")')() as { AccessToken: new (...args: unknown[]) => unknown };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { AccessToken } = await Function('return import("livekit-server-sdk")')() as any;
 
   const at = new AccessToken(API_KEY, API_SECRET, {
     identity,

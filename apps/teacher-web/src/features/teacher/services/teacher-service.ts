@@ -288,7 +288,8 @@ export class TeacherService {
     });
 
     // Group by student
-    const studentMap = new Map<string, Record<string, unknown>>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const studentMap = new Map<string, any>();
     for (const booking of bookings) {
       const sid = booking.studentId;
       if (!studentMap.has(sid)) {
