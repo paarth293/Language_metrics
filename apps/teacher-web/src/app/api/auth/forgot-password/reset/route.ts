@@ -3,10 +3,30 @@ import { db } from "@/lib/db";
 import { verifyResetSessionToken } from "@/lib/tokens";
 import { getRedisClient } from "@/lib/redis-client";
 import { resetPasswordSchema } from "@/features/auth/validators/auth";
+import { rateLimitRedis, exceedsMaxBodySize } from "@/lib/rate-limit";
 import bcrypt from "bcryptjs";
 
 export async function POST(request: Request) {
   try {
+    // Body size guard
+    if (exceedsMaxBodySize(request)) {
+      return NextResponse.json({ message: "Request body too large." }, { status: 413 });
+    }
+
+    // Per-IP rate limiting — 5 reset attempts per IP per 15 min
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const isLimited = await rateLimitRedis(ip, "pw-reset", {
+      windowMs: 15 * 60_000,
+      max: 5,
+    });
+    if (isLimited) {
+      return NextResponse.json(
+        { message: "Too many attempts. Please wait and try again." },
+        { status: 429, headers: { "Retry-After": "900" } }
+      );
+    }
+
     const body = await request.json();
 
     const result = resetPasswordSchema.safeParse(body);

@@ -28,7 +28,6 @@ export class AuthService {
     if (!isValid) return { error: "INVALID_CREDENTIALS" };
 
     // Email verification enforcement — unverified users cannot receive tokens
-    console.log("LOGIN CHECK for", user.email, "-> emailVerified is:", user.emailVerified);
     if (!user.emailVerified) {
       return { error: "UNVERIFIED_EMAIL" };
     }
