@@ -21,31 +21,45 @@ export default function VisionSection() {
       </div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-12 text-center lg:text-left">
-          <div className="flex items-center justify-center lg:justify-start gap-3 mb-4">
+        <div className="mb-12 text-center">
+          <div className="flex items-center justify-center gap-3 mb-4">
             <div className="w-8 h-px bg-gold"></div>
             <span className="font-script text-xl text-gold">Leadership</span>
           </div>
           <h2 className="font-display text-4xl md:text-5xl font-bold text-text">
-            The Vision Behind Language<br className="hidden lg:block" /> Metrics
+            The Vision Behind Language Metrics
           </h2>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
           {/* Riyansh Gupta Card */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.6 }}
-            className="bg-surface rounded-[2rem] p-8 md:p-12 shadow-sm border border-border"
+            className="bg-surface rounded-[2rem] p-8 md:p-12 shadow-sm border border-border relative overflow-hidden"
           >
-            <div className="mb-8">
-              <span className="font-script text-xl text-gold mb-2 block">Founder</span>
-              <h3 className="font-display text-3xl font-bold text-text">Riyansh Gupta</h3>
-              <p className="text-text-muted text-sm mt-1">Founder, Language Metrics</p>
+            {/* Quote Icon */}
+            <div className="absolute top-8 right-8 text-brand/5 pointer-events-none">
+              <svg width="80" height="80" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M14.017 21L16.417 14.591V3H21V14.591L18.583 21H14.017ZM3 21L5.4 14.591V3H10V14.591L7.583 21H3Z" />
+              </svg>
             </div>
-            <div className="space-y-6 text-text-muted leading-relaxed">
+
+            <div className="mb-8 relative z-10">
+              <span className="font-script text-xl text-gold mb-4 block">Founder</span>
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-brand/5 border border-brand/10 flex items-center justify-center flex-shrink-0 text-brand font-display font-semibold text-lg">
+                  RG
+                </div>
+                <div>
+                  <h3 className="font-display text-2xl font-bold text-text">Riyansh Gupta</h3>
+                  <p className="text-text-muted text-sm mt-0.5">Founder, Language Metrics</p>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-6 text-text-muted leading-relaxed relative z-10">
               <p>I started Language Metrics with a simple belief: language should open doors, not create barriers.</p>
               <p>For many people, learning a language is not just about knowing words or grammar. It is about being able to express yourself, connect with others, study, work, travel, and feel confident in a world that is becoming more connected every day.</p>
               <p>I want Language Metrics to make that journey simpler and more meaningful. We are building a platform where people can understand their language abilities, identify where they need to improve, and see their progress in a way that is clear and measurable.</p>
@@ -55,23 +69,39 @@ export default function VisionSection() {
             </div>
           </motion.div>
 
-          {/* Mohit Gupta Card */}
-          <motion.div 
+          {/* Priyanshu Raj Card */}
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="bg-surface rounded-[2rem] p-8 md:p-12 shadow-sm border border-border"
+            className="bg-surface rounded-[2rem] p-8 md:p-12 shadow-sm border border-border relative overflow-hidden"
           >
-            <div className="mb-8">
-              <span className="font-script text-xl text-gold mb-2 block">Co-Founder</span>
-              <h3 className="font-display text-3xl font-bold text-text">Mohit Gupta</h3>
-              <p className="text-text-muted text-sm mt-1">Co-Founder, Language Metrics</p>
+            {/* Quote Icon */}
+            <div className="absolute top-8 right-8 text-brand/5 pointer-events-none">
+              <svg width="80" height="80" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M14.017 21L16.417 14.591V3H21V14.591L18.583 21H14.017ZM3 21L5.4 14.591V3H10V14.591L7.583 21H3Z" />
+              </svg>
             </div>
-            <div className="space-y-6 text-text-muted leading-relaxed">
-              <p>As Co-Founder of Language Metrics, I set out to build a platform rooted in a simple conviction: language has the power to change how people learn, connect, and create opportunities.</p>
-              <p>My vision is to help turn this idea into something practical, accessible, and impactful—something that genuinely makes a difference in the way people experience language learning.</p>
-              <p className="font-script text-2xl text-text pt-4">— Mohit Gupta</p>
+
+            <div className="mb-8 relative z-10">
+              <span className="font-script text-xl text-gold mb-4 block">Co-Founder</span>
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-brand/5 border border-brand/10 flex items-center justify-center flex-shrink-0 text-brand font-display font-semibold text-lg">
+                  PR
+                </div>
+                <div>
+                  <h3 className="font-display text-2xl font-bold text-text">Priyanshu Raj</h3>
+                  <p className="text-text-muted text-sm mt-0.5">Co-Founder, Language Metrics</p>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-6 text-text-muted leading-relaxed relative z-10">
+              <p>I&apos;m joining Language Metrics because I believe technology should make learning more personal, measurable, and accessible.</p>
+              <p>As the technical co-founder, I, with my team, am responsible for turning the vision behind Language Metrics into something people can actually experience. We enjoy working through complex problems, building the systems that power the product, and finding better ways to make technology serve the people using it.</p>
+              <p>What excites me most is taking an idea and turning it into something people can actually use—whether that involves designing a backend system or figuring out how AI can make learning smarter. I&apos;m particularly interested in how intelligent systems can move language learning beyond traditional methods to make it more adaptive and meaningful.</p>
+              <p>With Language Metrics, we want to build more than just another learning platform – technology that understands where a learner stands, identifies where they can improve, and helps them see their progress clearly. We&apos;re starting from India, but the ambition is global.</p>
+              <p className="font-script text-2xl text-text pt-4">— Priyanshu Raj</p>
             </div>
           </motion.div>
         </div>

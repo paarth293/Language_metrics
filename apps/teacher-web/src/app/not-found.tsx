@@ -1,33 +1,62 @@
-"use client";
-
-import React from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
-import { Compass } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Home, Search, ArrowLeft, BookOpen, MessageCircle } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Page Not Found — Language Metrics",
+  description: "The page you're looking for doesn't exist or has been moved.",
+  robots: { index: false, follow: false },
+};
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-bg flex flex-col items-center justify-center p-6 text-center">
-      <div className="max-w-md w-full flex flex-col items-center space-y-6 animate-fade-up">
-        {/* Icon */}
-        <div className="w-16 h-16 rounded-full bg-brand-subtle text-brand flex items-center justify-center shadow-sm">
-          <Compass className="w-8 h-8" />
+    <div className="min-h-screen bg-bg flex items-center justify-center px-4">
+      <div className="max-w-lg w-full text-center">
+        {/* Large 404 */}
+        <div className="mb-8">
+          <span className="text-[120px] font-display font-bold text-brand/10 leading-none">404</span>
         </div>
 
-        {/* Content */}
-        <div>
-          <h1 className="font-display text-4xl font-bold text-brand mb-2">Page Not Found</h1>
-          <p className="text-text-muted text-sm">
-            Sorry, we couldn&apos;t find the page you are looking for. It might have been moved or deleted.
-          </p>
-        </div>
+        <h1 className="text-3xl font-display font-bold text-text mb-3">Page not found</h1>
+        <p className="text-text-muted mb-8 max-w-md mx-auto">
+          Sorry, we couldn&apos;t find the page you&apos;re looking for. It may have been moved or doesn&apos;t exist.
+        </p>
 
-        {/* Action Button */}
-        <Button asChild variant="gold" className="w-full sm:w-auto px-8">
-          <Link href="/">
-            Go Back Home
+        {/* Internal Links */}
+        <div className="flex flex-col sm:flex-row gap-3 justify-center mb-10">
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-navy text-white font-medium text-sm hover:bg-navy-2 transition-all duration-200"
+          >
+            <Home className="w-4 h-4" /> Go Home
           </Link>
-        </Button>
+          <Link
+            href="/login/teacher"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-border text-text font-medium text-sm hover:bg-surface-inset transition-all duration-200"
+          >
+            <BookOpen className="w-4 h-4" /> Teacher Login
+          </Link>
+          <Link
+            href="/login/student"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-border text-text font-medium text-sm hover:bg-surface-inset transition-all duration-200"
+          >
+            <Search className="w-4 h-4" /> Student Login
+          </Link>
+        </div>
+
+        {/* Helpful Links */}
+        <div className="border-t border-border pt-6">
+          <p className="text-xs text-text-subtle mb-3 uppercase tracking-wider font-medium">Helpful Links</p>
+          <div className="flex flex-wrap gap-2 justify-center">
+            <Link href="/about" className="text-sm text-brand hover:underline">About Us</Link>
+            <span className="text-text-subtle">·</span>
+            <Link href="/contact" className="text-sm text-brand hover:underline">Contact</Link>
+            <span className="text-text-subtle">·</span>
+            <Link href="/faq" className="text-sm text-brand hover:underline">FAQ</Link>
+            <span className="text-text-subtle">·</span>
+            <Link href="/waitlist" className="text-sm text-brand hover:underline">Join Waitlist</Link>
+          </div>
+        </div>
       </div>
     </div>
   );

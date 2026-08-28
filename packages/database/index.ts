@@ -1,8 +1,11 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prismaClientSingleton = () => {
   return new PrismaClient({
-    datasourceUrl: process.env.DATABASE_URL,
+    log:
+      process.env.NODE_ENV === "production"
+        ? ["error", "warn"]
+        : ["query", "error", "warn"],
   });
 };
 
@@ -10,8 +13,13 @@ declare global {
   var prismaGlobal: undefined | ReturnType<typeof prismaClientSingleton>;
 }
 
-export const db = globalThis.prismaGlobal ?? prismaClientSingleton();
+// In production (serverless), always create a new client to avoid stale connections.
+// In development, reuse the global to avoid exhausting connections on HMR.
+export const db =
+  process.env.NODE_ENV === "production"
+    ? prismaClientSingleton()
+    : (globalThis.prismaGlobal ?? prismaClientSingleton());
 
-export * from '@prisma/client';
+if (process.env.NODE_ENV !== "production") globalThis.prismaGlobal = db;
 
-if (process.env.NODE_ENV !== 'production') globalThis.prismaGlobal = db;
+export * from "@prisma/client";

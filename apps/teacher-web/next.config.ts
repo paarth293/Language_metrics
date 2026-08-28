@@ -5,19 +5,60 @@ const isProd = process.env.NODE_ENV === "production";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
 
+  // ── Image Optimization ──────────────────────────────────────────────
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "i.pravatar.cc" },
       { protocol: "https", hostname: "avatars.githubusercontent.com" },
-      // Google OAuth profile photos
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
       { protocol: "https", hostname: "googleusercontent.com" },
-      // Flags
       { protocol: "https", hostname: "flagcdn.com" },
     ],
     formats: ["image/avif", "image/webp"],
+    // Serve smaller images on mobile
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    // Cache optimized images for 30 days
+    minimumCacheTTL: 60 * 60 * 24 * 30,
   },
 
+  // ── Compression ─────────────────────────────────────────────────────
+  // Enable gzip/brotli compression (handled by hosting platform, but
+  // this ensures Next.js outputs are compressible)
+  compress: true,
+
+  // ── Production Optimizations ────────────────────────────────────────
+  // Generate source maps in production for error tracking
+  productionBrowserSourceMaps: false,
+
+  // ── Bundle Analyzer (optional, enable when needed) ──────────────────
+  // Uncomment to analyze bundle:
+  // experimental: { instrumentationHook: true },
+
+  // ── Output optimization ─────────────────────────────────────────────
+  // Prefetches hover/touch resources for faster navigation
+  experimental: {
+    optimizePackageImports: ["lucide-react", "framer-motion"],
+    // Enable PPR for progressive rendering
+    // ppr: true, // Enable when stable
+  },
+
+  // ── Rewrites for SEO-friendly URLs ──────────────────────────────────
+  async rewrites() {
+    return [
+      // Teacher app login redirects
+      {
+        source: "/teacher/login",
+        destination: "/login/teacher",
+      },
+      {
+        source: "/student/login",
+        destination: "/login/student",
+      },
+    ];
+  },
+
+  // ── Security & Performance Headers ──────────────────────────────────
   async headers() {
     return [
       {
@@ -28,7 +69,10 @@ const nextConfig: NextConfig = {
           // MIME sniffing protection
           { key: "X-Content-Type-Options", value: "nosniff" },
           // Referrer policy
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
           // Permissions policy
           {
             key: "Permissions-Policy",
@@ -40,7 +84,6 @@ const nextConfig: NextConfig = {
             value: "max-age=31536000; includeSubDomains; preload",
           },
           // Content Security Policy
-          // Allows: self-hosted assets, Google OAuth, Upstash Redis (API calls go server-side)
           {
             key: "Content-Security-Policy",
             value: [
@@ -50,29 +93,38 @@ const nextConfig: NextConfig = {
               `script-src 'self'${isProd ? "" : " 'unsafe-eval'"} 'unsafe-inline'`,
               // Styles: self + inline (required by Next.js)
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              // Fonts: self + Google Fonts
               "font-src 'self' https://fonts.gstatic.com",
-              // Images: self + Google profile photos + data URIs + flags
               "img-src 'self' data: https://lh3.googleusercontent.com https://i.pravatar.cc https://avatars.githubusercontent.com https://flagcdn.com",
-              // API connections: self + Google OAuth endpoints
               "connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com",
-              // Frames: only Google OAuth popup
               "frame-src https://accounts.google.com",
-              // Form actions: only self
               "form-action 'self'",
-              // Base URI: only self (prevents base tag injection)
               "base-uri 'self'",
-              // Object sources: none
               "object-src 'none'",
             ].join("; "),
           },
         ],
       },
+      // Static assets — aggressive caching
+      {
+        source: "/_next/static/(.*)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      // Brand images — cache for 7 days
+      {
+        source: "/brand/(.*)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=604800, stale-while-revalidate=86400",
+          },
+        ],
+      },
     ];
-  },
-
-  experimental: {
-    optimizePackageImports: ["lucide-react", "framer-motion"],
   },
 };
 

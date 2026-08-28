@@ -7,7 +7,7 @@ import * as React from "react";
 vi.mock("react", async (importOriginal) => {
   const actual = await importOriginal();
   return {
-    ...(actual as any),
+    ...(actual as Record<string, unknown>),
     useActionState: vi.fn(),
   };
 });
@@ -16,7 +16,7 @@ vi.mock("react", async (importOriginal) => {
 vi.mock("react-dom", async (importOriginal) => {
   const actual = await importOriginal();
   return {
-    ...(actual as any),
+    ...(actual as Record<string, unknown>),
     useFormStatus: () => ({ pending: false }),
   };
 });

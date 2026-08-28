@@ -11,8 +11,8 @@ import { escapeHtml } from "@/lib/sanitize";
  * POST /api/auth/send-otp
  * Body: { email }
  *
- * Generates a 6-digit OTP, hashes it, stores it on the User row,
- * and sends it via Zoho SMTP.
+ * Generates a 6-digit OTP, hashes it, stores it in the EmailVerificationCode
+ * table, and sends it via Resend.
  *
  * Rate limiting (Redis):
  *  - 60-second cooldown per email (prevents spamming)
@@ -20,8 +20,8 @@ import { escapeHtml } from "@/lib/sanitize";
  *
  * Security:
  *  - OTP is bcrypt-hashed before storage — never stored in plaintext.
- *  - Only the first 3 digits are kept as a plaintext prefix for
- *    support/debug lookups (not enough to reconstruct the full code).
+ *  - OTP is stored in the EmailVerificationCode table with a bcrypt hash,
+ *    consistent with the verify-email POST route.
  *  - OTP is NEVER returned in the API response.
  */
 export async function POST(request: NextRequest) {
@@ -109,15 +109,18 @@ export async function POST(request: NextRequest) {
   // ── 5. Generate OTP, hash, and save to DB ───────────────────────────────────
   const otp = generateOtp();
   const otpHash = await hashOtp(otp);
-  const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-  const prefix = otp.slice(0, 3); // First 3 digits for debug/support lookup
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-  await db.user.update({
-    where: { id: user.id },
+  // Clean up any old verification codes for this user, then store the new one
+  await db.emailVerificationCode.deleteMany({
+    where: { userId: user.id },
+  });
+
+  await db.emailVerificationCode.create({
     data: {
-      emailVerificationToken: otpHash,
-      emailVerificationTokenPrefix: prefix,
-      emailVerificationExpiry: expiry,
+      userId: user.id,
+      codeHash: otpHash,
+      expiresAt,
     },
   });
 

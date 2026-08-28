@@ -86,8 +86,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Send verification email (non-blocking — don't fail registration if email fails)
-    sendVerificationEmail(
+    // Send verification email (blocking so Vercel doesn't kill it)
+    await sendVerificationEmail(
       authResult.user.email,
       authResult.user.name,
       verificationToken
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
   // Issue session cookies so the user is immediately logged in
   const sessionId = crypto.randomUUID();
   const [accessToken, refreshToken] = await Promise.all([
-    signAccessToken(authResult.user.id, authResult.user.role),
+    signAccessToken(authResult.user.id, authResult.user.role, emailVerified),
     signRefreshToken(authResult.user.id, sessionId),
   ]);
 

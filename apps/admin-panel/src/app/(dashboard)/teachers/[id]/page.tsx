@@ -62,10 +62,22 @@ export default async function TeacherProfilePage({ params }: { params: Promise<{
                 <p className="text-white capitalize">{teacher.experienceLevel.toLowerCase()}</p>
               </div>
               <div>
-                <p className="text-gray-500 mb-1">Language</p>
-                <p className="text-white">{teacher.language || "Not specified"}</p>
+                <p className="text-gray-500 mb-1">Primary Language</p>
+                <p className="text-white capitalize">{teacher.language?.replace(/_/g, " ") || "Not specified"}</p>
               </div>
             </div>
+            {(teacher.languages && teacher.languages.length > 0) && (
+              <div className="mt-3">
+                <p className="text-gray-500 mb-1 text-sm">All Languages</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {teacher.languages.map((lang: string) => (
+                    <span key={lang} className="px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-900/30 text-indigo-300 border border-indigo-700/30">
+                      {lang.replace(/_/g, " ")}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
             
             <div className="mt-3">
               <p className="text-gray-500 mb-1 text-sm">Bio</p>
@@ -82,7 +94,13 @@ export default async function TeacherProfilePage({ params }: { params: Promise<{
                 {teacher.documents.map((doc) => (
                   <li key={doc.id} className="flex items-center justify-between p-3 bg-gray-800 rounded border border-gray-700">
                     <div>
-                      <p className="text-sm font-medium text-white">{doc.type}</p>
+                      <p className="text-sm font-medium text-white">
+                        {doc.type === "EDUCATION" ? "🎓 Qualification Certificate" :
+                         doc.type === "ID_PROOF" ? "🪪 ID Proof" :
+                         doc.type === "EXPERIENCE_LETTER" ? "💼 Experience Document" :
+                         doc.type === "LANGUAGE_CERTIFICATE" ? "📜 Language Certificate" :
+                         doc.type}
+                      </p>
                       <a href={doc.url} target="_blank" rel="noreferrer" className="text-xs text-indigo-400 hover:underline">View Document</a>
                     </div>
                     <div>

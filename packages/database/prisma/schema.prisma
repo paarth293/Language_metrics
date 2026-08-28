@@ -11,47 +11,38 @@ datasource db {
 /// RLS: Public read, self write. Admins full access.
 /// Read/Write: Auth webhook writes new users. All apps read.
 model User {
-  id                           String            @id @db.Uuid
-  email                        String            @unique
+  email                        String                  @unique
+  createdAt                    DateTime                @default(now())
+  updatedAt                    DateTime                @updatedAt
+  id                           String                  @id @db.Uuid
   role                         UserRole
-
-  // Credentials
-  passwordHash                 String?
   /// bcrypt-hashed single-use backup codes
-  backupCodes                  String[]          @default([])
-  totpEnabled                  Boolean           @default(false)
+  backupCodes                  String[]                @default([])
+  passwordHash                 String?
+  totpEnabled                  Boolean                 @default(false)
   /// AES-256-GCM encrypted TOTP secret (base64 payload). Never store plaintext.
   totpSecret                   String?
   /// Optional login handle (admin panel uses username "admin")
-  username                     String?           @unique
-
-  /// Email verification — Boolean for simplicity; verified = true
-  emailVerified                Boolean           @default(false)
-  emailVerificationToken       String?           // bcrypt hash of the one-time token
-  emailVerificationTokenPrefix String?           // first 8 chars (plaintext) for fast lookup
+  username                     String?                 @unique
   emailVerificationExpiry      DateTime?
-
-  /// Password reset
-  passwordResetToken           String?           // bcrypt hash of the one-time token
+  emailVerificationToken       String?
   passwordResetExpiry          DateTime?
-
-  createdAt                    DateTime          @default(now())
-  updatedAt                    DateTime          @updatedAt
-
-  // Profiles
-  studentProfile               StudentProfile?
-  teacherProfile               TeacherProfile?
-
-  // Relations
-  oauthAccounts                OAuthAccount[]
-  verificationCodes            EmailVerificationCode[]
-  sentMessages                 ChatMessage[]     @relation("SentMessages")
-  receivedMessages             ChatMessage[]     @relation("ReceivedMessages")
-  coinTransactions             CoinTransaction[]
-  payments                     Payment[]
-  notifications                Notification[]
+  /// Password reset
+  passwordResetToken           String?
+  emailVerificationTokenPrefix String?
+  /// Email verification — Boolean for simplicity; verified = true
+  emailVerified                Boolean                 @default(false)
   adminLogs                    AdminAuditLog[]
   adminUser                    AdminUser?
+  receivedMessages             ChatMessage[]           @relation("ReceivedMessages")
+  sentMessages                 ChatMessage[]           @relation("SentMessages")
+  coinTransactions             CoinTransaction[]
+  verificationCodes            EmailVerificationCode[]
+  notifications                Notification[]
+  oauthAccounts                OAuthAccount[]
+  payments                     Payment[]
+  studentProfile               StudentProfile?
+  teacherProfile               TeacherProfile?
 
   @@index([createdAt])
   @@index([emailVerificationToken])
@@ -61,49 +52,42 @@ model User {
 /// RLS: Public read. Self write.
 /// Read/Write: Student app reads/writes. Teacher/Admin apps read.
 model StudentProfile {
-  userId             String           @id @db.Uuid
-  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  userId             String        @id @db.Uuid
   name               String
-  avatarUrl          String?          // Profile picture URL (from Google or uploaded)
   languageToLearn    String
-  proficiencyLevel   ProficiencyLevel
-  status             StudentStatus    @default(ACTIVE)
-  onboardingComplete Boolean          @default(false)
-
-  // Relations
+  status             StudentStatus @default(ACTIVE)
+  avatarUrl          String?
+  onboardingComplete Boolean       @default(false)
+  proficiencyLevel   String        @default("A1")
   bookings           Booking[]
   reviews            Review[]
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 /// RLS: Public read (only approved/active fields). Self write.
 /// Read/Write: Teacher app reads/writes. Student app reads. Admin app reads/writes (approvals).
 model TeacherProfile {
   userId             String                 @id @db.Uuid
-  user               User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
   name               String
-  avatarUrl          String?                // Profile picture URL (from Google or uploaded)
   gender             String?
   bio                String?
   experienceLevel    TeacherExperienceLevel
   status             VerificationStatus     @default(PENDING)
-  onboardingComplete Boolean                @default(false)
-
   language           String?
   demoVideoUrl       String?
-
   createdAt          DateTime               @default(now())
   updatedAt          DateTime               @updatedAt
-
-  // Relations
-  documents          TeacherDocument[]
-  interviews         Interview[]
-  rates              TeacherRate[]
+  avatarUrl          String?
+  onboardingComplete Boolean                @default(false)
+  languages          String[]               @default([])
   availability       AvailabilitySlot[]
   bookings           Booking[]
+  interviews         Interview[]
   payouts            Payout[]
   reviews            Review[]
+  documents          TeacherDocument[]
+  user               User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rates              TeacherRate[]
 
   @@index([status])
   @@index([language, status])
@@ -502,9 +486,8 @@ model EmailVerificationCode {
   expiresAt DateTime
   attempts  Int      @default(0)
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
   @@index([userId])
   @@index([expiresAt])
 }
@@ -512,13 +495,13 @@ model EmailVerificationCode {
 /// OAuth provider accounts linked to a User.
 /// A single User can have multiple OAuth accounts (one per provider).
 model OAuthAccount {
-  id                String   @id @default(uuid()) @db.Uuid
   userId            String   @db.Uuid
   provider          String
   providerAccountId String
   accessToken       String?
   refreshToken      String?
   createdAt         DateTime @default(now())
+  id                String   @id @default(uuid()) @db.Uuid
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
@@ -529,12 +512,6 @@ enum UserRole {
   STUDENT
   TEACHER
   ADMIN
-}
-
-enum ProficiencyLevel {
-  BEGINNER
-  INTERMEDIATE
-  ADVANCED
 }
 
 enum StudentStatus {
@@ -560,6 +537,7 @@ enum DocumentType {
   LANGUAGE_CERTIFICATE
   EXPERIENCE_LETTER
   OTHER
+  ID_PROOF
 }
 
 enum DocumentStatus {

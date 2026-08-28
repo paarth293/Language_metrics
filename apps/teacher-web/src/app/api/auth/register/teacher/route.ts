@@ -17,15 +17,18 @@ import { storeRefreshSession } from "@/lib/redis-session";
 
 /**
  * POST /api/auth/register/teacher
- * Body: { name, email, password, language, gender?, experienceType }
+ * Body: { name, email, password, language, gender?, qualificationDocUrl,
+ *         idProofDocUrl, experienceType, experienceDocUrl?, experienceDescription? }
  *
  * On success:
  *  - Creates user + teacher profile (status: PENDING — awaits admin approval).
+ *  - Creates teacher document records for qualification, ID proof, and optional experience doc.
  *  - Sends email verification email.
  *  - Issues access + refresh token cookies.
  *  - Returns { user, requiresVerification: true }.
  */
 export async function POST(request: NextRequest) {
+  try {
   if (exceedsMaxBodySize(request)) {
     return NextResponse.json({ message: "Request body too large." }, { status: 413 });
   }
@@ -86,7 +89,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    sendVerificationEmail(
+    await sendVerificationEmail(
       authResult.user.email,
       authResult.user.name,
       verificationToken
@@ -95,7 +98,7 @@ export async function POST(request: NextRequest) {
 
   const sessionId = crypto.randomUUID();
   const [accessToken, refreshToken] = await Promise.all([
-    signAccessToken(authResult.user.id, authResult.user.role),
+    signAccessToken(authResult.user.id, authResult.user.role, emailVerified),
     signRefreshToken(authResult.user.id, sessionId),
   ]);
 
@@ -116,4 +119,11 @@ export async function POST(request: NextRequest) {
   });
 
   return response;
+  } catch (err) {
+    console.error("[Register Teacher] Unhandled error:", err);
+    return NextResponse.json(
+      { message: "An unexpected error occurred. Please try again." },
+      { status: 500 }
+    );
+  }
 }

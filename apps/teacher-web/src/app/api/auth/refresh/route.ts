@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
   const { db } = await import("@/lib/db");
   const user = await db.user.findUnique({
     where: { id: userId },
-    select: { id: true, role: true, email: true, studentProfile: { select: { name: true } }, teacherProfile: { select: { name: true } } },
+    select: { id: true, role: true, email: true, emailVerified: true, studentProfile: { select: { name: true } }, teacherProfile: { select: { name: true } } },
   });
 
   if (!user) {
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
   }
 
   const [newAccessToken, newRefreshToken] = await Promise.all([
-    signAccessToken(user.id, user.role),
+    signAccessToken(user.id, user.role, user.emailVerified),
     signRefreshToken(user.id, newSessionId),
   ]);
 

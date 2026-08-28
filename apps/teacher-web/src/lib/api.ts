@@ -35,7 +35,14 @@ export const authApi = {
     name: string;
     email: string;
     password: string;
+    language: string;
+    languages: string[];
+    gender?: string;
+    qualificationDocUrl: string;
+    idProofDocUrl: string;
     experienceType: string;
+    experienceDocUrl?: string;
+    experienceDescription?: string;
   }) => api.post("/auth/register/teacher", data),
 };
 

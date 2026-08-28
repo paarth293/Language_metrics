@@ -74,16 +74,30 @@ export const teacherStep1Schema = z
 
 export const teacherStep2Schema = z
   .object({
-    language: z.string().min(1, "Please select a language."),
+    language: z.string().min(1, "Please select a primary language."),
+    languages: z.array(z.string()).min(1, "Please select at least one language."),
     gender: z.enum(["male", "female", "other"]).optional(),
   })
   .strict();
 
 export const teacherStep3Schema = z
   .object({
+    qualificationDocUrl: z
+      .string()
+      .min(1, "Please upload your qualification certificate."),
+    idProofDocUrl: z
+      .string()
+      .min(1, "Please upload your ID proof."),
+  })
+  .strict();
+
+export const teacherStep4Schema = z
+  .object({
     experienceType: z.enum(["fresher", "experienced"], {
       message: "Please select a valid experience type.",
     }),
+    experienceDocUrl: z.string().optional(),
+    experienceDescription: z.string().max(500).optional(),
   })
   .strict();
 
@@ -99,9 +113,11 @@ export const registerStudentSchema = z
       .min(2, "Please specify a valid language.")
       .max(30, "Language name is too long."),
     proficiencyLevel: z
-      .enum(["beginner", "intermediate", "advanced"])
+      .string()
+      .min(1, "Please select a proficiency level.")
+      .max(50, "Level name is too long.")
       .optional()
-      .default("beginner"),
+      .default("A1"),
   })
   .strict();
 
@@ -114,11 +130,20 @@ export const registerTeacherSchema = z
     name: nameSchema,
     email: emailSchema,
     password: passwordSchema,
-    language: z.string().min(1, "Please select a language."),
+    language: z.string().min(1, "Please select a primary language."),
+    languages: z.array(z.string()).min(1, "Please select at least one language."),
     gender: z.enum(["male", "female", "other"]).optional(),
+    qualificationDocUrl: z
+      .string()
+      .min(1, "Please upload your qualification certificate."),
+    idProofDocUrl: z
+      .string()
+      .min(1, "Please upload your ID proof."),
     experienceType: z.enum(["fresher", "experienced"], {
       message: "Please select a valid experience type.",
     }),
+    experienceDocUrl: z.string().optional(),
+    experienceDescription: z.string().max(500).optional(),
   })
   .strict();
 
@@ -142,4 +167,5 @@ export type RegisterTeacherInput = z.infer<typeof registerTeacherSchema>;
 export type TeacherStep1Input = z.infer<typeof teacherStep1Schema>;
 export type TeacherStep2Input = z.infer<typeof teacherStep2Schema>;
 export type TeacherStep3Input = z.infer<typeof teacherStep3Schema>;
+export type TeacherStep4Input = z.infer<typeof teacherStep4Schema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;

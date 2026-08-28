@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
   const { db } = await import("@/lib/db");
   const user = await db.user.findUnique({
     where: { id: userId },
-    select: { id: true, role: true },
+    select: { id: true, role: true, emailVerified: true },
   });
 
   if (!user) {
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
 
   // 4. Issue new tokens
   const [newAccessToken, newRefreshToken] = await Promise.all([
-    signAccessToken(user.id, user.role),
+    signAccessToken(user.id, user.role, user.emailVerified),
     signRefreshToken(user.id, newSessionId),
   ]);
 

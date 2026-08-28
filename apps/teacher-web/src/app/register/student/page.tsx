@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { registerStudentSchema, PASSWORD_RULES } from "@/features/auth/validators/auth";
 import { useAuth } from "@/lib/auth-client";
+import { LANGUAGES, getLevelsForLanguage } from "@/lib/languages";
 
 type FieldErrors = Partial<
   Record<"name" | "email" | "password" | "languageToLearn" | "proficiencyLevel", string>
@@ -36,7 +37,7 @@ export default function StudentRegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [language, setLanguage] = useState("");
-  const [level, setLevel] = useState<"beginner" | "intermediate" | "advanced">("beginner");
+  const [level, setLevel] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -201,7 +202,7 @@ export default function StudentRegisterPage() {
         setSuccess(true);
         setTimeout(async () => {
           await refreshUser();
-          router.push("/coming-soon");
+          window.location.href = "http://localhost:3002/dashboard";
         }, 1500);
       }
     } catch (err) {
@@ -457,13 +458,16 @@ export default function StudentRegisterPage() {
                   fieldErrors.languageToLearn ? "border-danger" : "border-border"
                 }`}
                 value={language}
-                onChange={(e) => { setLanguage(e.target.value); clearError("languageToLearn"); }}
+                onChange={(e) => {
+                  setLanguage(e.target.value);
+                  setLevel("");
+                  clearError("languageToLearn");
+                }}
               >
                 <option value="" disabled>Select language...</option>
-                <option value="spanish">Spanish 🇪🇸</option>
-                <option value="french">French 🇫🇷</option>
-                <option value="japanese">Japanese 🇯🇵</option>
-                <option value="english">English 🇬🇧</option>
+                {LANGUAGES.map((l) => (
+                  <option key={l.code} value={l.name.toLowerCase()}> {l.flag} {l.name}</option>
+                ))}
               </select>
               {fieldErrors.languageToLearn && (
                 <p className="text-xs text-danger mt-1">{fieldErrors.languageToLearn}</p>
@@ -475,11 +479,13 @@ export default function StudentRegisterPage() {
               <select
                 className="flex h-11 w-full rounded-md border border-border bg-surface-inset px-3 py-2 text-sm text-text focus-ring"
                 value={level}
-                onChange={(e) => setLevel(e.target.value as "beginner" | "intermediate" | "advanced")}
+                onChange={(e) => setLevel(e.target.value)}
+                disabled={!language}
               >
-                <option value="beginner">Beginner (A1-A2)</option>
-                <option value="intermediate">Intermediate (B1-B2)</option>
-                <option value="advanced">Advanced (C1-C2)</option>
+                <option value="" disabled>{language ? "Select level..." : "Pick language first"}</option>
+                {getLevelsForLanguage(language).map((lvl) => (
+                  <option key={lvl.value} value={lvl.value}>{lvl.label}</option>
+                ))}
               </select>
             </div>
           </div>

@@ -4,8 +4,9 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { AuthLayout } from "@/components/layout/AuthLayout";
-import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { FileUpload } from "@/components/ui/FileUpload";
+import { Button } from "@/components/ui/Button";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   GraduationCap,
@@ -16,18 +17,8 @@ import {
   Globe,
   BarChart3,
 } from "lucide-react";
-
-const LANGUAGES = [
-  "English", "Spanish", "French", "German", "Italian", "Portuguese",
-  "Japanese", "Korean", "Mandarin Chinese", "Arabic", "Hindi", "Russian",
-  "Dutch", "Swedish", "Turkish", "Polish", "Vietnamese", "Thai",
-];
-
-const PROFICIENCY_LEVELS = [
-  { value: "BEGINNER", label: "Beginner", desc: "I know little to no words", icon: BarChart3, bars: 1 },
-  { value: "INTERMEDIATE", label: "Intermediate", desc: "I can hold basic conversations", icon: BarChart3, bars: 2 },
-  { value: "ADVANCED", label: "Advanced", desc: "I'm nearly fluent", icon: BarChart3, bars: 3 },
-];
+import { TEACHING_LANGUAGES } from "@/lib/languages";
+import { getLevelsForLanguage, type LanguageLevel } from "@/lib/languages";
 
 const EXPERIENCE_LEVELS = [
   { value: "FRESHER", label: "New Teacher", desc: "Just starting my teaching journey" },
@@ -58,9 +49,34 @@ export default function OnboardingPage() {
   const [languageToLearn, setLanguageToLearn] = useState("");
   const [proficiencyLevel, setProficiencyLevel] = useState("");
   const [language, setLanguage] = useState("");
+  const [additionalLanguages, setAdditionalLanguages] = useState<string[]>([]);
   const [bio, setBio] = useState("");
   const [gender, setGender] = useState("");
   const [experienceLevel, setExperienceLevel] = useState("");
+
+  // Toggle additional language
+  const toggleAdditionalLanguage = (code: string) => {
+    setAdditionalLanguages((prev) =>
+      prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]
+    );
+  };
+
+  // Keep primary language in additional list
+  useEffect(() => {
+    if (language && !additionalLanguages.includes(language)) {
+      setTimeout(() => {
+        setAdditionalLanguages((prev) => [language, ...prev.filter((c) => c !== language)]);
+      }, 0);
+    }
+  }, [language, additionalLanguages]);  
+
+  // Document upload fields (teacher only)
+  const [qualificationDocUrl, setQualificationDocUrl] = useState("");
+  const [qualificationFileName, setQualificationFileName] = useState<string | null>(null);
+  const [idProofDocUrl, setIdProofDocUrl] = useState("");
+  const [idProofFileName, setIdProofFileName] = useState<string | null>(null);
+  const [experienceDocUrl, setExperienceDocUrl] = useState("");
+  const [experienceFileName, setExperienceFileName] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -68,7 +84,11 @@ export default function OnboardingPage() {
       .then(({ user }) => {
         if (!user) { router.replace("/login"); return; }
         if (user.onboardingComplete) {
-          router.replace("/coming-soon");
+          if (user.role === "STUDENT") {
+            window.location.href = "http://localhost:3002/dashboard";
+          } else {
+            router.replace("/teacher/dashboard");
+          }
           return;
         }
         setUser(user);
@@ -86,7 +106,18 @@ export default function OnboardingPage() {
     const body =
       user?.role === "STUDENT"
         ? { name, role: "STUDENT", languageToLearn, proficiencyLevel }
-        : { name, role: "TEACHER", language, bio, gender, experienceLevel };
+        : {
+            name,
+            role: "TEACHER",
+            language,
+            languages: Array.from(new Set([language, ...additionalLanguages])),
+            bio,
+            gender,
+            experienceLevel,
+            qualificationDocUrl,
+            idProofDocUrl,
+            experienceDocUrl: experienceDocUrl || undefined,
+          };
 
     try {
       const res = await fetch("/api/auth/onboarding", {
@@ -100,7 +131,11 @@ export default function OnboardingPage() {
         setSubmitting(false);
         return;
       }
-      router.push("/coming-soon");
+      if (user?.role === "STUDENT") {
+        window.location.href = "http://localhost:3002/dashboard";
+      } else {
+        router.push("/teacher/dashboard");
+      }
     } catch {
       setError("Network error. Please try again.");
       setSubmitting(false);
@@ -118,8 +153,8 @@ export default function OnboardingPage() {
     );
   }
 
-  const totalSteps = 2;
   const isStudent = user?.role === "STUDENT";
+  const totalSteps = isStudent ? 2 : 4;
 
   return (
     <AuthLayout>
@@ -274,47 +309,36 @@ export default function OnboardingPage() {
                     required
                   >
                     <option value="">Select a language…</option>
-                    {LANGUAGES.map((l) => (
-                      <option key={l} value={l}>{l}</option>
+                    {TEACHING_LANGUAGES.map((l) => (
+                      <option key={l.code} value={l.name}>{l.flag} {l.name}</option>
                     ))}
                   </select>
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-text">Your Current Level</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {PROFICIENCY_LEVELS.map((lvl) => (
-                      <button
-                        key={lvl.value}
-                        type="button"
-                        onClick={() => setProficiencyLevel(lvl.value)}
-                        className={`flex flex-col items-center gap-2 rounded-xl border p-4 text-center transition-all ${
-                          proficiencyLevel === lvl.value
-                            ? "border-gold bg-gold/10 shadow-glow-gold"
-                            : "border-border bg-surface hover:border-gold/40 hover:bg-surface-inset"
-                        }`}
-                      >
-                        {/* bars icon */}
-                        <div className="flex items-end gap-0.5 h-5">
-                          {[1, 2, 3].map((b) => (
-                            <div
-                              key={b}
-                              className={`w-1.5 rounded-sm transition-colors ${
-                                b <= lvl.bars
-                                  ? proficiencyLevel === lvl.value
-                                    ? "bg-gold"
-                                    : "bg-text-muted"
-                                  : "bg-border"
-                              }`}
-                              style={{ height: `${b * 5 + 5}px` }}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-xs font-semibold text-text">{lvl.label}</span>
-                        <span className="text-[10px] text-text-muted leading-tight">{lvl.desc}</span>
-                      </button>
-                    ))}
-                  </div>
+                  {!languageToLearn ? (
+                    <p className="text-xs text-text-muted">Select a language first to see available levels.</p>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {getLevelsForLanguage(languageToLearn).map((lvl: LanguageLevel, idx: number) => (
+                        <button
+                          key={lvl.value}
+                          type="button"
+                          onClick={() => setProficiencyLevel(lvl.value)}
+                          className={`flex flex-col items-center gap-1.5 rounded-xl border p-3 text-center transition-all ${
+                            proficiencyLevel === lvl.value
+                              ? "border-gold bg-gold/10 shadow-glow-gold"
+                              : "border-border bg-surface hover:border-gold/40 hover:bg-surface-inset"
+                          }`}
+                        >
+                          <span className="text-lg font-bold text-brand">{lvl.shortLabel}</span>
+                          <span className="text-[10px] font-semibold text-text leading-tight">{lvl.label}</span>
+                          <span className="text-[9px] text-text-muted leading-tight">{lvl.description}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -347,7 +371,7 @@ export default function OnboardingPage() {
             </motion.div>
           )}
 
-          {/* ── Step 2 Teacher ────────────────────────────────────── */}
+          {/* ── Step 2 Teacher: Teaching Details ──────────────────── */}
           {step === 2 && !isStudent && (
             <motion.div
               key="step2-teacher"
@@ -368,18 +392,57 @@ export default function OnboardingPage() {
 
               <div className="space-y-3">
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-text">Language You Teach</label>
+                  <label className="text-sm font-medium text-text">Primary Language You Teach *</label>
                   <select
                     className="w-full rounded-xl border border-border bg-surface text-text px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand transition-colors"
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
                     required
                   >
-                    <option value="">Select a language…</option>
-                    {LANGUAGES.map((l) => (
-                      <option key={l} value={l}>{l}</option>
+                    <option value="">Select primary language…</option>
+                    {TEACHING_LANGUAGES.map((l) => (
+                      <option key={l.code} value={l.code}>{l.flag} {l.name}</option>
                     ))}
                   </select>
+                </div>
+
+                {/* Additional Languages */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-text">
+                      Additional Languages <span className="text-text-subtle font-normal">(optional)</span>
+                    </label>
+                    {additionalLanguages.length > 0 && (
+                      <span className="text-xs font-semibold text-brand bg-brand/10 px-2 py-0.5 rounded-full">
+                        {additionalLanguages.length} selected
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5 max-h-[180px] overflow-y-auto pr-1">
+                    {TEACHING_LANGUAGES.filter((l) => l.code !== language).map((lang) => {
+                      const isSelected = additionalLanguages.includes(lang.code);
+                      return (
+                        <button
+                          key={lang.code}
+                          type="button"
+                          onClick={() => toggleAdditionalLanguage(lang.code)}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-all cursor-pointer text-left ${
+                            isSelected
+                              ? "border-brand bg-brand/10 text-brand shadow-sm"
+                              : "border-border bg-surface-inset text-text-muted hover:border-brand/30 hover:bg-surface hover:text-text"
+                          }`}
+                        >
+                          <span className="text-base leading-none flex-shrink-0">{lang.flag}</span>
+                          <span className="truncate">{lang.name}</span>
+                          {isSelected && (
+                            <svg className="w-3 h-3 ml-auto flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -404,10 +467,7 @@ export default function OnboardingPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-text">
-                    Gender{" "}
-                    <span className="text-text-subtle font-normal">(optional)</span>
-                  </label>
+                  <label className="text-sm font-medium text-text">Gender</label>
                   <select
                     className="w-full rounded-xl border border-border bg-surface text-text px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand transition-colors"
                     value={gender}
@@ -454,10 +514,204 @@ export default function OnboardingPage() {
                   Back
                 </Button>
                 <Button
+                  type="button"
+                  variant="primary"
+                  className="flex-1"
+                  onClick={() => setStep(3)}
+                  disabled={!language || !experienceLevel}
+                >
+                  Continue
+                  <ArrowRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ── Step 3 Teacher: Qualifications (Document Uploads) ── */}
+          {step === 3 && !isStudent && (
+            <motion.div
+              key="step3-teacher-quals"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-brand/10 text-brand mb-3">
+                <BookOpen className="w-5 h-5" />
+              </div>
+              <h1 className="font-display text-2xl font-bold text-text mb-1">
+                Upload your qualifications
+              </h1>
+              <p className="text-text-muted text-sm mb-4">
+                These documents will be reviewed by our admin team before your account is approved.
+              </p>
+
+              <div className="space-y-4">
+                <FileUpload
+                  label="Qualification Certificate"
+                  helperText="Upload your highest educational qualification (degree, diploma, teaching certificate, etc.)"
+                  uploadedFileName={qualificationFileName}
+                  onUpload={(url, filename) => {
+                    setQualificationDocUrl(url);
+                    setQualificationFileName(filename);
+                  }}
+                  onRemove={() => {
+                    setQualificationDocUrl("");
+                    setQualificationFileName(null);
+                  }}
+                />
+
+                <FileUpload
+                  label="Government-issued ID Proof"
+                  helperText="Passport, Aadhaar card, driver's license, or any valid government ID"
+                  uploadedFileName={idProofFileName}
+                  onUpload={(url, filename) => {
+                    setIdProofDocUrl(url);
+                    setIdProofFileName(filename);
+                  }}
+                  onRemove={() => {
+                    setIdProofDocUrl("");
+                    setIdProofFileName(null);
+                  }}
+                />
+
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-brand/5 border border-brand/20">
+                  <svg
+                    className="w-4 h-4 text-brand mt-0.5 flex-shrink-0"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <p className="text-xs text-text-muted">
+                    Your documents are securely stored and only accessible to our
+                    admin team for verification purposes.
+                  </p>
+                </div>
+              </div>
+
+              {error && (
+                <div className="mt-4 px-4 py-3 rounded-lg bg-danger/10 border border-danger/30 text-danger text-sm">
+                  {error}
+                </div>
+              )}
+
+              <div className="flex gap-3 mt-4">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setStep(2)}
+                  className="flex-none"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-1" />
+                  Back
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  className="flex-1"
+                  onClick={() => setStep(4)}
+                  disabled={!qualificationDocUrl || !idProofDocUrl}
+                >
+                  Continue
+                  <ArrowRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ── Step 4 Teacher: Experience Document ───────────────── */}
+          {step === 4 && !isStudent && (
+            <motion.div
+              key="step4-teacher-exp"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-brand/10 text-brand mb-3">
+                <BookOpen className="w-5 h-5" />
+              </div>
+              <h1 className="font-display text-2xl font-bold text-text mb-1">
+                {experienceLevel === "EXPERIENCED"
+                  ? "Upload experience proof"
+                  : "Almost done!"}
+              </h1>
+              <p className="text-text-muted text-sm mb-4">
+                {experienceLevel === "EXPERIENCED"
+                  ? "Please upload a document verifying your teaching experience."
+                  : "No experience document needed — you're all set to submit!"}
+              </p>
+
+              <div className="space-y-4">
+                {experienceLevel === "EXPERIENCED" ? (
+                  <FileUpload
+                    label="Experience Document"
+                    helperText="Experience letter, employment certificate, or similar proof of teaching experience"
+                    uploadedFileName={experienceFileName}
+                    onUpload={(url, filename) => {
+                      setExperienceDocUrl(url);
+                      setExperienceFileName(filename);
+                    }}
+                    onRemove={() => {
+                      setExperienceDocUrl("");
+                      setExperienceFileName(null);
+                    }}
+                  />
+                ) : (
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-surface-inset border border-border">
+                    <svg
+                      className="w-4 h-4 text-text-muted mt-0.5 flex-shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <p className="text-xs text-text-muted">
+                      Many successful teachers start without formal experience.
+                      You&apos;ll go through our verification process and can
+                      begin teaching once approved.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {error && (
+                <div className="mt-4 px-4 py-3 rounded-lg bg-danger/10 border border-danger/30 text-danger text-sm">
+                  {error}
+                </div>
+              )}
+
+              <div className="flex gap-3 mt-4">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setStep(3)}
+                  className="flex-none"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-1" />
+                  Back
+                </Button>
+                <Button
                   type="submit"
                   variant="primary"
                   className="flex-1"
-                  disabled={submitting || !language || !experienceLevel}
+                  disabled={
+                    submitting ||
+                    (experienceLevel === "EXPERIENCED" && !experienceDocUrl)
+                  }
                 >
                   {submitting ? "Saving…" : "Complete Setup"}
                   {!submitting && <Check className="w-4 h-4 ml-1" />}

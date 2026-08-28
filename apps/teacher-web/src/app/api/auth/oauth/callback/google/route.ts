@@ -200,7 +200,7 @@ export async function GET(request: NextRequest) {
   // 4. Issue auth cookies
   const sessionId = crypto.randomUUID();
   const [accessToken, refreshToken] = await Promise.all([
-    signAccessToken(userId, userRole),
+    signAccessToken(userId, userRole, true), // Google email is always verified
     signRefreshToken(userId, sessionId),
   ]);
 
@@ -210,7 +210,21 @@ export async function GET(request: NextRequest) {
   });
 
   // 5. Redirect: new users → onboarding, returning users → dashboard
-  const destination = isNewUser ? "/onboarding" : "/coming-soon";
+  let destination: string;
+  if (isNewUser) {
+    destination = "/onboarding";
+  } else {
+    // Returning user: send to role‑specific dashboard
+    if (userRole === "STUDENT") {
+      destination = "http://localhost:3002/dashboard";
+    } else if (userRole === "TEACHER") {
+      destination = "/teacher/dashboard";
+    } else if (userRole === "ADMIN") {
+      destination = "http://localhost:3001/dashboard";
+    } else {
+      destination = "/coming-soon"; // fallback
+    }
+  }
 
   const redirectResponse = NextResponse.redirect(new URL(destination, APP_URL));
   redirectResponse.cookies.set("lm_access_token", accessToken, accessCookieOptions);
