@@ -46,6 +46,8 @@ export async function POST(request: NextRequest) {
   const normalizedEmail = email.toLowerCase().trim();
 
   // ── 1. Check if email is already registered ─────────────────────────────────
+  // Return a generic success to prevent email enumeration.
+  // The actual registration step will reject duplicate emails.
   const existingUser = await db.user.findUnique({
     where: { email: normalizedEmail },
     select: { id: true },
@@ -53,8 +55,8 @@ export async function POST(request: NextRequest) {
 
   if (existingUser) {
     return NextResponse.json(
-      { message: "An account with this email already exists." },
-      { status: 409 }
+      { message: "Verification code sent." },
+      { status: 200 }
     );
   }
 

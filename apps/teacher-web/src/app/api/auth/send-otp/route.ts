@@ -3,8 +3,9 @@ import type { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { getRedisClient } from "@/lib/redis-client";
 import { generateOtp, hashOtp } from "@/lib/otp";
-import { sendVerificationOTP } from "@/lib/email";
+import { sendMail } from "@/lib/zoho-mailer";
 import { exceedsMaxBodySize } from "@/lib/rate-limit";
+import { escapeHtml } from "@/lib/sanitize";
 
 /**
  * POST /api/auth/send-otp
@@ -86,19 +87,22 @@ export async function POST(request: NextRequest) {
   }
 
   // ── 4. Look up user ─────────────────────────────────────────────────────────
-  // NOTE: Returning 404 reveals whether an email is registered. This is a
-  // deliberate tradeoff for better UX during email verification flows.
-  // To prevent email enumeration, change this to always return 200 with a
-  // generic message like "If an account exists, we sent a code."
+  // Always return a generic success message to prevent email enumeration.
   const user = await db.user.findUnique({
     where: { email: normalizedEmail },
     select: { id: true, username: true, email: true },
   });
 
   if (!user) {
+    // Set the cooldown even for unknown emails to prevent probing
+    if (redis) {
+      try {
+        await redis.set(`otp:cooldown:${normalizedEmail}`, "1", "EX", 60);
+      } catch { /* best effort */ }
+    }
     return NextResponse.json(
-      { message: "No account found with this email." },
-      { status: 404 }
+      { message: "If an account exists, a verification code has been sent." },
+      { status: 200 }
     );
   }
 
@@ -121,9 +125,36 @@ export async function POST(request: NextRequest) {
   });
 
   // ── 6. Send OTP email ───────────────────────────────────────────────────────
-  const emailSent = await sendVerificationOTP(user.email, otp);
-  if (!emailSent) {
-    console.error("[send-otp] Failed to send OTP email.");
+  try {
+    await sendMail({
+      to: user.email,
+      subject: "Your Language Metrics verification code",
+      html: `
+        <div style="font-family:'Segoe UI',Roboto,sans-serif;max-width:480px;margin:0 auto;padding:32px">
+          <div style="text-align:center;margin-bottom:24px">
+            <h1 style="font-size:24px;font-weight:700;color:#1a1a2e;margin:0">Language Metrics</h1>
+          </div>
+          <p style="color:#4e5674;margin-bottom:8px">Hi ${escapeHtml(user.username || "there")} 👋</p>
+          <p style="color:#4e5674;margin-bottom:24px">
+            Use the following code to verify your email address. It expires in <strong>10 minutes</strong>.
+          </p>
+          <div style="background:#f8f6f1;border:2px solid #c7982f;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px">
+            <span style="font-size:36px;font-weight:700;letter-spacing:8px;color:#1a1a2e;font-family:monospace">${otp}</span>
+          </div>
+          <p style="color:#8a93a6;font-size:13px">
+            If you didn't request this code, you can safely ignore this email.
+            Do not share this code with anyone.
+          </p>
+          <hr style="border:none;border-top:1px solid #e8e5de;margin:24px 0" />
+          <p style="color:#b0aaa0;font-size:11px;text-align:center">
+            This is an automated message from Language Metrics. Please do not reply to this email.<br />
+            © ${new Date().getFullYear()} Language Metrics. All rights reserved.
+          </p>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error("[send-otp] Failed to send OTP email:", err);
     return NextResponse.json(
       { message: "Failed to send verification email. Please try again." },
       { status: 500 }
@@ -141,7 +172,7 @@ export async function POST(request: NextRequest) {
 
   // ── 8. Success ──────────────────────────────────────────────────────────────
   return NextResponse.json(
-    { message: "Verification code sent." },
+    { message: "If an account exists, a verification code has been sent." },
     { status: 200 }
   );
 }
