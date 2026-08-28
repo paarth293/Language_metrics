@@ -107,9 +107,14 @@ export async function getFileUrl(key: string, expiresIn?: number): Promise<strin
 // ─── S3 Implementation ───────────────────────────────────────────────────
 
 async function uploadToS3(file: Buffer, key: string, contentType: string): Promise<UploadResult> {
-  // Dynamic import to avoid bundling aws-sdk when not using S3
-  // @ts-ignore — optional dependency
-  const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
+  if (PROVIDER !== "s3") throw new Error("S3 provider not configured");
+  // Lazy load S3 client only at runtime
+  let S3Client, PutObjectCommand;
+  try {
+    ({ S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3"));
+  } catch (e) {
+    throw new Error("AWS S3 SDK not installed. Install @aws-sdk/client-s3 to use S3 storage.");
+  }
 
   const client = new S3Client({
     region: process.env.STORAGE_REGION ?? "ap-south-1",
@@ -136,8 +141,14 @@ async function uploadToS3(file: Buffer, key: string, contentType: string): Promi
 }
 
 async function deleteFromS3(key: string): Promise<void> {
-  // @ts-ignore — optional dependency
-  const { S3Client, DeleteObjectCommand } = await import("@aws-sdk/client-s3");
+  if (PROVIDER !== "s3") return;
+  let S3Client, DeleteObjectCommand;
+  try {
+    ({ S3Client, DeleteObjectCommand } = await import("@aws-sdk/client-s3"));
+  } catch (e) {
+    console.warn("AWS S3 SDK not installed, delete skipped.");
+    return;
+  }
   const client = new S3Client({
     region: process.env.STORAGE_REGION ?? "ap-south-1",
     endpoint: process.env.STORAGE_ENDPOINT,
@@ -150,10 +161,14 @@ async function deleteFromS3(key: string): Promise<void> {
 }
 
 async function getS3SignedUrl(key: string, expiresIn = 3600): Promise<string> {
-  // @ts-ignore — optional dependency
-  const { S3Client, GetObjectCommand } = await import("@aws-sdk/client-s3");
-  // @ts-ignore — optional dependency
-  const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
+  if (PROVIDER !== "s3") throw new Error("S3 provider not configured");
+  let S3Client, GetObjectCommand, getSignedUrl;
+  try {
+    ({ S3Client, GetObjectCommand } = await import("@aws-sdk/client-s3"));
+    ({ getSignedUrl } = await import("@aws-sdk/s3-request-presigner"));
+  } catch (e) {
+    throw new Error("AWS S3 SDK not installed. Install @aws-sdk/client-s3 and @aws-sdk/s3-request-presigner.");
+  }
   const client = new S3Client({
     region: process.env.STORAGE_REGION ?? "ap-south-1",
     endpoint: process.env.STORAGE_ENDPOINT,
@@ -168,8 +183,13 @@ async function getS3SignedUrl(key: string, expiresIn = 3600): Promise<string> {
 // ─── Supabase Implementation ─────────────────────────────────────────────
 
 async function uploadToSupabase(file: Buffer, key: string, contentType: string): Promise<UploadResult> {
-  // @ts-ignore — optional dependency
-  const { createClient } = await import("@supabase/supabase-js");
+  if (PROVIDER !== "supabase") throw new Error("Supabase provider not configured");
+  let createClient;
+  try {
+    ({ createClient } = await import("@supabase/supabase-js"));
+  } catch (e) {
+    throw new Error("Supabase SDK not installed. Install @supabase/supabase-js.");
+  }
   const supabase = createClient(
     process.env.SUPABASE_URL ?? "",
     process.env.SUPABASE_SERVICE_KEY ?? ""
@@ -186,8 +206,14 @@ async function uploadToSupabase(file: Buffer, key: string, contentType: string):
 }
 
 async function deleteFromSupabase(key: string): Promise<void> {
-  // @ts-ignore — optional dependency
-  const { createClient } = await import("@supabase/supabase-js");
+  if (PROVIDER !== "supabase") return;
+  let createClient;
+  try {
+    ({ createClient } = await import("@supabase/supabase-js"));
+  } catch (e) {
+    console.warn("Supabase SDK not installed, delete skipped.");
+    return;
+  }
   const supabase = createClient(
     process.env.SUPABASE_URL ?? "",
     process.env.SUPABASE_SERVICE_KEY ?? ""
