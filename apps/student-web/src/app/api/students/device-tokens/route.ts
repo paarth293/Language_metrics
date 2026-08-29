@@ -20,11 +20,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Upsert the device token (one per token)
-    await prisma.deviceToken.upsert({
-      where: { token: deviceToken },
-      update: { platform, userId },
-      create: { token: deviceToken, platform, userId },
-    });
+    // await prisma.deviceToken.upsert({
+    //   where: { token: deviceToken },
+    //   update: { platform, userId },
+    //   create: { token: deviceToken, platform, userId },
+    // });
 
     return NextResponse.json({ success: true });
   } catch (error) {
