@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { BookOpen, ArrowLeft } from "lucide-react";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { OAuthErrorAlert } from "@/components/auth/OAuthErrorAlert";
@@ -24,6 +25,7 @@ function GoogleIcon() {
 }
 
 export default function TeacherLoginPage() {
+  const router = useRouter();
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -51,11 +53,11 @@ export default function TeacherLoginPage() {
     const outcome = await login(email, password, "TEACHER");
     if (!outcome.success) {
       if (outcome.message === "UNVERIFIED_EMAIL") {
-        window.location.href = `/verify-email?email=${encodeURIComponent(email)}`;
+        router.replace(`/verify-email?email=${encodeURIComponent(email)}`);
         return;
       }
       if (outcome.message === "USER_NOT_FOUND") {
-        window.location.href = `/register/teacher?email=${encodeURIComponent(email)}`;
+        router.replace(`/register/teacher?email=${encodeURIComponent(email)}`);
         return;
       }
       setServerError(outcome.message ?? "Login failed.");

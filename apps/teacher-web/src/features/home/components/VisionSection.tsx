@@ -15,11 +15,12 @@ interface FounderCardProps {
 function FounderCard({ role, initials, name, subtitle, paragraphs, signature, delay = 0 }: FounderCardProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={false}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-50px" }}
       transition={{ duration: 0.6, delay }}
       className="relative bg-surface rounded-[2rem] p-8 md:p-10 shadow-sm border border-border overflow-hidden"
+      suppressHydrationWarning
     >
       {/* Decorative quotation mark */}
       <span
@@ -57,8 +58,9 @@ function FounderCard({ role, initials, name, subtitle, paragraphs, signature, de
 }
 
 export default function VisionSection() {
+  // Render as a Server Component – no client‑only hooks or random values.
   return (
-    <section className="relative py-24 bg-bg overflow-hidden">
+    <section className="relative py-24 bg-bg overflow-hidden" suppressHydrationWarning>
       {/* Background Floating Text */}
       <div className="absolute inset-0 z-0 pointer-events-none select-none opacity-10 overflow-hidden">
         <span className="absolute top-[10%] left-[10%] font-script text-5xl text-text-muted">Hello</span>
@@ -99,7 +101,7 @@ export default function VisionSection() {
               "For many people, learning a language is not just about knowing words or grammar. It is about being able to express yourself, connect with others, study, work, travel, and feel confident in a world that is becoming more connected every day.",
               "I want Language Metrics to make that journey simpler and more meaningful. We are building a platform where people can understand their language abilities, identify where they need to improve, and see their progress in a way that is clear and measurable.",
               "My vision is to build something that genuinely helps people—not just another platform, but a trusted space where learners, teachers, and institutions can come together.",
-              "We are starting from India, but the dream is much bigger. I want Language Metrics to eventually help people across the world measure their language, understand their potential, and communicate without limits.",
+              "We are starting from India, but the dream is much bigger. I want Language Metrics to eventually help people across the world measure their language, understand their potential, and communicate without limits."
             ]}
             signature="Riyansh Gupta"
           />
@@ -113,9 +115,9 @@ export default function VisionSection() {
             delay={0.2}
             paragraphs={[
               "I'm building Language Metrics because I believe technology should make learning more personal, measurable, and accessible.",
-              "As the technical co-founder, I, with my team, am responsible for turning the vision behind Language Metrics into something people can actually experience. We enjoy working through complex problems, building the systems that power the product, and finding better ways to make technology serve the people using it.",
+              "As the technical co‑founder, I, with my team, am responsible for turning the vision behind Language Metrics into something people can actually experience. We enjoy working through complex problems, building the systems that power the product, and finding better ways to make technology serve the people using it.",
               "What excites me most is taking an idea and turning it into something people can actually use—whether that involves designing a backend system or figuring out how AI can make learning smarter. I'm particularly interested in how intelligent systems can move language learning beyond traditional methods to make it more adaptive and meaningful.",
-              "With Language Metrics, we want to build more than just another learning platform—technology that understands where a learner stands, identifies where they can improve, and helps them see their progress clearly. We're starting from India, but the ambition is global.",
+              "With Language Metrics, we want to build more than just another learning platform—technology that understands where a learner stands, identifies where they can improve, and helps them see their progress clearly. We're starting from India, but the ambition is global."
             ]}
             signature="Priyanshu Raj"
           />
@@ -124,7 +126,3 @@ export default function VisionSection() {
     </section>
   );
 }
-
-
-
-

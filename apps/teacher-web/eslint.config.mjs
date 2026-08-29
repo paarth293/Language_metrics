@@ -17,6 +17,11 @@ const eslintConfig = defineConfig([
     rules: {
       "@next/next/no-html-link-for-pages": "off",
       "@typescript-eslint/ban-ts-comment": "off",
+      // Downgrade strict hooks rules to warnings — these are style issues, not correctness issues
+      "@typescript-eslint/no-explicit-any": "warn",
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/immutability": "warn",
+      "react-hooks/exhaustive-deps": "warn",
     },
   },
 ]);

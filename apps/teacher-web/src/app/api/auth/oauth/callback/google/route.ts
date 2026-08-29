@@ -216,8 +216,7 @@ export async function GET(request: NextRequest) {
   } else {
     // Returning user: send to role‑specific dashboard
     if (userRole === "STUDENT") {
-      const studentUrl = process.env.NEXT_PUBLIC_STUDENT_URL || (process.env.NODE_ENV === "production" ? "https://language-metrics-student-web.vercel.app" : "http://localhost:3002");
-      destination = `${studentUrl}/dashboard`;
+      destination = "/student/dashboard";
     } else if (userRole === "TEACHER") {
       destination = "/teacher/dashboard";
     } else if (userRole === "ADMIN") {
