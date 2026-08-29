@@ -77,7 +77,7 @@ export default function ThankYouPage() {
         {/* CTA */}
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
-            href={`${process.env.NEXT_PUBLIC_STUDENT_URL || (process.env.NODE_ENV === "production" ? "https://language-metrics-student-web.vercel.app" : "http://localhost:3002")}/dashboard`}
+            href="/student/dashboard"
             className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl bg-navy text-white font-semibold text-sm hover:bg-navy-2 transition-all"
           >
             Go to Dashboard <ArrowRight className="w-4 h-4" />

@@ -118,13 +118,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(data.user);
           // Redirect based on role
           if (data.user.role === "STUDENT") {
-            const studentUrl = process.env.NEXT_PUBLIC_STUDENT_URL || (process.env.NODE_ENV === "production" ? "https://language-metrics-student-web.vercel.app" : "http://localhost:3002");
-            window.location.href = `${studentUrl}/login`;
+            router.push("/student/dashboard");
           }
           else if (data.user.role === "TEACHER") router.push("/teacher/dashboard");
           else if (data.user.role === "ADMIN") {
             const adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || (process.env.NODE_ENV === "production" ? "https://language-metrics-admin-panel.vercel.app" : "http://localhost:3001");
-            window.location.href = `${adminUrl}/dashboard`;
+            router.replace(`${adminUrl}/dashboard`);
           }
         }
 

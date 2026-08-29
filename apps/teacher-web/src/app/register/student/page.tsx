@@ -197,13 +197,12 @@ export default function StudentRegisterPage() {
       if (!res.ok) {
         setServerError(data.message || "Registration failed");
       } else if (data.verificationRequired) {
-        window.location.assign(`/verify-email?email=${encodeURIComponent(email)}`);
+        router.replace(`/verify-email?email=${encodeURIComponent(email)}`);
       } else {
         setSuccess(true);
         setTimeout(async () => {
           await refreshUser();
-          const studentUrl = process.env.NEXT_PUBLIC_STUDENT_URL || (process.env.NODE_ENV === "production" ? "https://language-metrics-student-web.vercel.app" : "http://localhost:3002");
-          window.location.href = `${studentUrl}/dashboard`;
+          router.replace("/student/dashboard");
         }, 1500);
       }
     } catch (err) {
