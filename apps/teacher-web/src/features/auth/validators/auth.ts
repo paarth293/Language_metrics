@@ -99,7 +99,16 @@ export const teacherStep4Schema = z
     experienceDocUrl: z.string().optional(),
     experienceDescription: z.string().max(500).optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((data, ctx) => {
+    if (data.experienceType === "experienced" && (!data.experienceDocUrl || data.experienceDocUrl.trim() === "")) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Please upload your experience document.",
+        path: ["experienceDocUrl"],
+      });
+    }
+  });
 
 // ─── registerStudentSchema ────────────────────────────────────────────────────
 export const registerStudentSchema = z
@@ -122,9 +131,6 @@ export const registerStudentSchema = z
   .strict();
 
 // ─── registerTeacherSchema ────────────────────────────────────────────────────
-// Composed from the two step schemas. We use shape directly since both
-// teacherStep1Schema and teacherStep3Schema are ZodObject instances (strict
-// wrapping does not change the type — .strict() is a flag on ZodObject itself).
 export const registerTeacherSchema = z
   .object({
     name: nameSchema,
@@ -145,7 +151,16 @@ export const registerTeacherSchema = z
     experienceDocUrl: z.string().optional(),
     experienceDescription: z.string().max(500).optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((data, ctx) => {
+    if (data.experienceType === "experienced" && (!data.experienceDocUrl || data.experienceDocUrl.trim() === "")) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Please upload your experience document.",
+        path: ["experienceDocUrl"],
+      });
+    }
+  });
 
 // ─── resetPasswordSchema ──────────────────────────────────────────────────────
 export const resetPasswordSchema = z

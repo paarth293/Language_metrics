@@ -7,6 +7,7 @@ import {
   teacherStep1Schema,
   teacherStep2Schema,
   teacherStep3Schema,
+  teacherStep4Schema,
   PASSWORD_RULES,
 } from "./auth";
 
@@ -105,11 +106,11 @@ describe("registerStudentSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("should default proficiencyLevel to beginner", () => {
+  it("should default proficiencyLevel to A1", () => {
     const result = registerStudentSchema.safeParse(validStudent);
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.proficiencyLevel).toBe("beginner");
+      expect(result.data.proficiencyLevel).toBe("A1");
     }
   });
 
@@ -176,12 +177,31 @@ describe("registerTeacherSchema", () => {
     email: "jane@example.com",
     password: "StrongPass1",
     language: "French",
+    languages: ["French"],
+    qualificationDocUrl: "https://example.com/qual.pdf",
+    idProofDocUrl: "https://example.com/id.pdf",
     experienceType: "experienced" as const,
+    experienceDocUrl: "https://example.com/exp.pdf",
   };
 
   it("should accept valid teacher registration", () => {
     const result = registerTeacherSchema.safeParse(validTeacher);
     expect(result.success).toBe(true);
+  });
+
+  it("should accept fresher teacher registration without experience document", () => {
+    const result = registerTeacherSchema.safeParse({
+      ...validTeacher,
+      experienceType: "fresher" as const,
+      experienceDocUrl: undefined,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("should reject experienced teacher registration missing experience document", () => {
+    const { experienceDocUrl, ...withoutExpDoc } = validTeacher;
+    const result = registerTeacherSchema.safeParse(withoutExpDoc);
+    expect(result.success).toBe(false);
   });
 
   it("should accept with optional gender", () => {
@@ -195,13 +215,13 @@ describe("registerTeacherSchema", () => {
   it("should reject invalid experienceType", () => {
     const result = registerTeacherSchema.safeParse({
       ...validTeacher,
-      experienceType: "expert",
+      experienceType: "expert" as unknown as "experienced",
     });
     expect(result.success).toBe(false);
   });
 
   it("should reject missing language", () => {
-    const { language, ...withoutLanguage } = validTeacher;
+    const withoutLanguage = { ...validTeacher, language: "" };
     const result = registerTeacherSchema.safeParse(withoutLanguage);
     expect(result.success).toBe(false);
   });
@@ -209,7 +229,7 @@ describe("registerTeacherSchema", () => {
   it("should reject invalid gender values", () => {
     const result = registerTeacherSchema.safeParse({
       ...validTeacher,
-      gender: "invalid",
+      gender: "invalid" as unknown as "female",
     });
     expect(result.success).toBe(false);
   });
@@ -349,6 +369,7 @@ describe("teacherStep2Schema", () => {
   it("should accept valid step 2 input", () => {
     const result = teacherStep2Schema.safeParse({
       language: "French",
+      languages: ["French"],
     });
     expect(result.success).toBe(true);
   });
@@ -356,6 +377,7 @@ describe("teacherStep2Schema", () => {
   it("should accept optional gender", () => {
     const result = teacherStep2Schema.safeParse({
       language: "French",
+      languages: ["French"],
       gender: "male",
     });
     expect(result.success).toBe(true);
@@ -364,6 +386,7 @@ describe("teacherStep2Schema", () => {
   it("should reject empty language", () => {
     const result = teacherStep2Schema.safeParse({
       language: "",
+      languages: [],
     });
     expect(result.success).toBe(false);
   });
@@ -372,14 +395,46 @@ describe("teacherStep2Schema", () => {
 describe("teacherStep3Schema", () => {
   it("should accept valid step 3 input", () => {
     const result = teacherStep3Schema.safeParse({
+      qualificationDocUrl: "https://example.com/qual.pdf",
+      idProofDocUrl: "https://example.com/id.pdf",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("should reject missing qualification document", () => {
+    const result = teacherStep3Schema.safeParse({
+      idProofDocUrl: "https://example.com/id.pdf",
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("teacherStep4Schema", () => {
+  it("should accept valid step 4 input for fresher", () => {
+    const result = teacherStep4Schema.safeParse({
       experienceType: "fresher",
     });
     expect(result.success).toBe(true);
   });
 
+  it("should accept valid step 4 input for experienced with document", () => {
+    const result = teacherStep4Schema.safeParse({
+      experienceType: "experienced",
+      experienceDocUrl: "https://example.com/exp.pdf",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("should reject experienced without document", () => {
+    const result = teacherStep4Schema.safeParse({
+      experienceType: "experienced",
+    });
+    expect(result.success).toBe(false);
+  });
+
   it("should reject invalid experience type", () => {
-    const result = teacherStep3Schema.safeParse({
-      experienceType: "senior",
+    const result = teacherStep4Schema.safeParse({
+      experienceType: "senior" as unknown as "fresher",
     });
     expect(result.success).toBe(false);
   });

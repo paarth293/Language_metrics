@@ -27,14 +27,13 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "temp");
 
 export async function POST(request: NextRequest) {
-  // Require authentication
+  // If an access token is provided, verify it; otherwise allow temp registration upload
   const accessToken = request.cookies.get("lm_access_token")?.value;
-  if (!accessToken) {
-    return NextResponse.json({ message: "Authentication required." }, { status: 401 });
-  }
-  const payload = await verifyAccessToken(accessToken);
-  if (!payload?.sub) {
-    return NextResponse.json({ message: "Invalid or expired token." }, { status: 401 });
+  if (accessToken) {
+    const payload = await verifyAccessToken(accessToken);
+    if (!payload?.sub) {
+      return NextResponse.json({ message: "Invalid or expired token." }, { status: 401 });
+    }
   }
 
   // Rate limit: 10 uploads per minute per IP
