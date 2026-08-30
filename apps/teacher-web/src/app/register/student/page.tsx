@@ -197,12 +197,12 @@ export default function StudentRegisterPage() {
       if (!res.ok) {
         setServerError(data.message || "Registration failed");
       } else if (data.verificationRequired) {
-        window.location.href = `/verify-email?email=${encodeURIComponent(email)}`;
+        router.replace(`/verify-email?email=${encodeURIComponent(email)}`);
       } else {
         setSuccess(true);
         setTimeout(async () => {
           await refreshUser();
-          window.location.href = "http://localhost:3002/dashboard";
+          router.replace("/student/dashboard");
         }, 1500);
       }
     } catch (err) {

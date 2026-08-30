@@ -10,7 +10,7 @@ function inr(paise: number): string {
 
 export default async function AnalyticsPage() {
   await requireAdmin();
-  const [completed, cancelled, totalRev, newStudents, students, teachers, activeCourses] = await Promise.all([
+  const [completed, cancelled, totalRev, newStudents, students, teachers, activeCourses] = await db.$transaction([
     db.classSession.count({ where: { status: "COMPLETED" } }),
     db.booking.count({ where: { status: "CANCELLED" } }),
     db.payment.aggregate({ where: { status: "SUCCESS" }, _sum: { amount: true } }),

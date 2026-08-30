@@ -23,13 +23,13 @@ export function Breadcrumbs({ items, className = "" }: BreadcrumbsProps) {
         "@type": "ListItem",
         position: 1,
         name: "Home",
-        item: typeof window !== "undefined" ? window.location.origin : "",
+        item: process.env.NEXT_PUBLIC_BASE_URL ?? "",
       },
       ...items.map((item, i) => ({
         "@type": "ListItem",
         position: i + 2,
         name: item.label,
-        ...(item.href ? { item: `${typeof window !== "undefined" ? window.location.origin : ""}${item.href}` } : {}),
+        ...(item.href ? { item: `${process.env.NEXT_PUBLIC_BASE_URL ?? ""}${item.href}` } : {}),
       })),
     ],
   };

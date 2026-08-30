@@ -117,9 +117,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (data.user) {
           setUser(data.user);
           // Redirect based on role
-          if (data.user.role === "STUDENT") window.location.href = "http://localhost:3002/login";
+          if (data.user.role === "STUDENT") {
+            router.push("/student/dashboard");
+          }
           else if (data.user.role === "TEACHER") router.push("/teacher/dashboard");
-          else if (data.user.role === "ADMIN") window.location.href = "http://localhost:3001/dashboard";
+          else if (data.user.role === "ADMIN") {
+            const adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || (process.env.NODE_ENV === "production" ? "https://language-metrics-admin-panel.vercel.app" : "http://localhost:3001");
+            router.replace(`${adminUrl}/dashboard`);
+          }
         }
 
         return { success: true };

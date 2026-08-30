@@ -99,11 +99,7 @@ export default function TeacherProfileSettings() {
   const [profileLanguages, setProfileLanguages] = useState<string[]>([]);
   const [profileExperience, setProfileExperience] = useState("");
   const [profileEmail, setProfileEmail] = useState("");
-  const [documents, setDocuments] = useState<any[]>([]);
-
-  useEffect(() => {
-    fetchSettings();
-  }, []);
+  const [documents, setDocuments] = useState<{ id: string; type: string; status: string; url: string; notes?: string | null; createdAt: string }[]>([]);
 
   const fetchSettings = async () => {
     try {
@@ -124,8 +120,8 @@ export default function TeacherProfileSettings() {
       setDocuments(p.documents || []);
 
       const rates = p.rates || [];
-      setHourlyRate((rates.find((r) => r.type === "HOURLY")?.amount || 0) / 100);
-      setCourseRate((rates.find((r) => r.type === "COURSE")?.amount || 0) / 100);
+      setHourlyRate((rates.find((r: { type: string; amount: number }) => r.type === "HOURLY")?.amount || 0) / 100);
+      setCourseRate((rates.find((r: { type: string; amount: number }) => r.type === "COURSE")?.amount || 0) / 100);
       setAvailability(p.availability || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -133,6 +129,12 @@ export default function TeacherProfileSettings() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchSettings();
+  }, []);
+
 
   const handleSaveProfile = async () => {
     setSaving(true);
@@ -444,7 +446,7 @@ export default function TeacherProfileSettings() {
                             {doc.notes && ` · ${doc.notes}`}
                           </div>
                         </div>
-                        <Badge variant={statusColor as any} className="text-xs">
+                        <Badge variant={statusColor as "default" | "info" | "success" | "outline" | "danger" | "warning"} className="text-xs">
                           {doc.status}
                         </Badge>
                         <a

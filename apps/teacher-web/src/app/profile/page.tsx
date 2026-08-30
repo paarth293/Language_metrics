@@ -147,7 +147,7 @@ export default function ProfilePage() {
       {/* Top nav bar */}
       <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-bg/80 backdrop-blur-md px-6 py-4">
         <Link
-          href={isStudent ? "http://localhost:3002/dashboard" : "/teacher/dashboard"}
+          href={isStudent ? "/student/dashboard" : "/teacher/dashboard"}
           className="inline-flex items-center gap-2 text-sm font-medium text-text-muted hover:text-text transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />

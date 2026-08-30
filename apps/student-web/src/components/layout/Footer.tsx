@@ -2,7 +2,21 @@
 
 import React from "react";
 import Link from "next/link";
-import { ExternalLink, Mail, Globe } from "lucide-react";
+import { Mail } from "lucide-react";
+
+const Instagram = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
+  </svg>
+);
+
+const Facebook = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+  </svg>
+);
 
 const footerLinks = {
   Product: [
@@ -48,11 +62,11 @@ export function Footer() {
               Connect with verified language professionals for live 1-on-1 video classes.
             </p>
             <div className="flex gap-3">
-              <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-lg bg-surface-inset flex items-center justify-center text-text-muted hover:text-brand hover:bg-brand/10 transition-colors" aria-label="Twitter">
-                <Globe className="w-4 h-4" />
+              <a href="https://www.instagram.com/languagemetrics?utm_source=qr&igsi=MW0wd25vZDExcWtvYg==" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-lg bg-surface-inset flex items-center justify-center text-text-muted hover:text-brand hover:bg-brand/10 transition-colors" aria-label="Instagram">
+                <Instagram className="w-4 h-4" />
               </a>
-              <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-lg bg-surface-inset flex items-center justify-center text-text-muted hover:text-brand hover:bg-brand/10 transition-colors" aria-label="LinkedIn">
-                <ExternalLink className="w-4 h-4" />
+              <a href="https://www.facebook.com/share/1DMjvSQGrU/" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-lg bg-surface-inset flex items-center justify-center text-text-muted hover:text-brand hover:bg-brand/10 transition-colors" aria-label="Facebook">
+                <Facebook className="w-4 h-4" />
               </a>
               <a href="mailto:hello@languagemetrics.com" className="w-8 h-8 rounded-lg bg-surface-inset flex items-center justify-center text-text-muted hover:text-brand hover:bg-brand/10 transition-colors">
                 <Mail className="w-4 h-4" />

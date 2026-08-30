@@ -12,6 +12,12 @@
     "db:seed": "node --env-file=.env prisma/seed.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.600.0",
+    "@aws-sdk/s3-request-presigner": "^3.600.0",
+    "@supabase/supabase-js": "^2.39.4",
+    "@smithy/core": "^1.2.0",
+    "@smithy/types": "^1.2.0",
+
     "@react-email/components": "^1.0.12",
     "@react-email/render": "^2.1.0",
     "@repo/auth": "*",

@@ -101,7 +101,14 @@ export default async function TeacherProfilePage({ params }: { params: Promise<{
                          doc.type === "LANGUAGE_CERTIFICATE" ? "📜 Language Certificate" :
                          doc.type}
                       </p>
-                      <a href={doc.url} target="_blank" rel="noreferrer" className="text-xs text-indigo-400 hover:underline">View Document</a>
+                      <a 
+                        href={doc.url.startsWith('http') ? doc.url : `${process.env.NEXT_PUBLIC_APP_URL || ''}${doc.url}`}
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="text-xs text-indigo-400 hover:underline"
+                      >
+                        View Document
+                      </a>
                     </div>
                     <div>
                       <span className={`text-xs font-semibold px-2 py-1 rounded ${

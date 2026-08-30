@@ -216,11 +216,12 @@ export async function GET(request: NextRequest) {
   } else {
     // Returning user: send to role‑specific dashboard
     if (userRole === "STUDENT") {
-      destination = "http://localhost:3002/dashboard";
+      destination = "/student/dashboard";
     } else if (userRole === "TEACHER") {
       destination = "/teacher/dashboard";
     } else if (userRole === "ADMIN") {
-      destination = "http://localhost:3001/dashboard";
+      const adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || (process.env.NODE_ENV === "production" ? "https://language-metrics-admin-panel.vercel.app" : "http://localhost:3001");
+      destination = `${adminUrl}/dashboard`;
     } else {
       destination = "/coming-soon"; // fallback
     }

@@ -85,7 +85,7 @@ export default function OnboardingPage() {
         if (!user) { router.replace("/login"); return; }
         if (user.onboardingComplete) {
           if (user.role === "STUDENT") {
-            window.location.href = "http://localhost:3002/dashboard";
+            router.replace("/student/dashboard");
           } else {
             router.replace("/teacher/dashboard");
           }
@@ -132,7 +132,7 @@ export default function OnboardingPage() {
         return;
       }
       if (user?.role === "STUDENT") {
-        window.location.href = "http://localhost:3002/dashboard";
+        router.replace("/student/dashboard");
       } else {
         router.push("/teacher/dashboard");
       }
