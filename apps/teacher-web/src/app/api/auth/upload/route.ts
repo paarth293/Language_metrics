@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { rateLimit } from "@/lib/rate-limit";
-
+import { verifyAccessToken } from "@/lib/tokens";
 import { uploadFile } from "@/lib/storage";
 
 export async function POST(request: NextRequest) {
-  // Note: We removed the strict access token requirement here because this endpoint 
-  // is used during Teacher Registration before the user is fully authenticated.
-  // Rate limiting and file validation provide security.
+  // If an access token is provided, verify it; otherwise allow temp registration upload
+  const accessToken = request.cookies.get("lm_access_token")?.value;
+  if (accessToken) {
+    const payload = await verifyAccessToken(accessToken);
+    if (!payload?.sub) {
+      return NextResponse.json({ message: "Invalid or expired token." }, { status: 401 });
+    }
+  }
 
   // Rate limit: 10 uploads per minute per IP
   const ip =
