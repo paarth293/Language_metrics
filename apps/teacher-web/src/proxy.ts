@@ -13,8 +13,8 @@ import { jwtVerify, importSPKI } from "jose";
  */
 
 // ── Auth config ────────────────────────────────────────────────────────
-const PROTECTED_PREFIXES = ["/student", "/teacher", "/dashboard", "/onboarding", "/profile"];
-const EXCLUDED_PREFIXES = ["/api/", "/_next/", "/favicon"];
+const PROTECTED_PREFIXES = ["/student", "/teacher", "/admin", "/onboarding", "/profile"];
+const EXCLUDED_PREFIXES = ["/_next/", "/favicon"];
 const ISSUER = "lm-auth";
 const AUDIENCE = "lm-teacher-web";
 
@@ -98,15 +98,26 @@ export async function proxy(request: NextRequest) {
     const origin = request.headers.get("origin");
     const host = request.headers.get("host");
     // Allow requests with no origin (same-origin, curl, mobile apps)
-    // Block cross-origin requests that don't match the host
-    if (origin && host && !origin.includes(host)) {
+    // Block cross-origin requests that don't match the host.
+    // Compare hostnames exactly (not a substring check) so
+    // "https://teacher-web.example.com.attacker.com" can't sneak past
+    // a host of "teacher-web.example.com".
+    let originHost: string | null = null;
+    if (origin) {
+      try {
+        originHost = new URL(origin).host;
+      } catch {
+        originHost = null; // malformed Origin header — treat as mismatch below
+      }
+    }
+    if (origin && host && originHost !== host) {
       // Allow Google OAuth callback origins
       const allowedOrigins = [
         "accounts.google.com",
         "oauth2.googleapis.com",
         "www.googleapis.com",
       ];
-      const isAllowed = allowedOrigins.some((o) => origin.includes(o));
+      const isAllowed = originHost !== null && allowedOrigins.includes(originHost);
       if (!isAllowed) {
         return NextResponse.json(
           { message: "Cross-origin request rejected." },
@@ -194,9 +205,12 @@ export const config = {
      * Match all request paths EXCEPT:
      * - _next/static (static files)
      * - _next/image (image optimization)
-     * - api/* (all API routes handle their own auth)
      * - favicon.ico, brand assets
+     *
+     * NOTE: api/* is intentionally included here — the CSRF and rate-limit
+     * checks above only apply to /api/*, and API routes still do their own
+     * auth (requireAuth) since isProtected() below doesn't match /api paths.
      */
-    "/((?!_next/static|_next/image|api/|favicon.ico|brand).*)",
+    "/((?!_next/static|_next/image|favicon.ico|brand).*)",
   ],
 };
