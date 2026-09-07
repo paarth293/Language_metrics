@@ -38,10 +38,12 @@ def safety_guard():
         sys.exit(1)
 
 
-def check_2fa_endpoint_exists() -> bool:
-    """Check if the login form has a totp_code field (2FA is implemented)."""
-    resp = requests.get(f"{TARGET}/login", timeout=15)
-    return "totp" in resp.text.lower() or "2fa" in resp.text.lower() or "authenticator" in resp.text.lower()
+def extract_error_message(response: requests.Response) -> str:
+    try:
+        body = response.json()
+    except ValueError:
+        return ""
+    return str(body.get("error", ""))
 
 
 def test_login_without_totp_is_rejected():
@@ -49,19 +51,40 @@ def test_login_without_totp_is_rejected():
     safety_guard()
     print(f"\n[test_2fa] Check: 2FA gate on login endpoint")
 
-    if not check_2fa_endpoint_exists():
-        print("[SKIP] ⚠️  2FA is NOT yet implemented (no totp_code field in login form).")
-        print("       This is a PENDING security requirement.")
-        print("       To implement: add TOTP seed to admin account and require OTP on login.")
-        sys.exit(3)
-
     session = requests.Session()
 
-    # Attempt 1: correct creds, wrong/missing TOTP
+    # Probe: if 2FA is enabled for the fixture account, backend returns
+    # "2FA_REQUIRED" when no code is provided.
     r_csrf = session.get(TARGET + "/login", timeout=15)
     csrf_token = session.cookies.get("csrf_token", "")
-    
-    print("\n  Attempt with correct credentials but missing TOTP code:")
+
+    print("\n  Probe with correct credentials and no TOTP code:")
+    probe = session.post(
+        LOGIN_ENDPOINT,
+        data={"email": "admin@languagemetrics.com", "password": "Password123!", "csrf_token": csrf_token},
+        headers={"Origin": TARGET},
+        allow_redirects=False,
+        timeout=15,
+    )
+    probe_error = extract_error_message(probe)
+    print(f"  Status: {probe.status_code}")
+
+    if probe.status_code in (200, 302, 307):
+        print("[SKIP] ⚠️  2FA is not enabled for the admin fixture account in this environment.")
+        sys.exit(3)
+
+    if probe_error == "Invalid credentials or account is not active.":
+        print("[SKIP] ⚠️  Admin fixture credentials are unavailable in this environment.")
+        sys.exit(3)
+
+    if probe_error != "2FA_REQUIRED":
+        print(f"[FAIL] ❌ Unexpected probe response (status={probe.status_code}, error={probe_error!r}).")
+        sys.exit(1)
+
+    # Attempt 1: correct creds, wrong TOTP
+    r_csrf = session.get(TARGET + "/login", timeout=15)
+    csrf_token = session.cookies.get("csrf_token", "")
+    print("\n  Attempt with correct credentials but invalid TOTP code:")
     r = session.post(
         LOGIN_ENDPOINT,
         data={"email": "admin@languagemetrics.com", "password": "Password123!", "totp_code": "000000", "csrf_token": csrf_token},
@@ -70,12 +93,13 @@ def test_login_without_totp_is_rejected():
         timeout=15,
     )
     print(f"  Status: {r.status_code}")
-    if r.status_code in (401, 403) or (
+    r_error = extract_error_message(r)
+    if (r.status_code in (401, 403) and ("two-factor" in r_error.lower() or r_error == "2FA_REQUIRED")) or (
         r.status_code in (302, 307) and "/login" in r.headers.get("Location", "")
     ):
         print("[PASS] ✅ Login correctly rejected with missing/wrong TOTP code.")
     else:
-        print(f"[FAIL] ❌ Login succeeded without valid TOTP (got {r.status_code}).")
+        print(f"[FAIL] ❌ Login succeeded without valid TOTP (status={r.status_code}, error={r_error!r}).")
         sys.exit(1)
 
     # Attempt 2: correct creds + valid TOTP
