@@ -20,7 +20,8 @@
     "scan:sast": "semgrep --config p/owasp-top-ten --config p/nextjs --config p/secrets --config semgrep.yml --json --output sast-results.json apps/admin-panel/src/ && node security-tests/generate-sast-report.mjs",
     "scan:deps": "npm audit --json > npm-audit.json; echo 'npm audit done — see npm-audit.json'",
     "scan:secrets": "gitleaks detect --config .gitleaks.toml --source . --verbose",
-    "test:security": "python security-tests/run_all.py"
+    "test:security": "python security-tests/run_all.py",
+    "test:e2e": "playwright test tests/e2e/booking-to-live-class.spec.ts"
   },
   "prisma": {
     "seed": "node --env-file=.env packages/database/prisma/seed.mjs"
@@ -49,6 +50,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.6",
