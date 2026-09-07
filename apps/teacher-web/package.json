@@ -9,6 +9,8 @@
     "prisma:generate": "prisma generate --schema=../../packages/database/prisma/schema.prisma",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "db:seed": "node --env-file=.env prisma/seed.mjs"
   },
   "dependencies": {

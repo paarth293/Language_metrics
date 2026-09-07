@@ -18,10 +18,12 @@ def main():
     print("=" * 60)
     print()
 
+    base_dir = os.path.dirname(os.path.abspath(__file__))
     results = []
 
     for name, script in TESTS:
-        if not os.path.exists(script):
+        script_path = os.path.join(base_dir, script)
+        if not os.path.exists(script_path):
             print(f">> Running: {name} ({script})")
             print(f"  Result: [SKIP] file not found\n")
             results.append((name, script, "[SKIP]"))
@@ -33,14 +35,14 @@ def main():
         # claim CSRF/RBAC/session/audit-log protection was verified when
         # those four files had no test code in them at all. Flag this
         # explicitly instead of silently treating "no code ran" as "passed".
-        if os.path.getsize(script) == 0:
+        if os.path.getsize(script_path) == 0:
             print(f">> Running: {name} ({script})")
             print(f"  Result: [NOT IMPLEMENTED] file exists but is empty — no test was actually run\n")
             results.append((name, script, "[NOT IMPLEMENTED]"))
             continue
 
         print(f">> Running: {name} ({script})")
-        res = subprocess.run([sys.executable, script], capture_output=True, text=True)
+        res = subprocess.run([sys.executable, script_path], capture_output=True, text=True)
         if res.returncode == 0:
             print("  Result: [PASS]\n")
             results.append((name, script, "[PASS]"))
@@ -63,10 +65,11 @@ def main():
     for name, script, status in results:
         report_lines.append(f"| {name} | `{script}` | {status} |")
         
-    with open("../SECURITY_REPORT.md", "w", encoding="utf-8") as f:
+    report_path = os.path.join(base_dir, "..", "SECURITY_REPORT.md")
+    with open(report_path, "w", encoding="utf-8") as f:
         f.write("\n".join(report_lines) + "\n")
         
-    print("📄 Report written to SECURITY_REPORT.md")
+    print("Report written to SECURITY_REPORT.md")
     
     not_implemented = [n for n, _, st in results if st == "[NOT IMPLEMENTED]"]
 
@@ -86,7 +89,7 @@ def main():
         sys.exit(2)
     else:
         print("=" * 60)
-        print("  All tests PASSED! ✅")
+        print("  All tests PASSED! [OK]")
         print("=" * 60)
         sys.exit(0)
 

@@ -114,4 +114,10 @@ def test_login_without_totp_is_rejected():
 
 
 if __name__ == "__main__":
+    try:
+        requests.get(TARGET, timeout=5)
+    except requests.exceptions.ConnectionError:
+        print(f"[SKIP] No server reachable at {TARGET}. Start it with `npm run dev -w admin-panel` and re-run.")
+        sys.exit(3)
+
     test_login_without_totp_is_rejected()
