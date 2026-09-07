@@ -12,24 +12,12 @@
  * Run with: tsx src/lib/storage.test.ts
  * (No install needed — no external imports beyond Node's own fs/path.)
  */
+import { test, expect } from "vitest";
 import { uploadFile, deleteFile } from "./storage";
 import { existsSync, readFileSync, rmSync } from "fs";
 import path from "path";
 
-let pass = 0;
-let fail = 0;
-function check(cond: boolean, label: string, detail?: unknown) {
-  if (cond) {
-    pass++;
-    console.log(`PASS  ${label}`);
-  } else {
-    fail++;
-    console.log(`FAIL  ${label}`);
-    if (detail !== undefined) console.log("      " + JSON.stringify(detail));
-  }
-}
-
-async function main() {
+test("storage upload, validation, and delete", async () => {
   const content = Buffer.from("fake-image-bytes-for-test");
   const result = await uploadFile(content, "photo.png", "image/png", {
     folder: "chat-attachments",
@@ -37,24 +25,15 @@ async function main() {
     maxSizeBytes: 1024 * 1024,
   });
 
-  check(
-    typeof result.url === "string" && result.url.startsWith("/uploads/chat-attachments/"),
-    "returns a real resolvable URL (was: fake URL = original filename, file bytes discarded)",
-    result
-  );
-  check(
-    result.key.startsWith("chat-attachments/") && result.key.endsWith(".png"),
-    "key is namespaced to the folder with the right extension",
-    result
-  );
+  expect(typeof result.url).toBe("string");
+  expect(result.url.startsWith("/uploads/chat-attachments/")).toBe(true);
+  expect(result.key.startsWith("chat-attachments/")).toBe(true);
+  expect(result.key.endsWith(".png")).toBe(true);
 
   const diskPath = path.join(process.cwd(), "public", "uploads", result.key);
-  const onDisk = existsSync(diskPath);
-  check(onDisk, "file bytes were actually written to disk (the bug: old chat route never called this at all)", diskPath);
-  if (onDisk) {
-    const written = readFileSync(diskPath);
-    check(written.equals(content), "written bytes match the uploaded content exactly");
-  }
+  expect(existsSync(diskPath)).toBe(true);
+  const written = readFileSync(diskPath);
+  expect(written.equals(content)).toBe(true);
 
   let rejectedType = false;
   try {
@@ -65,7 +44,7 @@ async function main() {
   } catch {
     rejectedType = true;
   }
-  check(rejectedType, "disallowed content-type is rejected");
+  expect(rejectedType).toBe(true);
 
   let rejectedSize = false;
   try {
@@ -77,17 +56,10 @@ async function main() {
   } catch {
     rejectedSize = true;
   }
-  check(rejectedSize, "oversized file is rejected");
+  expect(rejectedSize).toBe(true);
 
   await deleteFile(result.key);
-  check(!existsSync(diskPath), "deleteFile() removes the uploaded file");
+  expect(existsSync(diskPath)).toBe(false);
 
-  // Clean up the directory this test created so repeated runs (and a clean
-  // checkout) don't accumulate an empty public/uploads tree.
   rmSync(path.join(process.cwd(), "public", "uploads", "chat-attachments"), { recursive: true, force: true });
-
-  console.log(`\n${pass} passed, ${fail} failed`);
-  if (fail > 0) process.exit(1);
-}
-
-main();
+});

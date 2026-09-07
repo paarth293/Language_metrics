@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     const now = new Date();
 
     // Build where clause based on filter
-    let where: any = { studentId: userId };
+    const where: any = { studentId: userId };
 
     if (filter === "upcoming") {
       where.status = { in: ["PENDING", "CONFIRMED"] };

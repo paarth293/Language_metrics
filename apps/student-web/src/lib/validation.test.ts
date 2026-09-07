@@ -1,3 +1,4 @@
+import { test, expect } from "vitest";
 import {
   validateLoginBody,
   validateDiscoverQuery,
@@ -11,18 +12,10 @@ import {
   validateChatMessage,
 } from "./validation";
 
-let pass = 0;
-let fail = 0;
-
-function check(cond: boolean, label: string, detail?: unknown) {
-  if (cond) {
-    pass++;
-    console.log(`PASS  ${label}`);
-  } else {
-    fail++;
-    console.log(`FAIL  ${label}`);
-    if (detail !== undefined) console.log("      " + JSON.stringify(detail));
-  }
+function check(cond: boolean, label: string, _detail?: unknown) {
+  test(label, () => {
+    expect(cond).toBe(true);
+  });
 }
 
 // ── login ──────────────────────────────────────────────────────────────
@@ -237,8 +230,5 @@ function check(cond: boolean, label: string, detail?: unknown) {
 {
   const r = validateChatMessage({});
   check(r.ok === true, "chat message: missing content allowed (attachment-only message)");
-  if (r.ok) check(r.data.content === "", "chat message: defaults to empty string", r.data);
+  if (r.ok) check(r.data.content === "", "chat message: defaults to empty string");
 }
-
-console.log(`\n${pass} passed, ${fail} failed`);
-if (fail > 0) process.exit(1);
