@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { sanitizeOrFallback } from "@/lib/sanitize";
 
 /**
  * GET /api/students/teacher/[id]
@@ -52,9 +53,17 @@ export async function GET(
     return NextResponse.json({
       teacher: {
         id: teacher.userId,
-        name: teacher.name,
+        // SECURITY FIX: name/bio come straight from the teacher's own
+        // editable profile fields and were returned to every student who
+        // opens this page completely unsanitized — the exact same
+        // stored-XSS shape the audit flagged for `discover/route.ts` (and
+        // this session already fixed there), just unreached here the first
+        // pass because the file bridge couldn't stage it. A teacher whose
+        // bio contains `<script>` or an `onerror=` payload would run it in
+        // every student's browser who views their profile.
+        name: sanitizeOrFallback(teacher.name, "Teacher"),
         avatarUrl: teacher.avatarUrl,
-        bio: teacher.bio,
+        bio: sanitizeOrFallback(teacher.bio, ""),
         experienceLevel: teacher.experienceLevel,
         language: teacher.language,
         languages: teacher.languages,
@@ -68,8 +77,13 @@ export async function GET(
       reviews: teacher.reviews.map((r) => ({
         id: r.id,
         rating: r.rating,
-        comment: r.comment,
-        studentName: reviewerMap.get(r.studentId) || "Student",
+        // Same fix: review comments and the reviewing student's display
+        // name are both free-text supplied by other students and rendered
+        // on this teacher's public page — unsanitized, any student leaving
+        // a review could plant a payload that runs for every future
+        // visitor.
+        comment: sanitizeOrFallback(r.comment, ""),
+        studentName: sanitizeOrFallback(reviewerMap.get(r.studentId), "Student"),
         createdAt: r.createdAt,
       })),
       availability: teacher.availability.map((s) => ({

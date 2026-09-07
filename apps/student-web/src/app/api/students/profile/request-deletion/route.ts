@@ -2,15 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { revokeAllRefreshSessions } from "@/lib/redis-session";
+import { rateLimitRedis } from "@/lib/rate-limit";
 
 // POST - Request account deletion (soft-delete / flag for admin)
 export async function POST(request: NextRequest) {
   const auth = await requireAuth(request, "STUDENT");
   if (auth.error) return auth.error;
 
-  try {
-    const userId = auth.user.sub;
+  const userId = auth.user.sub;
 
+  // FIX: this route reads no body, so it needs no body-size guard, but it
+  // was completely unlimited — nothing stopped a compromised session (or a
+  // buggy client retry loop) from hammering it. It's a low-frequency,
+  // deliberate action for a real user, so a light limit is enough to stop
+  // abuse without ever getting in a real user's way.
+  const isLimited = await rateLimitRedis(userId, "request-deletion", { windowMs: 60_000, max: 3 });
+  if (isLimited) {
+    return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
+  }
+
+  try {
     // Check if there are active bookings
     const activeBookings = await prisma.booking.count({
       where: {
