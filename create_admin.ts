@@ -1,65 +1,29 @@
-
-import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
-import crypto from "crypto";
-
-const prisma = new PrismaClient();
-
-async function main() {
-  const email = "admin@gmail.com";
-  const password = "12345678";
-  
-  // Hash password
-  const passwordHash = await bcrypt.hash(password, 10);
-  
-  const userId = crypto.randomUUID();
-
-  // Create User
-  const user = await prisma.user.upsert({
-    where: { email },
-    update: {
-      passwordHash,
-      emailVerified: true,
-      role: "ADMIN"
-    },
-    create: {
-      id: userId,
-      email,
-      passwordHash,
-      emailVerified: true,
-      role: "ADMIN"
-    }
-  });
-
-  console.log("User created:", user.id);
-
-  // Create AdminUser
-  const adminUser = await prisma.adminUser.upsert({
-    where: { email },
-    update: {
-      passwordHash,
-      isSuperAdmin: true,
-      status: "ACTIVE"
-    },
-    create: {
-      userId: user.id,
-      name: "Admin",
-      email,
-      passwordHash,
-      roleKey: "SUPER_ADMIN",
-      isSuperAdmin: true,
-      status: "ACTIVE"
-    }
-  });
-
-  console.log("AdminUser created/updated:", adminUser.email);
-}
-
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+/**
+ * DISABLED — this script used to create a SUPER_ADMIN account with a
+ * hardcoded email/password (admin@gmail.com / 12345678). That is a
+ * critical credential-exposure risk: anyone with read access to this repo
+ * (or its git history) could log in to the admin panel with full
+ * superadmin privileges. It has been neutralized rather than silently
+ * left in place.
+ *
+ * ACTION REQUIRED (do this manually, it isn't done for you):
+ *   1. Delete this file from the repository entirely.
+ *   2. If this script was EVER run against any real (staging or
+ *      production) database, immediately find and remove/rotate the
+ *      resulting AdminUser row (email: admin@gmail.com) — treat that
+ *      account as compromised.
+ *   3. Use apps/admin-panel/scripts/create-admin.mjs instead, which reads
+ *      credentials from environment variables (ADMIN_EMAIL, ADMIN_PASSWORD,
+ *      ADMIN_NAME, ADMIN_ROLE) instead of hardcoding them, and enforces a
+ *      minimum password length/strength:
+ *
+ *        ADMIN_EMAIL=you@example.com \
+ *        ADMIN_NAME="Your Name" \
+ *        ADMIN_PASSWORD="a-strong-unique-password" \
+ *        ADMIN_ROLE=SUPER_ADMIN \
+ *        node --env-file=.env apps/admin-panel/scripts/create-admin.mjs
+ */
+throw new Error(
+  "create_admin.ts is disabled (hardcoded credentials). Delete this file and use " +
+    "apps/admin-panel/scripts/create-admin.mjs instead — see the comment at the top of this file."
+);
