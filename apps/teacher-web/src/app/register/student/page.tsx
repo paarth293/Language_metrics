@@ -504,3 +504,5 @@ export default function StudentRegisterPage() {
     </AuthLayout>
   );
 }
+
+
