@@ -23,11 +23,33 @@ let _redisAvailable: boolean | null = null; // null = untested
 // ── In-memory fallback (dev only) ──────────────────────────────────────────
 const memStore = new Map<string, { value: string; expiresAt: number }>();
 
+// PERFORMANCE FIX: revokeAllRefreshSessions() used to find a user's keys by
+// regex-scanning every key in `memStore` (memScan(), removed below) — i.e.
+// work proportional to the TOTAL number of active sessions across ALL
+// users, every time any one user logged out everywhere or changed their
+// password. This index tracks each user's own session keys directly, so
+// that lookup is O(sessions for this user) instead of O(all sessions on
+// this process) — only relevant when Redis isn't configured (this is the
+// dev/local fallback), but cheap to fix and avoids the fallback becoming a
+// real bottleneck under any kind of local load testing.
+const memUserIndex = new Map<string, Set<string>>();
+
+// Every in-memory key this module creates is `rt:{userId}:{sessionId}`
+// (see rtKey() below) — pull the userId back out so memSet/memDel can keep
+// memUserIndex in sync without every call site having to pass userId
+// separately.
+function userIdFromKey(key: string): string | null {
+  const parts = key.split(":");
+  return parts.length === 3 && parts[0] === "rt" ? parts[1] : null;
+}
+
 function memGet(key: string): string | null {
   const entry = memStore.get(key);
   if (!entry) return null;
   if (Date.now() > entry.expiresAt) {
     memStore.delete(key);
+    const userId = userIdFromKey(key);
+    if (userId) memUserIndex.get(userId)?.delete(key);
     return null;
   }
   return entry.value;
@@ -35,20 +57,29 @@ function memGet(key: string): string | null {
 
 function memSet(key: string, value: string, ttlSeconds: number): void {
   memStore.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 });
+  const userId = userIdFromKey(key);
+  if (userId) {
+    let keys = memUserIndex.get(userId);
+    if (!keys) {
+      keys = new Set();
+      memUserIndex.set(userId, keys);
+    }
+    keys.add(key);
+  }
 }
 
 function memDel(key: string): void {
   memStore.delete(key);
+  const userId = userIdFromKey(key);
+  if (userId) {
+    const keys = memUserIndex.get(userId);
+    keys?.delete(key);
+    if (keys && keys.size === 0) memUserIndex.delete(userId);
+  }
 }
 
-function memScan(pattern: string): string[] {
-  // Simple glob-to-regex for rt:{userId}:* pattern
-  const regex = new RegExp("^" + pattern.replace(/\*/g, ".*") + "$");
-  const keys: string[] = [];
-  for (const k of memStore.keys()) {
-    if (regex.test(k)) keys.push(k);
-  }
-  return keys;
+function memKeysForUser(userId: string): string[] {
+  return Array.from(memUserIndex.get(userId) ?? []);
 }
 
 // ── Redis client (lazy connect, fail-open) ─────────────────────────────────
@@ -197,7 +228,7 @@ export async function revokeAllRefreshSessions(userId: string): Promise<void> {
       } while (cursor !== "0");
     },
     () => {
-      for (const key of memScan(pattern)) {
+      for (const key of memKeysForUser(userId)) {
         memDel(key);
       }
     }
