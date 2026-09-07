@@ -50,13 +50,18 @@ def test_login_without_totp_is_rejected():
         print("       (Unit tests in auth-service.test.ts cover full 2FA enforcement and backup codes).")
         sys.exit(3)
 
-    session = requests.Session()
+    if probe_error == "Invalid credentials or account is not active.":
+        print("[SKIP] ⚠️  Admin fixture credentials are unavailable in this environment.")
+        sys.exit(3)
 
-    # Attempt 1: correct creds, wrong/missing TOTP
+    if probe_error != "2FA_REQUIRED":
+        print(f"[FAIL] ❌ Unexpected probe response (status={probe.status_code}, error={probe_error!r}).")
+        sys.exit(1)
+
+    # Attempt 1: correct creds, wrong TOTP
     r_csrf = session.get(TARGET + "/login", timeout=15)
     csrf_token = session.cookies.get("csrf_token", "")
-    
-    print("\n  Attempt with correct credentials but missing TOTP code:")
+    print("\n  Attempt with correct credentials but invalid TOTP code:")
     r = session.post(
         LOGIN_ENDPOINT,
         data={"email": "admin@languagemetrics.com", "password": "Password123!", "totp_code": "000000", "csrf_token": csrf_token},
@@ -65,12 +70,13 @@ def test_login_without_totp_is_rejected():
         timeout=15,
     )
     print(f"  Status: {r.status_code}")
-    if r.status_code in (401, 403) or (
+    r_error = extract_error_message(r)
+    if (r.status_code in (401, 403) and ("two-factor" in r_error.lower() or r_error == "2FA_REQUIRED")) or (
         r.status_code in (302, 307) and "/login" in r.headers.get("Location", "")
     ):
         print("[PASS] ✅ Login correctly rejected with missing/wrong TOTP code.")
     else:
-        print(f"[FAIL] ❌ Login succeeded without valid TOTP (got {r.status_code}).")
+        print(f"[FAIL] ❌ Login succeeded without valid TOTP (status={r.status_code}, error={r_error!r}).")
         sys.exit(1)
 
     # Attempt 2: correct creds + valid TOTP
