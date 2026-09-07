@@ -3,6 +3,7 @@ import { db } from "@repo/database";
 import { requireApiAdmin } from "@/lib/api-auth";
 import { auditLog, recordSecurityEvent } from "@/lib/audit";
 import { teacherActionSchema, parseBody } from "@/lib/validators";
+import { invalidateAllUserSessions } from "@/lib/session";
 
 // Suspending / reactivating / banning a teacher. Highly privileged action.
 // Every call is audited against the acting admin and recorded as a security
@@ -40,6 +41,11 @@ export async function POST(
   // We do not mutate the linked User's role, which would corrupt other flows.
   const newStatus = action === "suspend" || action === "ban" ? "REJECTED" : "PENDING";
   await db.teacherProfile.update({ where: { userId: id }, data: { status: newStatus } });
+
+  // Fix (Milestone 2 #5): Revoke active user sessions immediately upon suspension or ban
+  if (action === "suspend" || action === "ban") {
+    await invalidateAllUserSessions(id).catch(() => {});
+  }
 
   const h = request.headers;
   const ctx = {

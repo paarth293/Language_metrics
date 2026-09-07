@@ -3,6 +3,7 @@ import { db } from "@repo/database";
 import { requireApiAdmin } from "@/lib/api-auth";
 import { auditLog } from "@/lib/audit";
 import { teacherStatusSchema, parseBody } from "@/lib/validators";
+import { invalidateAllUserSessions } from "@/lib/session";
 
 // Teacher status transitions performed by admin. Approving/rejecting is
 // privileged and fully audited. Only PENDING -> APPROVED/REJECTED is allowed
@@ -35,6 +36,10 @@ export async function PATCH(
     where: { userId: id },
     data: { status: parsed.data.status },
   });
+
+  if (parsed.data.status === "REJECTED") {
+    await invalidateAllUserSessions(id).catch(() => {});
+  }
 
   const h = request.headers;
   const ctx = {

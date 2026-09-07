@@ -155,7 +155,6 @@ export default function LoginForm({ csrfToken }: { csrfToken: string }) {
 
           {/* Form */}
           <form action={formAction} className="space-y-4">
-            <span className="sr-only">2FA</span>
             <input type="hidden" name="csrf_token" value={csrfToken} />
 
             {/*
