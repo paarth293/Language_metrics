@@ -24,7 +24,7 @@ const teacherNavItems = [
 
 export default function TeacherLayout({ children }: { children: React.ReactNode }) {
   return (
-    <AppShell navItems={teacherNavItems}>
+    <AppShell navItems={teacherNavItems} requiredRole="TEACHER">
       {children}
     </AppShell>
   );
