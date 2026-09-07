@@ -54,7 +54,7 @@ export async function authenticateAdmin(
 
   // Per-IP rate limit.
   const ipKey = `login:ip:${ip ?? "unknown"}`;
-  const rl = rateLimit(ipKey, { limit: IP_MAX_ATTEMPTS, windowMs: IP_WINDOW_MS });
+  const rl = await rateLimit(ipKey, { limit: IP_MAX_ATTEMPTS, windowMs: IP_WINDOW_MS });
   if (!rl.ok) {
     await recordLoginAttempt(email, ip, "RATE_LIMITED", null);
     return { success: false, error: "Too many attempts from this network. Try again later." };
@@ -62,7 +62,7 @@ export async function authenticateAdmin(
 
   // Per-email rate limit (prevents distributed brute-force against one account).
   const emailKey = `login:email:${email}`;
-  const emailRl = rateLimit(emailKey, { limit: MAX_FAILED_LOGINS, windowMs: LOCKOUT_MS });
+  const emailRl = await rateLimit(emailKey, { limit: MAX_FAILED_LOGINS, windowMs: LOCKOUT_MS });
   if (!emailRl.ok) {
     await recordLoginAttempt(email, ip, "RATE_LIMITED", null);
     return { success: false, error: "Too many login attempts for this account. Try again later." };
@@ -144,8 +144,8 @@ export async function authenticateAdmin(
   }
 
   // ── Session creation (only reached after all gates pass) ──────────────
-  clearRateLimit(ipKey);
-  clearRateLimit(emailKey);
+  await clearRateLimit(ipKey);
+  await clearRateLimit(emailKey);
   await db.adminUser.update({
     where: { userId: admin.userId },
     data: { lastLoginAt: new Date(), failedLoginCount: 0, lockedUntil: null },

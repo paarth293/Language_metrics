@@ -9,10 +9,33 @@ export interface AuditContext {
   userAgent?: string | null;
 }
 
+/**
+ * KNOWN SCHEMA MISMATCH (errors.md #N7 — flagged, not silently patched here
+ * because fixing it properly needs a Prisma migration this environment
+ * can't run/verify):
+ *
+ * AdminAuditLog.actorId is documented in schema.prisma as "User UUID when
+ * known; attempted username on failed login" — i.e. it's meant to identify
+ * a PERSON. Every call site below instead passes whatever record the action
+ * was performed ON (a teacher's userId, a payout's own id, or — for
+ * login/logout — the acting admin's own id again). For teacher
+ * approve/suspend actions that happens to still be a user id, so it reads
+ * fine; for payouts it is a Payout.id, which is not a user at all. Anyone
+ * querying `actorId` expecting a person (per the schema's own doc comment)
+ * will get a mix of user ids and unrelated record ids.
+ *
+ * This function still writes to `actorId` as before (changing the mapping
+ * without a migration would just move the inconsistency rather than fix
+ * it), but the parameter is named for what it actually is — the subject/
+ * target record of the action — and callers are encouraged to also pass the
+ * record type in `details` (as the payouts/teachers routes already do)
+ * until AdminAuditLog gets a proper `targetType`/`targetId` pair alongside
+ * `actorId` in a future migration.
+ */
 export async function auditLog(
   ctx: AuditContext,
   action: string,
-  targetId: string,
+  subjectId: string,
   details?: Record<string, unknown>
 ): Promise<void> {
   try {
@@ -20,7 +43,7 @@ export async function auditLog(
       data: {
         adminId: ctx.adminId,
         eventType: action,
-        actorId: targetId ?? "",
+        actorId: subjectId ?? "",
         ipAddress: ctx.ip ?? null,
         userAgent: ctx.userAgent ?? null,
         outcome: details ? JSON.stringify(details) : null,

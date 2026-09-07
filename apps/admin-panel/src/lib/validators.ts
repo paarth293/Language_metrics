@@ -22,6 +22,20 @@ export const payoutStatusSchema = z.object({
   transactionRef: z.string().max(200).optional().nullable(),
 });
 
+/**
+ * Admin invite (create a new admin user) — POST via admin-users/actions.ts.
+ * Added alongside the "Invite Admin" flow (errors.md #F1): the roleKey enum
+ * here must stay in sync with permissions.ts's ROLE_PRESETS keys.
+ */
+export const inviteAdminSchema = z.object({
+  name: z.string().trim().min(1, "Name is required.").max(200, "Name is too long."),
+  email: z.string().trim().toLowerCase().email("Enter a valid email address."),
+  roleKey: z.enum(
+    ["SUPER_ADMIN", "FINANCE_ADMIN", "TEACHER_ADMIN", "SUPPORT_ADMIN", "CONTENT_ADMIN"],
+    { message: "Select a valid role." }
+  ),
+});
+
 /** Password change */
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, "Current password is required."),
