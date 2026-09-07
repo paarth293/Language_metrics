@@ -2,49 +2,29 @@ import { createHash, randomBytes } from "crypto";
 
 /**
  * CSRF protection for admin login (synchronizer / double-submit pattern):
- *  1. Origin allowlist — reject missing or non-allowlisted Origin (403).
+ *  1. Same-origin check — lib/security.ts#assertSameOrigin() rejects any
+ *     request whose Origin header doesn't match the request's own Host
+ *     (defense-in-depth on top of the SameSite=strict session cookie).
  *  2. Double-submit cookie — csrf_token cookie must match form field when set.
  *
  * Documented in SECURITY.md.
+ *
+ * Fix (errors.md #N9): this file used to also define an env-var-driven
+ * ADMIN_PANEL_URL/APP_URL origin allowlist (`isAllowedOrigin`,
+ * `assertValidOrigin`, `allowlist()`), but nothing in the codebase ever
+ * called them — the actual origin check wired into the login flow is
+ * assertSameOrigin() above, which doesn't read those env vars at all. That
+ * left dead code sitting next to .env.example's (incorrect) warning that
+ * forgetting to set ADMIN_PANEL_URL would get every production login
+ * rejected with "Origin not allowed" — a failure mode that could not
+ * actually happen, since the function that would produce it was never
+ * invoked. Removed the unused functions rather than leave security-shaped
+ * dead code that misrepresents what's actually enforced; the .env.example
+ * comment has been corrected to match. If a fixed-allowlist check (in
+ * addition to assertSameOrigin) is wanted later, reintroduce it and call it
+ * from requireApiAdmin()/authenticateAdmin() explicitly so it's actually
+ * part of the request path.
  */
-
-function allowlist(): string[] {
-  const urls = [
-    process.env.ADMIN_PANEL_URL,
-    process.env.APP_URL,
-    process.env.NEXT_PUBLIC_APP_URL,
-    "http://localhost:3001",
-    "http://127.0.0.1:3001",
-  ].filter(Boolean) as string[];
-  return [...new Set(urls.map((u) => u.replace(/\/$/, "")))];
-}
-
-export function isAllowedOrigin(origin: string | null): boolean {
-  if (!origin) return false;
-  const normalized = origin.replace(/\/$/, "");
-  return allowlist().includes(normalized);
-}
-
-/** Reject when Origin is missing or not on the allowlist. */
-export function assertValidOrigin(origin: string | null): {
-  ok: true;
-} | { ok: false; status: 403; message: string } {
-  if (!origin) {
-    return {
-      ok: false,
-      status: 403,
-      message: "Missing Origin header",
-    };
-  }
-  if (!isAllowedOrigin(origin)) {
-    return {
-      ok: false,
-      status: 403,
-      message: "Origin not allowed",
-    };
-  }
-  return { ok: true };
-}
 
 export function generateCsrfToken(): string {
   return randomBytes(32).toString("hex");

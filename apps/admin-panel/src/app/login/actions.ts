@@ -12,7 +12,6 @@ import { TRUSTED_DEVICE_COOKIE, trustedDeviceCookieOptions, signTrustedDeviceTok
 export interface LoginState {
   error?: string;
   email?: string;
-  password?: string;
 }
 
 async function getClientIp(): Promise<string | null> {
@@ -43,7 +42,10 @@ export async function loginAction(
 
   if (!result.success) {
     if (result.error === "2FA_REQUIRED") {
-      return { error: result.error, email, password };
+      // Never echo the password back to the client — the original password
+      // field stays mounted (just visually hidden) in the form so the
+      // browser resubmits the value the user already typed.
+      return { error: result.error, email };
     }
     return { error: result.error };
   }
@@ -59,7 +61,14 @@ export async function loginAction(
 export async function logoutAction(): Promise<void> {
   const session = await readSession();
   if (session) {
-    await auditLog({ adminId: session.sub }, "LOGOUT", session.sub, { email: session.email });
+    // Fix (errors.md #C4 residual): getClientIp() was already defined in
+    // this file and used by loginAction, but logoutAction never called it —
+    // every LOGOUT audit row was missing the IP that every other audited
+    // action (login, teacher approval, payout status changes, ...)
+    // records. Capture it here too so a logout can actually be correlated
+    // with the session/IP that requested it during a security review.
+    const ip = await getClientIp();
+    await auditLog({ adminId: session.sub, ip }, "LOGOUT", session.sub, { email: session.email });
   }
   await destroySession();
   redirect("/login");

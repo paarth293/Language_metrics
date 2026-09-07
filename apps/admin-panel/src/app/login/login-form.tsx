@@ -158,67 +158,77 @@ export default function LoginForm({ csrfToken }: { csrfToken: string }) {
             <span className="sr-only">2FA</span>
             <input type="hidden" name="csrf_token" value={csrfToken} />
 
-            {!needs2FA && (
-              <>
-                <div>
-                  <label
-                    htmlFor="admin-email"
-                    className="mb-1.5 block text-[12px] font-semibold text-[var(--text)]"
-                  >
-                    Admin email
-                  </label>
-                  <input
-                    id="admin-email"
-                    name="email"
-                    type="email"
-                    required
-                    autoComplete="username"
-                    autoCapitalize="none"
-                    spellCheck={false}
-                    placeholder="admin@languagemetrics.com"
-                    className="lm-input w-full px-4 text-[13px]"
-                  />
-                </div>
+            {/*
+              IMPORTANT: the email/password fields stay mounted (just visually
+              hidden) once 2FA is required, instead of unmounting and being
+              re-supplied via hidden inputs sourced from server-action state.
+              That previous approach round-tripped the plaintext password
+              through the server action's return value and into a `<input
+              type="hidden">`, which put it in the RSC payload and the DOM —
+              never echo a password back to the client. Keeping the original
+              input mounted lets the browser resubmit the value the user
+              already typed, with no server round-trip of the secret.
+            */}
+            <div className={needs2FA ? "hidden" : undefined}>
+              <label
+                htmlFor="admin-email"
+                className="mb-1.5 block text-[12px] font-semibold text-[var(--text)]"
+              >
+                Admin email
+              </label>
+              <input
+                id="admin-email"
+                name="email"
+                type="email"
+                required={!needs2FA}
+                autoComplete="username"
+                autoCapitalize="none"
+                spellCheck={false}
+                placeholder="admin@languagemetrics.com"
+                className="lm-input w-full px-4 text-[13px]"
+              />
+            </div>
 
-                <div>
-                      <div className="mb-1.5 flex items-center justify-between gap-3">
-                        <label
-                          htmlFor="admin-password"
-                          className="block text-[12px] font-semibold text-[var(--text)]"
-                        >
-                          Password
-                        </label>
-                        <span className="text-[10px] text-[var(--text-subtle)]">Required</span>
-                      </div>
-                      <div className="relative">
-                        <input
-                          id="admin-password"
-                          name="password"
-                          type={showPassword ? "text" : "password"}
-                          required
-                          autoComplete="current-password"
-                          placeholder="Enter your password"
-                          className="lm-input w-full px-4 pr-12 text-[13px]"
-                        />
-                        <button
-                          type="button"
-                          aria-label={showPassword ? "Hide password" : "Show password"}
-                          onClick={() => setShowPassword((v) => !v)}
-                          className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[var(--text-subtle)] hover:bg-[var(--surface-inset)] hover:text-[var(--text)]"
-                        >
-                          {showPassword
-                            ? <EyeOff size={15} aria-hidden="true" />
-                            : <Eye size={15} aria-hidden="true" />}
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                )}
+            <div className={needs2FA ? "hidden" : undefined}>
+                  <div className="mb-1.5 flex items-center justify-between gap-3">
+                    <label
+                      htmlFor="admin-password"
+                      className="block text-[12px] font-semibold text-[var(--text)]"
+                    >
+                      Password
+                    </label>
+                    <span className="text-[10px] text-[var(--text-subtle)]">Required</span>
+                  </div>
+                  <div className="relative">
+                    <input
+                      id="admin-password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      required={!needs2FA}
+                      autoComplete="current-password"
+                      placeholder="Enter your password"
+                      className="lm-input w-full px-4 pr-12 text-[13px]"
+                    />
+                    <button
+                      type="button"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[var(--text-subtle)] hover:bg-[var(--surface-inset)] hover:text-[var(--text)]"
+                    >
+                      {showPassword
+                        ? <EyeOff size={15} aria-hidden="true" />
+                        : <Eye size={15} aria-hidden="true" />}
+                    </button>
+                  </div>
+                </div>
 
                 {needs2FA && (
                   <div>
-                        <input type="hidden" name="email" value={state?.email ?? ""} />
-                        <input type="hidden" name="password" value={state?.password ?? ""} />
+                        {state?.email ? (
+                          <p className="mb-3 text-[11px] text-[var(--text-subtle)]">
+                            Signing in as <span className="font-semibold text-[var(--text)]">{state.email}</span>
+                          </p>
+                        ) : null}
                         <label htmlFor="admin-totp" className="mb-1.5 block text-[12px] font-semibold text-[var(--text)]">
                           Two-factor code
                         </label>
