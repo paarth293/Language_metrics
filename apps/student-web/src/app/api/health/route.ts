@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getRedisClient } from "@/lib/redis-session";
+import { getRedisClient } from "@/lib/redis-client";
 
 export async function GET() {
   const startTime = Date.now();
