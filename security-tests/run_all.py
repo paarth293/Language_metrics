@@ -12,9 +12,20 @@ TESTS = [
 ]
 
 def main():
+    port = "3001"
+    args = sys.argv[1:]
+    for i, arg in enumerate(args):
+        if arg in ("--port", "-p") and i + 1 < len(args):
+            port = args[i + 1]
+        elif arg.startswith("--port="):
+            port = arg.split("=", 1)[1]
+
+    os.environ["PORT"] = port
+    target = f"http://localhost:{port}"
+
     print("=" * 60)
     print("  Language Matrix Security Test Suite")
-    print("  Target: http://localhost:3001")
+    print(f"  Target: {target}")
     print("=" * 60)
     print()
 
@@ -29,12 +40,6 @@ def main():
             results.append((name, script, "[SKIP]"))
             continue
 
-        # An empty (0-byte) test file is valid Python: it runs, does nothing,
-        # and exits 0 — which used to get reported as [PASS] here even
-        # though zero assertions ran. That previously made SECURITY_REPORT.md
-        # claim CSRF/RBAC/session/audit-log protection was verified when
-        # those four files had no test code in them at all. Flag this
-        # explicitly instead of silently treating "no code ran" as "passed".
         if os.path.getsize(script_path) == 0:
             print(f">> Running: {name} ({script})")
             print(f"  Result: [NOT IMPLEMENTED] file exists but is empty — no test was actually run\n")
@@ -47,10 +52,21 @@ def main():
             print("  Result: [PASS]\n")
             results.append((name, script, "[PASS]"))
         elif res.returncode == 3:
-            print("  Result: [SKIP]\n")
+            print("  Result: [SKIP]")
+            if res.stdout:
+                for line in res.stdout.strip().splitlines():
+                    print(f"    {line}")
+            print()
             results.append((name, script, "[SKIP]"))
         else:
-            print("  Result: [FAIL]\n")
+            print("  Result: [FAIL]")
+            if res.stdout:
+                for line in res.stdout.strip().splitlines():
+                    print(f"    {line}")
+            if res.stderr:
+                for line in res.stderr.strip().splitlines():
+                    print(f"    {line}")
+            print()
             results.append((name, script, "[FAIL]"))
             
     print("=" * 60)

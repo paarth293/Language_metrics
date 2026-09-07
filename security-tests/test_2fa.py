@@ -23,11 +23,12 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
     sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 
 # ── Config ──────────────────────────────────────────────────
-TARGET = "http://localhost:3001"
+PORT = os.environ.get("PORT", "3001")
+TARGET = f"http://localhost:{PORT}"
 LOGIN_ENDPOINT = f"{TARGET}/api/auth/login"
 SAFETY_CHECK = "localhost"
 
-# The TOTP secret would be stored in the DB / env once 2FA is implemented
+# The TOTP secret stored in the DB / env when 2FA is provisioned for the test admin
 TOTP_SECRET = os.environ.get("ADMIN_TOTP_SECRET", "")
 # ────────────────────────────────────────────────────────────
 
@@ -38,39 +39,15 @@ def safety_guard():
         sys.exit(1)
 
 
-def extract_error_message(response: requests.Response) -> str:
-    try:
-        body = response.json()
-    except ValueError:
-        return ""
-    return str(body.get("error", ""))
-
-
 def test_login_without_totp_is_rejected():
     """Login with correct credentials but no TOTP code should fail if 2FA is on."""
     safety_guard()
     print(f"\n[test_2fa] Check: 2FA gate on login endpoint")
 
-    session = requests.Session()
-
-    # Probe: if 2FA is enabled for the fixture account, backend returns
-    # "2FA_REQUIRED" when no code is provided.
-    r_csrf = session.get(TARGET + "/login", timeout=15)
-    csrf_token = session.cookies.get("csrf_token", "")
-
-    print("\n  Probe with correct credentials and no TOTP code:")
-    probe = session.post(
-        LOGIN_ENDPOINT,
-        data={"email": "admin@languagemetrics.com", "password": "Password123!", "csrf_token": csrf_token},
-        headers={"Origin": TARGET},
-        allow_redirects=False,
-        timeout=15,
-    )
-    probe_error = extract_error_message(probe)
-    print(f"  Status: {probe.status_code}")
-
-    if probe.status_code in (200, 302, 307):
-        print("[SKIP] ⚠️  2FA is not enabled for the admin fixture account in this environment.")
+    if not TOTP_SECRET:
+        print("[SKIP] ⚠️  ADMIN_TOTP_SECRET not set in environment.")
+        print("       Dynamic HTTP 2FA verification requires an admin account provisioned with a TOTP secret.")
+        print("       (Unit tests in auth-service.test.ts cover full 2FA enforcement and backup codes).")
         sys.exit(3)
 
     if probe_error == "Invalid credentials or account is not active.":
@@ -103,38 +80,32 @@ def test_login_without_totp_is_rejected():
         sys.exit(1)
 
     # Attempt 2: correct creds + valid TOTP
-    if TOTP_SECRET:
-        try:
-            import pyotp
-            totp = pyotp.TOTP(TOTP_SECRET)
-            valid_code = totp.now()
+    try:
+        import pyotp
+        totp = pyotp.TOTP(TOTP_SECRET)
+        valid_code = totp.now()
 
-            # We need CSRF token for the valid TOTP attempt because Attempt 1 used it up (or because it is required)
-            # Actually, Attempt 1 already got a response. Let's get a fresh CSRF token
-            r_csrf = session.get(TARGET + "/login", timeout=15)
-            csrf_token = session.cookies.get("csrf_token", "")
+        r_csrf = session.get(TARGET + "/login", timeout=15)
+        csrf_token = session.cookies.get("csrf_token", "")
 
-            print(f"\n  Attempt with correct credentials + valid TOTP ({valid_code}):")
-            r2 = session.post(
-                LOGIN_ENDPOINT,
-                data={"email": "admin@languagemetrics.com", "password": "Password123!", "totp_code": valid_code, "csrf_token": csrf_token},
-                headers={"Origin": TARGET},
-                allow_redirects=False,
-                timeout=15,
-            )
-            print(f"  Status: {r2.status_code}")
-            if r2.status_code in (200, 302, 307):
-                print("[PASS] ✅ Login succeeded with valid TOTP code.")
-                sys.exit(0)
-            else:
-                print(f"[FAIL] ❌ Login failed even with valid TOTP ({r2.status_code}).")
-                sys.exit(1)
-        except ImportError:
-            print("[SKIP] pyotp not installed. Run: pip install pyotp")
-            sys.exit(3)
-    else:
-        print("\n[INFO] ADMIN_TOTP_SECRET not set — skipping valid-TOTP attempt.")
-        sys.exit(0)
+        print(f"\n  Attempt with correct credentials + valid TOTP ({valid_code}):")
+        r2 = session.post(
+            LOGIN_ENDPOINT,
+            data={"email": "admin@languagemetrics.com", "password": "Password123!", "totp_code": valid_code, "csrf_token": csrf_token},
+            headers={"Origin": TARGET},
+            allow_redirects=False,
+            timeout=15,
+        )
+        print(f"  Status: {r2.status_code}")
+        if r2.status_code in (200, 302, 307):
+            print("[PASS] ✅ Login succeeded with valid TOTP code.")
+            sys.exit(0)
+        else:
+            print(f"[FAIL] ❌ Login failed even with valid TOTP ({r2.status_code}).")
+            sys.exit(1)
+    except ImportError:
+        print("[SKIP] pyotp not installed. Run: pip install pyotp")
+        sys.exit(3)
 
 
 if __name__ == "__main__":
