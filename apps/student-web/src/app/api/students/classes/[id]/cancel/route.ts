@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { rateLimitRedis } from "@/lib/rate-limit";
 
 // POST - Cancel a booking
 export async function POST(
@@ -9,6 +10,15 @@ export async function POST(
 ) {
   const auth = await requireAuth(request, "STUDENT");
   if (auth.error) return auth.error;
+
+  // This route reads no body (bookingId comes from the URL), so no
+  // body-size guard is needed — but nothing stopped a client from spamming
+  // cancellations, so it gets the same light rate limit as every other
+  // mutating route reviewed in this pass.
+  const isLimited = await rateLimitRedis(auth.user.sub, "cancel-booking", { windowMs: 60_000, max: 20 });
+  if (isLimited) {
+    return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
+  }
 
   try {
     const userId = auth.user.sub;
