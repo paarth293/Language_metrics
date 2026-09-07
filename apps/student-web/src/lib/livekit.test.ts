@@ -12,26 +12,11 @@
  * Run with: tsx src/lib/livekit.test.ts
  * (No install needed — no external imports.)
  */
+import { test, expect } from "vitest";
 import { generateLiveKitToken, isLiveKitConfigured } from "./livekit";
 
-let pass = 0;
-let fail = 0;
-function check(cond: boolean, label: string, detail?: unknown) {
-  if (cond) {
-    pass++;
-    console.log(`PASS  ${label}`);
-  } else {
-    fail++;
-    console.log(`FAIL  ${label}`);
-    if (detail !== undefined) console.log("      " + JSON.stringify(detail));
-  }
-}
-
-async function main() {
-  check(
-    isLiveKitConfigured() === false,
-    "not configured in this environment (no API key/secret/ws url set) — exercising the fallback path the route relies on until real LiveKit credentials are set"
-  );
+test("livekit fallback when unconfigured", async () => {
+  expect(isLiveKitConfigured()).toBe(false);
 
   const result = await generateLiveKitToken({
     roomName: "class-abc123",
@@ -40,20 +25,12 @@ async function main() {
     role: "student",
   });
 
-  check(typeof result.token === "string" && result.token.length > 0, "returns a non-empty token string", result);
-  check(
-    result.token.includes("user-1") && result.token.includes("class-abc123"),
-    "mock token is traceable to identity+room for local debugging",
-    result
-  );
-  check(typeof result.wsUrl === "string" && result.wsUrl.startsWith("ws"), "returns a usable wsUrl", result);
-  check(
-    result.token !== undefined && result.wsUrl !== undefined,
-    "neither field is undefined (what the route sends straight to the client)"
-  );
-
-  console.log(`\n${pass} passed, ${fail} failed`);
-  if (fail > 0) process.exit(1);
-}
-
-main();
+  expect(typeof result.token).toBe("string");
+  expect(result.token.length).toBeGreaterThan(0);
+  expect(result.token.includes("user-1")).toBe(true);
+  expect(result.token.includes("class-abc123")).toBe(true);
+  expect(typeof result.wsUrl).toBe("string");
+  expect(result.wsUrl.startsWith("ws")).toBe(true);
+  expect(result.token).toBeDefined();
+  expect(result.wsUrl).toBeDefined();
+});

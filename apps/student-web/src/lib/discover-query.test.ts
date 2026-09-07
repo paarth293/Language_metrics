@@ -1,18 +1,11 @@
+import { test, expect } from "vitest";
 import { buildDiscoverWhere, paginate } from "./discover-query";
 import type { DiscoverQuery } from "./validation";
 
-let pass = 0;
-let fail = 0;
-
-function check(cond: boolean, label: string, detail?: unknown) {
-  if (cond) {
-    pass++;
-    console.log(`PASS  ${label}`);
-  } else {
-    fail++;
-    console.log(`FAIL  ${label}`);
-    if (detail !== undefined) console.log("      " + JSON.stringify(detail, null, 2));
-  }
+function check(cond: boolean, label: string, _detail?: unknown) {
+  test(label, () => {
+    expect(cond).toBe(true);
+  });
 }
 
 function baseQuery(overrides: Partial<DiscoverQuery> = {}): DiscoverQuery {
@@ -94,6 +87,3 @@ function baseQuery(overrides: Partial<DiscoverQuery> = {}): DiscoverQuery {
   const page = paginate([], 20);
   check(page.items.length === 0 && page.hasMore === false && page.nextCursor === null, "paginate: empty result set handled", page);
 }
-
-console.log(`\n${pass} passed, ${fail} failed`);
-if (fail > 0) process.exit(1);
