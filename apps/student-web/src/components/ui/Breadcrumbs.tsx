@@ -38,7 +38,17 @@ export function Breadcrumbs({ items, className = "" }: BreadcrumbsProps) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        // HARDENING: this component isn't used anywhere in student-web yet
+        // (verified — no other file references <Breadcrumbs>), so today
+        // `items` is always static per-page copy, not attacker-controlled.
+        // But JSON.stringify() does NOT escape "<", so the moment a caller
+        // passes user-generated text as a label (e.g. a teacher's name in a
+        // "Home > Discover > {teacherName}" trail), a label containing
+        // "</script><script>…" would close this JSON-LD tag early and
+        // inject a real, executable <script> right after it. Escaping "<"
+        // as its unicode form neutralizes that while leaving the JSON
+        // value and meaning completely unchanged.
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }}
       />
       <nav aria-label="Breadcrumb" className={`text-sm ${className}`}>
         <ol className="flex items-center gap-1.5 text-text-muted">
