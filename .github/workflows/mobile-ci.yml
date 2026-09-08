@@ -29,7 +29,7 @@ jobs:
           cache: "npm"
 
       - name: Install Monorepo Dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Typecheck API Contracts
         run: npx tsc --noEmit -p packages/api-contracts/tsconfig.json
