@@ -1,10 +1,21 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fraunces, Manrope, Caveat } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-client";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { CookieConsent } from "@/components/ui/CookieConsent";
 import { Analytics } from "@/components/Analytics";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f0c29" },
+  ],
+};
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -30,6 +41,12 @@ const caveat = Caveat({
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Language Metrics",
+  },
   title: "Language Metrics — Find Your Perfect Language Teacher",
   description:
     "Connect with verified language professionals for 1-on-1 live classes. Learn any language with expert teachers via our custom video platform.",
