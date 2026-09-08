@@ -90,7 +90,7 @@ export default function WalletPage() {
                 <span className="text-2xl" aria-hidden="true">🪙</span>
                 <span className="font-display text-5xl font-bold tabular-nums tracking-tight">{balance.toLocaleString()}</span>
               </div>
-              <Button variant="gold" className="w-full flex gap-2">
+              <Button variant="gold" className="w-full flex gap-2 min-h-[44px]">
                 <Plus className="w-4 h-4" /> Top up Coins
               </Button>
             </CardContent>
@@ -120,7 +120,7 @@ export default function WalletPage() {
                   </div>
                   <p className="text-sm font-bold text-text">No transactions found</p>
                   <p className="text-xs text-text-muted mt-1">You haven&apos;t made any purchases or bookings yet.</p>
-                  <Button variant="primary" size="sm" className="mt-4">
+                  <Button variant="primary" size="sm" className="mt-4 min-h-[44px] px-6">
                     Top up Coins
                   </Button>
                 </div>
@@ -128,21 +128,21 @@ export default function WalletPage() {
                 <table className="w-full text-sm text-left">
                   <thead className="bg-surface-inset text-text-muted uppercase text-xs">
                     <tr>
-                      <th className="px-6 py-4 font-semibold">Transaction</th>
-                      <th className="px-6 py-4 font-semibold">Date</th>
-                      <th className="px-6 py-4 font-semibold">Amount</th>
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 font-semibold">Transaction</th>
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 font-semibold">Date</th>
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 font-semibold">Amount</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
                     {transactions.map((tx) => (
                       <tr key={tx.id} className="hover:bg-surface-inset/50 transition-colors">
-                        <td className="px-6 py-4">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4">
                           <div className="font-medium text-text mb-1">{tx.description}</div>
                           <div className="flex gap-2 items-center text-xs text-text-muted">
                             <span className="uppercase">{tx.type}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-text-muted whitespace-nowrap">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-text-muted whitespace-nowrap">
                           {new Date(tx.createdAt).toLocaleDateString("en-IN", {
                             month: "short",
                             day: "numeric",
@@ -151,7 +151,7 @@ export default function WalletPage() {
                             minute: "2-digit",
                           })}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                           <div
                             className={`flex items-center gap-1 font-semibold ${
                               tx.amount > 0 ? "text-trust" : "text-text"

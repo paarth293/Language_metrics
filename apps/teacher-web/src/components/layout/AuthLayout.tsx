@@ -27,7 +27,9 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
           </Link>
           <button 
             onClick={toggleTheme}
-            className="rounded-full p-2 text-text-muted hover:bg-surface-inset hover:text-text transition-colors"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full text-text-muted hover:bg-surface-inset hover:text-text transition-colors"
+            title={`Switch theme (currently ${theme})`}
+            aria-label={`Switch theme (currently ${theme})`}
           >
             <ThemeIcon className="h-[18px] w-[18px]" />
           </button>

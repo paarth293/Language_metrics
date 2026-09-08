@@ -1,0 +1,49 @@
+name: Student Mobile CI
+
+on:
+  push:
+    branches: [main, staging, feature/**, milestone/**]
+    paths:
+      - "apps/student-mobile/**"
+      - "packages/api-contracts/**"
+      - ".github/workflows/mobile-ci.yml"
+  pull_request:
+    branches: [main, staging]
+    paths:
+      - "apps/student-mobile/**"
+      - "packages/api-contracts/**"
+      - ".github/workflows/mobile-ci.yml"
+
+jobs:
+  mobile-validate:
+    name: Mobile Typecheck & Contract Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install Monorepo Dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Typecheck API Contracts
+        run: npx tsc --noEmit -p packages/api-contracts/tsconfig.json
+
+      - name: Typecheck Student Mobile Workspace
+        run: npx tsc --noEmit -p apps/student-mobile/tsconfig.json
+
+      - name: Validate Expo Configuration
+        run: |
+          node -e "
+            const appJson = require('./apps/student-mobile/app.json');
+            if (!appJson.expo || !appJson.expo.name || !appJson.expo.ios?.bundleIdentifier || !appJson.expo.android?.package) {
+              console.error('Invalid Expo app.json schema');
+              process.exit(1);
+            }
+            console.log('Expo configuration schema validated successfully.');
+          "

@@ -28,8 +28,9 @@ export function TopBar({ onMenuClick, user }: TopBarProps) {
     <header className="flex h-[72px] shrink-0 items-center justify-between border-b border-border bg-white/60 backdrop-blur-xl px-4 md:px-8 sticky top-0 z-20">
       <div className="flex items-center gap-4">
         <button
-          className="text-text-muted hover:text-text lg:hidden transition-colors p-2 rounded-xl hover:bg-surface-inset"
+          className="text-text-muted hover:text-text lg:hidden transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl hover:bg-surface-inset"
           onClick={onMenuClick}
+          aria-label="Open navigation menu"
         >
           <Menu className="h-5 w-5" />
         </button>
@@ -53,8 +54,9 @@ export function TopBar({ onMenuClick, user }: TopBarProps) {
         {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
-          className="rounded-xl p-2.5 text-text-muted hover:bg-surface-inset hover:text-text transition-all duration-200"
+          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl p-2.5 text-text-muted hover:bg-surface-inset hover:text-text transition-all duration-200"
           title={`Theme: ${theme}`}
+          aria-label={`Switch theme (currently ${theme})`}
         >
           <ThemeIcon className="h-[18px] w-[18px]" />
         </button>
@@ -62,7 +64,8 @@ export function TopBar({ onMenuClick, user }: TopBarProps) {
         {/* Notifications */}
         <Link
           href={notificationsHref}
-          className="relative rounded-xl p-2.5 text-text-muted hover:bg-surface-inset hover:text-text transition-all duration-200"
+          className="min-h-[44px] min-w-[44px] flex items-center justify-center relative rounded-xl p-2.5 text-text-muted hover:bg-surface-inset hover:text-text transition-all duration-200"
+          aria-label="View notifications"
         >
           <Bell className="h-[18px] w-[18px]" />
           <span className="absolute right-1.5 top-1.5 flex h-2 w-2 rounded-full bg-danger">
@@ -81,7 +84,7 @@ export function TopBar({ onMenuClick, user }: TopBarProps) {
               {user?.role?.toLowerCase() || "student"}
             </div>
           </div>
-          <button className="focus:outline-none focus-ring rounded-full" title="Profile">
+          <button className="min-h-[44px] min-w-[44px] flex items-center justify-center focus:outline-none focus-ring rounded-full" title="Profile" aria-label="User profile">
             <Avatar initials={user?.name?.[0] || "U"} online={true} />
           </button>
         </div>
