@@ -56,6 +56,35 @@ declare module "react-native" {
     [key: string]: any;
   }
 
+  export interface ModalProps {
+    visible?: boolean;
+    animationType?: "none" | "slide" | "fade";
+    transparent?: boolean;
+    onRequestClose?: () => void;
+    children?: React.ReactNode;
+    [key: string]: any;
+  }
+
+  export interface ActivityIndicatorProps {
+    size?: "small" | "large" | number;
+    color?: string;
+    [key: string]: any;
+  }
+
+  export interface RefreshControlProps {
+    refreshing: boolean;
+    onRefresh?: () => void;
+    tintColor?: string;
+    colors?: string[];
+    [key: string]: any;
+  }
+
+  export interface AlertButton {
+    text?: string;
+    onPress?: () => void;
+    style?: "default" | "cancel" | "destructive";
+  }
+
   export const View: React.FC<ViewProps>;
   export const Text: React.FC<TextProps>;
   export const TouchableOpacity: React.FC<TouchableOpacityProps>;
@@ -63,6 +92,18 @@ declare module "react-native" {
   export const TextInput: React.FC<TextInputProps>;
   export const SafeAreaView: React.FC<ViewProps>;
   export const StatusBar: React.FC<StatusBarProps>;
+  export const Modal: React.FC<ModalProps>;
+  export const ActivityIndicator: React.FC<ActivityIndicatorProps>;
+  export const RefreshControl: React.FC<RefreshControlProps>;
+
+  export namespace Alert {
+    export function alert(
+      title: string,
+      message?: string,
+      buttons?: AlertButton[],
+      options?: any
+    ): void;
+  }
 
   export namespace StyleSheet {
     export function create<T extends Record<string, any>>(styles: T): T;

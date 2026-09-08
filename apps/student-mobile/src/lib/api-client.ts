@@ -22,6 +22,8 @@ import {
   CreateBookingRequestSchema,
   BookingDetail,
   BookingDetailSchema,
+  BookingListResponse,
+  BookingListResponseSchema,
   LiveKitTokenResponse,
   LiveKitTokenResponseSchema,
 } from "@repo/api-contracts";
@@ -172,6 +174,42 @@ export const MobileApiClient = {
   },
 
   /**
+   * Fetch student's booked classes / sessions.
+   */
+  async getClasses(filter?: "upcoming" | "past" | "cancelled"): Promise<BookingListResponse> {
+    const query = filter ? `?filter=${filter}` : "";
+    const data = await request<BookingListResponse>(`/classes${query}`);
+    return BookingListResponseSchema.parse(data);
+  },
+
+  /**
+   * Fetch authenticated student profile and account metadata.
+   */
+  async getMe(): Promise<{
+    id: string;
+    email: string;
+    name: string;
+    avatarUrl: string | null;
+    languageToLearn: string;
+    proficiencyLevel: string;
+    status: string;
+    coinBalance: number;
+    joinedAt: string;
+  }> {
+    return request<{
+      id: string;
+      email: string;
+      name: string;
+      avatarUrl: string | null;
+      languageToLearn: string;
+      proficiencyLevel: string;
+      status: string;
+      coinBalance: number;
+      joinedAt: string;
+    }>("/me");
+  },
+
+  /**
    * Revoke session and wipe tokens from OS enclave.
    */
   async logout(): Promise<void> {
@@ -186,3 +224,4 @@ export const MobileApiClient = {
     }
   },
 };
+
