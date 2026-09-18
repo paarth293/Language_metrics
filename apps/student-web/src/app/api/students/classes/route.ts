@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { validateClassesFilter } from "@/lib/validation";
+import { stripHtml } from "@/lib/sanitize";
 
 /**
  * GET /api/students/classes
@@ -14,7 +16,19 @@ export async function GET(request: Request) {
   try {
     const userId = auth.user.sub;
     const url = new URL(request.url);
-    const filter = url.searchParams.get("filter") || "upcoming";
+
+    const filterValidation = validateClassesFilter(url.searchParams.get("filter"));
+    if (!filterValidation.ok) {
+      // FIX: an unrecognized `filter` value used to fall through this
+      // if/else chain with no status condition applied at all, silently
+      // returning EVERY booking (including cancelled/completed ones)
+      // instead of the requested subset. Reject it instead.
+      return NextResponse.json(
+        { message: filterValidation.errors[0], errors: filterValidation.errors },
+        { status: 400 }
+      );
+    }
+    const filter = filterValidation.data;
 
     const now = new Date();
 
@@ -93,7 +107,9 @@ export async function GET(request: Request) {
               status: nextSession.status,
             }
           : null,
-        review: b.review,
+        review: b.review
+          ? { rating: b.review.rating, comment: b.review.comment !== null ? stripHtml(b.review.comment) : null }
+          : null,
         amountPaid: b.amountPaid,
         createdAt: b.createdAt.toISOString(),
       };

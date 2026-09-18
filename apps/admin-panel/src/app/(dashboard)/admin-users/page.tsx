@@ -1,6 +1,8 @@
 import { db } from "@repo/database";
 import { requireAdmin } from "@/lib/guards";
 import { ROLE_LABELS } from "@/lib/permissions";
+import { hasPermission } from "@/lib/rbac";
+import InviteAdminPanel from "./invite-admin-panel";
 
 export const dynamic = 'force-dynamic';
 
@@ -22,10 +24,8 @@ export default async function AdminUsersPage() {
           <h1 style={{ color: "var(--lm-text)" }} className="text-2xl font-bold tracking-tight">Admin Users & Permissions</h1>
           <p style={{ color: "var(--lm-text-muted)" }} className="text-[13px] mt-1">Role-based access control. Super Admin has full access.</p>
         </div>
-        {admin.isSuperAdmin && (
-          <button style={{ background: "var(--lm-accent)", color: "#000" }} className="px-4 py-2 rounded-lg text-[13px] font-bold hover:opacity-90 transition-opacity">
-            Invite Admin
-          </button>
+        {hasPermission(admin, "admin-users:manage") && (
+          <InviteAdminPanel canCreateSuperAdmin={admin.isSuperAdmin} />
         )}
       </div>
 

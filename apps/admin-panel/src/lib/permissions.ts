@@ -78,6 +78,20 @@ export function permissionsForRole(
 ): Permission[] {
   // Granular per-user overrides win when set; otherwise fall back to the role
   // preset. Super admins ignore this and are granted everything at auth time.
+  //
+  // KNOWN GAP (errors.md #N6 — flagged, not silently patched): `explicit`
+  // maps to AdminUser.permissions, a non-nullable `String[] @default([])`
+  // column. That means "no override was ever set" and "an admin explicitly
+  // set this user's override to zero extra permissions" are stored
+  // identically as `[]`, and this function can't tell them apart — an
+  // override of `[]` silently falls through to the full role preset instead
+  // of granting nothing. Distinguishing the two cases correctly needs a
+  // schema change (e.g. a nullable `permissions String[]?` with `null`
+  // meaning "no override", or a separate `permissionsOverridden Boolean`
+  // flag) plus a migration, which this pass does not attempt. Until that
+  // migration ships, do not rely on an empty-array override to fully lock
+  // an admin out of their role's default permissions — deactivate the
+  // account (`status`) or change their `roleKey` instead.
   if (explicit && explicit.length > 0) {
     const allowed = new Set<string>(ALL_PERMISSIONS);
     return explicit.filter((p) => allowed.has(p)) as Permission[];

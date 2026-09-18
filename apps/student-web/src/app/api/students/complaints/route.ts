@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { validateComplaint } from "@/lib/validation";
+import { exceedsMaxBodySize, rateLimitRedis } from "@/lib/rate-limit";
 
 // GET - List all complaints/tickets for the student
 export async function GET(request: NextRequest) {
@@ -28,17 +30,33 @@ export async function POST(request: NextRequest) {
   const auth = await requireAuth(request, "STUDENT");
   if (auth.error) return auth.error;
 
+  if (exceedsMaxBodySize(request)) {
+    return NextResponse.json({ error: "Request body too large." }, { status: 413 });
+  }
+
+  const isLimited = await rateLimitRedis(auth.user.sub, "complaints", { windowMs: 60_000, max: 10 });
+  if (isLimited) {
+    return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+  }
+
+  const validation = validateComplaint(body);
+  if (!validation.ok) {
+    return NextResponse.json(
+      { code: "VALIDATION_ERROR", error: validation.errors[0], errors: validation.errors },
+      { status: 400 }
+    );
+  }
+  const { category, subject, description } = validation.data;
+
   try {
     const userId = auth.user.sub;
-    const body = await request.json();
-    const { category, subject, description } = body;
-
-    if (!category || !subject || !description) {
-      return NextResponse.json(
-        { error: "Category, subject, and description are required" },
-        { status: 400 }
-      );
-    }
 
     // Map category to ComplaintCategory enum
     const categoryMap: Record<string, string> = {

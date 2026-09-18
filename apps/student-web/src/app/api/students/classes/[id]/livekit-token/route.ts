@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { generateLiveKitToken } from "@/lib/livekit";
 
 // POST - Get LiveKit token for a session
 export async function POST(
@@ -57,9 +58,30 @@ export async function POST(
     }
 
     const roomName = `class-${sessionId}`;
-    // Generate a simple token for development
-    // In production, install livekit-server-sdk and use AccessToken
-    const token = `dev-token-${userId}-${sessionId}`;
+
+    // BUG FIX: this route was building `token = \`dev-token-${userId}-${sessionId}\``
+    // itself instead of calling the real token generator that already
+    // exists in this app's own lib/livekit.ts. That string isn't a LiveKit
+    // access token at all — it isn't signed, carries no room grant, and
+    // LiveKit's real server would reject it outright. In production
+    // (LIVEKIT_API_KEY/SECRET/WS_URL set) this meant students could never
+    // actually join a video session — the join button would always fail
+    // against the real LiveKit server. generateLiveKitToken() already
+    // handles both cases correctly: a real signed JWT when LiveKit is
+    // configured, and the same kind of mock token for local dev when it
+    // isn't — so this now behaves identically in dev and correctly in
+    // production, with zero new dependencies (the function already existed
+    // in this file and already degrades gracefully; see lib/livekit.ts).
+    // NOTE: this codebase also has a separate, independent copy of
+    // lib/livekit.ts under apps/teacher-web — this fix only touches
+    // student-web's copy. See errors.md, "Before you deploy," for why
+    // teacher-web's equivalent route needs its own check.
+    const { token, wsUrl } = await generateLiveKitToken({
+      roomName,
+      identity: userId,
+      name: "Student",
+      role: "student",
+    });
 
     // Update session status if needed
     if (session.status === "SCHEDULED") {
@@ -72,7 +94,12 @@ export async function POST(
     return NextResponse.json({
       token,
       roomName,
-      wsUrl: process.env.LIVEKIT_WS_URL || "ws://localhost:7880",
+      // FIX: previously read `process.env.LIVEKIT_WS_URL` directly here,
+      // duplicating (and risking drifting from) the same env var lib/livekit.ts
+      // already reads and falls back on. Using the value the token generator
+      // itself returns guarantees the wsUrl always matches the server the
+      // token was actually signed for.
+      wsUrl,
     });
   } catch (error) {
     console.error("Failed to get LiveKit token:", error);

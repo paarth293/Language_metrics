@@ -4,6 +4,7 @@ import { exchangeGoogleCode } from "@/lib/oauth";
 import { signAccessToken, signRefreshToken, accessCookieOptions, refreshCookieOptions } from "@/lib/tokens";
 import { storeRefreshSession } from "@/lib/redis-session";
 import { db } from "@/lib/db";
+import type { Role } from "@/types";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
@@ -49,7 +50,11 @@ export async function GET(request: NextRequest) {
 
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   let userId: string | null = null;
-  let userRole: "STUDENT" | "TEACHER" = role === "teacher" ? "TEACHER" : "STUDENT";
+  // Declared as the full Role union (not just STUDENT|TEACHER): an existing
+  // ADMIN account can also reach this callback via account linking below,
+  // and userRole is later compared against "ADMIN" when deciding where to
+  // redirect a returning user.
+  let userRole: Role = role === "teacher" ? "TEACHER" : "STUDENT";
   let isNewUser = false;
 
   // 3. Find existing OAuth account
@@ -220,7 +225,7 @@ export async function GET(request: NextRequest) {
     } else if (userRole === "TEACHER") {
       destination = "/teacher/dashboard";
     } else if (userRole === "ADMIN") {
-      const adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || (process.env.NODE_ENV === "production" ? "https://language-metrics-admin-panel.vercel.app" : "http://localhost:3001");
+      const adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || (process.env.NODE_ENV === "production" ? "https://language-metrics-admin-panel.vercel.app" : "http://localhost:3003");
       destination = `${adminUrl}/dashboard`;
     } else {
       destination = "/coming-soon"; // fallback

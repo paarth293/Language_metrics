@@ -1,21 +1,17 @@
 import axios from "axios";
+import type { VerificationStatus } from "@/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
+// Auth is entirely cookie-based (see lib/auth-client.tsx) — the browser
+// attaches the httpOnly lm_access_token cookie automatically, so this client
+// never needs to (and never should) read a token from localStorage or set an
+// Authorization header. `withCredentials` makes sure the cookie is sent even
+// if API_BASE ever points at a different origin.
 const api = axios.create({
   baseURL: API_BASE,
   headers: { "Content-Type": "application/json" },
-});
-
-// Attach JWT token if available
-api.interceptors.request.use((config) => {
-  if (typeof window !== "undefined") {
-    const token = localStorage.getItem("lm_token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-  }
-  return config;
+  withCredentials: true,
 });
 
 // Auth API calls
@@ -61,12 +57,12 @@ export const adminApi = {
   getProfile: () => api.get("/admins/me"),
 
   // Teacher verification queue
-  listTeachers: (status?: "pending" | "approved" | "rejected") =>
+  listTeachers: (status?: VerificationStatus) =>
     api.get("/admin/teachers", { params: status ? { status } : undefined }),
 
   setTeacherStatus: (
     teacherId: string,
-    status: "pending" | "approved" | "rejected"
+    status: Extract<VerificationStatus, "APPROVED" | "REJECTED">
   ) => api.patch(`/admin/teachers/${teacherId}`, { status }),
 };
 

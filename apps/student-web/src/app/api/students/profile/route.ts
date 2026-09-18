@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { validateProfileUpdate } from "@/lib/validation";
+import { exceedsMaxBodySize, rateLimitRedis } from "@/lib/rate-limit";
 
 /**
  * GET /api/students/profile
@@ -63,25 +65,34 @@ export async function PUT(request: Request) {
   const auth = await requireAuth(request, "STUDENT");
   if (auth.error) return auth.error;
 
+  if (exceedsMaxBodySize(request)) {
+    return NextResponse.json({ message: "Request body too large." }, { status: 413 });
+  }
+
+  const isLimited = await rateLimitRedis(auth.user.sub, "profile-update", { windowMs: 60_000, max: 60 });
+  if (isLimited) {
+    return NextResponse.json({ message: "Too many requests. Please try again later." }, { status: 429 });
+  }
+
+  let body: unknown;
   try {
-    const body = await request.json();
-    const { name, avatarUrl, languageToLearn, proficiencyLevel } = body;
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ message: "Invalid JSON body." }, { status: 400 });
+  }
 
-    const updateData: any = {};
-    if (name !== undefined) updateData.name = name;
-    if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
-    if (languageToLearn !== undefined) updateData.languageToLearn = languageToLearn;
-    if (proficiencyLevel !== undefined) {
-      updateData.proficiencyLevel = proficiencyLevel.toUpperCase();
-    }
+  const validation = validateProfileUpdate(body);
+  if (!validation.ok) {
+    return NextResponse.json(
+      { code: "VALIDATION_ERROR", message: validation.errors[0], errors: validation.errors },
+      { status: 400 }
+    );
+  }
 
-    if (Object.keys(updateData).length === 0) {
-      return NextResponse.json({ message: "No fields to update." }, { status: 400 });
-    }
-
+  try {
     const profile = await db.studentProfile.update({
       where: { userId: auth.user.sub },
-      data: updateData,
+      data: validation.data,
     });
 
     return NextResponse.json({ profile }, { status: 200 });

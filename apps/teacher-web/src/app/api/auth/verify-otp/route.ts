@@ -11,13 +11,18 @@ const MAX_ATTEMPTS = 5;
  * POST /api/auth/verify-otp
  * Body: { email, otp }
  *
- * Validates the submitted OTP against the bcrypt hash stored on the User row.
+ * Validates the submitted 6-digit OTP against the most recent EmailVerificationCode
+ * row for the user (the same store `send-otp`/the registration OTP flow write to
+ * and that `verify-email`'s POST handler reads) — NOT the User.emailVerificationToken
+ * field, which only ever holds a bcrypt hash of the long link-style verification
+ * token used by the GET /api/auth/verify-email flow, never an OTP hash.
  *
  * Security:
- *  - Failed attempts are tracked in Redis (key: otp:attempts:<email>).
- *  - After 5 wrong attempts the OTP is invalidated — user must request a new one.
- *  - Expired OTPs are rejected and the stale token fields are cleared.
- *  - On success: emailVerified is set to true, all token fields are cleared.
+ *  - Failed attempts are tracked both in Redis (key: otp:attempts:<email>) and via
+ *    the EmailVerificationCode row's own `attempts` counter.
+ *  - After 5 wrong attempts the code is invalidated — user must request a new one.
+ *  - Expired codes are rejected.
+ *  - On success: emailVerified is set to true and the code row is deleted.
  */
 export async function POST(request: NextRequest) {
   // ── 1. Body size guard ──────────────────────────────────────────────────────
@@ -63,17 +68,32 @@ export async function POST(request: NextRequest) {
 
   const normalizedEmail = email.toLowerCase().trim();
 
-  // ── 3. Look up user and check for pending verification ──────────────────────
+  // ── 3. Look up user and their most recent verification code ─────────────────
   const user = await db.user.findUnique({
     where: { email: normalizedEmail },
     select: {
       id: true,
-      emailVerificationToken: true,
-      emailVerificationExpiry: true,
+      emailVerified: true,
+      verificationCodes: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+      },
     },
   });
 
-  if (!user || !user.emailVerificationToken || !user.emailVerificationExpiry) {
+  if (!user) {
+    return NextResponse.json(
+      { message: "No pending verification for this email." },
+      { status: 400 }
+    );
+  }
+
+  if (user.emailVerified) {
+    return NextResponse.json({ message: "Email is already verified." }, { status: 400 });
+  }
+
+  const verificationCode = user.verificationCodes[0];
+  if (!verificationCode) {
     return NextResponse.json(
       { message: "No pending verification for this email." },
       { status: 400 }
@@ -82,20 +102,17 @@ export async function POST(request: NextRequest) {
 
   // ── 4. Check expiry ────────────────────────────────────────────────────────
   const now = new Date();
-  if (user.emailVerificationExpiry < now) {
-    // Clear stale token fields
-    await db.user.update({
-      where: { id: user.id },
-      data: {
-        emailVerificationToken: null,
-        emailVerificationTokenPrefix: null,
-        emailVerificationExpiry: null,
-      },
-    });
-
+  if (verificationCode.expiresAt < now) {
     return NextResponse.json(
       { message: "Code expired. Please request a new one." },
       { status: 400 }
+    );
+  }
+
+  if (verificationCode.attempts >= MAX_ATTEMPTS) {
+    return NextResponse.json(
+      { message: "Too many incorrect attempts. Please request a new code." },
+      { status: 429 }
     );
   }
 
@@ -109,15 +126,8 @@ export async function POST(request: NextRequest) {
       const attemptCount = attempts ? parseInt(attempts, 10) : 0;
 
       if (attemptCount >= MAX_ATTEMPTS) {
-        // Invalidate the OTP — user must request a fresh one
-        await db.user.update({
-          where: { id: user.id },
-          data: {
-            emailVerificationToken: null,
-            emailVerificationTokenPrefix: null,
-            emailVerificationExpiry: null,
-          },
-        });
+        // Invalidate the code — user must request a fresh one
+        await db.emailVerificationCode.delete({ where: { id: verificationCode.id } }).catch(() => {});
 
         // Clean up the attempts counter
         await redis.del(attemptsKey);
@@ -134,17 +144,22 @@ export async function POST(request: NextRequest) {
   }
 
   // ── 6. Compare OTP ─────────────────────────────────────────────────────────
-  const isValid = await compareOtp(otp, user.emailVerificationToken);
+  const isValid = await compareOtp(otp, verificationCode.codeHash);
 
   if (!isValid) {
-    // Increment failed attempts in Redis
+    // Increment failed attempts, both on the code row and in Redis
+    await db.emailVerificationCode.update({
+      where: { id: verificationCode.id },
+      data: { attempts: { increment: 1 } },
+    }).catch(() => {});
+
     if (redis) {
       try {
         const newCount = await redis.incr(attemptsKey);
         if (newCount === 1) {
-          // Set TTL to match the remaining OTP expiry window
+          // Set TTL to match the remaining code expiry window
           const remainingSeconds = Math.ceil(
-            (user.emailVerificationExpiry.getTime() - Date.now()) / 1000
+            (verificationCode.expiresAt.getTime() - Date.now()) / 1000
           );
           await redis.expire(attemptsKey, Math.max(remainingSeconds, 60));
         }
@@ -159,16 +174,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // ── 7. OTP matches — verify the user ────────────────────────────────────────
-  await db.user.update({
-    where: { id: user.id },
-    data: {
-      emailVerified: true,
-      emailVerificationToken: null,
-      emailVerificationTokenPrefix: null,
-      emailVerificationExpiry: null,
-    },
-  });
+  // ── 7. OTP matches — verify the user and consume the code ───────────────────
+  await db.$transaction([
+    db.user.update({
+      where: { id: user.id },
+      data: { emailVerified: true },
+    }),
+    db.emailVerificationCode.delete({
+      where: { id: verificationCode.id },
+    }),
+  ]);
 
   // Clear Redis attempts counter
   if (redis) {

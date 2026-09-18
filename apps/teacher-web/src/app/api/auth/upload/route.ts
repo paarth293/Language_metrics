@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimit, rateLimitRedis } from "@/lib/rate-limit";
 import { verifyAccessToken } from "@/lib/tokens";
 import { uploadFile } from "@/lib/storage";
 
@@ -14,9 +14,18 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Rate limit: 10 uploads per minute per IP
+  // Rate limit: 10 uploads per minute per IP, and 50 per day
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    
+  const isDailyLimited = await rateLimitRedis(ip, "upload-daily", { windowMs: 86400_000, max: 50 });
+  if (isDailyLimited) {
+    return NextResponse.json(
+      { message: "Daily upload limit reached. Please try again tomorrow." },
+      { status: 429 }
+    );
+  }
+
   if (rateLimit(ip, { windowMs: 60_000, max: 10 })) {
     return NextResponse.json(
       { message: "Too many upload attempts. Please wait and try again." },

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { ACCESS_COOKIE, REFRESH_COOKIE, verifySession } from "./lib/auth";
+import { generateCsrfToken } from "./lib/csrf";
 
 export async function proxy(request: NextRequest) {
   const isLoginPage = request.nextUrl.pathname.startsWith("/login");
@@ -14,7 +15,13 @@ export async function proxy(request: NextRequest) {
   // Handle CSRF token setup and passing
   let csrfToken = request.cookies.get("csrf_token")?.value;
   if (!csrfToken) {
-    csrfToken = crypto.randomUUID();
+    // Fix (errors.md #N9 note): use the same token generator the rest of
+    // lib/csrf.ts exposes (32 random bytes, hex-encoded) instead of a
+    // separately hand-rolled crypto.randomUUID() call here — both are
+    // unguessable, but keeping one generator means there's a single place
+    // to change token length/format later instead of two call sites that
+    // can silently drift apart.
+    csrfToken = generateCsrfToken();
     requestHeaders.set("x-csrf-token", csrfToken);
   }
 

@@ -4,6 +4,7 @@ import { verifyResetSessionToken } from "@/lib/tokens";
 import { getRedisClient } from "@/lib/redis-client";
 import { resetPasswordSchema } from "@/features/auth/validators/auth";
 import { rateLimitRedis, exceedsMaxBodySize } from "@/lib/rate-limit";
+import { revokeAllRefreshSessions } from "@/lib/redis-session";
 import bcrypt from "bcryptjs";
 
 export async function POST(request: Request) {
@@ -101,6 +102,11 @@ export async function POST(request: Request) {
       const attemptsKey = `pwreset:attempts:${user.email.toLowerCase().trim()}`;
       await redis.del(attemptsKey);
     }
+
+    // Revoke every existing refresh-token session for this user. Without this,
+    // a refresh token issued before the reset (e.g. to someone who had the old
+    // password) would stay valid for its full remaining life after the reset.
+    await revokeAllRefreshSessions(user.id);
 
     return NextResponse.json({ success: true, message: "Password updated successfully." }, { status: 200 });
   } catch (error) {

@@ -18,7 +18,6 @@ const studentNavItems = [
   { label: "Dashboard", href: "/student/dashboard", icon: LayoutDashboard },
   { label: "Find Teacher", href: "/student/discover", icon: Search },
   { label: "My Classes", href: "/student/classes", icon: Calendar },
-  { label: "Live Class", href: "/student/live", icon: Video },
   { label: "Recordings", href: "/student/recordings", icon: Video },
   { label: "Chat", href: "/student/chat", icon: MessageCircle },
   { label: "Wallet", href: "/student/wallet", icon: Wallet },
@@ -35,5 +34,9 @@ export default function AuthenticatedLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <AppShell navItems={studentNavItems}>{children}</AppShell>;
+  return (
+    <AppShell navItems={studentNavItems} requiredRole="STUDENT">
+      {children}
+    </AppShell>
+  );
 }

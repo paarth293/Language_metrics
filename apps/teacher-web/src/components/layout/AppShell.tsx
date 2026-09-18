@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { useAuth } from "@/lib/auth-client";
+import type { Role } from "@/types";
 
 export interface NavItem {
   label: string;
@@ -14,14 +16,45 @@ export interface NavItem {
 interface AppShellProps {
   children: React.ReactNode;
   navItems: NavItem[];
+  /**
+   * The role this section is for (e.g. "TEACHER" for everything under
+   * app/teacher/*). An unauthenticated visitor is redirected to /login, and
+   * a signed-in user with a different role is redirected to their own
+   * dashboard — mirroring the guard already used by app/admin/dashboard/page.tsx.
+   */
+  requiredRole: Role;
 }
 
-export function AppShell({ children, navItems }: AppShellProps) {
+function dashboardPathFor(role: Role): string {
+  switch (role) {
+    case "STUDENT":
+      return "/student/dashboard";
+    case "TEACHER":
+      return "/teacher/dashboard";
+    case "ADMIN":
+      return "/admin/dashboard";
+    default:
+      return "/login";
+  }
+}
+
+export function AppShell({ children, navItems, requiredRole }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, isLoading } = useAuth();
+  const router = useRouter();
 
-  // Show minimal skeleton while auth state loads
-  if (isLoading) {
+  useEffect(() => {
+    if (isLoading) return;
+    if (!user) {
+      router.replace("/login");
+    } else if (user.role !== requiredRole) {
+      router.replace(dashboardPathFor(user.role));
+    }
+  }, [user, isLoading, requiredRole, router]);
+
+  // Show minimal skeleton while auth state loads, or while a redirect above
+  // is about to take the visitor away from this section.
+  if (isLoading || !user || user.role !== requiredRole) {
     return (
       <div className="flex h-screen items-center justify-center bg-bg">
         <div className="flex flex-col items-center gap-4">

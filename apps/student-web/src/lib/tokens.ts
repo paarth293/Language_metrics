@@ -96,11 +96,18 @@ export async function verifyRefreshToken(token: string): Promise<RefreshTokenPay
 
 // ── Cookie options ─────────────────────────────────────────────────────────────
 
+// NOTE: this previously set `domain: ".localhost"` in production, which is
+// invalid for any real deployment host — a Set-Cookie whose Domain doesn't
+// match the current hostname's suffix is dropped by the browser entirely,
+// so this was silently breaking login/session cookies in production for
+// student-web. Removed to match teacher-web's (correct) cookie config: no
+// explicit domain (defaults to the exact request host) and sameSite=lax,
+// which is what a same-origin app that doesn't need cross-site cookie
+// delivery should use.
 export const accessCookieOptions = {
   httpOnly: true,
   secure: isProd,
-  sameSite: (isProd ? "none" : "lax") as "none" | "lax",
-  ...(isProd ? { domain: ".localhost" } : {}),
+  sameSite: "lax" as const,
   path: "/",
   maxAge: ACCESS_TOKEN_TTL_SECONDS,
 };
@@ -108,8 +115,7 @@ export const accessCookieOptions = {
 export const refreshCookieOptions = {
   httpOnly: true,
   secure: isProd,
-  sameSite: (isProd ? "none" : "lax") as "none" | "lax",
-  ...(isProd ? { domain: ".localhost" } : {}),
+  sameSite: "lax" as const,
   path: "/api/auth",
   maxAge: REFRESH_TOKEN_TTL_SECONDS,
 };

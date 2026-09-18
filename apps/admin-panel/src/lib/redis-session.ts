@@ -8,6 +8,21 @@
  *
  * Rotation: atomically deletes old key, creates new one.
  * If old key is gone → potential reuse/theft → return false.
+ *
+ * KNOWN DUPLICATION (errors.md #N5 — flagged, not merged in this pass):
+ * this file is functionally identical to packages/auth/src/redis-session.ts
+ * (same key scheme, same functions, same rotation logic). admin-panel keeps
+ * its own copy instead of depending on `@repo/auth` — likely because
+ * `@repo/auth`'s index.ts also re-exports ./email and ./oauth, which pull in
+ * @react-email/components and resend that admin-panel doesn't otherwise
+ * need. Two copies of the same session-store logic means a bug fix or a
+ * key-scheme change applied to one (as happened here — see the sweep/prod
+ * guard fixes in ./rate-limit.ts) has to be remembered and reapplied to the
+ * other by hand. Left as-is rather than wiring admin-panel to `@repo/auth`
+ * blindly, since that dependency change couldn't be build-tested in this
+ * pass — but the two files should be reconciled into one shared module
+ * (e.g. a `@repo/auth/redis-session` subpath export admin-panel imports
+ * directly, without pulling in the email/oauth exports) as a follow-up.
  */
 
 import Redis from "ioredis";

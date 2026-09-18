@@ -1,0 +1,572 @@
+# Admin Panel Critical Fixes — Implementation Guide {#admin-panel-critical-fixes-implementation-guide}
+
+**Status:** Ready to implement\
+**Priority:** Deploy before production\
+**Estimated time:** 4\-6 hours
+
+* * *
+
+## Fix 1: Rate Limiter Fail\-Closed in Production {#fix-1-rate-limiter-fail-closed-in-production}
+
+**File:** `src/lib/rate-limit.ts`
+
+### Current Code (DANGEROUS) {#current-code-dangerous}
+
+Replace lines 85\-120 with:
+
+### Fixed Code {#fixed-code}
+
+```typescript
+export async function rateLimit(
+  key: string,
+  opts: RateLimitOptions
+): Promise<RateLimitResult> {
+  const client = getClient();
+  
+  // If Redis is unavailable in production, fail CLOSED (reject requests)
+  if (!client) {
+    if (process.env.NODE_ENV === "production") {
+      console.error(
+        "[rate-limit] Redis unavailable in production. Rate limiting disabled.",
+        `Rejecting requests for key: ${key}`
+      );
+      return { ok: false, retryAfterMs: 60000 };
+    }
+    // Allow in-memory fallback only for local development
+    console.warn(
+      "[rate-limit] Redis unavailable. Using in-memory limiter (dev only)."
+    );
+    return rateLimitInMemory(key, opts);
+  }
+
+  try {
+    const now = Date.now();
+    const windowStart = now - opts.windowMs;
+    const redisKey = `rl:admin:${key}`;
+
+    const pipeline = client.pipeline();
+    pipeline.zremrangebyscore(redisKey, "-inf", windowStart);
+    pipeline.zadd(redisKey, now, `${now}-${Math.random()}`);
+    pipeline.zcard(redisKey);
+    pipeline.pexpire(redisKey, opts.windowMs);
+    const results = await pipeline.exec();
+
+    const count = (results?.[2]?.[1] as number) ?? 0;
+    if (count > opts.limit) {
+      const oldest = await client.zrange(redisKey, 0, 0, "WITHSCORES");
+      const oldestTs = oldest?.[1] ? Number(oldest[1]) : now;
+      return { ok: false, retryAfterMs: Math.max(0, oldestTs + opts.windowMs - now) };
+    }
+    return { ok: true, retryAfterMs: 0 };
+  } catch (err) {
+    console.error("[rate-limit] Redis error during rate limit check:", err);
+    if (process.env.NODE_ENV === "production") {
+      // Fail closed in production
+      console.error("[rate-limit] Failing closed: rejecting request");
+      return { ok: false, retryAfterMs: 60000 };
+    }
+    // Fail open in dev
+    console.warn("[rate-limit] Failing open in dev mode");
+    return { ok: true, retryAfterMs: 0 };
+  }
+}
+```
+
+* * *
+
+## Fix 2: Add Middleware for API Route Protection {#fix-2-add-middleware-for-api-route-protection}
+
+**File:** Create `src/middleware.ts` (new file)
+
+```typescript
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { readSession } from "@/lib/session";
+
+/**
+ * Middleware that protects all API routes by checking for valid sessions.
+ * Public routes (login, logout) are explicitly allowed.
+ */
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Allow public routes
+  const publicRoutes = [
+    "/api/auth/login",
+    "/api/auth/logout",
+  ];
+
+  if (publicRoutes.includes(pathname)) {
+    return NextResponse.next();
+  }
+
+  // Protect all other API routes
+  if (pathname.startsWith("/api")) {
+    const session = await readSession();
+    if (!session) {
+      return NextResponse.json(
+        { message: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  // Apply middleware to all routes except static assets and images
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|public).*)",
+  ],
+};
+```
+
+* * *
+
+## Fix 3: Fix Refresh Token Cookie Path {#fix-3-fix-refresh-token-cookie-path}
+
+**File:** `src/lib/auth.ts`
+
+### Current Code (Line 140\-146) {#current-code-line-140-146}
+
+```typescript
+export const refreshCookieOptions = {
+  httpOnly: true,
+  secure: isProd,
+  sameSite: "strict" as const,
+  path: "/api/auth",  // ← TOO RESTRICTIVE
+  maxAge: REFRESH_TOKEN_TTL_SECONDS,
+};
+```
+
+### Fixed Code {#fixed-code-1}
+
+```typescript
+export const refreshCookieOptions = {
+  httpOnly: true,
+  secure: isProd,
+  sameSite: "strict" as const,
+  path: "/",  // Allow from all paths (browser will still only send to /api/auth/refresh and parents)
+  maxAge: REFRESH_TOKEN_TTL_SECONDS,
+};
+```
+
+**Why:** The browser automatically restricts cookie transmission based on request path matching. Setting `path: "/"` allows reading from any route while the browser still only sends the cookie to matching paths.
+
+* * *
+
+## Fix 4: Implement Logout Revocation & Audit {#fix-4-implement-logout-revocation-audit}
+
+**File:** `src/app/api/auth/logout/route.ts`
+
+### Current Code {#current-code}
+
+```typescript
+import { NextResponse } from "next/server";
+import { destroySession } from "@/lib/session";
+
+export async function POST(request: NextRequest) {
+  await destroySession();
+  return NextResponse.json({ ok: true });
+}
+```
+
+### Fixed Code {#fixed-code-2}
+
+```typescript
+import { NextRequest, NextResponse } from "next/server";
+import { destroySession, readSession } from "@/lib/session";
+import { auditLog } from "@/lib/audit";
+
+export async function POST(request: NextRequest) {
+  try {
+    // Read the current session before destroying it
+    const session = await readSession();
+
+    // Audit the logout
+    if (session?.sub) {
+      const ip =
+        request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null;
+      const userAgent = request.headers.get("user-agent");
+
+      await auditLog(
+        { adminId: session.sub, ip, userAgent },
+        "LOGOUT",
+        session.sub,
+        { email: session.email }
+      );
+    }
+
+    // Destroy the session (clears cookies + revokes refresh token in Redis)
+    await destroySession();
+
+    return NextResponse.json({ ok: true, message: "Logged out successfully" });
+  } catch (error) {
+    console.error("Logout error:", error);
+    return NextResponse.json(
+      { error: "Logout failed" },
+      { status: 500 }
+    );
+  }
+}
+```
+
+* * *
+
+## Fix 5: Verify & Fix TOTP Login Form UI {#fix-5-verify-fix-totp-login-form-ui}
+
+**File:** `src/app/login/login-form.tsx`
+
+### Checklist {#checklist}
+
+- [ ] Login form has email \+ password fields (DONE)
+- [ ] Form has CSRF token hidden field (DONE)
+- [ ] Form has conditional TOTP input that shows when `needs2FA` is true (VERIFY)
+- [ ] Form properly handles state transitions (initial login → TOTP input)
+- [ ] TOTP field is cleared when switching back to password input
+
+### Verification Points {#verification-points}
+
+Look for in the login form:
+
+```typescript
+// 1. CSRF token field should exist
+<input type="hidden" name="csrf_token" value={csrfToken} />
+
+// 2. TOTP input should be conditionally rendered
+{needs2FA && (
+  <input
+    type="text"
+    name="totp_code"
+    placeholder="6-digit code"
+    maxLength="6"
+    pattern="\d{6}"
+    required
+  />
+)}
+
+// 3. Form action should handle both cases
+const result = await loginAction(formData);
+// Should show TOTP input if result.error === "2FA_REQUIRED"
+```
+
+If these are missing, add them. The form should:
+
+1. Show email/password initially
+2. On submit with valid creds, if 2FA required, show TOTP input
+3. On TOTP submit, complete login
+
+* * *
+
+## Fix 6: Implement Comprehensive Logout (Bonus) {#fix-6-implement-comprehensive-logout-bonus}
+
+**File:** `src/lib/redis-session.ts`
+
+Add this function if it doesn't exist:
+
+```typescript
+/**
+ * Revoke ALL sessions for a user (emergency logout across all devices)
+ */
+export async function revokeAllUserSessions(userId: string): Promise<void> {
+  const client = getClient();
+  if (!client) return;
+
+  try {
+    const pattern = `session:${userId}:*`;
+    const keys = await client.keys(pattern);
+    if (keys.length > 0) {
+      await client.del(...keys);
+      console.log(`[redis-session] Revoked ${keys.length} sessions for user ${userId}`);
+    }
+  } catch (err) {
+    console.error("[redis-session] Failed to revoke all sessions:", err);
+  }
+}
+```
+
+Then update `destroySession()`\:
+
+```typescript
+export async function invalidateAllUserSessions(userId: string): Promise<void> {
+  await revokeAllUserSessions(userId);  // New function
+  await destroySession();
+}
+```
+
+* * *
+
+## Additional High\-Priority Fixes {#additional-high-priority-fixes}
+
+### Fix 7: Rate Limiter Memory Leak {#fix-7-rate-limiter-memory-leak}
+
+**File:** `src/lib/rate-limit.ts` (lines 43\-58)
+
+Replace `rateLimitInMemory` function:
+
+```typescript
+function rateLimitInMemory(key: string, opts: RateLimitOptions): RateLimitResult {
+  const now = Date.now();
+  let bucket = buckets.get(key);
+
+  // Clean up expired buckets to prevent memory leak
+  if (bucket && bucket.resetAt <= now) {
+    buckets.delete(key);
+    bucket = undefined;
+  }
+
+  if (!bucket) {
+    buckets.set(key, { count: 1, resetAt: now + opts.windowMs });
+    return { ok: true, retryAfterMs: 0 };
+  }
+
+  if (bucket.count >= opts.limit) {
+    return { ok: false, retryAfterMs: bucket.resetAt - now };
+  }
+
+  bucket.count += 1;
+  return { ok: true, retryAfterMs: 0 };
+}
+
+// Periodically clean up expired buckets (add this near the end of the file)
+setInterval(() => {
+  const now = Date.now();
+  let cleaned = 0;
+  for (const [key, bucket] of buckets.entries()) {
+    if (bucket.resetAt <= now) {
+      buckets.delete(key);
+      cleaned++;
+    }
+  }
+  if (cleaned > 0) {
+    console.log(`[rate-limit] Cleaned up ${cleaned} expired buckets`);
+  }
+}, 60000); // Clean every minute
+```
+
+* * *
+
+### Fix 8: Add Password Expiration Policy {#fix-8-add-password-expiration-policy}
+
+**File:** `src/lib/guards.ts`
+
+Replace the `requireAdmin` function:
+
+```typescript
+export const requireAdmin = cache(async (): Promise<SessionUser> => {
+  const session = await readSession();
+  if (!session) redirect("/login");
+
+  const admin = await db.adminUser.findUnique({
+    where: { userId: session.sub },
+    select: {
+      userId: true,
+      name: true,
+      email: true,
+      roleKey: true,
+      isSuperAdmin: true,
+      permissions: true,
+      status: true,
+      mustChangePassword: true,
+      passwordSetAt: true,  // Add this field
+    },
+  });
+
+  if (!admin || admin.status !== "ACTIVE") redirect("/login");
+
+  // Force password change if the flag is set
+  const h = await headers();
+  const pathname = h.get("x-pathname") ?? "";
+  if (admin.mustChangePassword && !pathname.includes("/settings/change-password")) {
+    redirect("/settings/change-password");
+  }
+
+  // Force password change if password is older than 90 days
+  const PASSWORD_EXPIRY_DAYS = 90;
+  const passwordAge = admin.passwordSetAt
+    ? (Date.now() - admin.passwordSetAt.getTime()) / (1000 * 60 * 60 * 24)
+    : 0;
+
+  if (passwordAge > PASSWORD_EXPIRY_DAYS && !pathname.includes("/settings/change-password")) {
+    // Redirect to change-password page with a message
+    // (Requires client-side state management)
+    redirect("/settings/change-password?reason=expired");
+  }
+
+  return {
+    id: admin.userId,
+    email: admin.email,
+    name: admin.name,
+    roleKey: admin.roleKey,
+    isSuperAdmin: admin.isSuperAdmin,
+    permissions: permissionsForRole(admin.roleKey, admin.permissions),
+  };
+});
+```
+
+**Schema Update Required:**\
+In `packages/database/prisma/schema.prisma`, add to `AdminUser` model:
+
+```prisma
+model AdminUser {
+  // ... existing fields
+  passwordSetAt       DateTime?   @default(now())
+  // ... rest of fields
+}
+```
+
+Run: `npx prisma db push`
+
+* * *
+
+### Fix 9: Improve TOTP Migration Logic {#fix-9-improve-totp-migration-logic}
+
+**File:** `src/lib/totp.ts` (lines 56\-67)
+
+Replace `verifyTotpCode`\:
+
+```typescript
+export async function verifyTotpCode(
+  encryptedOrPlainSecret: string,
+  token: string,
+): Promise<boolean> {
+  if (!token || !/^\d{6}$/.test(token)) return false;
+
+  let secret = encryptedOrPlainSecret;
+
+  try {
+    // Try to decrypt first (preferred)
+    secret = decryptSecret(encryptedOrPlainSecret);
+  } catch (err) {
+    // If decryption fails, check if it's a valid base32 string (plaintext secret)
+    // Valid TOTP secrets are base32-encoded (RFC 4648)
+    const base32Regex = /^[A-Z2-7]+=*$/;
+    
+    if (!base32Regex.test(encryptedOrPlainSecret)) {
+      console.warn("[TOTP] Invalid secret format: not base32 and decryption failed");
+      return false;
+    }
+
+    // Assume it's plaintext base32
+    secret = encryptedOrPlainSecret;
+  }
+
+  try {
+    const result = await verify({ secret, token });
+    return Boolean(result && (result as { valid?: boolean }).valid !== false);
+  } catch (err) {
+    console.error("[TOTP] Verification error:", err);
+    return false;
+  }
+}
+```
+
+* * *
+
+## Testing Checklist {#testing-checklist}
+
+After implementing fixes, test:
+
+### Authentication Flow {#authentication-flow}
+
+- [ ] Login with email \+ password → success
+- [ ] Login with wrong password → fails after 5 attempts, account locked
+- [ ] Login with 2FA enabled → shows TOTP input
+- [ ] Login with valid TOTP → success
+- [ ] Login with backup code → success, code consumed
+- [ ] Logout → refresh token revoked (can't use old token)
+- [ ] Session refresh at `/api/auth/refresh` → new tokens issued
+
+### Rate Limiting {#rate-limiting}
+
+- [ ] Rate limit: 10 login attempts in 15 min from same IP → blocked
+- [ ] Rate limit: 5 failed logins on same email → locked
+- [ ] Rate limit without Redis → requests rejected (production mode)
+
+### Authorization {#authorization}
+
+- [ ] Finance Admin can't access Teacher Admin routes
+- [ ] Teacher Admin can't access Finance routes
+- [ ] Super Admin can access all routes
+- [ ] Audit logs record all sensitive actions
+
+### Security {#security}
+
+- [ ] CSRF tokens required for login
+- [ ] Cookies are httpOnly \+ Secure \+ SameSite
+- [ ] No stack traces in error responses
+- [ ] Security headers present (CSP, HSTS, etc.)
+
+* * *
+
+## Deployment Steps {#deployment-steps}
+
+1. **Create a new branch:**
+   
+   ```bash
+   git checkout -b fix/critical-security-issues
+   ```
+
+2. **Apply all fixes** (use code above)
+
+3. **Run tests:**
+   
+   ```bash
+   npm run lint
+   npm run test
+   npm run test:coverage
+   npm run scan:sast
+   npm run scan:secrets
+   ```
+
+4. **Fix any linting issues**
+
+5. **Commit changes:**
+   
+   ```bash
+   git commit -m "Fix: resolve 6 critical security issues in admin panel
+   
+   - Fix rate limiter to fail closed in production
+   - Add middleware for API route protection
+   - Fix refresh token cookie path
+   - Implement logout revocation & audit logging
+   - Add password expiration policy
+   - Improve TOTP migration logic
+   - Fix in-memory rate limiter memory leak
+   
+   Related: Language Metrics Admin Panel Security Review"
+   ```
+
+6. **Create pull request with security review label**
+
+7. **Get approval from 2\+ reviewers**
+
+8. **Deploy to staging first**, run manual tests
+
+9. **Deploy to production** after staging validation
+
+* * *
+
+## Verification Commands {#verification-commands}
+
+```bash
+# Check for remaining security issues
+npm run scan:sast
+
+# Run all tests
+npm run test:coverage
+
+# Lint check
+npm run lint
+
+# Check dependencies
+npm audit
+
+# Type check
+npx tsc --noEmit
+```
+
+* * *
+
+**Note:** All fixes maintain backward compatibility. No breaking changes to APIs or database schema (except optional `passwordSetAt` field addition).
