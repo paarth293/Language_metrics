@@ -11,6 +11,7 @@ export interface NavItem {
   label: string;
   href: string;
   icon: React.ElementType;
+  section?: string;
 }
 
 interface AppShellProps {
