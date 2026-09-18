@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { generateLiveKitToken, isLiveKitConfigured } from "@/lib/livekit";
+import { db } from "@/lib/db";
 
 /**
  * POST /api/teachers/session/token
@@ -22,7 +23,25 @@ export async function POST(request: Request) {
       );
     }
 
-    const roomName = `session_${bookingId}`;
+    const roomName = sessionId ? `class-${sessionId}` : `session_${bookingId}`;
+
+    // Verify the teacher owns this booking/session
+    const booking = await db.booking.findUnique({
+      where: { id: bookingId },
+      select: { teacherId: true },
+    });
+
+    if (!booking) {
+      return NextResponse.json({ message: "Booking not found." }, { status: 404 });
+    }
+
+    if (booking.teacherId !== auth.user.sub) {
+      return NextResponse.json(
+        { message: "Forbidden: You are not assigned to this session." },
+        { status: 403 }
+      );
+    }
+
     const result = await generateLiveKitToken({
       roomName,
       identity: auth.user.sub,

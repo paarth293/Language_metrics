@@ -51,7 +51,9 @@ function memScan(pattern: string): string[] {
   return keys;
 }
 
-// ── Redis client (lazy connect, fail-open) ─────────────────────────────────
+export function getRedisClient(): Redis | null {
+  return getClient();
+}
 
 function getClient(): Redis | null {
   if (_redisAvailable === false) return null;

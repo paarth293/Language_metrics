@@ -72,7 +72,13 @@ async function getClientIp(): Promise<string | null> {
  * what the app requires everyone to set for themselves.
  */
 function generateTemporaryPassword(): string {
+<<<<<<< HEAD
   const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ"; // no I/O — avoid visual ambiguity
+=======
+  // eslint-disable-next-line no-secrets/no-secrets
+  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ"; // no I/O — avoid visual ambiguity
+  // eslint-disable-next-line no-secrets/no-secrets
+>>>>>>> 0006b33ac9f3d51abb829acb7fbf00170d608914
   const lower = "abcdefghijkmnopqrstuvwxyz"; // no l
   const digits = "23456789"; // no 0/1
   const special = "!@#$%^&*-_+=";

@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "Language Metrics",
+    "slug": "language-metrics-student",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "backgroundColor": "#0f0c29",
+      "resizeMode": "contain"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.languagemetrics.student",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Language Metrics requires camera access for live 1-on-1 language lessons.",
+        "NSMicrophoneUsageDescription": "Language Metrics requires microphone access for audio during live language lessons."
+      }
+    },
+    "android": {
+      "package": "com.languagemetrics.student",
+      "adaptiveIcon": {
+        "backgroundColor": "#0f0c29"
+      },
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS"
+      ]
+    },
+    "plugins": [
+      "expo-secure-store"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "placeholder-eas-project-id"
+      },
+      "apiBaseUrl": "https://language-metrics-student-web.vercel.app/api/v1"
+    }
+  }
+}

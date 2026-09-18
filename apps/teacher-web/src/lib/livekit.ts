@@ -16,7 +16,7 @@
 
 const API_KEY = process.env.LIVEKIT_API_KEY ?? "";
 const API_SECRET = process.env.LIVEKIT_API_SECRET ?? "";
-const WS_URL = process.env.LIVEKIT_WS_URL ?? "";
+const WS_URL = process.env.LIVEKIT_WS_URL ?? process.env.LIVEKIT_URL ?? "";
 
 const isConfigured = Boolean(API_KEY && API_SECRET && WS_URL);
 

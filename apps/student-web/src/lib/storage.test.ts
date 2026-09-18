@@ -12,10 +12,15 @@
  * Run with: tsx src/lib/storage.test.ts
  * (No install needed — no external imports beyond Node's own fs/path.)
  */
+<<<<<<< HEAD
+=======
+import { test, expect } from "vitest";
+>>>>>>> 0006b33ac9f3d51abb829acb7fbf00170d608914
 import { uploadFile, deleteFile } from "./storage";
 import { existsSync, readFileSync, rmSync } from "fs";
 import path from "path";
 
+<<<<<<< HEAD
 let pass = 0;
 let fail = 0;
 function check(cond: boolean, label: string, detail?: unknown) {
@@ -30,6 +35,9 @@ function check(cond: boolean, label: string, detail?: unknown) {
 }
 
 async function main() {
+=======
+test("storage upload, validation, and delete", async () => {
+>>>>>>> 0006b33ac9f3d51abb829acb7fbf00170d608914
   const content = Buffer.from("fake-image-bytes-for-test");
   const result = await uploadFile(content, "photo.png", "image/png", {
     folder: "chat-attachments",
@@ -37,6 +45,7 @@ async function main() {
     maxSizeBytes: 1024 * 1024,
   });
 
+<<<<<<< HEAD
   check(
     typeof result.url === "string" && result.url.startsWith("/uploads/chat-attachments/"),
     "returns a real resolvable URL (was: fake URL = original filename, file bytes discarded)",
@@ -55,6 +64,17 @@ async function main() {
     const written = readFileSync(diskPath);
     check(written.equals(content), "written bytes match the uploaded content exactly");
   }
+=======
+  expect(typeof result.url).toBe("string");
+  expect(result.url.startsWith("/uploads/chat-attachments/")).toBe(true);
+  expect(result.key.startsWith("chat-attachments/")).toBe(true);
+  expect(result.key.endsWith(".png")).toBe(true);
+
+  const diskPath = path.join(process.cwd(), "public", "uploads", result.key);
+  expect(existsSync(diskPath)).toBe(true);
+  const written = readFileSync(diskPath);
+  expect(written.equals(content)).toBe(true);
+>>>>>>> 0006b33ac9f3d51abb829acb7fbf00170d608914
 
   let rejectedType = false;
   try {
@@ -65,7 +85,11 @@ async function main() {
   } catch {
     rejectedType = true;
   }
+<<<<<<< HEAD
   check(rejectedType, "disallowed content-type is rejected");
+=======
+  expect(rejectedType).toBe(true);
+>>>>>>> 0006b33ac9f3d51abb829acb7fbf00170d608914
 
   let rejectedSize = false;
   try {
@@ -77,6 +101,7 @@ async function main() {
   } catch {
     rejectedSize = true;
   }
+<<<<<<< HEAD
   check(rejectedSize, "oversized file is rejected");
 
   await deleteFile(result.key);
@@ -91,3 +116,12 @@ async function main() {
 }
 
 main();
+=======
+  expect(rejectedSize).toBe(true);
+
+  await deleteFile(result.key);
+  expect(existsSync(diskPath)).toBe(false);
+
+  rmSync(path.join(process.cwd(), "public", "uploads", "chat-attachments"), { recursive: true, force: true });
+});
+>>>>>>> 0006b33ac9f3d51abb829acb7fbf00170d608914

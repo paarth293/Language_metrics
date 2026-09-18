@@ -44,6 +44,7 @@ model User {
   studentProfile               StudentProfile?
   teacherProfile               TeacherProfile?
   deviceTokens                 DeviceToken[]
+  razorpayOrders               RazorpayOrder[]
 
   @@index([createdAt])
   @@index([emailVerificationToken])
@@ -688,4 +689,21 @@ model DeviceToken {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model RazorpayOrder {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  orderId   String   @unique
+  amount    Int
+  currency  String   @default("INR")
+  status    String   @default("CREATED")
+  receipt   String?
+  paymentId String?  @unique
+  signature String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

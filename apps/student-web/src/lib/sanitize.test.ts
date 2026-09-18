@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { stripHtml, sanitizeOrFallback } from "./sanitize";
 
 let pass = 0;
@@ -14,6 +15,15 @@ function assertEq(actual: unknown, expected: unknown, label: string) {
     console.log(`      expected: ${JSON.stringify(expected)}`);
     console.log(`      actual:   ${JSON.stringify(actual)}`);
   }
+=======
+import { test, expect } from "vitest";
+import { stripHtml, sanitizeOrFallback } from "./sanitize";
+
+function assertEq(actual: unknown, expected: unknown, label: string) {
+  test(label, () => {
+    expect(actual).toEqual(expected);
+  });
+>>>>>>> 0006b33ac9f3d51abb829acb7fbf00170d608914
 }
 
 // Plain text passes through unchanged
@@ -48,6 +58,9 @@ assertEq(stripHtml("   <p>padded</p>   "), "padded", "surrounding whitespace tri
 assertEq(sanitizeOrFallback(null, "Experienced Spanish teacher"), "Experienced Spanish teacher", "fallback used when input is null");
 assertEq(sanitizeOrFallback("<script></script>", "fallback"), "fallback", "fallback used when sanitized result is empty");
 assertEq(sanitizeOrFallback("<b>Real bio</b>", "fallback"), "Real bio", "real content wins over fallback");
+<<<<<<< HEAD
 
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);
+=======
+>>>>>>> 0006b33ac9f3d51abb829acb7fbf00170d608914

@@ -16,6 +16,7 @@
 
 | Test | Script | Status |
 |------|--------|--------|
+<<<<<<< HEAD
 | CSRF Protection | `test_csrf.py` | NOT IMPLEMENTED — file is empty |
 | Session Token Integrity | `test_session_token.py` | NOT IMPLEMENTED — file is empty |
 | Role-Based Access Control | `test_rbac.py` | NOT IMPLEMENTED — file is empty |
@@ -33,3 +34,11 @@ implement TOTP 2FA with backup codes. The `[FAIL]` above is most likely
 an infrastructure issue (no server running), not a confirmed 2FA defect —
 but it hasn't been re-verified against the current code, so don't assume
 either way until it's re-run against a live instance.
+=======
+| CSRF Protection | `test_csrf.py` | [SKIP] |
+| Session Token Integrity | `test_session_token.py` | [SKIP] |
+| Role-Based Access Control | `test_rbac.py` | [SKIP] |
+| Audit Logging | `test_audit_log.py` | [SKIP] |
+| Two-Factor Authentication | `test_2fa.py` | [SKIP] |
+| Rate Limiting | `test_rate_limit.py` | [SKIP] |
+>>>>>>> 0006b33ac9f3d51abb829acb7fbf00170d608914
