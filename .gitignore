@@ -79,3 +79,7 @@ security-tests/*.txt
 cookie.txt
 login_response.json
 *.cookiejar
+
+# Expo
+.expo/
+apps/student-mobile/dist/

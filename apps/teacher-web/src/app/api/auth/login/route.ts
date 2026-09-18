@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
         );
       }
       if (authResult.error === "USER_NOT_FOUND") {
-        return NextResponse.json({ message: "USER_NOT_FOUND" }, { status: 404 });
+        return NextResponse.json({ message: "Invalid email or password." }, { status: 401 });
       }
       return NextResponse.json({ message: "Invalid credentials." }, { status: 401 });
     }
