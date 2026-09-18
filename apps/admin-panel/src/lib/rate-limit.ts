@@ -154,11 +154,7 @@ export async function rateLimit(
 
     const count = (results?.[2]?.[1] as number) ?? 0;
     if (count > opts.limit) {
-<<<<<<< HEAD
       const oldest = await client.zrange(redisKey, 0, 0, "WITHSCORES");
-=======
-      const oldest = await client.zrange(redisKey, 0, "0", "WITHSCORES");
->>>>>>> 0006b33ac9f3d51abb829acb7fbf00170d608914
       const oldestTs = oldest?.[1] ? Number(oldest[1]) : now;
       return { ok: false, retryAfterMs: Math.max(0, oldestTs + opts.windowMs - now) };
     }
