@@ -31,6 +31,9 @@
       ],
       "@repo/auth": [
         "../../packages/auth"
+      ],
+      "@repo/api-contracts": [
+        "../../packages/api-contracts/src/index.ts"
       ]
     }
   },
