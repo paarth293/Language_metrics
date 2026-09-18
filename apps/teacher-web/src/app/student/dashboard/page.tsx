@@ -344,11 +344,10 @@ export default function StudentDashboard() {
             <h2 className="text-xl font-bold text-[#1a1547] mb-4">Recent Activity</h2>
             {recentActivity.length > 0 ? (
               <div
-                className="rounded-2xl overflow-hidden divide-y"
+                className="rounded-2xl overflow-hidden divide-y divide-[rgba(35,29,94,0.06)]"
                 style={{
                   background: "#fff",
                   border: "1px solid rgba(35,29,94,0.08)",
-                  divideColor: "rgba(35,29,94,0.06)",
                 }}
               >
                 {recentActivity.slice(0, 5).map(activity => (
