@@ -1,18 +1,22 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { requireMobileAuth } from "@/lib/auth-mobile";
-import { generateLiveKitToken } from "@/lib/livekit";
-import {
-  LiveKitTokenResponseSchema,
-  type LiveKitTokenResponse,
-} from "@repo/api-contracts";
-
 /**
- * POST /api/v1/classes/[id]/token
+ * POST /api/v1/classes/[id]/token — mobile LiveKit token.
  *
- * Mobile endpoint returning a scoped LiveKit WebRTC access token for classroom entry.
- * Validates session ownership and student role.
+ * Bearer-authenticated twin of /api/live/token, for the Expo app. Same
+ * handler underneath, so the join window, budget gate and role resolution
+ * cannot drift between mobile and web.
+ *
+ * The mobile client (`apps/student-mobile/src/lib/api-client.ts`) has had a
+ * `getLiveKitToken()` method waiting on this route; its comment said "used
+ * once the native video SDK ships". It has shipped.
  */
+import { NextRequest, NextResponse } from "next/server";
+import { requireMobileAuth } from "@/lib/auth-mobile";
+import { handleTokenRequest } from "@repo/live-classes";
+import { LiveKitTokenResponseSchema } from "@repo/api-contracts";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -20,94 +24,36 @@ export async function POST(
   const auth = await requireMobileAuth(request);
   if (!auth.ok) return auth.response;
 
-  const studentId = auth.user.id;
+  const { id } = await params;
 
+  let profile: unknown;
   try {
-    const { id } = await params;
-
-    // `id` is normally a ClassSession id. Older mobile builds only know the
-    // booking id, so fall back to that booking's next joinable session.
-    const session =
-      (await db.classSession.findUnique({
-        where: { id },
-        include: {
-          booking: {
-            include: {
-              student: { select: { name: true } },
-            },
-          },
-        },
-      })) ??
-      (await db.classSession.findFirst({
-        where: { bookingId: id, status: { in: ["SCHEDULED", "ONGOING"] } },
-        orderBy: { scheduledStart: "asc" },
-        include: {
-          booking: {
-            include: {
-              student: { select: { name: true } },
-            },
-          },
-        },
-      }));
-
-    if (!session) {
-      return NextResponse.json({ message: "Session not found." }, { status: 404 });
-    }
-
-    const sessionId = session.id;
-
-    if (session.booking.studentId !== studentId) {
-      return NextResponse.json({ message: "Forbidden: Not your class." }, { status: 403 });
-    }
-
-    if (session.status === "COMPLETED" || session.status === "CANCELLED") {
-      return NextResponse.json(
-        { message: `This class is ${session.status.toLowerCase()} and can no longer be joined.` },
-        { status: 409 }
-      );
-    }
-
-    const roomName = `class-${sessionId}`;
-    const studentName = session.booking.student?.name || "Student";
-
-    const { token, wsUrl } = await generateLiveKitToken({
-      roomName,
-      identity: studentId,
-      name: studentName,
-      role: "student",
-      ttl: 4 * 60 * 60, // 4 hours
-    });
-
-    // Mark session ONGOING if it was SCHEDULED
-    if (session.status === "SCHEDULED") {
-      await db.classSession.update({
-        where: { id: sessionId },
-        data: { status: "ONGOING", actualStart: new Date() },
-      });
-    }
-
-    // Normalizing WS/WSS URL to http/https for strict URL validator if needed
-    const normalizedServerUrl = wsUrl.startsWith("ws://")
-      ? wsUrl.replace("ws://", "http://")
-      : wsUrl.startsWith("wss://")
-        ? wsUrl.replace("wss://", "https://")
-        : wsUrl;
-
-    const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString();
-
-    const responsePayload: LiveKitTokenResponse = {
-      token,
-      serverUrl: normalizedServerUrl,
-      roomName,
-      participantIdentity: studentId,
-      participantName: studentName,
-      expiresAt,
-    };
-
-    const validated = LiveKitTokenResponseSchema.parse(responsePayload);
-    return NextResponse.json(validated, { status: 200 });
-  } catch (error) {
-    console.error("[Mobile API] LiveKit token error:", error);
-    return NextResponse.json({ message: "Failed to generate classroom token." }, { status: 500 });
+    const body = (await request.json()) as { profile?: unknown };
+    profile = body?.profile;
+  } catch {
+    // Body optional.
   }
+
+  const result = await handleTokenRequest(
+    { userId: auth.user.id, role: "STUDENT" },
+    { classSessionId: id, profile }
+  );
+
+  if (result.status !== 200) {
+    return NextResponse.json(result.body, { status: result.status });
+  }
+
+  // Validate on the way out. The mobile client parses with the same schema,
+  // so a mismatch should fail here — with a server log — rather than as an
+  // opaque "invalid-response" on a student's phone.
+  const parsed = LiveKitTokenResponseSchema.safeParse(result.body);
+  if (!parsed.success) {
+    console.error("[v1/classes/token] response failed contract:", parsed.error.issues);
+    return NextResponse.json({ message: "Internal contract error." }, { status: 500 });
+  }
+
+  return NextResponse.json(parsed.data, {
+    status: 200,
+    headers: { "Cache-Control": "no-store, private" },
+  });
 }

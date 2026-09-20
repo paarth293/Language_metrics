@@ -1,59 +1,46 @@
 /**
- * Verifies generateLiveKitToken() actually behaves the way
- * classes/[id]/livekit-token/route.ts now depends on: when LiveKit isn't
- * configured (no LIVEKIT_API_KEY/SECRET/WS_URL — true of a fresh dev
- * checkout before those env vars are set), it must still return a usable
- * token/wsUrl pair instead of throwing or returning something route code
- * can't destructure. That route used to build its own fake
- * `dev-token-${userId}-${sessionId}` string instead of calling this
- * function at all — this test exists to make sure the function it now
- * calls actually works.
+ * Guards the removal of the mock-token fallback.
  *
- * Run with: tsx src/lib/livekit.test.ts
- * (No install needed — no external imports.)
+ * The test this replaces asserted the OPPOSITE of what we now want. It
+ * verified that, with no LiveKit credentials configured, generateLiveKitToken()
+ * "must still return a usable token/wsUrl pair instead of throwing" — and it
+ * passed, because the function returned `mock_token_<identity>_<room>_<ts>`.
+ *
+ * That was the bug, not the safety net. A string like that is not a LiveKit
+ * access token: it is unsigned, carries no room grant and has no expiry. The
+ * real SFU rejects it. So a production deployment with a missing or misspelled
+ * LIVEKIT_API_KEY looked completely healthy — routes returned HTTP 200 with a
+ * token in the body — right up until every student's join silently failed.
+ *
+ * The contract now: an unconfigured server says so, loudly.
  */
-import { generateLiveKitToken, isLiveKitConfigured } from "./livekit";
+import { describe, test, expect } from "vitest";
+import { isLiveKitConfigured, roomNameForSession, sessionIdFromRoomName } from "@repo/livekit";
+import { generateLiveKitToken } from "./livekit";
 
-let pass = 0;
-let fail = 0;
-function check(cond: boolean, label: string, detail?: unknown) {
-  if (cond) {
-    pass++;
-    console.log(`PASS  ${label}`);
-  } else {
-    fail++;
-    console.log(`FAIL  ${label}`);
-    if (detail !== undefined) console.log("      " + JSON.stringify(detail));
-  }
-}
-
-async function main() {
-  check(
-    isLiveKitConfigured() === false,
-    "not configured in this environment (no API key/secret/ws url set) — exercising the fallback path the route relies on until real LiveKit credentials are set"
-  );
-
-  const result = await generateLiveKitToken({
-    roomName: "class-abc123",
-    identity: "user-1",
-    name: "Student",
-    role: "student",
+describe("livekit configuration", () => {
+  test("isLiveKitConfigured() is false unless all three variables are set", () => {
+    const configured = Boolean(
+      process.env.LIVEKIT_API_KEY &&
+        process.env.LIVEKIT_API_SECRET &&
+        (process.env.LIVEKIT_WS_URL || process.env.LIVEKIT_URL)
+    );
+    expect(isLiveKitConfigured()).toBe(configured);
   });
 
-  check(typeof result.token === "string" && result.token.length > 0, "returns a non-empty token string", result);
-  check(
-    result.token.includes("user-1") && result.token.includes("class-abc123"),
-    "mock token is traceable to identity+room for local debugging",
-    result
-  );
-  check(typeof result.wsUrl === "string" && result.wsUrl.startsWith("ws"), "returns a usable wsUrl", result);
-  check(
-    result.token !== undefined && result.wsUrl !== undefined,
-    "neither field is undefined (what the route sends straight to the client)"
-  );
+  test("the removed helper throws instead of handing back a fake token", async () => {
+    await expect(generateLiveKitToken()).rejects.toThrow(/has been removed/);
+  });
+});
 
-  console.log(`\n${pass} passed, ${fail} failed`);
-  if (fail > 0) process.exit(1);
-}
+describe("room naming", () => {
+  test("round-trips a session id", () => {
+    const id = "6f1b2c3d-4e5f-6071-8293-a4b5c6d7e8f9";
+    expect(roomNameForSession(id)).toBe(`class-${id}`);
+    expect(sessionIdFromRoomName(roomNameForSession(id))).toBe(id);
+  });
 
-main();
+  test("ignores rooms we do not own", () => {
+    expect(sessionIdFromRoomName("some-other-room")).toBeNull();
+  });
+});

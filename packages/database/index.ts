@@ -23,3 +23,7 @@ export const db =
 if (process.env.NODE_ENV !== "production") globalThis.prismaGlobal = db;
 
 export * from "@prisma/client";
+
+// Coin ledger — atomic balance operations. Prefer these over hand-written
+// CoinTransaction writes; see coin-ledger.ts for why.
+export * from "./coin-ledger";
