@@ -326,7 +326,6 @@ export const MobileApiClient = {
   ): Promise<LiveKitTokenResponse> {
     return parseResponse(
       LiveKitTokenResponseSchema,
-  LiveMeterSchema,
       await request(`/classes/${encodeURIComponent(classSessionId)}/token`, {
         method: "POST",
         body: profile ? { profile } : {},

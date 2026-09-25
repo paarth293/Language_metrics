@@ -31,7 +31,7 @@ import { Track } from "livekit-client";
 import { AppText, Button } from "../components/ui";
 import { useTheme } from "../theme/ThemeProvider";
 import { spacing } from "../theme/tokens";
-import { api } from "../lib/api-client";
+import { MobileApiClient as api } from "../lib/api-client";
 
 interface Grant {
   token: string;
@@ -119,32 +119,33 @@ export function LiveClassScreen({
   }
 
   return (
-    <LiveKitRoom
-      serverUrl={grant.serverUrl}
-      token={grant.token}
-      connect
-      audio
-      video={grant.profile !== "audio-only"}
-      options={{
-        adaptiveStream: true,
-        dynacast: true,
-        publishDefaults: {
-          dtx: true,
-          red: true,
-          simulcast: true,
-          videoCodec: "h264",
-          videoEncoding: { maxBitrate: 260_000, maxFramerate: 20 },
-        },
-        // 360p capture. Anything larger is thrown away by the encoder on the
-        // way out and costs the student's data allowance on the way in.
-        videoCaptureDefaults: { resolution: { width: 640, height: 360, frameRate: 20 } },
-      }}
-      onDisconnected={onExit}
-      onError={(e) => setError(e.message)}
-      style={{ flex: 1, backgroundColor: "#0f0c29" }}
-    >
-      <ClassStage grant={grant} onLeave={onExit} classSessionId={classSessionId} />
-    </LiveKitRoom>
+    <View style={{ flex: 1, backgroundColor: "#0f0c29" }}>
+      <LiveKitRoom
+        serverUrl={grant.serverUrl}
+        token={grant.token}
+        connect
+        audio
+        video={grant.profile !== "audio-only"}
+        options={{
+          adaptiveStream: true,
+          dynacast: true,
+          publishDefaults: {
+            dtx: true,
+            red: true,
+            simulcast: true,
+            videoCodec: "h264",
+            videoEncoding: { maxBitrate: 260_000, maxFramerate: 20 },
+          },
+          // 360p capture. Anything larger is thrown away by the encoder on the
+          // way out and costs the student's data allowance on the way in.
+          videoCaptureDefaults: { resolution: { width: 640, height: 360, frameRate: 20 } },
+        }}
+        onDisconnected={onExit}
+        onError={(e: any) => setError(e.message)}
+      >
+        <ClassStage grant={grant} onLeave={onExit} classSessionId={classSessionId} />
+      </LiveKitRoom>
+    </View>
   );
 }
 
@@ -163,8 +164,8 @@ function ClassStage({
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant();
   const [meter, setMeter] = useState<{ billableMinutes: number; coinsSoFar: number } | null>(null);
 
-  const remote = useMemo(() => tracks.find((t) => !t.participant.isLocal), [tracks]);
-  const local = useMemo(() => tracks.find((t) => t.participant.isLocal), [tracks]);
+  const remote = useMemo(() => tracks.find((t: any) => !t.participant.isLocal), [tracks]);
+  const local = useMemo(() => tracks.find((t: any) => t.participant.isLocal), [tracks]);
 
   useEffect(() => {
     let alive = true;
