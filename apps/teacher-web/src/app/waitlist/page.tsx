@@ -97,7 +97,7 @@ export default function WaitlistPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
+                    placeholder="Enter your email"
                     className="w-full rounded-xl border border-border bg-surface-inset px-4 py-3 text-sm text-text focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all"
                   />
                   <button
