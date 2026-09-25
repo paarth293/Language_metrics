@@ -65,6 +65,7 @@ model StudentProfile {
   proficiencyLevel   String        @default("A1")
   bookings           Booking[]
   reviews            Review[]
+  sessionBillings    SessionBilling[]
   user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -89,6 +90,7 @@ model TeacherProfile {
   interviews         Interview[]
   payouts            Payout[]
   reviews            Review[]
+  sessionBillings    SessionBilling[]
   documents          TeacherDocument[]
   user               User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   rates              TeacherRate[]
@@ -324,7 +326,15 @@ model SessionBilling {
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
 
-  classSession    ClassSession         @relation(fields: [classSessionId], references: [id], onDelete: Cascade)
+  /// These are financial records, so every relation restricts rather than
+  /// cascades: a settled billing row must never disappear as a side effect of
+  /// deleting something upstream. Nothing in the codebase deletes ClassSession,
+  /// Booking, User or either profile, so RESTRICT blocks no existing flow.
+  classSession    ClassSession         @relation(fields: [classSessionId], references: [id], onDelete: Restrict)
+  /// studentId/teacherId are the same values Booking carries, so they point at
+  /// the profile rows (keyed on userId), not at User directly.
+  student         StudentProfile       @relation(fields: [studentId], references: [userId], onDelete: Restrict)
+  teacher         TeacherProfile       @relation(fields: [teacherId], references: [userId], onDelete: Restrict)
 
   @@index([status])
   @@index([studentId])
