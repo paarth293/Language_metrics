@@ -6,7 +6,9 @@
   "types": "./index.ts",
   "scripts": {
     "postinstall": "prisma generate || exit 0",
-    "generate": "prisma generate"
+    "generate": "prisma generate",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:migrate:status": "prisma migrate status"
   },
   "dependencies": {
     "@prisma/client": "^5.16.1"
