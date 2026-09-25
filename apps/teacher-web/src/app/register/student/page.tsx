@@ -374,7 +374,7 @@ export default function StudentRegisterPage() {
             <Input
               id="student-name"
               type="text"
-              placeholder="John Doe"
+              placeholder="Enter your full name"
               value={name}
               onChange={(e) => { setName(e.target.value); clearError("name"); }}
               aria-invalid={!!fieldErrors.name}
@@ -400,7 +400,7 @@ export default function StudentRegisterPage() {
             <Input
               id="student-email"
               type="email"
-              placeholder="name@example.com"
+              placeholder="Enter your email"
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
