@@ -23,7 +23,7 @@
     "scan:secrets": "gitleaks detect --config .gitleaks.toml --source . --verbose",
     "test:security": "python security-tests/run_all.py",
     "test:e2e": "playwright test tests/e2e/booking-to-live-class.spec.ts",
-    "test:livekit": "tsx --test packages/livekit/src/*.test.ts packages/database/*.test.ts",
+    "test:livekit": "npm test --workspace @repo/livekit && npm test --workspace @repo/database",
     "db:backfill-coins": "tsx packages/database/scripts/backfill-coins.ts",
     "db:migrate:deploy": "prisma migrate deploy --schema=packages/database/prisma/schema.prisma",
     "db:migrate:status": "prisma migrate status --schema=packages/database/prisma/schema.prisma"

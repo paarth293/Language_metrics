@@ -5,7 +5,7 @@
  * (verified 2026-09-20). If LiveKit changes a price, these fail first and
  * tell you exactly which number moved.
  */
-import { describe, it } from "node:test";
+import { describe, it } from "vitest";
 import assert from "node:assert/strict";
 
 import {

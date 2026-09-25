@@ -15,7 +15,7 @@
  *
  * Run: npx tsx --test packages/database/coin-ledger.invariants.test.ts
  */
-import { describe, it } from "node:test";
+import { describe, it } from "vitest";
 import assert from "node:assert/strict";
 
 type Type = "PURCHASE" | "BONUS" | "SPEND" | "REFUND" | "HOLD" | "HOLD_RELEASE" | "ADJUSTMENT";
