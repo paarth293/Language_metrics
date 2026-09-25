@@ -1,51 +1,46 @@
-import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
-import { generateLiveKitToken, isLiveKitConfigured, getLiveKitWsUrl } from "./livekit";
+/**
+ * Guards the removal of the mock-token fallback.
+ *
+ * The test this replaces asserted the OPPOSITE of what we now want. It
+ * verified that, with no LiveKit credentials configured, generateLiveKitToken()
+ * "must still return a usable token/wsUrl pair instead of throwing" — and it
+ * passed, because the function returned `mock_token_<identity>_<room>_<ts>`.
+ *
+ * That was the bug, not the safety net. A string like that is not a LiveKit
+ * access token: it is unsigned, carries no room grant and has no expiry. The
+ * real SFU rejects it. So a production deployment with a missing or misspelled
+ * LIVEKIT_API_KEY looked completely healthy — routes returned HTTP 200 with a
+ * token in the body — right up until every student's join silently failed.
+ *
+ * The contract now: an unconfigured server says so, loudly.
+ */
+import { describe, test, expect } from "vitest";
+import { isLiveKitConfigured, roomNameForSession, sessionIdFromRoomName } from "@repo/livekit";
+import { generateLiveKitToken } from "./livekit";
 
-describe("LiveKit Token Generation (teacher-web)", () => {
-  const originalEnv = process.env;
-
-  beforeEach(() => {
-    vi.resetModules();
-    process.env = { ...originalEnv };
+describe("livekit configuration", () => {
+  test("isLiveKitConfigured() is false unless all three variables are set", () => {
+    const configured = Boolean(
+      process.env.LIVEKIT_API_KEY &&
+        process.env.LIVEKIT_API_SECRET &&
+        (process.env.LIVEKIT_WS_URL || process.env.LIVEKIT_URL)
+    );
+    expect(isLiveKitConfigured()).toBe(configured);
   });
 
-  afterEach(() => {
-    process.env = originalEnv;
+  test("the removed helper throws instead of handing back a fake token", async () => {
+    await expect(generateLiveKitToken()).rejects.toThrow(/has been removed/);
+  });
+});
+
+describe("room naming", () => {
+  test("round-trips a session id", () => {
+    const id = "6f1b2c3d-4e5f-6071-8293-a4b5c6d7e8f9";
+    expect(roomNameForSession(id)).toBe(`class-${id}`);
+    expect(sessionIdFromRoomName(roomNameForSession(id))).toBe(id);
   });
 
-  test("unconfigured state detection and default wsUrl", () => {
-    delete process.env.LIVEKIT_API_KEY;
-    delete process.env.LIVEKIT_API_SECRET;
-    delete process.env.LIVEKIT_WS_URL;
-    delete process.env.LIVEKIT_URL;
-
-    expect(isLiveKitConfigured()).toBe(false);
-    expect(getLiveKitWsUrl()).toBe("ws://localhost:7880");
-  });
-
-  test("generates server-side token scoped to session room for teacher", async () => {
-    const result = await generateLiveKitToken({
-      roomName: "booking-session-999",
-      identity: "teacher-id-123",
-      name: "Maria Gonzalez",
-      role: "teacher",
-    });
-
-    expect(result.token).toBeDefined();
-    expect(result.token).toContain("teacher-id-123");
-    expect(result.token).toContain("booking-session-999");
-    expect(result.wsUrl).toBe("ws://localhost:7880");
-  });
-
-  test("generates scoped student subscriber token", async () => {
-    const result = await generateLiveKitToken({
-      roomName: "booking-session-999",
-      identity: "student-id-456",
-      name: "John Doe",
-      role: "student",
-    });
-
-    expect(result.token).toContain("student-id-456");
-    expect(result.token).toContain("booking-session-999");
+  test("ignores rooms we do not own", () => {
+    expect(sessionIdFromRoomName("some-other-room")).toBeNull();
   });
 });

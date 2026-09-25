@@ -1,179 +1,179 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
+import { evaluateJoin } from "@repo/live-classes";
 
-// Mock auth and db checks
-interface BookingRecord {
-  id: string;
-  teacherId: string;
-  studentId: string;
-  status: "CONFIRMED" | "CANCELLED" | "COMPLETED";
-}
-
-export function authorizeVideoTokenRequest(params: {
-  userId: string;
-  role: "TEACHER" | "STUDENT";
-  booking: BookingRecord | null;
-  sessionId: string;
-}): { allowed: boolean; status: number; roomName?: string; error?: string } {
-  const { userId, role, booking, sessionId } = params;
-
-  if (!booking) {
-    return { allowed: false, status: 404, error: "Booking not found." };
-  }
-
-  if (booking.status === "CANCELLED") {
-    return { allowed: false, status: 400, error: "Class has been cancelled." };
-  }
-
-  if (role === "TEACHER") {
-    if (booking.teacherId !== userId) {
-      return { allowed: false, status: 403, error: "Forbidden: You are not assigned to this session." };
-    }
-  } else if (role === "STUDENT") {
-    if (booking.studentId !== userId) {
-      return { allowed: false, status: 403, error: "Forbidden: You are not enrolled in this session." };
-    }
-  }
-
-  // Consistent room naming across both teacher and student
-  const roomName = `class-${sessionId}`;
-  return { allowed: true, status: 200, roomName };
-}
-
-export function handleTeacherCancellation(booking: BookingRecord): {
-  cancelled: boolean;
-  refundCoins: boolean;
-  status: "CANCELLED";
-} {
-  if (booking.status === "COMPLETED") {
-    throw new Error("Cannot cancel completed class");
-  }
+// Mock the dependencies used by evaluateJoin
+vi.mock("@repo/database", () => {
   return {
-    cancelled: true,
-    refundCoins: true,
-    status: "CANCELLED",
+    db: {
+      classSession: {
+        findUnique: vi.fn(),
+      },
+    },
   };
-}
+});
+
+vi.mock("@repo/livekit", () => {
+  return {
+    getLiveKitConfig: vi.fn(() => ({
+      joinWindowMinutes: 5,
+      graceMinutes: 10,
+    })),
+  };
+});
+
+import { db } from "@repo/database";
+import { getLiveKitConfig } from "@repo/livekit";
 
 describe("Video Route Security & RBAC (Step E & G)", () => {
-  const sampleBooking: BookingRecord = {
-    id: "booking-001",
-    teacherId: "teacher-alice",
-    studentId: "student-bob",
-    status: "CONFIRMED",
+  const baseNow = new Date("2026-09-20T10:00:00Z");
+  
+  const sampleSession = {
+    id: "sess-100",
+    status: "SCHEDULED",
+    scheduledStart: new Date("2026-09-20T10:00:00Z"), // exactly now
+    scheduledEnd: new Date("2026-09-20T11:00:00Z"),
+    booking: {
+      id: "booking-001",
+      teacherId: "teacher-alice",
+      studentId: "student-bob",
+      status: "CONFIRMED",
+      amountPaid: 100,
+      student: { userId: "student-bob", name: "Bob" },
+      teacher: { userId: "teacher-alice", name: "Alice" }
+    },
+    billing: null,
   };
 
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (db.classSession.findUnique as any).mockResolvedValue(sampleSession);
+  });
+
   describe("E1: Participant Authorization & Isolation", () => {
-    test("allows assigned teacher to access video token", () => {
-      const result = authorizeVideoTokenRequest({
+    test("allows assigned teacher to access video token", async () => {
+      const result = await evaluateJoin({
         userId: "teacher-alice",
         role: "TEACHER",
-        booking: sampleBooking,
-        sessionId: "sess-100",
+        classSessionId: "sess-100",
+        now: baseNow
       });
 
-      expect(result.allowed).toBe(true);
-      expect(result.status).toBe(200);
-      expect(result.roomName).toBe("class-sess-100");
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.role).toBe("TEACHER");
+      }
     });
 
-    test("allows enrolled student to access video token", () => {
-      const result = authorizeVideoTokenRequest({
+    test("allows enrolled student to access video token", async () => {
+      const result = await evaluateJoin({
         userId: "student-bob",
         role: "STUDENT",
-        booking: sampleBooking,
-        sessionId: "sess-100",
+        classSessionId: "sess-100",
+        now: baseNow
       });
 
-      expect(result.allowed).toBe(true);
-      expect(result.status).toBe(200);
-      expect(result.roomName).toBe("class-sess-100");
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.role).toBe("STUDENT");
+      }
     });
 
-    test("rejects unauthorized teacher trying to join another teacher's session (IDOR protection)", () => {
-      const result = authorizeVideoTokenRequest({
+    test("rejects unauthorized teacher trying to join another teacher's session (IDOR protection)", async () => {
+      const result = await evaluateJoin({
         userId: "teacher-mallory", // Attacker
         role: "TEACHER",
-        booking: sampleBooking,
-        sessionId: "sess-100",
+        classSessionId: "sess-100",
+        now: baseNow
       });
 
-      expect(result.allowed).toBe(false);
-      expect(result.status).toBe(403);
-      expect(result.error).toContain("not assigned");
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.httpStatus).toBe(403);
+        expect(result.message).toContain("not a participant");
+      }
     });
 
-    test("rejects unenrolled student trying to join class", () => {
-      const result = authorizeVideoTokenRequest({
+    test("rejects unenrolled student trying to join class", async () => {
+      const result = await evaluateJoin({
         userId: "student-eve", // Not enrolled
         role: "STUDENT",
-        booking: sampleBooking,
-        sessionId: "sess-100",
+        classSessionId: "sess-100",
+        now: baseNow
       });
 
-      expect(result.allowed).toBe(false);
-      expect(result.status).toBe(403);
-      expect(result.error).toContain("not enrolled");
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.httpStatus).toBe(403);
+        expect(result.message).toContain("not a participant");
+      }
     });
 
-    test("returns 404 if booking does not exist", () => {
-      const result = authorizeVideoTokenRequest({
+    test("returns 404 if booking does not exist", async () => {
+      (db.classSession.findUnique as any).mockResolvedValue(null);
+      
+      const result = await evaluateJoin({
         userId: "teacher-alice",
         role: "TEACHER",
-        booking: null,
-        sessionId: "sess-100",
+        classSessionId: "sess-100",
+        now: baseNow
       });
 
-      expect(result.allowed).toBe(false);
-      expect(result.status).toBe(404);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.httpStatus).toBe(404);
+      }
     });
   });
 
   describe("Participant Sync & Room Alignment", () => {
-    test("both teacher and student receive identical room identifier for participant sync", () => {
-      const teacherRes = authorizeVideoTokenRequest({
+    test("both teacher and student receive identical room identifier for participant sync", async () => {
+      const teacherRes = await evaluateJoin({
         userId: "teacher-alice",
         role: "TEACHER",
-        booking: sampleBooking,
-        sessionId: "sess-synced-777",
+        classSessionId: "sess-100",
+        now: baseNow
       });
 
-      const studentRes = authorizeVideoTokenRequest({
+      const studentRes = await evaluateJoin({
         userId: "student-bob",
         role: "STUDENT",
-        booking: sampleBooking,
-        sessionId: "sess-synced-777",
+        classSessionId: "sess-100",
+        now: baseNow
       });
 
-      expect(teacherRes.roomName).toBe("class-sess-synced-777");
-      expect(studentRes.roomName).toBe("class-sess-synced-777");
-      expect(teacherRes.roomName).toBe(studentRes.roomName);
+      expect(teacherRes.ok).toBe(true);
+      expect(studentRes.ok).toBe(true);
+      if (teacherRes.ok && studentRes.ok) {
+        expect(teacherRes.classSessionId).toBe("sess-100");
+        expect(studentRes.classSessionId).toBe("sess-100");
+        expect(teacherRes.classSessionId).toBe(studentRes.classSessionId);
+      }
     });
   });
 
   describe("Step G: Error Scenarios & Teacher Cancellation", () => {
-    test("handles teacher cancellation before start by marking cancelled and initiating coin refund", () => {
-      const result = handleTeacherCancellation(sampleBooking);
-      expect(result.cancelled).toBe(true);
-      expect(result.refundCoins).toBe(true);
-      expect(result.status).toBe("CANCELLED");
-    });
-
-    test("rejects token generation on cancelled bookings", () => {
-      const cancelledBooking: BookingRecord = {
-        ...sampleBooking,
+    test("rejects token generation on cancelled bookings", async () => {
+      (db.classSession.findUnique as any).mockResolvedValue({
+        ...sampleSession,
         status: "CANCELLED",
-      };
-
-      const result = authorizeVideoTokenRequest({
-        userId: "student-bob",
-        role: "STUDENT",
-        booking: cancelledBooking,
-        sessionId: "sess-cancelled",
+        booking: {
+          ...sampleSession.booking,
+          status: "CANCELLED"
+        }
       });
 
-      expect(result.allowed).toBe(false);
-      expect(result.status).toBe(400);
-      expect(result.error).toContain("cancelled");
+      const result = await evaluateJoin({
+        userId: "student-bob",
+        role: "STUDENT",
+        classSessionId: "sess-100",
+        now: baseNow
+      });
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.httpStatus).toBe(410);
+        expect(result.message).toContain("cancelled");
+      }
     });
   });
 });

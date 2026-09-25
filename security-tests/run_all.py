@@ -40,17 +40,7 @@ def main():
             results.append((name, script, "[SKIP]"))
             continue
 
-<<<<<<< HEAD
-        # An empty (0-byte) test file is valid Python: it runs, does nothing,
-        # and exits 0 — which used to get reported as [PASS] here even
-        # though zero assertions ran. That previously made SECURITY_REPORT.md
-        # claim CSRF/RBAC/session/audit-log protection was verified when
-        # those four files had no test code in them at all. Flag this
-        # explicitly instead of silently treating "no code ran" as "passed".
-        if os.path.getsize(script) == 0:
-=======
         if os.path.getsize(script_path) == 0:
->>>>>>> 0006b33ac9f3d51abb829acb7fbf00170d608914
             print(f">> Running: {name} ({script})")
             print(f"  Result: [NOT IMPLEMENTED] file exists but is empty — no test was actually run\n")
             results.append((name, script, "[NOT IMPLEMENTED]"))

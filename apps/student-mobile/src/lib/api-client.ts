@@ -16,6 +16,7 @@ import {
   CoinBalanceResponseSchema,
   CreateBookingRequestSchema,
   LiveKitTokenResponseSchema,
+  LiveMeterSchema,
   MobileLoginRequestSchema,
   MobileTokenResponseSchema,
   RefreshTokenRequestSchema,
@@ -26,6 +27,7 @@ import {
   type CoinBalanceResponse,
   type CreateBookingRequest,
   type LiveKitTokenResponse,
+  type LiveMeter,
   type MobileLoginRequest,
   type MobileTokenResponse,
   type StudentMeResponse,
@@ -311,11 +313,36 @@ export const MobileApiClient = {
     return parseResponse(BookingListResponseSchema, await request(`/classes?filter=${filter}`));
   },
 
-  /** POST /classes/:sessionId/token — scoped LiveKit token (used once the native video SDK ships). */
-  async getLiveKitToken(sessionOrBookingId: string): Promise<LiveKitTokenResponse> {
+  /**
+   * POST /classes/:sessionId/token — room-scoped LiveKit access token.
+   *
+   * The server resolves the caller's role from the booking, enforces the join
+   * window and applies the budget gate, so the profile that comes back may be
+   * lower than the one requested. Pass it straight to <LiveKitRoom>.
+   */
+  async getLiveKitToken(
+    classSessionId: string,
+    profile?: "audio-only" | "low" | "standard" | "high"
+  ): Promise<LiveKitTokenResponse> {
     return parseResponse(
       LiveKitTokenResponseSchema,
-      await request(`/classes/${encodeURIComponent(sessionOrBookingId)}/token`, { method: "POST", body: {} })
+      await request(`/classes/${encodeURIComponent(classSessionId)}/token`, {
+        method: "POST",
+        body: profile ? { profile } : {},
+      })
+    );
+  },
+
+  /**
+   * GET /classes/:sessionId/meter — what the class has cost so far.
+   *
+   * Computed server-side from the same presence intervals that settle the
+   * class, so the number shown on screen is the number that gets charged.
+   */
+  async getLiveMeter(classSessionId: string): Promise<LiveMeter> {
+    return parseResponse(
+      LiveMeterSchema,
+      await request(`/classes/${encodeURIComponent(classSessionId)}/meter`)
     );
   },
 };

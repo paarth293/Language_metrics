@@ -1,65 +1,54 @@
-import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth";
-import { generateLiveKitToken, isLiveKitConfigured } from "@/lib/livekit";
-import { db } from "@/lib/db";
-
 /**
- * POST /api/teachers/session/token
- * Generate a LiveKit access token for joining a class session.
- * Body: { sessionId: string; bookingId: string }
+ * DEPRECATED — forwards to POST /api/live/token.
+ *
+ * The old implementation called generateLiveKitToken(), which returned
+ * `mock_token_<identity>_<room>_<timestamp>` whenever LIVEKIT_* env vars were
+ * missing — and returned it with HTTP 200 and `configured: false` buried in
+ * the body. A production deploy with a typo'd env var therefore looked
+ * healthy while every teacher silently failed to connect.
+ *
+ * The replacement returns 503 NOT_CONFIGURED instead of a fake token.
  */
-export async function POST(request: Request) {
-  const auth = await requireAuth(request, "TEACHER");
+import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/auth";
+import { handleTokenRequest } from "@repo/live-classes";
+import { isLiveKitConfigured } from "@repo/livekit";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function POST(request: NextRequest) {
+  const auth = await requireAuth(request, "TEACHER", "ADMIN");
   if (auth.error) return auth.error;
 
+  let body: { sessionId?: string; classSessionId?: string } = {};
   try {
-    const body = await request.json();
-    const { sessionId, bookingId } = body;
-
-    if (!sessionId || !bookingId) {
-      return NextResponse.json(
-        { message: "sessionId and bookingId are required." },
-        { status: 400 }
-      );
-    }
-
-    const roomName = sessionId ? `class-${sessionId}` : `session_${bookingId}`;
-
-    // Verify the teacher owns this booking/session
-    const booking = await db.booking.findUnique({
-      where: { id: bookingId },
-      select: { teacherId: true },
-    });
-
-    if (!booking) {
-      return NextResponse.json({ message: "Booking not found." }, { status: 404 });
-    }
-
-    if (booking.teacherId !== auth.user.sub) {
-      return NextResponse.json(
-        { message: "Forbidden: You are not assigned to this session." },
-        { status: 403 }
-      );
-    }
-
-    const result = await generateLiveKitToken({
-      roomName,
-      identity: auth.user.sub,
-      name: auth.user.sub, // Will be resolved to display name client-side
-      role: "teacher",
-    });
-
-    return NextResponse.json(
-      {
-        token: result.token,
-        wsUrl: result.wsUrl,
-        roomName,
-        configured: isLiveKitConfigured(),
-      },
-      { status: 200 }
-    );
-  } catch (err) {
-    console.error("POST /api/teachers/session/token error:", err);
-    return NextResponse.json({ message: "Internal server error." }, { status: 500 });
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ message: "Invalid JSON body." }, { status: 400 });
   }
+
+  const classSessionId = body.classSessionId ?? body.sessionId;
+  const result = await handleTokenRequest(
+    { userId: auth.user.sub, role: auth.user.role },
+    { classSessionId }
+  );
+
+  const payload =
+    result.status === 200
+      ? {
+          ...(result.body as Record<string, unknown>),
+          wsUrl: (result.body as { serverUrl: string }).serverUrl,
+          configured: isLiveKitConfigured(),
+        }
+      : result.body;
+
+  return NextResponse.json(payload, {
+    status: result.status,
+    headers: {
+      "Cache-Control": "no-store, private",
+      Deprecation: "true",
+      Link: '</api/live/token>; rel="successor-version"',
+    },
+  });
 }

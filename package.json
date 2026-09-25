@@ -22,7 +22,9 @@
     "scan:deps": "npm audit --json > npm-audit.json; echo 'npm audit done — see npm-audit.json'",
     "scan:secrets": "gitleaks detect --config .gitleaks.toml --source . --verbose",
     "test:security": "python security-tests/run_all.py",
-    "test:e2e": "playwright test tests/e2e/booking-to-live-class.spec.ts"
+    "test:e2e": "playwright test tests/e2e/booking-to-live-class.spec.ts",
+    "test:livekit": "tsx --test packages/livekit/src/*.test.ts packages/database/*.test.ts",
+    "db:backfill-coins": "tsx packages/database/scripts/backfill-coins.ts"
   },
   "prisma": {
     "seed": "node --env-file=.env packages/database/prisma/seed.mjs"
@@ -30,6 +32,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1120.0",
     "@aws-sdk/s3-request-presigner": "^3.1120.0",
+    "@livekit/components-react": "^2.9.3",
     "@prisma/client": "^5.22.0",
     "@smithy/core": "^3.33.3",
     "@smithy/types": "^4.17.2",
@@ -42,8 +45,10 @@
     "ioredis": "^6.0.0",
     "jose": "^6.2.10",
     "jsonwebtoken": "^9.0.2",
+    "livekit-client": "^2.22.0",
+    "livekit-server-sdk": "^2.19.0",
     "lucide-react": "^1.31.0",
-    "next": "16.3.0",
+    "next": "^16.3.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "resend": "^6.22.1",

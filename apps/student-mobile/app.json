@@ -13,7 +13,11 @@
       "bundleIdentifier": "com.languagemetrics.student",
       "infoPlist": {
         "NSCameraUsageDescription": "Language Metrics requires camera access for live 1-on-1 language lessons.",
-        "NSMicrophoneUsageDescription": "Language Metrics requires microphone access for audio during live language lessons."
+        "NSMicrophoneUsageDescription": "Language Metrics requires microphone access for audio during live language lessons.",
+        "UIBackgroundModes": [
+          "audio",
+          "voip"
+        ]
       }
     },
     "android": {
@@ -24,12 +28,26 @@
       "permissions": [
         "CAMERA",
         "RECORD_AUDIO",
-        "MODIFY_AUDIO_SETTINGS"
+        "MODIFY_AUDIO_SETTINGS",
+        "ACCESS_NETWORK_STATE",
+        "BLUETOOTH_CONNECT",
+        "INTERNET",
+        "WAKE_LOCK",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_MEDIA_PROJECTION"
       ]
     },
     "plugins": [
       "expo-secure-store",
-      "expo-status-bar"
+      "expo-status-bar",
+      "@livekit/react-native-expo-plugin",
+      [
+        "@config-plugins/react-native-webrtc",
+        {
+          "cameraPermission": "Language Metrics needs your camera so your teacher can see you during a lesson.",
+          "microphonePermission": "Language Metrics needs your microphone so your teacher can hear you during a lesson."
+        }
+      ]
     ],
     "extra": {
       "eas": {

@@ -7,6 +7,8 @@ import {
   type BookingDetail,
 } from "@repo/api-contracts";
 import { exceedsMaxBodySize, rateLimitRedis } from "@/lib/rate-limit";
+import { getCoinBalance } from "@repo/database";
+import { holdCoinsForSession } from "@repo/live-classes";
 
 class InsufficientCoinsError extends Error {
   constructor(public required: number, public available: number) {
@@ -89,25 +91,21 @@ export async function POST(request: NextRequest) {
             : 500;
         const totalCost = Math.round((hourlyRate * durationMinutes) / 60);
 
-        // 3. Atomically check balance inside transaction
-        const transactions = await tx.coinTransaction.findMany({
-          where: { userId: studentId },
-        });
-        const currentBalance = transactions.reduce((acc, t) => acc + t.amount, 0);
-
-        if (currentBalance < totalCost) {
-          throw new InsufficientCoinsError(totalCost, currentBalance);
+        // 3. Balance check. Read from the materialised CoinAccount rather
+        //    than summing the user's entire CoinTransaction history — that
+        //    scan grew without bound and, because metered billing writes
+        //    several rows per class, would have grown much faster.
+        //
+        //    The authoritative check is the conditional UPDATE inside
+        //    holdCoinsForSession() below; this one exists to fail fast with a
+        //    useful message before a booking row is created.
+        const balance = await getCoinBalance(studentId, tx);
+        if (balance.balance < totalCost) {
+          throw new InsufficientCoinsError(totalCost, balance.balance);
         }
 
-        // 4. Deduct coins
-        await tx.coinTransaction.create({
-          data: {
-            userId: studentId,
-            type: "SPEND",
-            amount: -totalCost,
-            description: `1-on-1 Class with ${teacher.name} (${durationMinutes}m)`,
-          },
-        });
+        // 4. Coins are NOT spent here. They are held after this transaction
+        //    commits, and charged only for minutes actually taught.
 
         // 5. Calculate platform commission
         const commissionPct = 20;
@@ -149,6 +147,30 @@ export async function POST(request: NextRequest) {
         timeout: 15000,
       }
     );
+
+    // Reserve the coins. One conditional UPDATE, keyed by session id, so a
+    // retried request cannot hold twice.
+    try {
+      await holdCoinsForSession({
+        classSessionId: booking.session.id,
+        studentId,
+        teacherId,
+        heldCoins: booking.totalCost,
+        durationMinutes,
+      });
+    } catch (err) {
+      // Roll the booking back rather than leaving an unfunded class on the
+      // teacher's calendar.
+      await db.booking.update({
+        where: { id: booking.newBooking.id },
+        data: { status: "CANCELLED" },
+      });
+      await db.classSession.updateMany({
+        where: { bookingId: booking.newBooking.id },
+        data: { status: "CANCELLED" },
+      });
+      throw err;
+    }
 
     const responsePayload: BookingDetail = {
       id: booking.newBooking.id,

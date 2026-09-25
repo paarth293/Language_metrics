@@ -1,3 +1,11 @@
 {
-  "regions": ["hnd1"]
+  "regions": [
+    "hnd1"
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/reconcile-sessions",
+      "schedule": "0 0 * * *"
+    }
+  ]
 }
