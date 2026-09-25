@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const isProd = process.env.NODE_ENV === "production";
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
   reactStrictMode: true,
 
   // ── Image Optimization ──────────────────────────────────────────────

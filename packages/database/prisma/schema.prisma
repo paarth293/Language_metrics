@@ -44,6 +44,9 @@ model User {
   studentProfile               StudentProfile?
   teacherProfile               TeacherProfile?
   deviceTokens                 DeviceToken[]
+  razorpayOrders               RazorpayOrder[]
+  coinAccount                  CoinAccount?
+  liveSessions                 LiveParticipantSession[]
 
   @@index([createdAt])
   @@index([emailVerificationToken])
@@ -131,9 +134,44 @@ model CoinTransaction {
   amount      Int
   description String?
   createdAt   DateTime            @default(now())
+  /// Caller-supplied de-duplication key. A retried webhook or a double-clicked
+  /// button reuses the same key and the second write is rejected by the unique
+  /// index rather than double-charging.
+  idempotencyKey String?          @unique
+  /// Spendable balance immediately after this row was written. Makes the
+  /// ledger auditable without replaying every prior transaction.
+  balanceAfter   Int?
+  /// What this movement was for, when it relates to a class.
+  classSessionId String?          @db.Uuid
+  bookingId      String?          @db.Uuid
   user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+  @@index([classSessionId])
+  @@index([bookingId])
+}
+
+/// Materialised coin balance.
+///
+/// Exists because summing every CoinTransaction on each read is O(n) in a
+/// table that only grows, and because "read the balance, then write a debit"
+/// is a lost-update race the moment two requests overlap. Debits here are a
+/// single conditional UPDATE, which Postgres serialises for us.
+model CoinAccount {
+  userId         String   @id @db.Uuid
+  /// Coins the user can spend right now.
+  balance        Int      @default(0)
+  /// Coins reserved against upcoming classes. Not spendable, not yet spent.
+  heldBalance    Int      @default(0)
+  lifetimeEarned Int      @default(0)
+  lifetimeSpent  Int      @default(0)
+  /// Incremented on every mutation. Lets callers detect concurrent writes.
+  version        Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([balance])
 }
 
 /// RLS: Public read. Owner write.
@@ -200,11 +238,131 @@ model ClassSession {
   isRecordingPaid Boolean       @default(false)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+
+  // ── LiveKit room lifecycle ────────────────────────────────────────────
+  /// Always `class-<id>`. Stored so webhooks can be matched without parsing.
+  lkRoomName      String?
+  /// LiveKit's own room id, unique per room *instance*. A room that empties
+  /// and is recreated gets a new sid, which is how we detect a rejoin.
+  lkRoomSid       String?
+  lkEgressId      String?
+  qualityProfile  String        @default("low")
+
+  // ── Metering ──────────────────────────────────────────────────────────
+  /// Seconds the student and a teacher were both connected. What we bill.
+  billableSeconds Int           @default(0)
+  /// Sum of every participant's connected seconds. What LiveKit bills us.
+  connectionSeconds Int         @default(0)
+  /// Estimated downstream bytes, for the cost dashboard.
+  downstreamBytes BigInt        @default(0)
+  noShow          NoShowParty   @default(NONE)
+
+  // ── Recording ─────────────────────────────────────────────────────────
+  recordingStatus   RecordingStatus @default(NONE)
+  recordingMode     RecordingMode?
+  recordingDurationSeconds Int?
+  recordingSizeBytes BigInt?
+  recordingError    String?
+
   booking         Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  participants    LiveParticipantSession[]
+  billing         SessionBilling?
 
   @@index([bookingId])
   @@index([scheduledStart])
   @@index([status, scheduledStart])
+  @@index([lkRoomName])
+  @@index([recordingStatus])
+}
+
+/// One row per (participant, connection). A user who drops and rejoins three
+/// times produces three rows, which is exactly what the billing intersection
+/// needs in order to not charge them for the gaps.
+model LiveParticipantSession {
+  id               String              @id @default(uuid()) @db.Uuid
+  classSessionId   String              @db.Uuid
+  userId           String              @db.Uuid
+  role             LiveParticipantRole
+  /// LiveKit participant identity (equals userId for participants we mint).
+  identity         String
+  /// LiveKit participant sid — unique per connection, our idempotency anchor.
+  participantSid   String?             @unique
+  joinedAt         DateTime
+  leftAt           DateTime?
+  durationSeconds  Int                 @default(0)
+  disconnectReason String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  classSession     ClassSession        @relation(fields: [classSessionId], references: [id], onDelete: Cascade)
+  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([classSessionId, role])
+  @@index([userId, joinedAt])
+  @@index([leftAt])
+}
+
+/// The money record for one class. Separate from ClassSession so a settlement
+/// can be recomputed and re-audited without touching session state.
+model SessionBilling {
+  classSessionId  String               @id @db.Uuid
+  studentId       String               @db.Uuid
+  teacherId       String               @db.Uuid
+  /// Coins reserved at booking time.
+  heldCoins       Int
+  coinsPerMinute  Int
+  /// Minutes the student was actually taught.
+  billedMinutes   Int                  @default(0)
+  chargedCoins    Int                  @default(0)
+  refundedCoins   Int                  @default(0)
+  overageCoins    Int                  @default(0)
+  status          SessionBillingStatus @default(HELD)
+  /// Teacher no-show and similar cases an admin should look at.
+  requiresReview  Boolean              @default(false)
+  reason          String?
+  settledAt       DateTime?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  classSession    ClassSession         @relation(fields: [classSessionId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([studentId])
+  @@index([teacherId])
+  @@index([requiresReview])
+}
+
+/// Webhook de-duplication for every provider, not just LiveKit.
+///
+/// LiveKit retries a webhook until it gets a 2xx, so the same event WILL
+/// arrive more than once. Without this table a retried `participant_left`
+/// settles the same class twice.
+model WebhookEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  source      String
+  eventId     String
+  eventType   String
+  /// Set once processing succeeds. A row with a null value was seen but not
+  /// completed, which is the signal to retry rather than skip.
+  processedAt DateTime?
+  error       String?
+  receivedAt  DateTime @default(now())
+
+  @@unique([source, eventId])
+  @@index([source, eventType, receivedAt])
+}
+
+/// Daily LiveKit consumption, for the admin cost dashboard and budget guard.
+/// Keyed by YYYY-MM-DD so a day can be upserted without a range query.
+model LiveKitUsageDaily {
+  day                    String   @id
+  connectionSeconds      Int      @default(0)
+  participantSessions    Int      @default(0)
+  egressVideoSeconds     Int      @default(0)
+  egressAudioSeconds     Int      @default(0)
+  downstreamBytes        BigInt   @default(0)
+  classSessions          Int      @default(0)
+  updatedAt              DateTime @updatedAt
 }
 
 /// RLS: Owner read. Service role only write (payment gateway webhooks).
@@ -558,6 +716,50 @@ enum CoinTransactionType {
   BONUS
   SPEND
   REFUND
+  /// Coins moved from spendable to held when a class is booked.
+  HOLD
+  /// Held coins returned to spendable without being spent.
+  HOLD_RELEASE
+  /// Manual correction by an admin. Always carries a description.
+  ADJUSTMENT
+}
+
+enum LiveParticipantRole {
+  TEACHER
+  STUDENT
+  OBSERVER
+}
+
+enum NoShowParty {
+  NONE
+  TEACHER
+  STUDENT
+  BOTH
+}
+
+enum SessionBillingStatus {
+  /// Coins reserved, class not yet finished.
+  HELD
+  /// Measured and charged.
+  SETTLED
+  /// Fully refunded (teacher no-show, cancellation).
+  REFUNDED
+  /// Settlement failed and needs a human.
+  FAILED
+}
+
+enum RecordingStatus {
+  NONE
+  REQUESTED
+  RECORDING
+  PROCESSING
+  AVAILABLE
+  FAILED
+}
+
+enum RecordingMode {
+  AUDIO
+  VIDEO
 }
 
 enum RateType {
@@ -688,4 +890,21 @@ model DeviceToken {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model RazorpayOrder {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  orderId   String   @unique
+  amount    Int
+  currency  String   @default("INR")
+  status    String   @default("CREATED")
+  receipt   String?
+  paymentId String?  @unique
+  signature String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

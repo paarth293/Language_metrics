@@ -95,7 +95,7 @@ export default function TeacherRegisterPage() {
         setAdditionalLanguages((prev) => [primaryLanguage, ...prev.filter((c) => c !== primaryLanguage)]);
       }, 0);
     }
-  }, [primaryLanguage, additionalLanguages]);  
+  }, [primaryLanguage, additionalLanguages]);
 
   // ── Cooldown timer ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -412,7 +412,7 @@ export default function TeacherRegisterPage() {
             <div className="space-y-4 animate-fade-up flex-1">
               <div className="space-y-1">
                 <label htmlFor="teacher-name" className="text-sm font-medium text-text">Full name</label>
-                <Input id="teacher-name" type="text" placeholder="Jane Doe" value={name}
+                <Input id="teacher-name" type="text" placeholder="Enter your full name" value={name}
                   onChange={(e) => { setName(e.target.value); clearStep1("name"); }}
                   aria-invalid={!!step1Errors.name} aria-describedby={step1Errors.name ? "teacher-name-error" : undefined}
                   className={step1Errors.name ? "border-alert focus:ring-alert/30" : ""} />
@@ -430,7 +430,7 @@ export default function TeacherRegisterPage() {
                     </span>
                   )}
                 </label>
-                <Input id="teacher-email" type="email" placeholder="name@example.com" value={email}
+                <Input id="teacher-email" type="email" placeholder="Enter your email" value={email}
                   onChange={(e) => { setEmail(e.target.value); clearStep1("email"); if (emailVerified) setEmailVerified(false); }}
                   aria-invalid={!!step1Errors.email} aria-describedby={step1Errors.email ? "teacher-email-error" : undefined}
                   className={`${step1Errors.email ? "border-alert focus:ring-alert/30" : ""} ${emailVerified ? "border-trust focus:ring-trust/30" : ""}`} />
@@ -486,11 +486,10 @@ export default function TeacherRegisterPage() {
                         key={lang.code}
                         type="button"
                         onClick={() => toggleAdditionalLanguage(lang.code)}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-all cursor-pointer text-left ${
-                          isSelected
+                        className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-all cursor-pointer text-left ${isSelected
                             ? "border-brand bg-brand/10 text-brand shadow-sm"
                             : "border-border bg-surface-inset text-text-muted hover:border-brand/30 hover:bg-surface hover:text-text"
-                        }`}
+                          }`}
                       >
                         <span className="text-base leading-none flex-shrink-0">{lang.flag}</span>
                         <span className="truncate">{lang.name}</span>

@@ -73,13 +73,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Reset code expired. Please request a new code." }, { status: 400 });
     }
 
-    // Verify OTP
-    // Note: OTPs are hashed using hashOtp (which uses bcrypt internally)
-    // Wait, the prompt says `passwordResetToken (will store a bcrypt hash of the OTP)`.
-    // In our `hashOtp` we did bcrypt.hash.
-    // So we can use bcrypt.compare here. Wait, actually hashOtp returns a bcrypt hash?
-    // Let me check my `hashOtp` implementation in `otp.ts` or just use bcrypt.compare if the DB stores bcrypt.
-    // In `lib/otp.ts`, `hashOtp` does a bcrypt.hash(otp, 10). So we MUST use bcrypt.compare here, not `hashOtp(otp) !== dbHash`.
+    // Verify OTP: passwordResetToken stores a bcrypt hash of the OTP (see hashOtp
+    // in lib/otp.ts), so it must be checked with bcrypt.compare, never re-hashed
+    // and compared for equality.
     const isValid = await bcrypt.compare(otp, user.passwordResetToken);
 
     if (!isValid) {

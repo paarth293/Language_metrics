@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { signAccessToken, signRefreshToken, accessCookieOptions, refreshCookieOptions } from "@/lib/tokens";
 import { storeRefreshSession } from "@/lib/redis-session";
 import { rateLimitRedis, exceedsMaxBodySize } from "@/lib/rate-limit";
+import { validateLoginBody } from "@/lib/validation";
 
 /**
  * POST /api/auth/login
@@ -28,36 +29,55 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Invalid JSON body." }, { status: 400 });
   }
 
-  const { email, password, role } = body as { email?: string; password?: string; role?: string };
-  if (!email || !password) {
-    return NextResponse.json({ message: "Email and password are required." }, { status: 400 });
+  const validation = validateLoginBody(body);
+  if (!validation.ok) {
+    return NextResponse.json(
+      { code: "VALIDATION_ERROR", message: validation.errors[0], errors: validation.errors },
+      { status: 400 }
+    );
   }
+  const { email, password, role } = validation.data;
 
   try {
     const user = await db.user.findUnique({
-      where: { email: email.toLowerCase().trim() },
+      where: { email },
       include: { studentProfile: true },
     });
 
-    if (!user) {
-      return NextResponse.json({ message: "USER_NOT_FOUND" }, { status: 404 });
-    }
-
-    if (!user.passwordHash) {
-      return NextResponse.json({ message: "Invalid credentials." }, { status: 401 });
-    }
-
-    if (role && user.role !== role) {
-      return NextResponse.json({ message: "Invalid credentials." }, { status: 401 });
+    // SECURITY FIX (was: 404 "USER_NOT_FOUND"): returning a distinct
+    // status/message when the email doesn't exist lets an attacker enumerate
+    // registered accounts by checking which emails return 404 vs 401. Every
+    // credential failure below — unknown email, no password set, wrong role,
+    // wrong password — now returns the exact same 401 + generic message, so
+    // none of them leak whether the email is registered.
+    if (!user || !user.passwordHash || (role && user.role !== role)) {
+      return NextResponse.json({ message: "Invalid email or password." }, { status: 401 });
     }
 
     const isValid = await bcrypt.compare(password, user.passwordHash);
     if (!isValid) {
-      return NextResponse.json({ message: "Invalid credentials." }, { status: 401 });
+      return NextResponse.json({ message: "Invalid email or password." }, { status: 401 });
     }
 
     if (!user.emailVerified) {
       return NextResponse.json({ message: "UNVERIFIED_EMAIL" }, { status: 403 });
+    }
+
+    // SECURITY FIX: request-deletion/route.ts sets studentProfile.status to
+    // "SUSPENDED" and admin tooling can set it to "SUSPENDED" or "BLOCKED",
+    // but nothing in the auth flow ever read that field back — this is a
+    // stateless JWT setup, so requireAuth() (lib/auth.ts) only checks the
+    // token's signature/expiry/role on every request, never the DB. That
+    // meant a suspended or blocked student could still log in normally and
+    // mint a brand-new access+refresh token pair at any time, making both
+    // "suspend" and "request deletion" no-ops the moment the student tried
+    // again. Login is the one place in this flow that already hits the DB
+    // before issuing tokens, so it's the right place to enforce this.
+    if (user.studentProfile?.status === "SUSPENDED" || user.studentProfile?.status === "BLOCKED") {
+      return NextResponse.json(
+        { message: "This account is suspended. Contact support for assistance." },
+        { status: 403 }
+      );
     }
 
     const sessionId = crypto.randomUUID();

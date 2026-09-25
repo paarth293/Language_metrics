@@ -53,7 +53,7 @@ export default function StudentLoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@example.com"
+                placeholder="Enter your email"
                 className="w-full rounded-xl border border-border bg-surface-inset px-4 py-3 text-sm text-text placeholder:text-text-subtle focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all"
               />
             </div>

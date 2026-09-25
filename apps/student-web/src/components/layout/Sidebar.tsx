@@ -39,7 +39,11 @@ export function Sidebar({ navItems, isOpen, onClose }: SidebarProps) {
             <span className="text-amber-400 font-display font-bold text-[15px] tracking-tight ml-1">Metrics</span>
           </div>
         </Link>
-        <button className="lg:hidden text-white/40 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10" onClick={onClose}>
+        <button
+          className="lg:hidden text-white/40 hover:text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-white/10"
+          onClick={onClose}
+          aria-label="Close navigation"
+        >
           <X className="h-5 w-5" />
         </button>
       </div>
@@ -62,7 +66,7 @@ export function Sidebar({ navItems, isOpen, onClose }: SidebarProps) {
                   href={item.href}
                   onClick={() => onClose()}
                   className={cn(
-                    "group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200",
+                    "group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 min-h-[44px] text-sm font-medium transition-all duration-200",
                     isActive
                       ? "bg-white/[0.12] text-white shadow-lg shadow-black/20"
                       : "text-white/50 hover:bg-white/[0.06] hover:text-white/80"

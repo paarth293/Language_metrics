@@ -122,8 +122,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
           else if (data.user.role === "TEACHER") router.push("/teacher/dashboard");
           else if (data.user.role === "ADMIN") {
-            const adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || (process.env.NODE_ENV === "production" ? "https://language-metrics-admin-panel.vercel.app" : "http://localhost:3001");
-            router.replace(`${adminUrl}/dashboard`);
+            const adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || (process.env.NODE_ENV === "production" ? "https://language-metrics-admin-panel.vercel.app" : "http://localhost:3003");
+            // admin-panel is a separate app (different origin/port) — a full
+            // navigation is required here. Next's router.push/replace is for
+            // in-app client-side routing only and won't leave this app.
+            window.location.href = `${adminUrl}/dashboard`;
           }
         }
 

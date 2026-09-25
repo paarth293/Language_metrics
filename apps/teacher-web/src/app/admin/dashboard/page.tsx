@@ -20,13 +20,22 @@ interface TeacherRow {
   user: { id: string; name: string; email: string; createdAt: string };
 }
 
-interface Summary { pending: number; approved: number; rejected: number; total: number; }
-type Filter = "pending" | "approved" | "rejected" | "all";
+// Field names match TeacherService.listTeachersForAdmin's summary object
+// exactly (uppercase, same as VerificationStatus) — only `total` is lowercase.
+interface Summary {
+  PENDING: number;
+  INTERVIEW_SCHEDULED: number;
+  APPROVED: number;
+  REJECTED: number;
+  total: number;
+}
+type Filter = VerificationStatus | "all";
 
 const FILTERS: { key: Filter; label: string }[] = [
-  { key: "pending", label: "Pending" },
-  { key: "approved", label: "Approved" },
-  { key: "rejected", label: "Rejected" },
+  { key: "PENDING", label: "Pending" },
+  { key: "INTERVIEW_SCHEDULED", label: "Interview scheduled" },
+  { key: "APPROVED", label: "Approved" },
+  { key: "REJECTED", label: "Rejected" },
   { key: "all", label: "All" },
 ];
 
@@ -34,8 +43,14 @@ export default function AdminDashboard() {
   const { user, logout, isLoading } = useAuth();
   const router = useRouter();
   const [teachers, setTeachers] = useState<TeacherRow[]>([]);
-  const [summary, setSummary] = useState<Summary>({ pending: 0, approved: 0, rejected: 0, total: 0 });
-  const [filter, setFilter] = useState<Filter>("pending");
+  const [summary, setSummary] = useState<Summary>({
+    PENDING: 0,
+    INTERVIEW_SCHEDULED: 0,
+    APPROVED: 0,
+    REJECTED: 0,
+    total: 0,
+  });
+  const [filter, setFilter] = useState<Filter>("PENDING");
   const [loading, setLoading] = useState(true);
   const [actioningId, setActioningId] = useState<string | null>(null);
 
@@ -62,7 +77,7 @@ export default function AdminDashboard() {
     load();
   }, [user, isLoading, load]);
 
-  const act = async (id: string, status: "approved" | "rejected") => {
+  const act = async (id: string, status: "APPROVED" | "REJECTED") => {
     setActioningId(id);
     try {
       await adminApi.setTeacherStatus(id, status);
@@ -77,9 +92,10 @@ export default function AdminDashboard() {
   }
 
   const statCards = [
-    { label: "Pending Review", value: summary.pending, icon: Clock },
-    { label: "Approved", value: summary.approved, icon: CheckCircle2 },
-    { label: "Rejected", value: summary.rejected, icon: XCircle },
+    { label: "Pending Review", value: summary.PENDING, icon: Clock },
+    { label: "Interview Scheduled", value: summary.INTERVIEW_SCHEDULED, icon: ShieldCheck },
+    { label: "Approved", value: summary.APPROVED, icon: CheckCircle2 },
+    { label: "Rejected", value: summary.REJECTED, icon: XCircle },
     { label: "Total Teachers", value: summary.total, icon: Users },
   ];
 
@@ -128,7 +144,7 @@ export default function AdminDashboard() {
           </button>
         </motion.div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
           {statCards.map((stat, i) => (
             <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: i * 0.08 }} className="bg-cream border border-navy/8 rounded-2xl p-5">
               <div className="w-10 h-10 rounded-xl bg-navy/5 flex items-center justify-center mb-3"><stat.icon className="w-5 h-5 text-gold" /></div>
@@ -173,14 +189,14 @@ export default function AdminDashboard() {
                   </div>
                   <div className="shrink-0"><StatusBadge status={t.status} /></div>
                   <div className="flex items-center gap-2 shrink-0 ml-auto md:ml-0">
-                    {t.status !== "approved" && (
-                      <button onClick={() => act(t.id, "approved")} disabled={actioningId === t.id}
+                    {t.status !== "APPROVED" && (
+                      <button onClick={() => act(t.id, "APPROVED")} disabled={actioningId === t.id}
                         className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500 text-white text-[13px] font-semibold hover:bg-emerald-600 transition-colors disabled:opacity-60">
                         <CheckCircle2 className="w-4 h-4" />Approve
                       </button>
                     )}
-                    {t.status !== "rejected" && (
-                      <button onClick={() => act(t.id, "rejected")} disabled={actioningId === t.id}
+                    {t.status !== "REJECTED" && (
+                      <button onClick={() => act(t.id, "REJECTED")} disabled={actioningId === t.id}
                         className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-cream border border-red-200 text-red-600 text-[13px] font-semibold hover:bg-red-50 transition-colors disabled:opacity-60">
                         <XCircle className="w-4 h-4" />Reject
                       </button>

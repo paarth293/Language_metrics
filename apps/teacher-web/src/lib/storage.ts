@@ -245,9 +245,22 @@ async function deleteFromLocal(key: string): Promise<void> {
  * Get storage provider info (for diagnostics / admin).
  */
 export function getStorageInfo(): { provider: string; bucket: string; configured: boolean } {
-  return {
-    provider: PROVIDER,
-    bucket: BUCKET,
-    configured: PROVIDER !== "local" || true, // local always works
-  };
+  let configured: boolean;
+  switch (PROVIDER) {
+    case "s3":
+      configured = Boolean(
+        process.env.STORAGE_ACCESS_KEY && process.env.STORAGE_SECRET_KEY
+      );
+      break;
+    case "supabase":
+      configured = Boolean(
+        process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY
+      );
+      break;
+    default:
+      // Local filesystem storage needs no credentials.
+      configured = true;
+  }
+
+  return { provider: PROVIDER, bucket: BUCKET, configured };
 }

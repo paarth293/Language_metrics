@@ -11,6 +11,7 @@
     "dev:teacher": "npm run dev -w teacher-web",
     "dev:admin": "npm run dev -w admin-panel",
     "dev:student": "npm run dev -w student-web",
+    "dev:mobile": "npm run start -w student-mobile",
     "start": "concurrently \"npm start -w teacher-web\" \"npm start -w admin-panel\" \"npm start -w student-web\"",
     "build": "npx prisma@5 generate --schema=packages/database/prisma/schema.prisma && npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
@@ -20,7 +21,10 @@
     "scan:sast": "semgrep --config p/owasp-top-ten --config p/nextjs --config p/secrets --config semgrep.yml --json --output sast-results.json apps/admin-panel/src/ && node security-tests/generate-sast-report.mjs",
     "scan:deps": "npm audit --json > npm-audit.json; echo 'npm audit done — see npm-audit.json'",
     "scan:secrets": "gitleaks detect --config .gitleaks.toml --source . --verbose",
-    "test:security": "python security-tests/run_all.py"
+    "test:security": "python security-tests/run_all.py",
+    "test:e2e": "playwright test tests/e2e/booking-to-live-class.spec.ts",
+    "test:livekit": "tsx --test packages/livekit/src/*.test.ts packages/database/*.test.ts",
+    "db:backfill-coins": "tsx packages/database/scripts/backfill-coins.ts"
   },
   "prisma": {
     "seed": "node --env-file=.env packages/database/prisma/seed.mjs"
@@ -28,6 +32,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1120.0",
     "@aws-sdk/s3-request-presigner": "^3.1120.0",
+    "@livekit/components-react": "^2.9.3",
     "@prisma/client": "^5.22.0",
     "@smithy/core": "^3.33.3",
     "@smithy/types": "^4.17.2",
@@ -40,15 +45,18 @@
     "ioredis": "^6.0.0",
     "jose": "^6.2.10",
     "jsonwebtoken": "^9.0.2",
+    "livekit-client": "^2.22.0",
+    "livekit-server-sdk": "^2.19.0",
     "lucide-react": "^1.31.0",
-    "next": "16.3.0",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
+    "next": "^16.3.6",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
     "resend": "^6.22.1",
     "tailwind-merge": "^3.6.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.6",

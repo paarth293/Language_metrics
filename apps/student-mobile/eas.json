@@ -1,0 +1,64 @@
+{
+  "cli": {
+    "version": ">= 12.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      },
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "http://10.0.2.2:3002/api/v1",
+        "EXPO_PUBLIC_STUDENT_WEB_URL": "http://10.0.2.2:3002",
+        "EXPO_PUBLIC_PUBLIC_SITE_URL": "http://10.0.2.2:3000"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "ios": {
+        "simulator": false
+      },
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://language-metrics-student-web.vercel.app/api/v1",
+        "EXPO_PUBLIC_STUDENT_WEB_URL": "https://language-metrics-student-web.vercel.app",
+        "EXPO_PUBLIC_PUBLIC_SITE_URL": "https://language-metrics-teacher-web.vercel.app"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "distribution": "store",
+      "ios": {
+        "simulator": false
+      },
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://language-metrics-student-web.vercel.app/api/v1",
+        "EXPO_PUBLIC_STUDENT_WEB_URL": "https://language-metrics-student-web.vercel.app",
+        "EXPO_PUBLIC_PUBLIC_SITE_URL": "https://language-metrics-teacher-web.vercel.app"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "developer@languagemetrics.com",
+        "ascAppId": "placeholder-asc-app-id"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./google-play-service-account.json",
+        "track": "internal"
+      }
+    }
+  }
+}

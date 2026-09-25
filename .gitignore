@@ -74,3 +74,12 @@ __pycache__/
 *.pyc
 sast-results.json
 security-tests/*.txt
+
+# ── Test artifacts & session cookies ──────────────────────────────────────────
+cookie.txt
+login_response.json
+*.cookiejar
+
+# Expo
+.expo/
+apps/student-mobile/dist/

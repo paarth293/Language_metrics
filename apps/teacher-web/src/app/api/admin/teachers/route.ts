@@ -3,7 +3,12 @@ import { requireAuth } from "@/lib/auth";
 import { TeacherService } from "@/features/teacher/services/teacher-service";
 import type { VerificationStatus } from "@repo/database";
 
-const VALID_STATUSES: VerificationStatus[] = ["PENDING", "APPROVED", "REJECTED"];
+const VALID_STATUSES: VerificationStatus[] = [
+  "PENDING",
+  "INTERVIEW_SCHEDULED",
+  "APPROVED",
+  "REJECTED",
+];
 
 /**
  * GET /api/admin/teachers?status=PENDING
