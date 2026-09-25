@@ -623,7 +623,7 @@ function Tile({
     <div className={`relative bg-black/40 ${className ?? ""}`}>
       {hasVideo ? (
         <VideoTrack
-          trackRef={trackRef}
+          trackRef={trackRef as import("@livekit/components-react").TrackReference}
           className={`w-full h-full ${contain ? "object-contain" : "object-cover"}`}
         />
       ) : (

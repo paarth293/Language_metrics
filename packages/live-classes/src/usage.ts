@@ -33,7 +33,7 @@ export interface RecordUsageParams {
 }
 
 export async function recordDailyUsage(params: RecordUsageParams): Promise<void> {
-  let downstreamBytes = 0n;
+  let downstreamBytes = BigInt(0);
 
   if (params.classSessionId && params.connectionSeconds) {
     const session = await db.classSession.findUnique({
@@ -100,7 +100,7 @@ export async function getMonthlyUsage(reference = new Date()): Promise<MonthlyUs
       egressVideoSeconds: acc.egressVideoSeconds + r.egressVideoSeconds,
       egressAudioSeconds: acc.egressAudioSeconds + r.egressAudioSeconds,
     }),
-    { connectionSeconds: 0, downstreamBytes: 0n, egressVideoSeconds: 0, egressAudioSeconds: 0 }
+    { connectionSeconds: 0, downstreamBytes: BigInt(0), egressVideoSeconds: 0, egressAudioSeconds: 0 }
   );
 
   return {

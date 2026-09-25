@@ -21,10 +21,9 @@ export async function GET(request: Request) {
   // What one more 60-minute class costs at each quality setting, so the
   // trade-off is visible at the moment someone is deciding whether to change
   // the default rather than buried in documentation.
-  const perClass = (["audio-only", "low", "standard", "high"] as const).map((profile) => ({
-    profile,
-    ...estimateSessionCost({ durationMinutes: 60, participants: 2, profile, marginal: true }),
-  }));
+  const perClass = (["audio-only", "low", "standard", "high"] as const).map((profile) =>
+    estimateSessionCost({ durationMinutes: 60, participants: 2, profile, marginal: true })
+  );
 
   return NextResponse.json(
     { ...report, perClass },

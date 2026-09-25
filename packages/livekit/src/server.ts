@@ -11,6 +11,7 @@ import {
   EncodedFileType,
   EncodingOptionsPreset,
   RoomServiceClient,
+  TrackSource,
   WebhookReceiver,
   type ParticipantInfo,
   type Room,
@@ -110,8 +111,8 @@ export async function mintClassToken(opts: MintTokenOptions): Promise<MintedToke
   const sources: VideoGrant["canPublishSources"] = isAdmin
     ? []
     : allowScreenShare
-      ? ["camera", "microphone", "screen_share", "screen_share_audio"]
-      : ["camera", "microphone"];
+      ? [TrackSource.CAMERA, TrackSource.MICROPHONE, TrackSource.SCREEN_SHARE, TrackSource.SCREEN_SHARE_AUDIO]
+      : [TrackSource.CAMERA, TrackSource.MICROPHONE];
 
   const grant: VideoGrant = {
     room: roomName,
