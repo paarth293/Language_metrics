@@ -124,17 +124,47 @@ most important configuration step and the easiest to forget.
 
 ### 3.4 Cron
 
-`vercel.json` runs `/api/cron/reconcile-sessions`. It settles any class whose
-grace window has passed but whose webhook never arrived. Set `CRON_SECRET` or
-the endpoint is public — the route only enforces auth when that variable is
-set.
+`/api/cron/reconcile-sessions` settles any class whose grace window has passed
+but whose webhook never arrived. It is triggered from two places.
 
-**The schedule is currently `0 0 * * *` (daily), not every 10 minutes.** Vercel's
-Hobby plan rejects sub-daily cron expressions, so `*/10 * * * *` was replaced.
-The consequence is real: when a `room_finished` webhook is lost, the student's
-coins stay `HELD` for up to 24 hours instead of 10 minutes. On a paid plan,
-restore `*/10 * * * *`; otherwise trigger the endpoint from an external
-scheduler at the interval you actually want.
+**Primary — GitHub Actions, every 10 minutes.**
+`.github/workflows/reconcile-sessions.yml` pings the endpoint on a `*/10 * * * *`
+schedule, and can also be run by hand from the Actions tab
+(`workflow_dispatch`). Two repository secrets are required:
+
+| Secret | Value |
+|---|---|
+| `APP_URL` | Deployment origin, e.g. `https://language-metrics-teacher-web.vercel.app` |
+| `CRON_SECRET` | Must match the `CRON_SECRET` environment variable on that deployment |
+
+Until both are set the job **skips with a notice** instead of failing, so an
+unconfigured repository does not produce a red run every ten minutes.
+
+Two GitHub behaviours worth knowing before you rely on this:
+
+- **Scheduled runs are best-effort.** GitHub queues them and can delay a run by
+  several minutes when the platform is busy, and may drop runs entirely during
+  incidents. Treat `*/10` as "usually within ten minutes", not a guarantee.
+- **Schedules only run from the default branch.** A `schedule:` trigger on a
+  feature branch never fires. This workflow does nothing until it is merged to
+  `main`.
+
+**Fallback — Vercel cron, daily.**
+`vercel.json` keeps a `0 0 * * *` entry. Vercel's Hobby plan rejects sub-daily
+expressions, which is why it cannot be the primary trigger: on its own it can
+leave a student's coins `HELD` for up to 24 hours. It stays as a safety net for
+when GitHub Actions is degraded. On a paid Vercel plan you can set it to
+`*/10 * * * *` and drop the workflow entirely.
+
+Vercel sends `Authorization: Bearer <CRON_SECRET>` automatically when
+`CRON_SECRET` is set as an environment variable on the deployment, so both
+callers authenticate through the same check.
+
+**`CRON_SECRET` is mandatory.** If it is unset the route returns
+`500 Endpoint misconfigured` and refuses to run. It used to skip the auth check
+when the variable was absent, which left settlement publicly triggerable on
+exactly the deployments that had forgotten to configure it. A wrong or missing
+`Authorization` header returns `401`, compared in constant time.
 
 ---
 
