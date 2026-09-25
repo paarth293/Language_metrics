@@ -37,3 +37,5 @@ export default function AuthenticatedLayout({
 }) {
   return <AppShell navItems={studentNavItems}>{children}</AppShell>;
 }
+
+

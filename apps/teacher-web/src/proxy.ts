@@ -46,7 +46,7 @@ async function getPublicKey() {
   const pem = process.env.JWT_PUBLIC_KEY;
   if (!pem) return null;
   try {
-    return await importSPKI(pem.replace(/\\\\n/g, "\n"), "RS256");
+    return await importSPKI(pem.replace(/\\n/g, "\n"), "RS256");
   } catch {
     return null;
   }

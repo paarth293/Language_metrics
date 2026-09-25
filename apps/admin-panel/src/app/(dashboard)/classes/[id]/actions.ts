@@ -1,11 +1,11 @@
 "use server";
 
 import { db } from "@repo/database";
-import { requireAdmin } from "@/lib/guards";
+import { requirePermission } from "@/lib/guards";
 import { revalidatePath } from "next/cache";
 
 export async function updateSessionStatus(sessionId: string, bookingId: string, status: "SCHEDULED" | "ONGOING" | "COMPLETED" | "CANCELLED") {
-  await requireAdmin();
+  await requirePermission("classes:manage");
   await db.classSession.update({
     where: { id: sessionId },
     data: { status }
