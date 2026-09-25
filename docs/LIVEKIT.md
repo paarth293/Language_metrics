@@ -73,10 +73,14 @@ four surfaces cannot drift the way the two old token routes did.
 
 ```bash
 npm install                     # picks up the new workspace packages
-npx prisma migrate dev --name livekit-metering \
-  --schema=packages/database/prisma/schema.prisma
+npm run db:migrate:deploy       # applies prisma/migrations (see §3.2 for DIRECT_URL)
 npm run db:backfill-coins       # REQUIRED — see §7
+npm run db:migrate:status       # should say "Database schema is up to date!"
 ```
+
+Use `db:migrate:deploy`, never `prisma migrate dev`, against a database that
+holds real data. `migrate dev` is for authoring migrations locally and can
+prompt to reset the database when it finds history it did not create.
 
 ### 3.2 Environment
 
@@ -90,6 +94,18 @@ LIVEKIT_WS_URL="wss://your-project.livekit.cloud"
 
 `.env.example` documents the rest. Every other `LIVEKIT_*` variable is a
 spending control with a sensible default.
+
+Migrations additionally need **`DIRECT_URL`**, separate from `DATABASE_URL`:
+
+```bash
+DATABASE_URL="postgresql://…@…pooler.supabase.com:6543/postgres"  # pooled, for the app
+DIRECT_URL="postgresql://…@…pooler.supabase.com:5432/postgres"    # direct, for migrations
+```
+
+Supabase's transaction pooler on 6543 cannot run DDL. `prisma migrate` reads
+`directUrl` from the datasource block and connects on 5432 instead. If
+`DIRECT_URL` is unset, migrations fail while the app itself keeps working —
+which makes the cause easy to miss.
 
 ### 3.3 Webhook
 
@@ -108,9 +124,17 @@ most important configuration step and the easiest to forget.
 
 ### 3.4 Cron
 
-`vercel.json` runs `/api/cron/reconcile-sessions` every 10 minutes. It settles
-any class whose grace window has passed but whose webhook never arrived. Set
-`CRON_SECRET` or the endpoint is public.
+`vercel.json` runs `/api/cron/reconcile-sessions`. It settles any class whose
+grace window has passed but whose webhook never arrived. Set `CRON_SECRET` or
+the endpoint is public — the route only enforces auth when that variable is
+set.
+
+**The schedule is currently `0 0 * * *` (daily), not every 10 minutes.** Vercel's
+Hobby plan rejects sub-daily cron expressions, so `*/10 * * * *` was replaced.
+The consequence is real: when a `room_finished` webhook is lost, the student's
+coins stay `HELD` for up to 24 hours instead of 10 minutes. On a paid plan,
+restore `*/10 * * * *`; otherwise trigger the endpoint from an external
+scheduler at the interval you actually want.
 
 ---
 
@@ -315,8 +339,11 @@ cron to catch any write path that bypasses the ledger.
 
 ## 8. Deploy checklist
 
-- [ ] `npx prisma migrate deploy`
-- [ ] `npm run db:backfill-coins` — verify it prints `drift: 0`
+- [ ] Confirm a database backup exists before touching migrations
+- [ ] `DIRECT_URL` is set (Supabase direct connection, port 5432 — see §3.2)
+- [ ] `npm run db:migrate:deploy`
+- [ ] `npm run db:migrate:status` — must say "Database schema is up to date!"
+- [ ] `npm run db:backfill-coins` — must end with "Every account balance matches its ledger"
 - [ ] Set `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `LIVEKIT_WS_URL`
 - [ ] Register the webhook in LiveKit Cloud → Settings → Webhooks
 - [ ] Set `CRON_SECRET` and confirm the Vercel cron is scheduled
