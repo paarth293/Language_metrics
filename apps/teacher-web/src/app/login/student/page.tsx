@@ -118,7 +118,7 @@ export default function StudentLoginPage() {
           <label className="text-sm font-medium text-text">Email address</label>
           <Input
             type="email"
-            placeholder="name@example.com"
+            placeholder="Enter your email"
             value={email}
             onChange={(e) => { setEmail(e.target.value); setFieldErrors((prev) => ({ ...prev, email: undefined })); }}
             aria-invalid={!!fieldErrors.email}
