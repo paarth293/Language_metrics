@@ -618,10 +618,9 @@ function Tile({
   className?: string;
   contain?: boolean;
 }) {
-  const hasVideo = Boolean(trackRef.publication?.track);
   return (
     <div className={`relative bg-black/40 ${className ?? ""}`}>
-      {hasVideo ? (
+      {trackRef.publication && trackRef.publication.track ? (
         <VideoTrack
           trackRef={trackRef}
           className={`w-full h-full ${contain ? "object-contain" : "object-cover"}`}
