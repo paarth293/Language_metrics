@@ -10,13 +10,13 @@ import { invalidateCache } from "@/lib/api-cache";
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   const auth = await requireAuth(request, "STUDENT");
   if (auth.error) return auth.error;
 
   try {
-    const { id: teacherId } = await params;
+    const { id: teacherId } = await context.params;
     const body = await request.json();
     const { rateId } = body;
 

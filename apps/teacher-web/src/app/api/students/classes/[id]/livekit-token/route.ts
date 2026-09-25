@@ -19,12 +19,11 @@ export const dynamic = "force-dynamic";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   const auth = await requireAuth(request, "STUDENT", "TEACHER", "ADMIN");
   if (auth.error) return auth.error;
-
-  const { id } = await params;
+  const { id } = await context.params;
   const result = await handleTokenRequest(
     { userId: auth.user.sub, role: auth.user.role },
     { classSessionId: id }

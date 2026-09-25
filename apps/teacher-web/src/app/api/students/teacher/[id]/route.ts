@@ -8,13 +8,13 @@ import { db } from "@/lib/db";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   const auth = await requireAuth(request, "STUDENT");
   if (auth.error) return auth.error;
 
   try {
-    const { id } = await params;
+    const { id } = await context.params;
 
     // Fetch teacher profile with all relations
     const teacher = await db.teacherProfile.findUnique({

@@ -51,3 +51,11 @@ export const requireAdmin = cache(async (): Promise<SessionUser> => {
     permissions: permissionsForRole(admin.roleKey, admin.permissions),
   };
 });
+
+export async function requirePermission(permission: import("./permissions").Permission): Promise<SessionUser> {
+  const admin = await requireAdmin();
+  if (!admin.isSuperAdmin && !admin.permissions.includes(permission)) {
+    throw new Error(`Forbidden: Missing required permission ${permission}`);
+  }
+  return admin;
+}

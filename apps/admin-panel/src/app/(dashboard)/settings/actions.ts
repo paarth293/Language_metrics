@@ -1,16 +1,16 @@
 "use server";
 
 import { db } from "@repo/database";
-import { requireAdmin } from "@/lib/guards";
+import { requirePermission } from "@/lib/guards";
 import { revalidatePath } from "next/cache";
 
 export async function updatePlatformSettings(formData: FormData) {
-  await requireAdmin();
-  
+  await requirePermission("settings:manage");
+
   const commissionPct = formData.get("commissionPct") as string || "30";
   const defaultClassDuration = formData.get("defaultClassDuration") as string || "60";
   const teacherMembershipFee = formData.get("teacherMembershipFee") as string || "99900";
-  
+
   const settingsToUpdate = [
     { key: "COMMISSION_PCT", value: commissionPct },
     { key: "DEFAULT_CLASS_DURATION_MIN", value: defaultClassDuration },

@@ -1,11 +1,11 @@
 "use server";
 
 import { db } from "@repo/database";
-import { requireAdmin } from "@/lib/guards";
+import { requirePermission } from "@/lib/guards";
 import { revalidatePath } from "next/cache";
 
 export async function addCourse(formData: FormData) {
-  await requireAdmin();
+  await requirePermission("courses:manage");
   const name = formData.get("name") as string;
   const languageId = formData.get("languageId") as string;
   const level = formData.get("level") as string;
@@ -31,12 +31,12 @@ export async function addCourse(formData: FormData) {
 }
 
 export async function toggleCourseStatus(id: string, published: boolean) {
-  await requireAdmin();
+  await requirePermission("courses:manage");
   await db.course.update({
     where: { id },
-    data: { 
-      published: !published, 
-      status: !published ? "ACTIVE" : "DRAFT" 
+    data: {
+      published: !published,
+      status: !published ? "ACTIVE" : "DRAFT"
     }
   });
   revalidatePath(`/courses`);
