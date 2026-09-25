@@ -1,0 +1,105 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# .github/workflows/reconcile-sessions.yml
+#
+# Ten-minute pinger for the live-class reconciliation sweeper.
+#
+# Why this exists: /api/cron/reconcile-sessions settles any class whose grace
+# window has passed but whose `room_finished` webhook never arrived. Until it
+# runs, the student's coins stay HELD. Vercel's Hobby plan only permits daily
+# cron expressions, so the vercel.json entry can leave coins held for up to 24
+# hours. This workflow is the primary trigger; the Vercel cron stays as a
+# fallback for when GitHub Actions is degraded.
+#
+# Required repository secrets:
+#   APP_URL      — deployment origin, e.g. https://language-metrics-teacher-web.vercel.app
+#   CRON_SECRET  — must match the CRON_SECRET environment variable on the deployment
+#
+# Until both are set the job skips with a notice rather than failing, so an
+# unconfigured repo does not produce a red run every ten minutes.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Reconcile live sessions
+
+on:
+  schedule:
+    # Every 10 minutes. GitHub queues scheduled runs on a best-effort basis and
+    # can delay them by several minutes under load, so treat this as "at least
+    # every 10 minutes, usually", not a hard guarantee.
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+# Nothing here reads or writes the repository.
+permissions: {}
+
+# A delayed run must never overlap the next one; settlement is idempotent but
+# concurrent sweeps waste database connections for no benefit.
+concurrency:
+  group: reconcile-sessions
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    name: Ping reconcile endpoint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check configuration
+        id: guard
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          missing=""
+          [ -z "$APP_URL" ] && missing="APP_URL"
+          [ -z "$CRON_SECRET" ] && missing="${missing:+$missing and }CRON_SECRET"
+
+          if [ -n "$missing" ]; then
+            echo "::notice title=Reconciliation skipped::$missing not set. Add the repository secret(s) to enable the 10-minute sweeper."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Call reconcile endpoint
+        if: steps.guard.outputs.configured == 'true'
+        env:
+          # Passed as environment variables rather than interpolated into the
+          # command line, so the secret never appears in a rendered step.
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+
+          # --fail turns any non-2xx into a non-zero exit, so a 401 from a
+          # mismatched secret or a 500 from an unconfigured deployment shows up
+          # as a failed run instead of passing silently.
+          http_code=$(
+            curl --fail --silent --show-error \
+                 --connect-timeout 10 --max-time 120 \
+                 --retry 2 --retry-delay 10 --retry-connrefused \
+                 --request GET \
+                 --header "Authorization: Bearer ${CRON_SECRET}" \
+                 --output response.json \
+                 --write-out '%{http_code}' \
+                 "${APP_URL%/}/api/cron/reconcile-sessions"
+          )
+
+          echo "HTTP $http_code"
+          # The response is a settlement summary (counts and session ids only).
+          echo "--- response ---"
+          cat response.json
+          echo
+
+      - name: Summarise
+        if: always() && steps.guard.outputs.configured == 'true'
+        run: |
+          if [ -f response.json ]; then
+            {
+              echo "### Reconciliation result"
+              echo ""
+              echo '```json'
+              cat response.json
+              echo ""
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
