@@ -193,7 +193,7 @@ export default function ForgotPasswordPage() {
             <label className="text-sm font-medium text-text">Email address</label>
             <Input
               type="email"
-              placeholder="name@example.com"
+              placeholder="Enter your email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoFocus
