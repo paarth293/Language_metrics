@@ -111,7 +111,7 @@ async function uploadToS3(file: Buffer, key: string, contentType: string): Promi
   // Lazy load S3 client only at runtime
   let S3Client, PutObjectCommand;
   try {
-    ({ S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3"));
+    ({ S3Client, PutObjectCommand } = await Function('return import("@aws-sdk/client-s3")')() as any);
   } catch (e) {
     throw new Error("AWS S3 SDK not installed. Install @aws-sdk/client-s3 to use S3 storage.");
   }
@@ -144,7 +144,7 @@ async function deleteFromS3(key: string): Promise<void> {
   if (PROVIDER !== "s3") return;
   let S3Client, DeleteObjectCommand;
   try {
-    ({ S3Client, DeleteObjectCommand } = await import("@aws-sdk/client-s3"));
+    ({ S3Client, DeleteObjectCommand } = await Function('return import("@aws-sdk/client-s3")')() as any);
   } catch (e) {
     console.warn("AWS S3 SDK not installed, delete skipped.");
     return;
@@ -164,8 +164,8 @@ async function getS3SignedUrl(key: string, expiresIn = 3600): Promise<string> {
   if (PROVIDER !== "s3") throw new Error("S3 provider not configured");
   let S3Client, GetObjectCommand, getSignedUrl;
   try {
-    ({ S3Client, GetObjectCommand } = await import("@aws-sdk/client-s3"));
-    ({ getSignedUrl } = await import("@aws-sdk/s3-request-presigner"));
+    ({ S3Client, GetObjectCommand } = await Function('return import("@aws-sdk/client-s3")')() as any);
+    ({ getSignedUrl } = await Function('return import("@aws-sdk/s3-request-presigner")')() as any);
   } catch (e) {
     throw new Error("AWS S3 SDK not installed. Install @aws-sdk/client-s3 and @aws-sdk/s3-request-presigner.");
   }
@@ -186,7 +186,7 @@ async function uploadToSupabase(file: Buffer, key: string, contentType: string):
   if (PROVIDER !== "supabase") throw new Error("Supabase provider not configured");
   let createClient;
   try {
-    ({ createClient } = await import("@supabase/supabase-js"));
+    ({ createClient } = await Function('return import("@supabase/supabase-js")')() as any);
   } catch (e) {
     throw new Error("Supabase SDK not installed. Install @supabase/supabase-js.");
   }
@@ -209,7 +209,7 @@ async function deleteFromSupabase(key: string): Promise<void> {
   if (PROVIDER !== "supabase") return;
   let createClient;
   try {
-    ({ createClient } = await import("@supabase/supabase-js"));
+    ({ createClient } = await Function('return import("@supabase/supabase-js")')() as any);
   } catch (e) {
     console.warn("Supabase SDK not installed, delete skipped.");
     return;

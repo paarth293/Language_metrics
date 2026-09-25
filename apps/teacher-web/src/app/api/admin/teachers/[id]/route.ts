@@ -13,13 +13,13 @@ const ACTIONABLE_STATUSES: VerificationStatus[] = ["APPROVED", "REJECTED", "PEND
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   const auth = await requireAuth(request, "ADMIN");
   if (auth.error) return auth.error;
 
   try {
-    const { id } = await params;
+    const { id } = await context.params;
     const body = await request.json();
     const status = body?.status?.toUpperCase() as VerificationStatus | undefined;
 

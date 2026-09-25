@@ -5,14 +5,14 @@ import { prisma } from "@/lib/db";
 // POST - Get LiveKit token for a session
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   const auth = await requireAuth(request, "STUDENT");
   if (auth.error) return auth.error;
-
+  
   try {
     const userId = auth.user.sub;
-    const { id: sessionId } = await params;
+    const { id: sessionId } = await context.params;
 
     // Get the session and verify the student has access
     const session = await prisma.classSession.findUnique({
