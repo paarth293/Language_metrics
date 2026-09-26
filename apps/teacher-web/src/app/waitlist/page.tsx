@@ -26,7 +26,7 @@ export default function WaitlistPage() {
   };
 
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="aa-contrast min-h-screen bg-bg">
       <section className="relative overflow-hidden py-20 px-4">
         <div className="absolute top-0 right-0 w-96 h-96 bg-brand/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-gold/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3" />
@@ -40,7 +40,7 @@ export default function WaitlistPage() {
             <h1 className="font-display text-4xl md:text-5xl font-bold text-text mb-6 leading-tight">
               The Future of<br />Language Learning
             </h1>
-            <p className="text-lg text-text-muted mb-8 max-w-lg">
+            <p className="text-[20px] text-text-muted mb-8 max-w-lg">
               We&apos;re building something special. Join the waitlist to be the first to experience our new features, exclusive teacher partnerships, and launch rewards.
             </p>
 
@@ -73,23 +73,23 @@ export default function WaitlistPage() {
           </div>
 
           {/* Right — Form */}
-          <div className="p-8 rounded-2xl border border-border bg-white shadow-lg">
+          <div className="p-5 rounded-2xl border border-border bg-surface shadow-lg">
             {submitted ? (
               <div className="text-center py-8">
                 <div className="w-16 h-16 rounded-2xl bg-trust/10 flex items-center justify-center mx-auto mb-4">
                   <CheckCircle2 className="w-8 h-8 text-trust" />
                 </div>
-                <h2 className="font-display text-2xl font-bold text-text mb-2">You&apos;re on the list!</h2>
+                <h2 className="font-display text-[28px] font-bold text-text mb-2">You&apos;re on the list!</h2>
                 <p className="text-text-muted mb-6">
                   We&apos;ll notify you at <strong>{email}</strong> when we launch.
                 </p>
-                <Link href="/" className="text-brand font-medium hover:underline inline-flex items-center gap-1">
+                <Link href="/" className="text-brand font-medium hover:underline inline-flex min-h-11 items-center gap-1">
                   Back to Home <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
             ) : (
               <>
-                <h2 className="font-display text-2xl font-bold text-text mb-2">Join the Waitlist</h2>
+                <h2 className="font-display text-[28px] font-bold text-text mb-2">Join the Waitlist</h2>
                 <p className="text-text-muted text-sm mb-6">Enter your email to reserve your spot.</p>
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <input
@@ -113,7 +113,7 @@ export default function WaitlistPage() {
                       </>
                     )}
                   </button>
-                  <p className="text-[11px] text-text-subtle text-center">
+                  <p className="text-xs text-text-subtle text-center">
                     No spam, ever. Unsubscribe anytime.
                   </p>
                 </form>
