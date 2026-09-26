@@ -397,7 +397,7 @@ export default function DiscoverPage() {
                         <Link href={`/student/teacher/${teacher.id}`}>View Profile</Link>
                       </Button>
                       <Button asChild variant="primary" className="flex-1 shadow-sm h-10 text-[13px]">
-                        <Link href={`/student/teacher/${teacher.id}/book`}>Book Demo</Link>
+                        <Link href={`/student/teacher/${teacher.id}/book?option=demo`}>Book Demo</Link>
                       </Button>
                     </CardFooter>
                   </Card>
