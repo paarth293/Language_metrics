@@ -179,6 +179,13 @@ describe("validation", () => {
 
     const r4 = validateBookClass({});
     expect(r4.ok).toBe(false);
+
+    const r5 = validateBookClass({ demo: true });
+    expect(r5).toEqual({ ok: true, data: { demo: true } });
+
+    // Only a literal `true` selects the demo; anything else still needs a rate.
+    const r6 = validateBookClass({ demo: "true" });
+    expect(r6.ok).toBe(false);
   });
 
   it("validates chat message", () => {
