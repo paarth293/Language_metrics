@@ -2,6 +2,23 @@ import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { withCache } from "@/lib/api-cache";
+import { getLanguageAliases, getLanguageDisplayName } from "@/lib/languages";
+
+/** Mirrors the TeacherExperienceLevel enum in schema.prisma. */
+const EXPERIENCE_LEVELS = ["FRESHER", "EXPERIENCED"] as const;
+type ExperienceLevel = (typeof EXPERIENCE_LEVELS)[number];
+
+/**
+ * Matches a teacher whose primary or additional languages include any
+ * spelling of `value` — stored values are a mix of ISO codes and names.
+ */
+function languageClauses(value: string, mode: "equals" | "contains") {
+  const aliases = getLanguageAliases(value);
+  return [
+    ...aliases.map((a) => ({ language: { [mode]: a, mode: "insensitive" as const } })),
+    { languages: { hasSome: aliases } },
+  ];
+}
 
 /**
  * GET /api/students/discover
@@ -19,32 +36,68 @@ export async function GET(request: Request) {
   return withCache(cacheKey, 60_000, async () => {
   try {
     const url = new URL(request.url);
-    const search = url.searchParams.get("search") || "";
-    const language = url.searchParams.get("language") || "";
-    const minPrice = parseInt(url.searchParams.get("minPrice") || "0");
-    const maxPrice = parseInt(url.searchParams.get("maxPrice") || "99999");
+    const search = url.searchParams.get("search")?.trim() || "";
+    const language = url.searchParams.get("language")?.trim() || "";
+    // Budget arrives in rupees; TeacherRate.amount is stored in paise.
+    const minRate = url.searchParams.get("minRate");
+    const maxRate = url.searchParams.get("maxRate");
+    const experience = url.searchParams.get("experience")?.trim().toUpperCase();
+    const gender = url.searchParams.get("gender")?.trim();
+    const availableOnly = url.searchParams.get("available") === "true";
     const limit = Math.min(parseInt(url.searchParams.get("limit") || "20"), 50);
 
-    // Build where clause
-    type WhereInput = NonNullable<Parameters<typeof db.teacherProfile.findMany>[0]>["where"];
+    if (experience && !EXPERIENCE_LEVELS.includes(experience as ExperienceLevel)) {
+      return NextResponse.json(
+        { message: `experience must be one of: ${EXPERIENCE_LEVELS.join(", ")}.` },
+        { status: 400 }
+      );
+    }
+
+    // Build where clause. Each active filter is its own AND entry so none
+    // of them overwrite another's OR.
+    type WhereInput = NonNullable<NonNullable<Parameters<typeof db.teacherProfile.findMany>[0]>["where"]>;
+    const and: WhereInput[] = [];
     const where: WhereInput = {
       status: "APPROVED",
       onboardingComplete: true,
     };
 
     if (search) {
-      where.OR = [
-        { name: { contains: search, mode: "insensitive" } },
-        { language: { contains: search, mode: "insensitive" } },
-        { languages: { has: search } },
-      ];
+      and.push({
+        OR: [{ name: { contains: search, mode: "insensitive" } }, ...languageClauses(search, "contains")],
+      });
     }
 
     if (language) {
-      where.OR = [
-        { language: { equals: language, mode: "insensitive" } },
-        { languages: { has: language } },
+      and.push({ OR: languageClauses(language, "equals") });
+    }
+
+    if (experience) {
+      where.experienceLevel = experience as ExperienceLevel;
+    }
+
+    // Gender is free text: registration saves "male", onboarding saves "Male".
+    if (gender) {
+      where.gender = { equals: gender, mode: "insensitive" };
+    }
+
+    if (availableOnly) {
+      and.push({ availability: { some: {} } });
+    }
+
+    if (minRate !== null || maxRate !== null) {
+      const gte = Math.max(0, parseInt(minRate || "0") || 0) * 100;
+      const lte = maxRate !== null ? (parseInt(maxRate) || 0) * 100 : undefined;
+      const priceOr: WhereInput[] = [
+        { rates: { some: { type: "HOURLY", amount: { gte, ...(lte !== undefined && { lte }) } } } },
       ];
+      // A teacher with no HOURLY rate is priced at 0, as in student-web.
+      if (gte === 0) priceOr.push({ rates: { none: { type: "HOURLY" } } });
+      and.push({ OR: priceOr });
+    }
+
+    if (and.length > 0) {
+      where.AND = and;
     }
 
     const teachers = await db.teacherProfile.findMany({
@@ -74,8 +127,9 @@ export async function GET(request: Request) {
           ? t.reviews.reduce((acc, r) => acc + r.rating, 0) / t.reviews.length
           : 0;
 
-      const hourlyRate = t.rates.find((r) => r.type === "HOURLY")?.amount || 0;
-      const demoRate = 49; // Fixed demo rate in coins
+      // Rates are stored in paise; the discover UI shows and filters in rupees.
+      const hourlyRate = (t.rates.find((r) => r.type === "HOURLY")?.amount || 0) / 100;
+      const demoRate = 29; // Fixed demo rate in coins
 
       // Find next available slot
       const now = new Date();
@@ -113,7 +167,9 @@ export async function GET(request: Request) {
         id: t.userId,
         name: t.name,
         avatar: t.avatarUrl,
-        languages: [t.language, ...(t.languages || [])].filter(Boolean),
+        languages: Array.from(
+          new Set([t.language, ...(t.languages || [])].filter((l): l is string => !!l).map(getLanguageDisplayName))
+        ),
         rating: Math.round(avgRating * 10) / 10,
         reviews: t.reviews.length,
         hourlyRate,
@@ -125,12 +181,7 @@ export async function GET(request: Request) {
       };
     });
 
-    // Filter by price if specified
-    const filtered = formattedTeachers.filter(
-      (t) => t.hourlyRate >= minPrice && t.hourlyRate <= maxPrice
-    );
-
-    return NextResponse.json({ teachers: filtered }, { status: 200 });
+    return NextResponse.json({ teachers: formattedTeachers }, { status: 200 });
   } catch (err) {
     console.error("GET /api/students/discover error:", err);
     return NextResponse.json({ message: "Internal server error." }, { status: 500 });
