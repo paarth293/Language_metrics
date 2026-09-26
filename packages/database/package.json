@@ -6,14 +6,18 @@
   "types": "./index.ts",
   "scripts": {
     "postinstall": "prisma generate || exit 0",
-    "generate": "prisma generate"
+    "generate": "prisma generate",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:migrate:status": "prisma migrate status",
+    "test": "vitest run"
   },
   "dependencies": {
     "@prisma/client": "^5.16.1"
   },
   "devDependencies": {
     "prisma": "^5.16.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.11"
   },
   "exports": {
     ".": "./index.ts",

@@ -16,12 +16,30 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { handleLiveKitWebhook } from "@repo/live-classes";
+import { isLiveKitConfigured } from "@repo/livekit";
 import { verifyWebhook } from "@repo/livekit/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
+  // Separate "we cannot verify" from "the signature is wrong" before touching
+  // the body. verifyWebhook() asserts configuration internally and throws, so
+  // without this a missing LIVEKIT_API_KEY surfaces in LiveKit's delivery log
+  // as 401 Invalid signature — sending you to hunt a key mismatch that does
+  // not exist. 500 is also the honest status: the fault is ours, and LiveKit
+  // should retry once the deployment is configured rather than give up.
+  if (!isLiveKitConfigured()) {
+    console.error(
+      "[livekit-webhook] LiveKit is not configured — set LIVEKIT_API_KEY, " +
+        "LIVEKIT_API_SECRET and LIVEKIT_WS_URL (or LIVEKIT_URL) on this deployment."
+    );
+    return NextResponse.json(
+      { message: "Webhook not configured." },
+      { status: 500 }
+    );
+  }
+
   const rawBody = await request.text();
   const authHeader = request.headers.get("authorization");
 

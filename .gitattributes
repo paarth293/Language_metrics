@@ -1,1 +1,5 @@
 * text=auto
+
+# Prisma stores a SHA-256 of each migration file in _prisma_migrations, so a
+# CRLF checkout would change the checksum and break `migrate deploy`.
+*.sql text eol=lf

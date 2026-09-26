@@ -5,8 +5,7 @@
  * else is plumbing that fails loudly, whereas a bug in here silently charges
  * the wrong person the wrong amount.
  *
- * Run: npx vitest run packages/livekit/src/metering.test.ts
- *  or: npx tsx --test packages/livekit/src/metering.test.ts
+ * Run: npm test --workspace @repo/livekit
  */
 import { describe, it } from "vitest";
 import assert from "node:assert/strict";
