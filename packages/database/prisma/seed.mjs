@@ -36,9 +36,9 @@ const PLATFORM_SETTINGS = [
   },
   {
     key: "DEMO_CLASS_FEE",
-    value: "4900", // ₹49
+    value: "2900", // ₹29
     description:
-      "Demo class fee in paise (₹49), paid by student — 100% goes to admin",
+      "Demo class fee in paise (₹29), paid by student — 100% goes to admin",
   },
   {
     key: "RECORDING_EXPIRY_DAYS",
