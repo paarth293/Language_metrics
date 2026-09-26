@@ -1,22 +1,21 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   Bell,
   CheckCheck,
-  Loader2,
   AlertCircle,
-  BellRing,
   Calendar,
   CreditCard,
   MessageSquare,
   Shield,
   Settings,
-  Sparkles,
   Inbox,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 
 type Notification = {
   id: string;
@@ -30,7 +29,7 @@ type Notification = {
 const NOTIFICATION_ICONS: Record<string, { icon: typeof Bell; color: string; bg: string }> = {
   SYSTEM: { icon: Settings, color: "text-brand", bg: "bg-brand/10" },
   BOOKING_UPDATE: { icon: Calendar, color: "text-trust", bg: "bg-trust/10" },
-  PAYMENT_UPDATE: { icon: CreditCard, color: "text-amber-600", bg: "bg-amber-100" },
+  PAYMENT_UPDATE: { icon: CreditCard, color: "text-action", bg: "bg-action/10" },
   CHAT_MESSAGE: { icon: MessageSquare, color: "text-brand", bg: "bg-brand/10" },
   VERIFICATION_UPDATE: { icon: Shield, color: "text-trust", bg: "bg-trust/10" },
 };
@@ -60,6 +59,7 @@ function getDateGroup(dateStr: string): string {
 }
 
 export default function TeacherNotifications() {
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -72,8 +72,8 @@ export default function TeacherNotifications() {
       const res = await fetch("/api/teachers/notifications", { credentials: "include" });
       if (!res.ok) throw new Error("Failed to load notifications");
       const data = await res.json();
-      setNotifications(data.notifications);
-      setUnreadCount(data.unreadCount);
+      setNotifications(data.notifications || []);
+      setUnreadCount(data.unreadCount || 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
@@ -82,7 +82,6 @@ export default function TeacherNotifications() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchNotifications();
   }, [fetchNotifications]);
 
@@ -94,9 +93,7 @@ export default function TeacherNotifications() {
         credentials: "include",
         body: JSON.stringify({ notificationId: id }),
       });
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-      );
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
       setUnreadCount((c) => Math.max(0, c - 1));
     } catch {}
   };
@@ -129,29 +126,23 @@ export default function TeacherNotifications() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative">
-            <div className="w-12 h-12 rounded-full border-[3px] border-brand/20 border-t-brand animate-spin" />
-            <div className="absolute inset-0 w-12 h-12 rounded-full border-[3px] border-transparent border-t-gold animate-spin" style={{ animationDirection: "reverse", animationDuration: "1.5s" }} />
-          </div>
-          <span className="text-sm text-text-muted font-medium">Loading notifications...</span>
-        </div>
+      <div className="py-8 max-w-3xl mx-auto w-full">
+        <DashboardSkeleton />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <Card className="max-w-md w-full">
+      <div className="flex items-center justify-center min-h-[50vh] max-w-3xl mx-auto w-full">
+        <Card className="max-w-md w-full border border-border/50 shadow-sm bg-surface">
           <CardContent className="p-8 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-danger/10 flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="w-8 h-8 text-danger" />
+            <div className="w-16 h-16 rounded-2xl bg-alert/10 flex items-center justify-center mx-auto mb-4 border border-alert/20">
+              <AlertCircle className="w-8 h-8 text-alert" />
             </div>
-            <h2 className="text-xl font-display font-bold text-text mb-2">Unable to load notifications</h2>
-            <p className="text-text-muted mb-6">{error}</p>
-            <Button onClick={() => window.location.reload()} variant="primary">
+            <h2 className="text-[20px] font-display font-bold text-text mb-2 leading-tight">Unable to load notifications</h2>
+            <p className="text-[14px] text-text-muted mb-6">{error}</p>
+            <Button onClick={() => router.refresh()} variant="primary" className="shadow-sm">
               Try Again
             </Button>
           </CardContent>
@@ -161,74 +152,64 @@ export default function TeacherNotifications() {
   }
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-3xl mx-auto w-full">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 pb-16 animate-in fade-in duration-300 h-full flex flex-col max-w-3xl mx-auto w-full">
+      {/* ── HEADER ─────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold text-text">
+          <h1 className="text-[32px] sm:text-[36px] font-display font-bold text-text tracking-[-0.02em] leading-tight">
             Notifications
           </h1>
-          <p className="text-text-muted mt-1">
+          <p className="text-base text-text-muted mt-1">
             {unreadCount > 0
               ? `You have ${unreadCount} unread notification${unreadCount !== 1 ? "s" : ""}`
               : "You're all caught up!"}
           </p>
         </div>
         {unreadCount > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={markAllRead}
-            isLoading={markingAll}
-            className="flex items-center gap-1.5"
-          >
+          <Button variant="outline" size="sm" onClick={markAllRead} isLoading={markingAll} className="flex items-center gap-1.5 shadow-sm">
             <CheckCheck className="w-4 h-4" /> Mark all read
           </Button>
         )}
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex gap-1 bg-surface-inset p-1 rounded-xl w-fit">
+      {/* ── TABS ───────────────────────────────────── */}
+      <div className="flex overflow-x-auto no-scrollbar border-b" style={{ borderColor: "rgba(35,29,94,0.08)" }}>
         <button
           onClick={() => setFilter("all")}
-          className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-            filter === "all"
-              ? "bg-surface text-text shadow-sm"
-              : "text-text-muted hover:text-text"
+          className={`px-5 py-3.5 font-semibold text-[14px] transition-all relative whitespace-nowrap ${
+            filter === "all" ? "text-brand" : "text-text-muted hover:text-text"
           }`}
         >
           All ({notifications.length})
+          {filter === "all" && <span className="absolute bottom-0 left-0 w-full h-[3px] rounded-t-full bg-brand" />}
         </button>
         <button
           onClick={() => setFilter("unread")}
-          className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
-            filter === "unread"
-              ? "bg-surface text-text shadow-sm"
-              : "text-text-muted hover:text-text"
+          className={`px-5 py-3.5 font-semibold text-[14px] transition-all relative flex items-center gap-2 whitespace-nowrap ${
+            filter === "unread" ? "text-brand" : "text-text-muted hover:text-text"
           }`}
         >
           Unread ({unreadCount})
-          {unreadCount > 0 && (
-            <span className="w-2 h-2 rounded-full bg-brand animate-pulse" />
-          )}
+          {unreadCount > 0 && <span className="w-2 h-2 rounded-full bg-alert animate-pulse" />}
+          {filter === "unread" && <span className="absolute bottom-0 left-0 w-full h-[3px] rounded-t-full bg-brand" />}
         </button>
       </div>
 
-      {/* Notification List */}
+      {/* ── CONTENT ────────────────────────────────── */}
       {filtered.length === 0 ? (
-        <Card>
-          <CardContent className="p-16 text-center flex flex-col items-center">
-            <div className="w-20 h-20 rounded-3xl bg-surface-inset flex items-center justify-center mb-5">
+        <Card className="border border-border/50 shadow-sm bg-surface">
+          <CardContent className="py-20 flex flex-col items-center text-center">
+            <div className="w-16 h-16 rounded-2xl bg-surface-inset flex items-center justify-center mb-4 border border-border/40">
               {filter === "unread" ? (
-                <CheckCheck className="w-9 h-9 text-trust" />
+                <CheckCheck className="w-8 h-8 text-trust opacity-80" />
               ) : (
-                <Inbox className="w-9 h-9 text-text-subtle" />
+                <Inbox className="w-8 h-8 text-text-subtle" />
               )}
             </div>
-            <p className="text-lg font-semibold text-text mb-1">
+            <h3 className="text-[18px] font-bold text-text mb-2">
               {filter === "unread" ? "All caught up!" : "No notifications yet"}
-            </p>
-            <p className="text-sm text-text-muted max-w-sm">
+            </h3>
+            <p className="text-[14px] text-text-muted max-w-[280px]">
               {filter === "unread"
                 ? "You have no unread notifications. Great job staying on top of things!"
                 : "You'll receive updates about bookings, payments, and more here."}
@@ -236,12 +217,10 @@ export default function TeacherNotifications() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-8">
           {Object.entries(grouped).map(([group, items]) => (
-            <div key={group} className="space-y-2">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-text-subtle px-1 mb-3">
-                {group}
-              </h3>
+            <div key={group} className="space-y-3">
+              <h3 className="text-[12px] font-bold uppercase tracking-wider text-text-subtle px-1">{group}</h3>
               <div className="space-y-2">
                 {items.map((notification) => {
                   const iconConfig = NOTIFICATION_ICONS[notification.type] || NOTIFICATION_ICONS.SYSTEM;
@@ -250,30 +229,28 @@ export default function TeacherNotifications() {
                   return (
                     <Card
                       key={notification.id}
-                      className={`overflow-hidden cursor-pointer transition-all duration-200 ${
+                      className={`overflow-hidden cursor-pointer transition-all duration-200 border ${
                         !notification.isRead
-                          ? "border-brand/20 bg-brand/[0.03] hover:bg-brand/[0.06]"
-                          : "hover:bg-surface-inset/50"
+                          ? "border-brand/30 bg-brand/[0.04] shadow-sm hover:bg-brand/[0.08]"
+                          : "border-border/40 bg-surface shadow-none hover:border-brand/20 hover:shadow-sm"
                       }`}
                       onClick={() => !notification.isRead && markAsRead(notification.id)}
                     >
-                      <CardContent className="p-4 flex items-start gap-4">
-                        <div className={`p-2.5 rounded-xl ${iconConfig.bg} ${iconConfig.color} flex-shrink-0 mt-0.5`}>
-                          <Icon className="w-4 h-4" />
+                      <CardContent className="p-4 sm:p-5 flex items-start gap-4">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${iconConfig.bg} ${iconConfig.color}`}>
+                          <Icon className="w-5 h-5" />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h3 className={`text-sm ${!notification.isRead ? "font-semibold text-text" : "font-medium text-text"}`}>
+                        <div className="flex-1 min-w-0 pt-0.5">
+                          <div className="flex items-start justify-between gap-2">
+                            <h3 className={`text-[15px] leading-snug mb-1 ${!notification.isRead ? "font-bold text-text" : "font-semibold text-text"}`}>
                               {notification.title}
                             </h3>
-                            {!notification.isRead && (
-                              <div className="w-2 h-2 rounded-full bg-brand flex-shrink-0 animate-pulse" />
-                            )}
+                            {!notification.isRead && <div className="w-2 h-2 rounded-full bg-brand shrink-0 mt-1.5" />}
                           </div>
-                          <p className="text-sm text-text-muted mt-1 line-clamp-2 leading-relaxed">
+                          <p className={`text-[13px] leading-relaxed mb-2 ${!notification.isRead ? "text-text" : "text-text-muted"}`}>
                             {notification.message}
                           </p>
-                          <p className="text-[11px] text-text-subtle mt-1.5 font-medium">
+                          <p className="text-[11px] font-medium text-text-subtle uppercase tracking-wider">
                             {timeAgo(notification.createdAt)}
                           </p>
                         </div>

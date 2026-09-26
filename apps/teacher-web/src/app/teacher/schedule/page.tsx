@@ -115,7 +115,6 @@ export default function TeacherSchedule() {
     fetchData();
   }, [fetchData]);
 
-  // Get sessions for a specific day
   const getSessionsForDay = (date: Date) => {
     return bookings
       .filter((b) => {
@@ -130,7 +129,6 @@ export default function TeacherSchedule() {
       });
   };
 
-  // Check availability for a day
   const getAvailabilityForDay = (dayOfWeek: number) => {
     return tempAvailability.filter((s) => s.dayOfWeek === dayOfWeek);
   };
@@ -183,7 +181,7 @@ export default function TeacherSchedule() {
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-8 h-8 text-brand animate-spin" />
-          <span className="text-sm text-text-muted">Loading schedule…</span>
+          <span className="text-sm text-text-muted font-medium">Loading schedule…</span>
         </div>
       </div>
     );
@@ -195,84 +193,94 @@ export default function TeacherSchedule() {
   const weekClasses = weekDates.reduce((acc, d) => acc + getSessionsForDay(d).length, 0);
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Header */}
+    <div className="space-y-6 pb-16 animate-in fade-in slide-in-from-bottom-4 duration-500 h-full flex flex-col">
+      {/* ── HEADER ─────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold text-text">Schedule</h1>
-          <p className="text-text-muted mt-1">
-            {weekClasses} class{weekClasses !== 1 ? "es" : ""} this week · Manage your availability
+          <h1 className="text-[32px] sm:text-[36px] font-display font-bold text-text tracking-[-0.02em] leading-tight">
+            Schedule
+          </h1>
+          <p className="text-base text-text-muted mt-1">
+            <span className="font-semibold text-brand">{weekClasses} class{weekClasses !== 1 ? "es" : ""}</span> this week · Manage your availability
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setShowSettings(!showSettings)}>
-            <Settings className="w-4 h-4 mr-1.5" /> Availability
+          <Button variant={showSettings ? "primary" : "outline"} className="shadow-sm" onClick={() => setShowSettings(!showSettings)}>
+            <Settings className="w-4 h-4 mr-1.5" /> Manage Availability
           </Button>
         </div>
       </div>
 
-      {/* Success Message */}
+      {/* ── SUCCESS MESSAGE ──────────────────────────── */}
       {successMsg && (
-        <div className="p-3 rounded-xl bg-trust/10 text-trust flex items-center gap-2 text-sm font-medium">
-          <CheckCircle2 className="w-4 h-4" /> {successMsg}
+        <div className="px-4 py-3 rounded-xl bg-trust/10 text-trust flex items-center gap-2 text-[14px] font-semibold border border-trust/20 shadow-sm animate-in fade-in duration-300">
+          <CheckCircle2 className="w-5 h-5" /> {successMsg}
         </div>
       )}
 
-      {/* Availability Settings Panel */}
+      {/* ── AVAILABILITY SETTINGS ────────────────────── */}
       {showSettings && (
-        <Card className="border-brand/30">
-          <CardHeader className="pb-3">
+        <Card className="border border-brand/20 shadow-level-2 animate-in slide-in-from-top-4 duration-300">
+          <CardHeader className="pb-4 border-b" style={{ borderColor: "rgba(35,29,94,0.06)" }}>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Manage Availability</CardTitle>
+              <div>
+                <CardTitle className="text-[18px] font-display font-bold text-text">Availability Settings</CardTitle>
+                <p className="text-[13px] text-text-muted mt-1">Set your regular weekly working hours</p>
+              </div>
               <div className="flex gap-2">
                 <Button variant="ghost" size="sm" onClick={() => { setTempAvailability(availability); setShowSettings(false); }}>
                   Cancel
                 </Button>
-                <Button variant="primary" size="sm" onClick={saveAvailability} isLoading={saving}>
+                <Button variant="primary" size="sm" onClick={saveAvailability} isLoading={saving} className="shadow-sm">
                   Save Changes
                 </Button>
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+          <CardContent className="pt-6">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {DAY_NAMES.map((dayName, dayIndex) => {
                 const daySlots = getAvailabilityForDay(dayIndex);
+                const hasSlots = daySlots.length > 0;
                 return (
-                  <div key={dayIndex} className="border-b border-border pb-3 last:border-0 last:pb-0">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-text w-28">{dayName}</span>
+                  <div key={dayIndex} className="bg-surface-inset/30 border rounded-xl p-4 transition-colors hover:border-brand/30" style={{ borderColor: "rgba(35,29,94,0.08)" }}>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-[14px] font-bold text-text">{dayName}</span>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => addSlot(dayIndex)}
-                        className="text-brand hover:text-brand hover:bg-brand/10 h-8"
+                        className="text-brand hover:text-brand hover:bg-brand/10 h-7 px-2 text-[12px]"
                       >
-                        <Plus className="w-3.5 h-3.5 mr-1" /> Add
+                        <Plus className="w-3 h-3 mr-1" /> Add Slot
                       </Button>
                     </div>
-                    {daySlots.length === 0 ? (
-                      <p className="text-xs text-text-subtle italic ml-28">Unavailable</p>
+                    
+                    {!hasSlots ? (
+                      <div className="text-[12px] text-text-subtle font-medium bg-surface-inset py-2 px-3 rounded-lg text-center border border-dashed border-border">
+                        Unavailable
+                      </div>
                     ) : (
-                      <div className="space-y-2 ml-28">
+                      <div className="space-y-2">
                         {daySlots.map((slot, slotIdx) => (
-                          <div key={slotIdx} className="flex items-center gap-2">
+                          <div key={slotIdx} className="flex items-center gap-1.5 group">
                             <Input
                               type="time"
                               value={slot.startTime}
                               onChange={(e) => updateSlot(dayIndex, slotIdx, "startTime", e.target.value)}
-                              className="w-28 h-8 text-sm"
+                              className="w-full h-8 text-[12px] px-2 text-center bg-surface border-border focus:border-brand"
                             />
-                            <span className="text-xs text-text-muted">to</span>
+                            <span className="text-[11px] text-text-muted font-medium px-1">to</span>
                             <Input
                               type="time"
                               value={slot.endTime}
                               onChange={(e) => updateSlot(dayIndex, slotIdx, "endTime", e.target.value)}
-                              className="w-28 h-8 text-sm"
+                              className="w-full h-8 text-[12px] px-2 text-center bg-surface border-border focus:border-brand"
                             />
                             <button
                               onClick={() => removeSlot(dayIndex, slotIdx)}
-                              className="p-1.5 text-text-subtle hover:text-danger hover:bg-danger/10 rounded-lg transition-colors"
+                              className="p-1.5 text-text-subtle hover:text-alert hover:bg-alert/10 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+                              title="Remove slot"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -288,30 +296,30 @@ export default function TeacherSchedule() {
         </Card>
       )}
 
-      {/* Week Navigation */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="icon" className="w-9 h-9" onClick={() => setWeekOffset((o) => o - 1)}>
+      {/* ── CALENDAR NAV ─────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row items-center justify-between bg-surface border rounded-2xl p-2 px-4 shadow-sm" style={{ borderColor: "rgba(35,29,94,0.08)" }}>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" className="w-8 h-8 rounded-full hover:bg-brand/10 hover:text-brand" onClick={() => setWeekOffset((o) => o - 1)}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <div className="text-sm font-semibold text-text">
+          <div className="text-[14px] font-bold text-text w-[160px] text-center">
             {formatDate(weekStart)} – {formatDate(weekEnd)}
           </div>
-          <Button variant="outline" size="icon" className="w-9 h-9" onClick={() => setWeekOffset((o) => o + 1)}>
+          <Button variant="ghost" size="icon" className="w-8 h-8 rounded-full hover:bg-brand/10 hover:text-brand" onClick={() => setWeekOffset((o) => o + 1)}>
             <ChevronRight className="w-4 h-4" />
           </Button>
           {!isCurrentWeek && (
-            <Button variant="ghost" size="sm" onClick={() => setWeekOffset(0)}>
+            <Button variant="outline" size="sm" className="ml-2 h-8 text-[12px] rounded-full" onClick={() => setWeekOffset(0)}>
               Today
             </Button>
           )}
         </div>
-        <div className="text-xs text-text-muted">
-          Timezone: {Intl.DateTimeFormat().resolvedOptions().timeZone}
+        <div className="text-[12px] font-medium text-text-muted mt-2 sm:mt-0 flex items-center gap-1.5 bg-surface-inset px-3 py-1.5 rounded-full">
+          <Clock className="w-3.5 h-3.5 text-text-subtle" /> Timezone: {Intl.DateTimeFormat().resolvedOptions().timeZone}
         </div>
       </div>
 
-      {/* Calendar Grid */}
+      {/* ── CALENDAR GRID ────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
         {weekDates.map((date, dayIdx) => {
           const sessions = getSessionsForDay(date);
@@ -320,46 +328,44 @@ export default function TeacherSchedule() {
           const isPast = date < today && !isToday;
 
           return (
-            <div key={dayIdx} className={`flex flex-col ${isPast ? "opacity-50" : ""}`}>
+            <div key={dayIdx} className={`flex flex-col rounded-2xl overflow-hidden border shadow-sm transition-all duration-200 ${isPast ? "opacity-60 hover:opacity-100" : ""} ${isToday ? "ring-2 ring-brand ring-offset-2 border-transparent" : "border-border"}`} style={!isToday ? { borderColor: "rgba(35,29,94,0.08)" } : {}}>
+              
               {/* Day Header */}
               <div
-                className={`text-center p-3 rounded-t-xl border border-b-0 ${
-                  isToday
-                    ? "bg-brand text-white border-brand"
-                    : "bg-surface-inset border-border"
-                }`}
+                className="text-center p-3 border-b"
+                style={{
+                  background: isToday ? "linear-gradient(135deg, #231d5e, #5046c8)" : "#f8f9fa",
+                  borderColor: isToday ? "transparent" : "rgba(35,29,94,0.06)"
+                }}
               >
-                <div className={`text-xs font-medium uppercase ${isToday ? "text-white/80" : "text-text-muted"}`}>
+                <div className={`text-[11px] font-bold uppercase tracking-wider ${isToday ? "text-brand-subtle" : "text-text-muted"}`}>
                   {DAY_SHORT[date.getDay()]}
                 </div>
-                <div className={`text-lg font-bold ${isToday ? "text-white" : "text-text"}`}>
+                <div className={`text-[24px] font-display font-bold leading-none mt-1 ${isToday ? "text-white" : "text-text"}`}>
                   {date.getDate()}
                 </div>
-                {/* Availability indicator */}
-                {avail.length > 0 && (
-                  <div className="flex justify-center gap-0.5 mt-1">
-                    {avail.map((s, i) => (
-                      <div
-                        key={i}
-                        className={`h-1 rounded-full ${
-                          isToday ? "bg-white/50" : "bg-trust/40"
-                        }`}
-                        style={{ width: "12px" }}
-                        title={`${s.startTime} – ${s.endTime}`}
-                      />
-                    ))}
-                  </div>
-                )}
+                
+                {/* Availability Bar */}
+                <div className="flex justify-center gap-1 mt-2 h-1.5">
+                  {avail.length > 0 ? avail.map((s, i) => (
+                    <div
+                      key={i}
+                      className="rounded-full flex-1 max-w-[20px]"
+                      style={{ background: isToday ? "rgba(255,255,255,0.4)" : "rgba(15,157,107,0.3)" }}
+                      title={`${s.startTime} – ${s.endTime}`}
+                    />
+                  )) : (
+                    <div className="rounded-full w-4" style={{ background: isToday ? "rgba(255,255,255,0.1)" : "rgba(35,29,94,0.06)" }} />
+                  )}
+                </div>
               </div>
 
-              {/* Sessions */}
-              <div className={`flex-1 border border-border rounded-b-xl p-2 space-y-2 min-h-[140px] ${
-                isToday ? "border-brand/30 bg-brand/5" : "bg-surface"
-              }`}>
+              {/* Sessions List */}
+              <div className={`flex-1 p-2 space-y-2 min-h-[160px] ${isToday ? "bg-brand/5" : "bg-surface"}`}>
                 {sessions.length === 0 ? (
-                  <div className="h-full flex items-center justify-center">
-                    <span className="text-[10px] text-text-subtle">
-                      {avail.length > 0 ? "Available" : "No classes"}
+                  <div className="h-full flex items-center justify-center p-4">
+                    <span className="text-[12px] font-medium text-text-subtle text-center">
+                      {avail.length > 0 ? "No classes scheduled" : "Unavailable"}
                     </span>
                   </div>
                 ) : (
@@ -370,38 +376,40 @@ export default function TeacherSchedule() {
                     const isOngoing = session.status === "ONGOING";
                     const startMs = startTime.getTime();
                     const diffMin = (startMs - Date.now()) / 60000;
-                    const isStartingSoon = diffMin >= 0 && diffMin <= 10;
+                    const isStartingSoon = diffMin >= 0 && diffMin <= 15;
 
                     return (
                       <div
                         key={booking.id}
-                        className={`rounded-lg p-2 border text-xs ${
+                        className={`rounded-xl p-3 border shadow-sm transition-all relative overflow-hidden group ${
                           isOngoing
-                            ? "bg-trust/10 border-trust/20"
+                            ? "bg-trust/10 border-trust/30"
                             : isStartingSoon
-                            ? "bg-warning/10 border-warning/20 animate-pulse"
-                            : "bg-brand/5 border-brand/10"
+                            ? "bg-action/10 border-action/30"
+                            : "bg-surface border-border hover:border-brand/30"
                         }`}
                       >
-                        <div className="font-medium text-text truncate">
+                        {(isOngoing || isStartingSoon) && (
+                          <div className={`absolute top-0 left-0 w-1 h-full ${isOngoing ? "bg-trust" : "bg-action"}`} />
+                        )}
+                        
+                        <div className="font-bold text-[13px] text-text truncate mb-1 pr-4">
                           {booking.student.name}
                         </div>
-                        <div className="text-text-muted mt-0.5">
-                          {startTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} –{" "}
-                          {endTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        <div className="text-[11px] font-medium text-text-muted flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {startTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} – {endTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                         </div>
-                        <div className="flex items-center gap-1 mt-1">
-                          {isOngoing ? (
-                            <Badge variant="success" className="text-[9px] py-0">Live</Badge>
-                          ) : isStartingSoon ? (
-                            <Badge variant="warning" className="text-[9px] py-0">Soon</Badge>
-                          ) : (
-                            <Badge variant="default" className="text-[9px] py-0">{booking.student.proficiencyLevel}</Badge>
-                          )}
+                        
+                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
+                          <Badge variant={isOngoing ? "success" : isStartingSoon ? "warning" : "info"} className="text-[9px] py-0 px-1.5 uppercase font-bold tracking-wider">
+                            {isOngoing ? "Live" : isStartingSoon ? "Soon" : booking.student.proficiencyLevel}
+                          </Badge>
+                          
                           {(isOngoing || isStartingSoon) && (
-                            <Button asChild variant="primary" size="sm" className="h-5 text-[9px] px-2 ml-auto">
+                            <Button asChild variant="primary" size="icon" className="h-6 w-6 rounded-md shadow-sm">
                               <Link href={`/session/${booking.id}`}>
-                                <Video className="w-2.5 h-2.5" />
+                                <Video className="w-3 h-3" />
                               </Link>
                             </Button>
                           )}
@@ -416,20 +424,27 @@ export default function TeacherSchedule() {
         })}
       </div>
 
-      {/* Upcoming List */}
+      {/* ── UPCOMING BOOKINGS LIST ───────────────────── */}
       {bookings.length > 0 && (
-        <div>
-          <h2 className="text-lg font-display font-semibold text-text mb-3 flex items-center gap-2">
-            <CalendarDays className="w-5 h-5 text-brand" /> Upcoming Bookings
-          </h2>
-          <div className="space-y-2">
-            {bookings.slice(0, 5).map((b) => (
-              <Card key={b.id} className="overflow-hidden">
+        <div className="mt-4">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center">
+              <CalendarDays className="w-4 h-4 text-brand" />
+            </div>
+            <h2 className="text-[18px] font-display font-bold text-text">
+              Upcoming Bookings
+            </h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {bookings.slice(0, 6).map((b) => (
+              <Card key={b.id} className="overflow-hidden hover:shadow-level-2 transition-shadow duration-180 border" style={{ borderColor: "rgba(35,29,94,0.08)" }}>
                 <CardContent className="p-4 flex items-center gap-4">
-                  <Avatar src={b.student.avatarUrl || undefined} size="md" />
+                  <Avatar src={b.student.avatarUrl || undefined} size="md" className="shadow-sm" />
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-text truncate">{b.student.name}</div>
-                    <div className="text-sm text-text-muted">
+                    <div className="font-bold text-[14px] text-text truncate mb-0.5">{b.student.name}</div>
+                    <div className="text-[12px] font-medium text-brand truncate flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 opacity-70" />
                       {b.nextSession
                         ? `${new Date(b.nextSession.scheduledStart).toLocaleDateString("en-US", {
                             weekday: "short",
@@ -442,11 +457,13 @@ export default function TeacherSchedule() {
                         : "Schedule TBD"}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-text-muted">
-                    <span>{b.completedSessions}/{b.totalSessions} sessions</span>
-                    <Badge variant={b.status === "COMPLETED" ? "success" : "default"} className="text-[10px]">
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    <Badge variant={b.status === "COMPLETED" ? "success" : "default"} className="text-[9px] uppercase tracking-wider py-0 px-2">
                       {b.status}
                     </Badge>
+                    <span className="text-[11px] font-medium text-text-muted bg-surface-inset px-2 py-0.5 rounded-md">
+                      {b.completedSessions}/{b.totalSessions}
+                    </span>
                   </div>
                 </CardContent>
               </Card>
