@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { DEMO_CLASS_COINS } from "@repo/live-classes";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { withCache } from "@/lib/api-cache";
@@ -129,7 +130,7 @@ export async function GET(request: Request) {
 
       // Rates are stored in paise; the discover UI shows and filters in rupees.
       const hourlyRate = (t.rates.find((r) => r.type === "HOURLY")?.amount || 0) / 100;
-      const demoRate = 29; // Fixed demo rate in coins
+      const demoRate = DEMO_CLASS_COINS;
 
       // Find next available slot
       const now = new Date();

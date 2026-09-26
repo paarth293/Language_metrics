@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { DEMO_CLASS_COINS, DEMO_CLASS_MINUTES, hasUsedDemo } from "@repo/live-classes";
 
 /**
  * GET /api/students/teacher/[id]
@@ -49,6 +50,8 @@ export async function GET(
           teacher.reviews.length
         : 0;
 
+    const demoUsed = await hasUsedDemo(auth.user.sub, teacher.userId);
+
     return NextResponse.json({
       teacher: {
         id: teacher.userId,
@@ -82,6 +85,7 @@ export async function GET(
         totalReviews: teacher.reviews.length,
         averageRating: Math.round(avgRating * 10) / 10,
       },
+      demo: { coins: DEMO_CLASS_COINS, minutes: DEMO_CLASS_MINUTES, available: !demoUsed },
     });
   } catch (error) {
     console.error("Error fetching teacher profile:", error);
