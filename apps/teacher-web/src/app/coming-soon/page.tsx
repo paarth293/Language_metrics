@@ -23,7 +23,7 @@ export default function ComingSoonPage() {
   const { user, logout } = useAuth();
 
   return (
-    <div className="min-h-screen bg-bg flex flex-col relative overflow-hidden selection:bg-gold selection:text-white">
+    <div className="aa-contrast min-h-screen bg-bg flex flex-col relative overflow-hidden selection:bg-gold selection:text-white">
 
       {/* Subtle dot grid background */}
       <div
@@ -47,7 +47,7 @@ export default function ComingSoonPage() {
         {user && (
           <button
             onClick={logout}
-            className="flex items-center gap-1.5 text-xs font-semibold text-text-muted hover:text-text transition-colors group"
+            className="flex min-h-11 items-center gap-1.5 text-xs font-semibold text-text-muted hover:text-text transition-colors group"
           >
             <LogOut className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
             Sign out
@@ -77,7 +77,7 @@ export default function ComingSoonPage() {
 
           {/* Status pill */}
           <motion.div variants={stagger.item} className="mb-3">
-            <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-surface-inset border border-border text-text-subtle text-[11px] font-bold uppercase tracking-[0.15em]">
+            <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-surface-inset border border-border text-text-subtle text-xs font-bold uppercase tracking-[0.15em]">
               <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
               In Development &middot; {new Date().getFullYear()}
             </span>
@@ -100,7 +100,7 @@ export default function ComingSoonPage() {
           />
 
           {/* Body text — personalised when logged in */}
-          <motion.p variants={stagger.item} className="text-base md:text-lg text-text-muted leading-relaxed max-w-lg font-light">
+          <motion.p variants={stagger.item} className="text-base md:text-[20px] text-text-muted leading-relaxed max-w-lg font-light">
             {user
               ? `Welcome back, ${user.name.split(" ")[0]}. Your ${user.role.toLowerCase()} portal is being meticulously crafted. We\u2019ll notify you the moment it\u2019s ready.`
               : "We\u2019re meticulously building the platform that redefines language learning. Something extraordinary is on its way."}
@@ -109,7 +109,7 @@ export default function ComingSoonPage() {
           {/* User role badge */}
           {user && (
             <motion.div variants={stagger.item} className="mt-4">
-              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gold/10 border border-gold/25 text-gold text-xs font-bold uppercase tracking-widest">
+              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gold/10 border border-gold/25 text-gold-strong text-xs font-bold uppercase tracking-widest">
                 {user.role} Account
               </span>
             </motion.div>
@@ -118,7 +118,7 @@ export default function ComingSoonPage() {
           {/* CTA buttons */}
           <motion.div
             variants={stagger.item}
-            className="flex flex-col sm:flex-row gap-3 mt-6 w-full justify-center"
+            className="flex flex-col sm:flex-row gap-4 mt-6 w-full justify-center"
           >
             <Link
               href="/login"
@@ -136,11 +136,11 @@ export default function ComingSoonPage() {
 
           {/* Quick links */}
           <motion.div variants={stagger.item} className="mt-8 flex flex-wrap justify-center gap-4 text-xs text-text-muted">
-            <Link href="/about" className="hover:text-brand transition-colors">About</Link>
-            <Link href="/faq" className="hover:text-brand transition-colors">FAQ</Link>
-            <Link href="/contact" className="hover:text-brand transition-colors">Contact</Link>
-            <Link href="/login/teacher" className="hover:text-brand transition-colors">Teacher Login</Link>
-            <Link href="/login/student" className="hover:text-brand transition-colors">Student Login</Link>
+            <Link href="/about" className="inline-flex min-h-11 items-center hover:text-brand transition-colors">About</Link>
+            <Link href="/faq" className="inline-flex min-h-11 items-center hover:text-brand transition-colors">FAQ</Link>
+            <Link href="/contact" className="inline-flex min-h-11 items-center hover:text-brand transition-colors">Contact</Link>
+            <Link href="/login/teacher" className="inline-flex min-h-11 items-center hover:text-brand transition-colors">Teacher Login</Link>
+            <Link href="/login/student" className="inline-flex min-h-11 items-center hover:text-brand transition-colors">Student Login</Link>
           </motion.div>
 
         </motion.div>
