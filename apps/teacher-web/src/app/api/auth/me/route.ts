@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
             proficiencyLevel: true,
             onboardingComplete: true,
             status: true,
+            dateOfBirth: true,
           },
         },
         teacherProfile: {
@@ -51,6 +52,7 @@ export async function GET(request: NextRequest) {
             experienceLevel: true,
             onboardingComplete: true,
             status: true,
+            dateOfBirth: true,
           },
         },
       },
@@ -72,6 +74,8 @@ export async function GET(request: NextRequest) {
           name: profile?.name ?? "User",
           avatarUrl: profile?.avatarUrl ?? null,
           onboardingComplete: profile?.onboardingComplete ?? false,
+          // Accounts created before DOB collection are asked for it on login.
+          needsDateOfBirth: !!profile && profile.dateOfBirth === null,
           profile:
             user.role === "STUDENT"
               ? {
