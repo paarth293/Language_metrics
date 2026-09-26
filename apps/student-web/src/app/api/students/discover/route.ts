@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { withCache } from "@/lib/api-cache";
+import { getLanguageDisplayName } from "@/lib/languages";
 import { validateDiscoverQuery } from "@/lib/validation";
 import { buildDiscoverWhere, paginate } from "@/lib/discover-query";
 import { sanitizeOrFallback } from "@/lib/sanitize";
@@ -69,8 +70,9 @@ export async function GET(request: Request) {
             ? t.reviews.reduce((acc, r) => acc + r.rating, 0) / t.reviews.length
             : 0;
 
-        const hourlyRate = t.rates.find((r) => r.type === "HOURLY")?.amount || 0;
-        const demoRate = 49; // Fixed demo rate in coins
+        // Rates are stored in paise; the discover UI shows and filters in rupees.
+        const hourlyRate = (t.rates.find((r) => r.type === "HOURLY")?.amount || 0) / 100;
+        const demoRate = 29; // Fixed demo rate in coins
 
         // Find next available slot
         const now = new Date();
@@ -116,7 +118,9 @@ export async function GET(request: Request) {
           // handed a stored HTML/script payload. See errors.md.
           name: sanitizeOrFallback(t.name, ""),
           avatar: t.avatarUrl,
-          languages: [t.language, ...(t.languages || [])].filter(Boolean),
+          languages: Array.from(
+            new Set([t.language, ...(t.languages || [])].filter((l): l is string => !!l).map(getLanguageDisplayName))
+          ),
           rating: Math.round(avgRating * 10) / 10,
           reviews: t.reviews.length,
           hourlyRate,
