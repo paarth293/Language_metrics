@@ -41,7 +41,7 @@ const steps = [
 
 export default function ThankYouPage() {
   return (
-    <div className="min-h-screen bg-bg flex items-center justify-center px-4 py-16">
+    <div className="aa-contrast min-h-screen bg-bg flex items-center justify-center px-4 py-16">
       <div className="max-w-2xl w-full text-center">
         {/* Success Icon */}
         <div className="mb-8">
@@ -50,24 +50,24 @@ export default function ThankYouPage() {
           </div>
         </div>
 
-        <h1 className="font-display text-4xl font-bold text-text mb-4">Thank You!</h1>
-        <p className="text-lg text-text-muted mb-12 max-w-md mx-auto">
+        <h1 className="font-display text-[28px] sm:text-[44px] leading-[1.05] font-bold text-text mb-4">Thank You!</h1>
+        <p className="text-[20px] text-text-muted mb-12 max-w-md mx-auto">
           Your account has been created. Here&apos;s what to do next to start your learning journey.
         </p>
 
         {/* Next Steps */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-12 text-left">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-12 text-left">
           {steps.map((step, i) => (
-            <div key={step.title} className="p-5 rounded-2xl border border-border bg-white hover:shadow-md transition-shadow">
+            <div key={step.title} className="p-5 rounded-2xl border border-border bg-surface hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center flex-shrink-0">
                   <span className="text-sm font-bold text-brand">{i + 1}</span>
                 </div>
                 <step.icon className="w-5 h-5 text-brand" />
               </div>
-              <h3 className="font-semibold text-text mb-1">{step.title}</h3>
+              <h3 className="font-display font-semibold text-base text-text tracking-[-0.01em] mb-1">{step.title}</h3>
               <p className="text-sm text-text-muted mb-3">{step.description}</p>
-              <Link href={step.href} className="text-sm text-brand font-medium hover:underline inline-flex items-center gap-1">
+              <Link href={step.href} className="text-sm text-brand font-medium hover:underline inline-flex min-h-11 items-center gap-1">
                 {step.linkText} <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
@@ -75,7 +75,7 @@ export default function ThankYouPage() {
         </div>
 
         {/* CTA */}
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link
             href="/student/dashboard"
             className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl bg-navy text-white font-semibold text-sm hover:bg-navy-2 transition-all"
