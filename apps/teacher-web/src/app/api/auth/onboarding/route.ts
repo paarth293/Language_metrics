@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { verifyAccessToken } from "@/lib/tokens";
 import { db } from "@/lib/db";
 import { TEACHING_LANGUAGES } from "@/lib/languages";
+import { MIN_AGE, dateOfBirthSchema, parseDateOfBirth } from "@/features/auth/validators/auth";
 
 const SUPPORTED_LANGUAGE_CODES = TEACHING_LANGUAGES.map((l) => l.code);
 
@@ -24,6 +25,14 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json();
   const { name, role } = body;
+
+  // Google sign-ups never saw the registration form, so DOB is collected here.
+  const minAge = role === "TEACHER" ? MIN_AGE.TEACHER : MIN_AGE.STUDENT;
+  const dobResult = dateOfBirthSchema(minAge).safeParse(body.dateOfBirth);
+  if (!dobResult.success) {
+    return NextResponse.json({ error: dobResult.error.issues[0]?.message ?? "Please enter your date of birth." }, { status: 400 });
+  }
+  const dateOfBirth = parseDateOfBirth(dobResult.data);
 
   if (!name || typeof name !== "string" || name.trim().length < 2) {
     return NextResponse.json({ error: "Name must be at least 2 characters." }, { status: 400 });
@@ -47,6 +56,7 @@ export async function POST(request: NextRequest) {
           name: name.trim(),
           languageToLearn,
           proficiencyLevel: proficiencyLevel.toUpperCase(),
+          dateOfBirth,
           onboardingComplete: true,
         },
       });
@@ -99,6 +109,7 @@ export async function POST(request: NextRequest) {
           languages: languages || [language],
           bio: bio?.trim() ?? null,
           gender: gender?.trim() ?? null,
+          dateOfBirth,
           experienceLevel: experienceLevel as "FRESHER" | "EXPERIENCED",
           onboardingComplete: true,
           documents: {
