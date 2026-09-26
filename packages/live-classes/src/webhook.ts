@@ -40,6 +40,114 @@ export interface WebhookResult {
   detail?: string;
 }
 
+/**
+ * How long an unfinished claim is treated as still in flight.
+ *
+ * Shorter than this and a genuine concurrent delivery could be processed
+ * twice; longer and a failed event waits longer before LiveKit's retry can
+ * make progress. LiveKit's own retries are spaced well beyond a minute.
+ */
+export const WEBHOOK_RETRY_GRACE_MS = 60_000;
+
+export type ClaimOutcome = "claimed" | "reclaimed" | "duplicate";
+
+/**
+ * The two writes the claim needs, so the decision can be tested without a
+ * database. The Prisma implementation is `prismaWebhookStore` below.
+ */
+export interface WebhookEventStore {
+  /** Insert the claim row. Must reject when (source, eventId) already exists. */
+  create(row: { source: string; eventId: string; eventType: string }): Promise<void>;
+  /**
+   * Atomically take over an unfinished claim older than `staleBefore`.
+   * Returns how many rows were taken — 0 or 1. Concurrency safety lives here:
+   * the update must be conditional, so exactly one caller can win.
+   */
+  reclaimStale(args: {
+    source: string;
+    eventId: string;
+    staleBefore: Date;
+    now: Date;
+  }): Promise<number>;
+}
+
+/**
+ * Decide whether this delivery may be processed.
+ *
+ * Three outcomes:
+ *   claimed    — first delivery, nobody has seen this event id before.
+ *   reclaimed  — a previous attempt failed or died mid-flight and its grace
+ *                period has elapsed, so this retry takes it over.
+ *   duplicate  — either already processed, or another delivery is in flight.
+ *
+ * The previous version returned `duplicate` for *any* pre-existing row, which
+ * meant a failed event could never succeed: LiveKit's retry lost the insert
+ * race against the row its own failed attempt had left behind, got a 200, and
+ * the handler never ran again.
+ */
+export async function claimWebhookEvent(
+  store: WebhookEventStore,
+  params: {
+    source: string;
+    eventId: string;
+    eventType: string;
+    now?: Date;
+    graceMs?: number;
+  }
+): Promise<ClaimOutcome> {
+  const now = params.now ?? new Date();
+  const graceMs = params.graceMs ?? WEBHOOK_RETRY_GRACE_MS;
+
+  try {
+    await store.create({
+      source: params.source,
+      eventId: params.eventId,
+      eventType: params.eventType,
+    });
+    return "claimed";
+  } catch {
+    // The unique index rejected us, so a row exists. It is either finished
+    // (processedAt set), still in flight, or abandoned by a failed attempt.
+    const staleBefore = new Date(now.getTime() - graceMs);
+    const taken = await store.reclaimStale({
+      source: params.source,
+      eventId: params.eventId,
+      staleBefore,
+      now,
+    });
+    return taken > 0 ? "reclaimed" : "duplicate";
+  }
+}
+
+/**
+ * Prisma-backed store.
+ *
+ * `reclaimStale` leans on Postgres row locking under READ COMMITTED: two
+ * concurrent retries both issue the same conditional UPDATE, the first takes
+ * the row lock and moves `receivedAt` forward, and the second re-evaluates its
+ * WHERE after the lock clears, no longer matches, and reports 0 rows.
+ *
+ * `receivedAt` doubles as the claim timestamp. A dedicated column would read
+ * better, but that needs a migration and this needs none.
+ */
+const prismaWebhookStore: WebhookEventStore = {
+  async create(row) {
+    await db.webhookEvent.create({ data: row });
+  },
+  async reclaimStale({ source, eventId, staleBefore, now }) {
+    const result = await db.webhookEvent.updateMany({
+      where: {
+        source,
+        eventId,
+        processedAt: null,
+        receivedAt: { lt: staleBefore },
+      },
+      data: { receivedAt: now, error: null },
+    });
+    return result.count;
+  },
+};
+
 /** LiveKit timestamps are seconds, sometimes as bigint. Normalise to ms. */
 function toDate(value: number | bigint | undefined, fallback: Date): Date {
   if (value === undefined || value === null) return fallback;
@@ -60,12 +168,16 @@ export async function handleLiveKitWebhook(rawEvent: WebhookEvent): Promise<Webh
   const eventId = rawEvent.id || `${eventType}:${rawEvent.createdAt}`;
   const occurredAt = toDate(rawEvent.createdAt, new Date());
 
-  // Claim the event. A concurrent duplicate loses here, at the unique index.
-  try {
-    await db.webhookEvent.create({
-      data: { source: "livekit", eventId, eventType },
-    });
-  } catch {
+  // Claim the event. A concurrent duplicate loses at the unique index; a
+  // retry of an attempt that failed more than the grace period ago takes the
+  // row over and reprocesses.
+  const claim = await claimWebhookEvent(prismaWebhookStore, {
+    source: "livekit",
+    eventId,
+    eventType,
+  });
+
+  if (claim === "duplicate") {
     return { handled: false, duplicate: true, event: eventType };
   }
 

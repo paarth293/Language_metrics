@@ -7,11 +7,18 @@
   "exports": {
     ".": "./src/index.ts"
   },
-  "scripts": { "typecheck": "tsc --noEmit" },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
   "dependencies": {
     "@repo/database": "*",
     "@repo/livekit": "*",
     "zod": "^4.4.3"
   },
-  "devDependencies": { "@types/node": "^20", "typescript": "^5" }
+  "devDependencies": {
+    "@types/node": "^20",
+    "typescript": "^5",
+    "vitest": "^4.1.11"
+  }
 }
