@@ -1,101 +1,20 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
 import {
-  Video,
-  Star,
-  Users,
-  User,
-  Calendar,
-  Clock,
-  TrendingUp,
-  AlertCircle,
-  ChevronRight,
-  Wallet,
-  Bell,
-  BookOpen,
-  Crown,
-  Zap,
-  CalendarCheck,
-  ArrowUpRight,
-  ArrowDownRight,
-  Play,
-  Sparkles,
+  AlertCircle, Users, AlertTriangle, TrendingUp, Star,
+  BookOpen, ChevronRight, CircleDollarSign, Clock,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { MetricCard } from "@/components/dashboard/MetricCard";
+import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Avatar } from "@/components/ui/Avatar";
-import { Badge } from "@/components/ui/Badge";
+import Link from "next/link";
 
 type DashboardData = {
-  stats: {
-    classesTaught: number;
-    activeStudents: number;
-    averageRating: number;
-    totalReviews: number;
-    pendingBookings: number;
-    monthlyEarnings: number;
-    monthlyClasses: number;
-    unreadNotifications: number;
-  };
-  upcomingClasses: Array<{
-    id: string;
-    sessionId?: string;
-    type: string;
-    student: string;
-    avatar: string;
-    level: string;
-    date: string;
-    time: string;
-    status: string;
-    scheduledStart?: string;
-  }>;
+  stats: { activeStudents: number; averageRating: number; totalReviews: number; pendingBookings: number };
   weeklySchedule: Array<{ day: string; count: number }>;
-  recentActivity: Array<{
-    id: string;
-    student: string;
-    avatar: string | null;
-    type: string;
-    status: string;
-    amount: number;
-    date: string;
-    lastSessionDate: string | null;
-  }>;
-  profileStatus: string;
   profileName: string;
-  profileIncomplete: boolean;
-  upcomingInterview: {
-    date: string;
-    meetingLink: string | null;
-  } | null;
 };
-
-function formatCurrency(amount: number): string {
-  return `₹${(amount / 100).toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-}
-
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
-
-function getTimeUntil(scheduledStart?: string): string {
-  if (!scheduledStart) return "";
-  const diff = new Date(scheduledStart).getTime() - Date.now();
-  if (diff < 0) return "Now";
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `in ${mins}m`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `in ${hours}h`;
-  return `in ${Math.floor(hours / 24)}d`;
-}
 
 export default function TeacherDashboard() {
   const [data, setData] = React.useState<DashboardData | null>(null);
@@ -103,30 +22,17 @@ export default function TeacherDashboard() {
   const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const res = await fetch("/api/teachers/dashboard", { credentials: "include" });
-        if (!res.ok) throw new Error("Failed to load dashboard data");
-        const json = await res.json();
-        setData(json);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchDashboard();
+    fetch("/api/teachers/dashboard", { credentials: "include" })
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      .then(setData).catch(() => setError("Failed to load")).finally(() => setLoading(false));
   }, []);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative">
-            <div className="w-12 h-12 rounded-full border-[3px] border-brand/20 border-t-brand animate-spin" />
-            <div className="absolute inset-0 w-12 h-12 rounded-full border-[3px] border-transparent border-t-gold animate-spin" style={{ animationDirection: "reverse", animationDuration: "1.5s" }} />
-          </div>
-          <span className="text-sm text-text-muted font-medium">Loading your dashboard...</span>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-9 h-9 animate-spin rounded-full border-4 border-brand border-t-transparent" />
+          <span className="text-sm text-text-muted">Loading…</span>
         </div>
       </div>
     );
@@ -135,465 +41,249 @@ export default function TeacherDashboard() {
   if (error || !data) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <Card className="max-w-md w-full">
+        <Card className="max-w-sm w-full">
           <CardContent className="p-8 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-danger/10 flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="w-8 h-8 text-danger" />
-            </div>
-            <h2 className="text-xl font-display font-bold text-text mb-2">Unable to load dashboard</h2>
-            <p className="text-text-muted mb-6">{error || "Something went wrong."}</p>
-            <Button onClick={() => window.location.reload()} variant="primary">
-              Try Again
-            </Button>
+            <AlertCircle className="w-10 h-10 text-danger mx-auto mb-3" />
+            <h2 className="text-base font-bold text-text mb-1">Unable to load</h2>
+            <p className="text-text-muted text-sm mb-5">{error || "Something went wrong."}</p>
+            <Button onClick={() => window.location.reload()} variant="primary">Retry</Button>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  const { stats, upcomingClasses, weeklySchedule, recentActivity, profileStatus, profileName, profileIncomplete, upcomingInterview } = data;
-  const isApproved = profileStatus === "APPROVED";
-  const maxWeekly = Math.max(...weeklySchedule.map((d) => d.count), 1);
-
+  const { stats, weeklySchedule, profileName } = data;
+  const firstName = profileName.split(" ")[0];
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const rating = stats.averageRating > 0 ? stats.averageRating : 0;
+  const maxW = Math.max(...weeklySchedule.map(d => d.count), 1);
+  const totalWeeklyClasses = weeklySchedule.reduce((a, d) => a + d.count, 0);
 
   return (
-    <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* ── Profile Incomplete Banner ──────────────────────────────────── */}
-      {profileIncomplete && isApproved && (
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-brand via-brand-hover to-[#3d32a0] p-[1px]">
-          <div className="rounded-[15px] bg-gradient-to-r from-brand/95 to-brand-hover/95 p-5 flex items-center gap-5">
-            <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
-              <Crown className="w-6 h-6 text-amber-300" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-white text-base">Complete your profile</h3>
-              <p className="text-sm text-white/70 truncate">
-                Add a bio and profile photo to attract more students and unlock all features.
-              </p>
-            </div>
-            <Button asChild variant="gold" size="sm" className="flex-shrink-0">
-              <Link href="/teacher/profile">Complete Profile</Link>
-            </Button>
-          </div>
-        </div>
-      )}
+    <div className="space-y-6 pb-16 animate-in fade-in duration-300">
 
-      {/* ── Verification Banner ────────────────────────────────────────── */}
-      {!isApproved && (
-        <div className="rounded-2xl border border-amber-300/30 bg-gradient-to-r from-amber-50 to-amber-100/50 p-5 flex items-center gap-5">
-          <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center flex-shrink-0">
-            <Clock className="w-6 h-6 text-amber-600" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-semibold text-amber-800 text-sm">Profile under review</h3>
-            <p className="text-sm text-amber-700/80">
-              You can explore the dashboard, but classes are available once your profile is approved.
-              Status: <strong className="text-amber-800">{profileStatus.replace(/_/g, " ")}</strong>
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* ── Upcoming Interview ─────────────────────────────────────────── */}
-      {upcomingInterview && (
-        <div className="rounded-2xl border border-trust/30 bg-gradient-to-r from-trust/5 to-trust/10 p-5 flex items-center gap-5">
-          <div className="w-12 h-12 rounded-2xl bg-trust/10 flex items-center justify-center flex-shrink-0">
-            <CalendarCheck className="w-6 h-6 text-trust" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-semibold text-text text-sm">Interview scheduled</h3>
-            <p className="text-sm text-text-muted">
-              {new Date(upcomingInterview.date).toLocaleDateString("en-US", {
-                weekday: "long",
-                month: "long",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </p>
-          </div>
-          {upcomingInterview.meetingLink && (
-            <Button asChild variant="primary" size="sm" className="flex-shrink-0">
-              <a href={upcomingInterview.meetingLink} target="_blank" rel="noopener noreferrer">
-                <Video className="w-4 h-4 mr-1.5" /> Join
-              </a>
-            </Button>
-          )}
-        </div>
-      )}
-
-      {/* ── Welcome Header ─────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* ── GREETING ─────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold text-text">
-            {greeting}, <span className="bg-gradient-to-r from-brand to-brand-hover bg-clip-text text-transparent">{profileName.split(" ")[0]}</span>
+          <h1 className="text-[32px] sm:text-[36px] lg:text-[44px] leading-[1.05] font-display font-bold text-text tracking-[-0.02em]">
+            {greeting}, {firstName}
           </h1>
-          <p className="text-text-muted mt-1.5">
-            Here&apos;s what&apos;s happening with your classes today.
+          <p className="text-base text-text-muted mt-2">
+            Here's your teaching overview for today
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button asChild variant="outline" size="sm">
-            <Link href="/teacher/schedule">
-              <Calendar className="w-4 h-4 mr-1.5" /> Schedule
-            </Link>
-          </Button>
-          <Button asChild variant="primary" size="sm">
-            <Link href="/teacher/profile">
-              <User className="w-4 h-4 mr-1.5" /> Profile
-            </Link>
-          </Button>
+        <div className="inline-flex px-3 py-1.5 rounded-full bg-surface-inset text-text-muted text-[11px] font-semibold tracking-[0.14em] uppercase self-start shrink-0 mt-1">
+          {new Date().toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "long" }).toUpperCase()}
         </div>
       </div>
 
-      {/* ── Stats Grid ─────────────────────────────────────────────────── */}
+      {/* ── METRIC CARDS ─────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Monthly Earnings — Featured Card */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0f0c29] via-[#1a1547] to-[#231d5e] p-[1px] col-span-2 lg:col-span-1">
-          <div className="relative rounded-[15px] p-5 h-full bg-gradient-to-br from-[#1a1547] to-[#0f0c29] overflow-hidden">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-amber-400/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
-            <div className="relative">
-              <div className="flex items-center gap-2 text-white/60 text-sm font-medium mb-3">
-                <div className="w-7 h-7 rounded-lg bg-amber-400/15 flex items-center justify-center">
-                  <Wallet className="w-3.5 h-3.5 text-amber-400" />
-                </div>
-                This Month
-              </div>
-              <div className="text-3xl font-bold text-white font-display">{formatCurrency(stats.monthlyEarnings)}</div>
-              <div className="flex items-center gap-1.5 mt-2">
-                <span className="flex items-center gap-0.5 text-xs text-emerald-400 font-medium">
-                  <ArrowUpRight className="w-3 h-3" /> Active
-                </span>
-                <span className="text-xs text-white/40">·</span>
-                <span className="text-xs text-white/50">{stats.monthlyClasses} classes completed</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Classes Taught */}
-        <Card className="group hover:border-brand/20">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-10 h-10 rounded-xl bg-brand/10 flex items-center justify-center group-hover:bg-brand/15 transition-colors">
-                <BookOpen className="w-5 h-5 text-brand" />
-              </div>
-              <span className="text-[11px] text-text-subtle font-medium uppercase tracking-wider">Lifetime</span>
-            </div>
-            <div className="text-3xl font-bold text-text font-display">{stats.classesTaught}</div>
-            <div className="text-xs text-text-muted mt-1">Classes taught</div>
-          </CardContent>
-        </Card>
-
-        {/* Active Students */}
-        <Card className="group hover:border-trust/20">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-10 h-10 rounded-xl bg-trust/10 flex items-center justify-center group-hover:bg-trust/15 transition-colors">
-                <Users className="w-5 h-5 text-trust" />
-              </div>
-              <span className="text-[11px] text-text-subtle font-medium uppercase tracking-wider">Unique</span>
-            </div>
-            <div className="text-3xl font-bold text-text font-display">{stats.activeStudents}</div>
-            <div className="text-xs text-text-muted mt-1">Active students</div>
-          </CardContent>
-        </Card>
-
-        {/* Rating */}
-        <Card className="group hover:border-amber-200/50">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center group-hover:bg-amber-50 transition-colors">
-                <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
-              </div>
-              <span className="text-[11px] text-text-subtle font-medium uppercase tracking-wider">Avg</span>
-            </div>
-            <div className="flex items-baseline gap-2">
-              <div className="text-3xl font-bold text-text font-display">
-                {stats.averageRating > 0 ? stats.averageRating.toFixed(1) : "—"}
-              </div>
-              {stats.averageRating > 0 && (
-                <div className="flex gap-0.5">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <Star
-                      key={s}
-                      className={`w-3 h-3 ${
-                        s <= Math.round(stats.averageRating)
-                          ? "text-amber-400 fill-amber-400"
-                          : "text-neutral-200"
-                      }`}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="text-xs text-text-muted mt-1">
-              {stats.totalReviews > 0
-                ? `Based on ${stats.totalReviews} review${stats.totalReviews !== 1 ? "s" : ""}`
-                : "No reviews yet"}
-            </div>
-          </CardContent>
-        </Card>
+        <MetricCard
+          icon={Users}
+          label="Active students"
+          value={stats.activeStudents}
+          accentColor="#0f9d6b"
+          accentBg="rgba(15,157,107,0.08)"
+        />
+        <MetricCard
+          icon={AlertTriangle}
+          label="Pending bookings"
+          value={stats.pendingBookings}
+          accentColor="#dc4c3e"
+          accentBg="rgba(220,76,62,0.08)"
+          delta={stats.pendingBookings > 0 ? { value: stats.pendingBookings, trend: "up" } : undefined}
+        />
+        <MetricCard
+          icon={Star}
+          label="Average rating"
+          value={rating > 0 ? rating.toFixed(1) : "—"}
+          accentColor="#c7982f"
+          accentBg="rgba(199,152,47,0.08)"
+          highlight
+        />
+        <MetricCard
+          icon={BookOpen}
+          label="Total reviews"
+          value={stats.totalReviews}
+          accentColor="#5046c8"
+          accentBg="rgba(80,70,200,0.08)"
+        />
       </div>
 
-      {/* ── Quick Actions Row ──────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { label: "Pending Bookings", value: stats.pendingBookings, icon: Bell, href: "/teacher/schedule", color: stats.pendingBookings > 0 ? "text-amber-500 bg-amber-50" : "text-text-muted bg-surface-inset", iconBg: stats.pendingBookings > 0 ? "bg-amber-100" : "bg-surface-inset" },
-          { label: "Today's Classes", value: upcomingClasses.length, icon: Calendar, href: "/teacher/schedule", color: "text-brand bg-brand/5", iconBg: "bg-brand/10" },
-          { label: "Notifications", value: stats.unreadNotifications, icon: Bell, href: "/teacher/notifications", color: stats.unreadNotifications > 0 ? "text-danger bg-danger/5" : "text-text-muted bg-surface-inset", iconBg: stats.unreadNotifications > 0 ? "bg-danger/10" : "bg-surface-inset" },
-          { label: "Manage Schedule", value: null, icon: CalendarCheck, href: "/teacher/schedule", color: "text-trust bg-trust/5", iconBg: "bg-trust/10" },
-        ].map((item) => (
-          <Link key={item.label} href={item.href}>
-            <Card className="hover:border-brand/20 cursor-pointer transition-all duration-300 group hover:shadow-md">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl ${item.iconBg} flex items-center justify-center group-hover:scale-110 transition-transform duration-300 ${item.color.split(" ")[0]}`}>
-                  <item.icon className="w-4.5 h-4.5" />
-                </div>
-                <div>
-                  {item.value !== null && (
-                    <div className="text-xl font-bold text-text font-display">{item.value}</div>
-                  )}
-                  <div className="text-xs text-text-muted font-medium">{item.label}</div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
+      {/* ── MAIN ROW ─────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-      {/* ── Main Content Grid ──────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* ── Today's Schedule (2 cols) ──────────────────────────────── */}
-        <div className="lg:col-span-2">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-display font-semibold text-text flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-brand/10 flex items-center justify-center">
-                <Calendar className="w-4 h-4 text-brand" />
+        {/* Weekly Schedule Chart — 2 cols */}
+        <Card className="lg:col-span-2 hover:shadow-level-2 transition-shadow duration-180">
+          <CardContent className="p-5 sm:p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="font-display font-semibold text-base text-text tracking-[-0.01em]">
+                  Weekly schedule
+                </h3>
+                <p className="text-[13px] text-text-muted mt-0.5">
+                  {totalWeeklyClasses} class{totalWeeklyClasses !== 1 ? "es" : ""} this week
+                </p>
               </div>
-              Today&apos;s Classes
-            </h2>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/teacher/schedule">
-                View Schedule <ChevronRight className="w-4 h-4 ml-1" />
-              </Link>
-            </Button>
-          </div>
+              <div className="px-2.5 py-1 rounded-full bg-brand/10 text-brand text-[12px] font-semibold">
+                This week
+              </div>
+            </div>
 
-          {upcomingClasses.length === 0 ? (
-            <Card>
-              <CardContent className="p-12 text-center flex flex-col items-center">
-                <div className="w-20 h-20 rounded-3xl bg-surface-inset flex items-center justify-center mb-4">
-                  <Calendar className="w-9 h-9 text-text-subtle" />
-                </div>
-                <p className="text-text-muted font-semibold mb-1">No classes today</p>
-                <p className="text-sm text-text-subtle mb-4">Enjoy your free time or update your availability.</p>
-                <Button asChild variant="outline" size="sm">
-                  <Link href="/teacher/schedule">Manage Schedule</Link>
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-3">
-              {upcomingClasses.map((cls) => {
-                const timeUntil = getTimeUntil(cls.scheduledStart);
+            {/* Bar Chart */}
+            <div className="flex items-end gap-2 h-36">
+              {weeklySchedule.map((d, i) => {
+                const pct = d.count > 0 ? Math.max((d.count / maxW) * 100, 8) : 4;
+                const today = new Date().getDay();
+                const isToday = today === (i + 1 > 6 ? 0 : i + 1);
                 return (
-                  <Card
-                    key={cls.id}
-                    className={`overflow-hidden transition-all duration-300 ${
-                      cls.status === "starts_soon"
-                        ? "border-amber-300/50 shadow-md shadow-amber-100"
-                        : cls.status === "ongoing"
-                        ? "border-trust/30 shadow-md shadow-trust/10"
-                        : ""
-                    }`}
-                  >
-                    <CardContent className="p-0 sm:flex items-center">
-                      <div className="p-5 flex-1 flex items-center gap-4">
-                        <div className="relative">
-                          <Avatar
-                            src={cls.avatar}
-                            size="lg"
-                            online={cls.status === "ongoing" || cls.status === "starts_soon"}
-                          />
-                          {cls.status === "starts_soon" && (
-                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 rounded-full flex items-center justify-center">
-                              <Play className="w-2 h-2 text-white fill-white ml-0.5" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-semibold text-text truncate">{cls.student}</h3>
-                            <Badge
-                              variant={cls.type === "DEMO" ? "warning" : "default"}
-                              className="text-[10px] uppercase py-0"
-                            >
-                              {cls.type === "DEMO" ? "Demo" : "Regular"}
-                            </Badge>
-                            <Badge variant="info" className="text-[10px] uppercase py-0">{cls.level}</Badge>
-                          </div>
-                          <div className="text-sm text-text-muted mt-1 flex items-center gap-3">
-                            <span className="flex items-center gap-1.5">
-                              <Clock className="w-3.5 h-3.5" />
-                              {cls.time}
-                            </span>
-                            {timeUntil && (
-                              <span className={`text-xs font-medium ${
-                                cls.status === "starts_soon" ? "text-amber-600" : cls.status === "ongoing" ? "text-trust" : "text-text-subtle"
-                              }`}>
-                                {timeUntil}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
+                  <div key={d.day} className="flex-1 flex flex-col items-center gap-2.5 group cursor-pointer">
+                    <div className="w-full flex flex-col items-center justify-end" style={{ height: "104px" }}>
+                      {d.count > 0 && (
+                        <span
+                          className="text-[10px] font-bold mb-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                          style={{ color: isToday ? "#5046c8" : "#8a93a6" }}
+                        >
+                          {d.count}
+                        </span>
+                      )}
                       <div
-                        className={`p-5 sm:border-l border-border flex flex-col items-stretch min-w-[180px] gap-2 ${
-                          cls.status === "starts_soon"
-                            ? "bg-gradient-to-br from-amber-50 to-amber-100/50"
-                            : cls.status === "ongoing"
-                            ? "bg-gradient-to-br from-trust/5 to-trust/10"
-                            : "bg-surface-inset/30"
-                        }`}
-                      >
-                        {cls.status === "starts_soon" ? (
-                          <>
-                            <div className="text-xs font-bold text-amber-600 uppercase tracking-wider text-center flex items-center justify-center gap-1.5">
-                              <Sparkles className="w-3 h-3" /> Starting soon
-                            </div>
-                            <Button
-                              asChild
-                              variant="primary"
-                              className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-md shadow-amber-200"
-                            >
-                              <Link href={cls.sessionId ? `/session/${cls.id}` : "#"}>
-                                <Video className="w-4 h-4 mr-1.5" /> Start Class
-                              </Link>
-                            </Button>
-                          </>
-                        ) : cls.status === "ongoing" ? (
-                          <Button
-                            asChild
-                            variant="primary"
-                            className="w-full bg-gradient-to-r from-trust to-trust-hover text-white shadow-md shadow-trust/20"
-                          >
-                            <Link href={cls.sessionId ? `/session/${cls.id}` : "#"}>
-                              <Video className="w-4 h-4 mr-1.5" /> Rejoin
-                            </Link>
-                          </Button>
-                        ) : (
-                          <>
-                            <Button variant="outline" className="w-full" disabled={!isApproved}>
-                              <Video className="w-4 h-4 mr-1.5" /> Start
-                            </Button>
-                            <span className="text-[11px] text-text-subtle text-center">
-                              Opens 10 min before
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
+                        className="w-full rounded-t-xl transition-all duration-300"
+                        style={{
+                          height: `${pct}%`,
+                          maxWidth: "44px",
+                          background: isToday
+                            ? "linear-gradient(to top, #231d5e, #5046c8)"
+                            : d.count > 0
+                              ? "rgba(80,70,200,0.22)"
+                              : "rgba(35,29,94,0.05)",
+                          opacity: d.count === 0 ? 0.6 : 1,
+                        }}
+                      />
+                    </div>
+                    <span
+                      className="text-[11px] font-semibold"
+                      style={{ color: isToday ? "#231d5e" : "#8a93a6" }}
+                    >
+                      {d.day}
+                    </span>
+                  </div>
                 );
               })}
             </div>
-          )}
-        </div>
 
-        {/* ── Right Sidebar ────────────────────────────────────────────── */}
-        <div className="space-y-6">
-          {/* Weekly Activity */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-brand/10 flex items-center justify-center">
-                  <TrendingUp className="w-3.5 h-3.5 text-brand" />
-                </div>
-                This Week
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-end gap-2 h-32">
-                {weeklySchedule.map((d) => (
-                  <div key={d.day} className="flex-1 flex flex-col items-center gap-1.5">
-                    <div className="w-full relative flex-1 flex items-end">
-                      <div
-                        className="w-full rounded-t-lg bg-gradient-to-t from-brand/30 to-brand/10 hover:from-brand/50 hover:to-brand/20 transition-all duration-300 cursor-pointer"
-                        style={{ height: `${Math.max((d.count / maxWeekly) * 100, 4)}%` }}
-                        title={`${d.count} classes`}
-                      />
-                    </div>
-                    <span className="text-[10px] text-text-subtle font-medium uppercase tracking-wider">{d.day}</span>
-                  </div>
-                ))}
+            {/* Legend */}
+            <div className="flex items-center gap-5 mt-4 pt-4 border-t border-border/50">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-sm" style={{ background: "linear-gradient(to top, #231d5e, #5046c8)" }} />
+                <span className="text-[11px] text-text-muted">Today</span>
               </div>
-              <div className="mt-4 pt-3 border-t border-border flex justify-between text-xs text-text-muted">
-                <span>This week</span>
-                <span className="font-semibold text-text">
-                  {weeklySchedule.reduce((a, d) => a + d.count, 0)} classes
-                </span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-sm bg-brand/22" />
+                <span className="text-[11px] text-text-muted">Scheduled</span>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Recent Activity */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center">
-                  <Zap className="w-3.5 h-3.5 text-amber-500" />
+        {/* Right: Rating — 1 col */}
+        <Card className="hover:shadow-level-2 transition-shadow duration-180">
+          <CardContent className="p-5 sm:p-6 h-full flex flex-col">
+            <div className="text-[11px] font-semibold text-text-subtle uppercase tracking-[0.12em] mb-4">
+              Your rating
+            </div>
+
+            {/* Large rating */}
+            <div className="flex items-baseline gap-2 mb-2">
+              <span className="text-[48px] font-display font-bold text-text leading-none tracking-[-0.02em]">
+                {rating > 0 ? rating.toFixed(1) : "—"}
+              </span>
+              <span className="text-text-muted text-sm">/ 5</span>
+            </div>
+
+            {/* Stars */}
+            <div className="flex gap-1 mb-3">
+              {[1,2,3,4,5].map(s => (
+                <Star
+                  key={s}
+                  className="w-4 h-4 text-action"
+                  fill={s <= Math.floor(rating) ? "currentColor" : "none"}
+                  strokeWidth={1.5}
+                />
+              ))}
+            </div>
+
+            <p className="text-[13px] text-text-muted mb-5">
+              {stats.totalReviews > 0 ? `Based on ${stats.totalReviews} review${stats.totalReviews !== 1 ? "s" : ""}` : "No reviews yet"}
+            </p>
+
+            {/* Rating bar */}
+            {rating > 0 && (
+              <div className="mb-6">
+                <div className="flex justify-between text-[11px] mb-1.5">
+                  <span className="text-text-muted">Score</span>
+                  <span className="font-bold text-text">{Math.round((rating / 5) * 100)}%</span>
                 </div>
-                Recent Activity
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {recentActivity.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="w-14 h-14 rounded-2xl bg-surface-inset flex items-center justify-center mx-auto mb-3">
-                    <Zap className="w-6 h-6 text-text-subtle" />
-                  </div>
-                  <p className="text-sm text-text-muted font-medium">No recent activity</p>
+                <div className="h-2 w-full rounded-full overflow-hidden bg-surface-inset">
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{ width: `${Math.round((rating / 5) * 100)}%`, background: "linear-gradient(90deg, #c7982f, #d8b45e)" }}
+                  />
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {recentActivity.slice(0, 5).map((a) => (
-                    <div key={a.id} className="flex items-center gap-3 group">
-                      <Avatar
-                        src={a.avatar || undefined}
-                        size="sm"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-text truncate group-hover:text-brand transition-colors">{a.student}</div>
-                        <div className="text-[11px] text-text-subtle">
-                          {a.type === "DEMO" ? "Demo class" : "Booked class"} · {timeAgo(a.date)}
-                        </div>
-                      </div>
-                      <Badge
-                        variant={
-                          a.status === "COMPLETED"
-                            ? "success"
-                            : a.status === "CONFIRMED"
-                            ? "default"
-                            : a.status === "PENDING"
-                            ? "warning"
-                            : "danger"
-                        }
-                        className="text-[10px] py-0"
-                      >
-                        {a.status}
-                      </Badge>
+              </div>
+            )}
+
+            <div className="mt-auto">
+              {stats.pendingBookings > 0 && (
+                <Link href="/teacher/bookings">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-alert/8 border border-alert/20 group hover:bg-alert/12 transition-colors cursor-pointer">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-alert shrink-0" />
+                      <span className="text-[13px] font-semibold text-text">{stats.pendingBookings} pending</span>
                     </div>
-                  ))}
-                </div>
+                    <ChevronRight className="w-4 h-4 text-text-subtle opacity-0 group-hover:opacity-60 transition-opacity" />
+                  </div>
+                </Link>
               )}
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* ── QUICK ACTIONS ────────────────────────────── */}
+      <Card className="hover:shadow-level-2 transition-shadow duration-180">
+        <CardContent className="p-5 sm:p-6">
+          <h3 className="font-display font-semibold text-base text-text tracking-[-0.01em] mb-4">
+            Quick actions
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { Icon: Clock, label: "Review Bookings", sub: `${stats.pendingBookings} waiting`, hex: "#dc4c3e", href: "/teacher/bookings" },
+              { Icon: Users, label: "My Students", sub: `${stats.activeStudents} active`, hex: "#0f9d6b", href: "/teacher/students" },
+              { Icon: CircleDollarSign, label: "Earnings", sub: "View payouts", hex: "#c7982f", href: "/teacher/earnings" },
+              { Icon: TrendingUp, label: "Analytics", sub: "See trends", hex: "#5046c8", href: "/teacher/analytics" },
+            ].map(({ Icon, label, sub, hex, href }) => (
+              <Link
+                key={label}
+                href={href}
+                className="flex items-center gap-3 p-4 rounded-2xl border border-border/50 hover:border-brand/20 hover:bg-surface-inset/60 transition-all duration-150 group"
+              >
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${hex}12` }}>
+                  <Icon className="w-4.5 h-4.5" style={{ color: hex }} strokeWidth={2} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[13px] font-semibold text-text truncate">{label}</p>
+                  <p className="text-[11px] text-text-muted">{sub}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
     </div>
   );
 }

@@ -7,10 +7,8 @@ import {
   AlertCircle,
   CheckCircle2,
   User,
-  Mail,
   Globe,
   BookOpen,
-  Shield,
   Camera,
   Key,
   Bell,
@@ -19,13 +17,12 @@ import {
   AlertTriangle,
   Eye,
   EyeOff,
-  Link,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
-import { Avatar } from "@/components/ui/Avatar";
+import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { LANGUAGES, getLevelsForLanguage } from "@/lib/languages";
 
 type ProfileData = {
@@ -91,9 +88,7 @@ export default function StudentProfilePage() {
 
   const fetchProfile = async () => {
     try {
-      const res = await fetch("/api/students/profile", {
-        credentials: "include",
-      });
+      const res = await fetch("/api/students/profile", { credentials: "include" });
       if (!res.ok) throw new Error("Failed to load profile");
       const data: ProfileData = await res.json();
       const p = data.profile;
@@ -109,9 +104,7 @@ export default function StudentProfilePage() {
       setCompletedBookings(p.completedBookings);
       setMemberSince(
         new Date(p.memberSince).toLocaleDateString("en-IN", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
+          year: "numeric", month: "long", day: "numeric",
         })
       );
     } catch (err) {
@@ -130,12 +123,7 @@ export default function StudentProfilePage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          name,
-          avatarUrl,
-          languageToLearn,
-          proficiencyLevel,
-        }),
+        body: JSON.stringify({ name, avatarUrl, languageToLearn, proficiencyLevel }),
       });
       if (!res.ok) throw new Error("Failed to save profile");
       setSuccessMsg("Profile updated successfully!");
@@ -174,9 +162,7 @@ export default function StudentProfilePage() {
         throw new Error(data.error || "Failed to change password");
       }
       setPasswordSuccess("Password changed successfully!");
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
+      setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
       setTimeout(() => setPasswordSuccess(null), 3000);
     } catch (err) {
       setPasswordError(err instanceof Error ? err.message : "Unknown error");
@@ -187,19 +173,15 @@ export default function StudentProfilePage() {
 
   const checkPushStatus = async () => {
     if (!("Notification" in window)) return;
-    if (Notification.permission === "granted") {
-      setPushEnabled(true);
-    }
+    if (Notification.permission === "granted") setPushEnabled(true);
   };
 
   const handleTogglePush = async () => {
     setPushLoading(true);
     try {
       if (!pushEnabled) {
-        // Request permission
         const permission = await Notification.requestPermission();
         if (permission === "granted") {
-          // Register device token
           const registration = await navigator.serviceWorker.ready;
           const subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
@@ -210,10 +192,7 @@ export default function StudentProfilePage() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
-            body: JSON.stringify({
-              token: JSON.stringify(subscription),
-              platform: "web",
-            }),
+            body: JSON.stringify({ token: JSON.stringify(subscription), platform: "web" }),
           });
           setPushEnabled(true);
         }
@@ -238,9 +217,7 @@ export default function StudentProfilePage() {
       });
       if (!res.ok) throw new Error("Failed to request deletion");
       setShowDeleteModal(false);
-      setSuccessMsg(
-        "Account deletion request submitted. We'll process it within 30 days."
-      );
+      setSuccessMsg("Account deletion request submitted. We'll process it within 30 days.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
@@ -250,118 +227,87 @@ export default function StudentProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative">
-            <div className="w-12 h-12 rounded-full border-[3px] border-brand/20 border-t-brand animate-spin" />
-          </div>
-          <span className="text-sm text-text-muted font-medium">
-            Loading profile...
-          </span>
-        </div>
+      <div className="py-8 max-w-4xl mx-auto w-full">
+        <DashboardSkeleton />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto w-full">
-      {/* Header */}
+    <div className="space-y-6 pb-16 animate-in fade-in duration-300 h-full flex flex-col max-w-4xl mx-auto w-full">
+      {/* ── HEADER ─────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold text-text">
+          <h1 className="text-[32px] sm:text-[36px] font-display font-bold text-text tracking-[-0.02em] leading-tight">
             My Profile
           </h1>
-          <p className="text-text-muted mt-1">
+          <p className="text-base text-text-muted mt-1">
             Manage your profile and learning preferences
           </p>
         </div>
-        <Button
-          onClick={handleSave}
-          disabled={saving}
-          variant="primary"
-          className="flex items-center gap-2"
-        >
-          {saving ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Save className="w-4 h-4" />
-          )}
+        <Button onClick={handleSave} disabled={saving} variant="primary" className="flex items-center gap-2 shadow-sm">
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           Save Changes
         </Button>
       </div>
 
       {/* Messages */}
       {error && (
-        <div className="p-4 rounded-xl bg-danger/10 border border-danger/20 text-danger flex items-center gap-3 text-sm font-medium">
-          <AlertCircle className="w-4 h-4" /> {error}
+        <div className="p-4 rounded-xl bg-alert/10 border border-alert/20 text-alert flex items-center gap-3 text-[14px] font-medium shadow-sm">
+          <AlertCircle className="w-5 h-5" /> {error}
         </div>
       )}
       {successMsg && (
-        <div className="p-4 rounded-xl bg-trust/10 border border-trust/20 text-trust flex items-center gap-3 text-sm font-medium">
-          <CheckCircle2 className="w-4 h-4" /> {successMsg}
+        <div className="p-4 rounded-xl bg-trust/10 border border-trust/20 text-trust flex items-center gap-3 text-[14px] font-medium shadow-sm">
+          <CheckCircle2 className="w-5 h-5" /> {successMsg}
         </div>
       )}
 
-      {/* Profile Header Card */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0f0c29] via-[#1a1547] to-[#231d5e] p-[1px]">
-        <div className="rounded-[15px] bg-gradient-to-br from-[#1a1547] to-[#0f0c29] p-6">
-          <div className="flex items-start gap-6">
+      {/* ── PROFILE HERO ───────────────────────────── */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#231d5e] to-[#5046c8] p-[1px] shadow-level-2">
+        <div className="rounded-[15px] bg-gradient-to-br from-[#1a1547] to-[#0f0c29] p-6 relative overflow-hidden">
+          <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-white/5 blur-[50px] pointer-events-none" />
+          
+          <div className="flex items-start gap-6 relative z-10">
             <div className="relative group">
-              <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-amber-400/20 to-amber-600/20 flex items-center justify-center overflow-hidden">
+              <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-brand to-brand-hover flex items-center justify-center overflow-hidden shadow-sm border border-white/10">
                 {avatarUrl ? (
-                  <img
-                    src={avatarUrl}
-                    alt={name}
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-3xl font-bold text-amber-400">
-                    {name[0]}
-                  </span>
+                  <span className="text-3xl font-display font-bold text-white">{name[0]?.toUpperCase()}</span>
                 )}
               </div>
-              <div className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer">
+              <div className="absolute inset-0 rounded-2xl bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer">
                 <Camera className="w-6 h-6 text-white" />
               </div>
             </div>
-            <div className="flex-1 space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            
+            <div className="flex-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
                 <div>
-                  <label className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">
-                    Name
-                  </label>
-                  <div className="text-white font-semibold mt-1">{name}</div>
+                  <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Name</label>
+                  <div className="text-[16px] text-white font-bold mt-0.5">{name}</div>
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">
-                    Email
-                  </label>
-                  <div className="text-white/80 font-medium mt-1 flex items-center gap-2">
+                  <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Email</label>
+                  <div className="text-[14px] text-white/90 font-medium mt-0.5 flex items-center gap-2">
                     {email}
                     {emailVerified ? (
-                      <Badge variant="success" className="text-[9px] py-0">
-                        Verified
-                      </Badge>
+                      <Badge variant="success" className="text-[9px] py-0 px-1.5 uppercase tracking-wider font-bold">Verified</Badge>
                     ) : (
-                      <Badge variant="outline" className="text-[9px] py-0">
-                        Unverified
-                      </Badge>
+                      <Badge variant="outline" className="text-[9px] py-0 px-1.5 text-white/70 border-white/20 uppercase tracking-wider font-bold">Unverified</Badge>
                     )}
                   </div>
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">
-                    Status
-                  </label>
-                  <div className="mt-1">
-                    <Badge variant="success">{status}</Badge>
+                  <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Status</label>
+                  <div className="mt-0.5">
+                    <Badge variant="success" className="text-[10px] uppercase font-bold tracking-wider">{status}</Badge>
                   </div>
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">
-                    Member Since
-                  </label>
-                  <div className="text-white/80 mt-1">{memberSince}</div>
+                  <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Member Since</label>
+                  <div className="text-[14px] text-white/90 font-medium mt-0.5">{memberSince}</div>
                 </div>
               </div>
             </div>
@@ -370,21 +316,19 @@ export default function StudentProfilePage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Edit Profile */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-brand/10 flex items-center justify-center">
-                <User className="w-3.5 h-3.5 text-brand" />
+        {/* ── EDIT PROFILE ─────────────────────────── */}
+        <Card className="border border-border/50 shadow-sm">
+          <CardHeader className="pb-4 border-b border-border/40">
+            <CardTitle className="text-[16px] font-bold text-text flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center">
+                <User className="w-4 h-4 text-brand" />
               </div>
-              Edit Profile
+              Personal Details
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="pt-5 space-y-5">
             <div>
-              <label className="text-xs font-medium text-text-muted uppercase tracking-wider">
-                Full Name
-              </label>
+              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Full Name</label>
               <Input
                 type="text"
                 value={name}
@@ -393,9 +337,7 @@ export default function StudentProfilePage() {
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-text-muted uppercase tracking-wider">
-                Avatar URL
-              </label>
+              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Avatar URL</label>
               <Input
                 type="url"
                 value={avatarUrl}
@@ -407,89 +349,76 @@ export default function StudentProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Learning Preferences */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-brand/10 flex items-center justify-center">
-                <BookOpen className="w-3.5 h-3.5 text-brand" />
+        {/* ── LEARNING PREFERENCES ─────────────────── */}
+        <Card className="border border-border/50 shadow-sm">
+          <CardHeader className="pb-4 border-b border-border/40">
+            <CardTitle className="text-[16px] font-bold text-text flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-trust/10 flex items-center justify-center">
+                <BookOpen className="w-4 h-4 text-trust" />
               </div>
               Learning Preferences
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="pt-5 space-y-5">
             <div>
-              <label className="text-xs font-medium text-text-muted uppercase tracking-wider">
-                Language to Learn
-              </label>
+              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Language to Learn</label>
               <select
                 value={languageToLearn}
                 onChange={(e) => {
                   setLanguageToLearn(e.target.value);
                   setProficiencyLevel("");
                 }}
-                className="mt-1.5 w-full rounded-xl border border-border bg-surface-inset px-4 py-2.5 text-sm text-text focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all"
+                className="mt-1.5 w-full rounded-xl border border-border/60 bg-surface px-4 py-2.5 text-[14px] text-text focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand shadow-sm transition-all"
               >
                 <option value="">Select language...</option>
                 {LANGUAGES.map((l) => (
                   <option key={l.code} value={l.name.toLowerCase()}>
-                    {" "}
                     {l.flag} {l.name}
                   </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium text-text-muted uppercase tracking-wider">
-                Proficiency Level
-              </label>
+              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Proficiency Level</label>
               <select
                 value={proficiencyLevel}
                 onChange={(e) => setProficiencyLevel(e.target.value)}
                 disabled={!languageToLearn}
-                className="mt-1.5 w-full rounded-xl border border-border bg-surface-inset px-4 py-2.5 text-sm text-text focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all"
+                className="mt-1.5 w-full rounded-xl border border-border/60 bg-surface px-4 py-2.5 text-[14px] text-text focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand shadow-sm transition-all disabled:opacity-50 disabled:bg-surface-inset"
               >
-                <option value="">
-                  {languageToLearn ? "Select level..." : "Pick language first"}
-                </option>
+                <option value="">{languageToLearn ? "Select level..." : "Pick language first"}</option>
                 {getLevelsForLanguage(languageToLearn).map((lvl) => (
-                  <option key={lvl.value} value={lvl.value}>
-                    {lvl.label}
-                  </option>
+                  <option key={lvl.value} value={lvl.value}>{lvl.label}</option>
                 ))}
               </select>
             </div>
           </CardContent>
         </Card>
 
-        {/* Change Password */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-brand/10 flex items-center justify-center">
-                <Key className="w-3.5 h-3.5 text-brand" />
+        {/* ── CHANGE PASSWORD ──────────────────────── */}
+        <Card className="border border-border/50 shadow-sm">
+          <CardHeader className="pb-4 border-b border-border/40">
+            <CardTitle className="text-[16px] font-bold text-text flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-action/10 flex items-center justify-center">
+                <Key className="w-4 h-4 text-action" />
               </div>
-              Change Password
+              Security
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-5">
             <form onSubmit={handleChangePassword} className="space-y-4">
               {passwordError && (
-                <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  {passwordError}
+                <div className="p-3 rounded-xl bg-alert/10 border border-alert/20 text-alert text-[13px] font-medium flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" /> {passwordError}
                 </div>
               )}
               {passwordSuccess && (
-                <div className="p-3 rounded-lg bg-green-50 border border-green-200 text-green-700 text-xs flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  {passwordSuccess}
+                <div className="p-3 rounded-xl bg-trust/10 border border-trust/20 text-trust text-[13px] font-medium flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4" /> {passwordSuccess}
                 </div>
               )}
               <div>
-                <label className="text-xs font-medium text-text-muted uppercase tracking-wider">
-                  Current Password
-                </label>
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Current Password</label>
                 <div className="relative mt-1.5">
                   <Input
                     type={showCurrentPassword ? "text" : "password"}
@@ -497,23 +426,13 @@ export default function StudentProfilePage() {
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     required
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showCurrentPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
+                  <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text">
+                    {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
               <div>
-                <label className="text-xs font-medium text-text-muted uppercase tracking-wider">
-                  New Password
-                </label>
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">New Password</label>
                 <div className="relative mt-1.5">
                   <Input
                     type={showNewPassword ? "text" : "password"}
@@ -522,23 +441,13 @@ export default function StudentProfilePage() {
                     required
                     minLength={8}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPassword(!showNewPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showNewPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
+                  <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text">
+                    {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
               <div>
-                <label className="text-xs font-medium text-text-muted uppercase tracking-wider">
-                  Confirm New Password
-                </label>
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Confirm New Password</label>
                 <Input
                   type="password"
                   value={confirmPassword}
@@ -548,205 +457,150 @@ export default function StudentProfilePage() {
                   className="mt-1.5"
                 />
               </div>
-              <Button
-                type="submit"
-                variant="outline"
-                disabled={changingPassword || !currentPassword || !newPassword || !confirmPassword}
-                className="w-full"
-              >
-                {changingPassword ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Key className="w-4 h-4 mr-2" />
-                )}
+              <Button type="submit" variant="outline" disabled={changingPassword || !currentPassword || !newPassword || !confirmPassword} className="w-full mt-2">
+                {changingPassword ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Key className="w-4 h-4 mr-2" />}
                 Update Password
               </Button>
             </form>
           </CardContent>
         </Card>
 
-        {/* Push Notifications */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center">
-                <Bell className="w-3.5 h-3.5 text-amber-600" />
-              </div>
-              Push Notifications
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-xs text-text-muted">
-              Receive notifications for upcoming classes, new messages, and
-              important updates.
-            </p>
-            <div className="flex items-center justify-between p-3 rounded-xl bg-surface-inset">
-              <div className="flex items-center gap-3">
-                {pushEnabled ? (
-                  <Bell className="w-5 h-5 text-amber-600" />
-                ) : (
-                  <BellOff className="w-5 h-5 text-gray-400" />
-                )}
-                <div>
-                  <p className="text-sm font-medium text-text">
-                    {pushEnabled ? "Notifications Enabled" : "Notifications Off"}
-                  </p>
-                  <p className="text-[11px] text-text-muted">
-                    {pushEnabled
-                      ? "You'll receive push notifications"
-                      : "Enable to get timely updates"}
-                  </p>
+        {/* ── NOTIFICATIONS & STATS ────────────────── */}
+        <div className="space-y-6">
+          <Card className="border border-border/50 shadow-sm">
+            <CardHeader className="pb-4 border-b border-border/40">
+              <CardTitle className="text-[16px] font-bold text-text flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-gold/20 flex items-center justify-center">
+                  <Bell className="w-4 h-4 text-gold-950" />
                 </div>
+                Push Notifications
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-5 space-y-4">
+              <p className="text-[13px] text-text-muted leading-relaxed">
+                Receive instant alerts for upcoming classes, new messages, and important updates directly to your device.
+              </p>
+              <div className="flex items-center justify-between p-4 rounded-xl bg-surface-inset border border-border/50">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${pushEnabled ? "bg-brand/10 text-brand" : "bg-text/5 text-text-muted"}`}>
+                    {pushEnabled ? <Bell className="w-5 h-5" /> : <BellOff className="w-5 h-5" />}
+                  </div>
+                  <div>
+                    <p className="text-[14px] font-bold text-text">
+                      {pushEnabled ? "Notifications On" : "Notifications Off"}
+                    </p>
+                    <p className="text-[12px] text-text-muted">
+                      {pushEnabled ? "You're receiving alerts" : "Enable to get timely updates"}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleTogglePush}
+                  disabled={pushLoading}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${pushEnabled ? "bg-brand" : "bg-border-strong"}`}
+                >
+                  <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${pushEnabled ? "translate-x-6" : "translate-x-0.5"}`} />
+                </button>
               </div>
-              <button
-                onClick={handleTogglePush}
-                disabled={pushLoading}
-                className={`relative w-12 h-6 rounded-full transition-colors ${
-                  pushEnabled ? "bg-amber-600" : "bg-gray-300"
-                }`}
-              >
-                <div
-                  className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                    pushEnabled ? "translate-x-6" : "translate-x-0.5"
-                  }`}
-                />
-              </button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Stats */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center">
-                <Globe className="w-3.5 h-3.5 text-amber-600" />
-              </div>
-              Learning Stats
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="text-center p-4 rounded-xl bg-surface-inset">
-                <div className="text-2xl font-bold text-text font-display">
-                  {totalBookings}
+          <Card className="border border-border/50 shadow-sm">
+            <CardHeader className="pb-4 border-b border-border/40">
+              <CardTitle className="text-[16px] font-bold text-text flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center">
+                  <Globe className="w-4 h-4 text-brand" />
                 </div>
-                <div className="text-xs text-text-muted mt-1">
-                  Total Bookings
+                Learning Journey
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-5">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 rounded-xl bg-surface-inset border border-border/40">
+                  <div className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1">Total Classes</div>
+                  <div className="text-[24px] font-display font-bold text-text">{totalBookings}</div>
+                </div>
+                <div className="p-4 rounded-xl bg-trust/5 border border-trust/20">
+                  <div className="text-[11px] font-bold text-trust/80 uppercase tracking-wider mb-1">Completed</div>
+                  <div className="text-[24px] font-display font-bold text-trust">{completedBookings}</div>
                 </div>
               </div>
-              <div className="text-center p-4 rounded-xl bg-surface-inset">
-                <div className="text-2xl font-bold text-text font-display">
-                  {completedBookings}
-                </div>
-                <div className="text-xs text-text-muted mt-1">Completed</div>
-              </div>
-              <div className="text-center p-4 rounded-xl bg-surface-inset">
-                <div className="text-2xl font-bold text-text font-display">
-                  {languageToLearn || "—"}
-                </div>
-                <div className="text-xs text-text-muted mt-1">Learning</div>
-              </div>
-              <div className="text-center p-4 rounded-xl bg-surface-inset">
-                <div className="text-2xl font-bold text-text font-display capitalize">
-                  {proficiencyLevel?.toLowerCase() || "—"}
-                </div>
-                <div className="text-xs text-text-muted mt-1">Level</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Account Deletion */}
-        <Card className="lg:col-span-2 border-red-200">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2 text-red-600">
-              <div className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center">
-                <Trash2 className="w-3.5 h-3.5 text-red-500" />
+            </CardContent>
+          </Card>
+        </div>
+        
+        {/* ── ACCOUNT DELETION ─────────────────────── */}
+        <Card className="lg:col-span-2 border-alert/30 bg-alert/5 shadow-sm">
+          <CardHeader className="pb-3 border-b border-alert/10">
+            <CardTitle className="text-[16px] font-bold flex items-center gap-2 text-alert">
+              <div className="w-8 h-8 rounded-lg bg-alert/10 flex items-center justify-center">
+                <Trash2 className="w-4 h-4 text-alert" />
               </div>
               Danger Zone
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between p-4 rounded-xl bg-red-50 border border-red-200">
+          <CardContent className="pt-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-medium text-red-800">
-                  Request Account Deletion
-                </p>
-                <p className="text-xs text-red-600 mt-0.5">
-                  This action will flag your account for deletion. Your data will
-                  be removed within 30 days.
+                <p className="text-[14px] font-bold text-alert">Request Account Deletion</p>
+                <p className="text-[13px] text-alert/80 mt-1 max-w-md">
+                  This action will flag your account for deletion. All your personal data and booking history will be permanently removed within 30 days.
                 </p>
               </div>
               <Button
                 variant="outline"
                 onClick={() => setShowDeleteModal(true)}
-                className="border-red-300 text-red-600 hover:bg-red-50 flex-shrink-0 ml-4"
+                className="border-alert text-alert hover:bg-alert/10 whitespace-nowrap shadow-sm"
               >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete
+                <Trash2 className="w-4 h-4 mr-2" /> Delete Account
               </Button>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Delete Confirmation Modal */}
+      {/* ── DELETE MODAL ───────────────────────────── */}
       {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-5">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-surface rounded-2xl max-w-md w-full p-6 space-y-6 shadow-2xl border border-border/50 scale-in-95 animate-in">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-alert/10 flex items-center justify-center shrink-0 border border-alert/20">
+                <AlertTriangle className="w-6 h-6 text-alert" />
               </div>
-              <div>
-                <h3 className="font-bold text-navy-900">Delete Account</h3>
-                <p className="text-sm text-gray-500">
-                  This action cannot be undone easily
-                </p>
+              <div className="pt-1">
+                <h3 className="text-[20px] font-display font-bold text-text leading-tight">Delete Account</h3>
+                <p className="text-[14px] text-text-muted mt-1">This action cannot be undone easily</p>
               </div>
             </div>
 
-            <p className="text-sm text-gray-600">
-              Your account will be flagged for deletion. All your data, including
-              booking history, recordings, chat messages, and wallet balance, will
-              be permanently removed within 30 days.
+            <p className="text-[14px] text-text-muted leading-relaxed">
+              Your account will be flagged for deletion. All data, including booking history, chat messages, and wallet balance, will be <strong className="text-text">permanently removed</strong> within 30 days.
             </p>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Type <span className="font-bold">DELETE</span> to confirm
+            <div className="space-y-2">
+              <label className="text-[12px] font-medium text-text-muted">
+                Type <span className="font-bold text-text">DELETE</span> to confirm
               </label>
-              <input
+              <Input
                 type="text"
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
                 placeholder="DELETE"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+                className="font-mono"
               />
             </div>
 
-            <div className="flex gap-3 justify-end">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setDeleteConfirmText("");
-                }}
-              >
+            <div className="flex gap-3 justify-end pt-2">
+              <Button variant="outline" onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(""); }}>
                 Cancel
               </Button>
               <Button
                 onClick={handleRequestDeletion}
                 disabled={deleteConfirmText !== "DELETE" || deleting}
-                className="bg-red-600 hover:bg-red-700 text-white"
+                className="bg-alert hover:bg-[#c93f31] text-white border-none shadow-sm"
               >
-                {deleting ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Trash2 className="w-4 h-4 mr-2" />
-                )}
-                Request Deletion
+                {deleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                Confirm Deletion
               </Button>
             </div>
           </div>

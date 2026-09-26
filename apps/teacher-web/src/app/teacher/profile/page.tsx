@@ -10,21 +10,17 @@ import {
   Plus,
   Trash2,
   CheckCircle2,
-  User,
   FileText,
   Video,
-  Globe,
   Shield,
   Camera,
   Edit3,
-  Sparkles,
-  Upload,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
-import { Avatar } from "@/components/ui/Avatar";
+import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const COMMISSION_RATE = 0.3;
@@ -37,7 +33,7 @@ const DOC_TYPE_LABELS: Record<string, { label: string; icon: string }> = {
   OTHER: { label: "Other Document", icon: "📄" },
 };
 
-const DOC_STATUS_COLORS: Record<string, string> = {
+const DOC_STATUS_COLORS: Record<string, "warning" | "success" | "danger"> = {
   PENDING: "warning",
   APPROVED: "success",
   REJECTED: "danger",
@@ -131,10 +127,8 @@ export default function TeacherProfileSettings() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchSettings();
   }, []);
-
 
   const handleSaveProfile = async () => {
     setSaving(true);
@@ -148,21 +142,9 @@ export default function TeacherProfileSettings() {
         body: JSON.stringify({ bio, avatarUrl, demoVideoUrl }),
       });
       if (!res.ok) throw new Error("Failed to save profile");
-      setSuccessMsg("Profile updated successfully!");
-      setTimeout(() => setSuccessMsg(null), 3000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSaveSettings = async () => {
-    setSaving(true);
-    setError(null);
-    setSuccessMsg(null);
-    try {
-      const res = await fetch("/api/teachers/settings", {
+      
+      // also save settings so there's one save action for user simplicity here
+      await fetch("/api/teachers/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -172,8 +154,8 @@ export default function TeacherProfileSettings() {
           availability,
         }),
       });
-      if (!res.ok) throw new Error("Failed to save settings");
-      setSuccessMsg("Settings saved successfully!");
+
+      setSuccessMsg("Profile & Settings saved successfully!");
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -200,99 +182,93 @@ export default function TeacherProfileSettings() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative">
-            <div className="w-12 h-12 rounded-full border-[3px] border-brand/20 border-t-brand animate-spin" />
-            <div className="absolute inset-0 w-12 h-12 rounded-full border-[3px] border-transparent border-t-gold animate-spin" style={{ animationDirection: "reverse", animationDuration: "1.5s" }} />
-          </div>
-          <span className="text-sm text-text-muted font-medium">Loading profile...</span>
-        </div>
+      <div className="py-8 max-w-5xl mx-auto w-full">
+        <DashboardSkeleton />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-5xl mx-auto w-full">
-      {/* Header */}
+    <div className="space-y-6 pb-16 animate-in fade-in duration-300 h-full flex flex-col max-w-5xl mx-auto w-full">
+      {/* ── HEADER ─────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold text-text">Profile & Settings</h1>
-          <p className="text-text-muted mt-1">Manage your public profile, rates, and availability</p>
+          <h1 className="text-[32px] sm:text-[36px] font-display font-bold text-text tracking-[-0.02em] leading-tight">
+            Profile & Settings
+          </h1>
+          <p className="text-base text-text-muted mt-1">
+            Manage your public profile, rates, and availability
+          </p>
         </div>
-        <Button onClick={handleSaveProfile} disabled={saving} variant="primary" className="flex items-center gap-2">
+        <Button onClick={handleSaveProfile} disabled={saving} variant="primary" className="flex items-center gap-2 shadow-sm">
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          Save Profile
+          Save Changes
         </Button>
       </div>
 
       {/* Messages */}
       {error && (
-        <div className="p-4 rounded-xl bg-danger/10 border border-danger/20 text-danger flex items-center gap-3 text-sm font-medium">
-          <AlertCircle className="w-4 h-4" /> {error}
+        <div className="p-4 rounded-xl bg-alert/10 border border-alert/20 text-alert flex items-center gap-3 text-[14px] font-medium shadow-sm">
+          <AlertCircle className="w-5 h-5" /> {error}
         </div>
       )}
       {successMsg && (
-        <div className="p-4 rounded-xl bg-trust/10 border border-trust/20 text-trust flex items-center gap-3 text-sm font-medium">
-          <CheckCircle2 className="w-4 h-4" /> {successMsg}
+        <div className="p-4 rounded-xl bg-trust/10 border border-trust/20 text-trust flex items-center gap-3 text-[14px] font-medium shadow-sm">
+          <CheckCircle2 className="w-5 h-5" /> {successMsg}
         </div>
       )}
 
-      {/* Profile Overview */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0f0c29] via-[#1a1547] to-[#231d5e] p-[1px]">
-        <div className="rounded-[15px] bg-gradient-to-br from-[#1a1547] to-[#0f0c29] p-6">
-          <div className="flex items-start gap-6">
-            <div className="relative group">
-              <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-amber-400/20 to-amber-600/20 flex items-center justify-center overflow-hidden">
+      {/* ── PROFILE HERO ───────────────────────────── */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#231d5e] to-[#5046c8] p-[1px] shadow-level-2">
+        <div className="rounded-[15px] bg-gradient-to-br from-[#1a1547] to-[#0f0c29] p-6 relative overflow-hidden">
+          <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-white/5 blur-[50px] pointer-events-none" />
+          
+          <div className="flex items-start gap-6 relative z-10">
+            <div className="relative group shrink-0">
+              <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-brand to-brand-hover flex items-center justify-center overflow-hidden shadow-sm border border-white/10">
                 {avatarUrl ? (
                   <img src={avatarUrl} alt={profileName} className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-3xl font-bold text-amber-400">{profileName[0]}</span>
+                  <span className="text-3xl font-display font-bold text-white">{profileName[0]?.toUpperCase()}</span>
                 )}
               </div>
-              <div className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer">
+              <div className="absolute inset-0 rounded-2xl bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer">
                 <Camera className="w-6 h-6 text-white" />
               </div>
             </div>
-            <div className="flex-1 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">Full Name</label>
-                  <div className="text-white font-semibold mt-1">{profileName}</div>
+            
+            <div className="flex-1">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-y-4 gap-x-6">
+                <div className="col-span-2">
+                  <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Name</label>
+                  <div className="text-[18px] font-display text-white font-bold mt-0.5">{profileName}</div>
                 </div>
-                <div>
-                  <label className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">Email</label>
-                  <div className="text-white/80 font-medium mt-1">{profileEmail}</div>
+                <div className="col-span-2">
+                  <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Email</label>
+                  <div className="text-[14px] text-white/90 font-medium mt-1">{profileEmail}</div>
                 </div>
+                
                 <div>
-                  <label className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">Status</label>
+                  <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Status</label>
                   <div className="mt-1">
-                    <Badge
-                      variant={
-                        profileStatus === "APPROVED" ? "success" : profileStatus === "REJECTED" ? "danger" : "warning"
-                      }
-                    >
+                    <Badge variant={profileStatus === "APPROVED" ? "success" : profileStatus === "REJECTED" ? "danger" : "warning"} className="text-[10px] uppercase font-bold tracking-wider">
                       {profileStatus.replace(/_/g, " ")}
                     </Badge>
                   </div>
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">Experience</label>
-                  <div className="text-white/80 mt-1">{profileExperience}</div>
+                  <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Experience</label>
+                  <div className="text-[14px] text-white/90 font-medium mt-1">{profileExperience}</div>
                 </div>
-                <div>
-                  <label className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">Primary Language</label>
-                  <div className="text-white/80 mt-1">{profileLanguage || "Not set"}</div>
-                </div>
-                <div>
-                  <label className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">Languages</label>
+                <div className="col-span-2">
+                  <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Languages</label>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {profileLanguages.length > 0 ? (
                       profileLanguages.map((l) => (
-                        <Badge key={l} variant="default" className="text-xs bg-white/10 text-white/70 border-white/10">{l}</Badge>
+                        <Badge key={l} variant="default" className="text-[10px] uppercase font-bold tracking-wider bg-white/10 text-white/90 border-white/10 py-0.5">{l}</Badge>
                       ))
                     ) : (
-                      <span className="text-white/40 text-sm">Not set</span>
+                      <span className="text-[13px] text-white/50 font-medium italic">Not set</span>
                     )}
                   </div>
                 </div>
@@ -303,225 +279,184 @@ export default function TeacherProfileSettings() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column */}
+        {/* ── LEFT COLUMN ────────────────────────────── */}
         <div className="lg:col-span-1 space-y-6">
           {/* Bio */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-brand/10 flex items-center justify-center">
-                  <Edit3 className="w-3.5 h-3.5 text-brand" />
+          <Card className="border border-border/50 shadow-sm">
+            <CardHeader className="pb-4 border-b border-border/40">
+              <CardTitle className="text-[16px] font-bold text-text flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center">
+                  <Edit3 className="w-4 h-4 text-brand" />
                 </div>
-                Bio
+                Bio & Avatar
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <textarea
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                placeholder="Tell students about your teaching style, experience, and what makes you unique..."
-                rows={4}
-                className="w-full rounded-xl border border-border bg-surface-inset px-4 py-3 text-sm text-text placeholder:text-text-subtle focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all resize-none"
-              />
-              <p className="text-[11px] text-text-subtle mt-1.5">{bio.length}/500 characters</p>
-            </CardContent>
-          </Card>
-
-          {/* Demo Video */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-brand/10 flex items-center justify-center">
-                  <Video className="w-3.5 h-3.5 text-brand" />
-                </div>
-                Intro Video
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Input
-                type="url"
-                placeholder="YouTube or Vimeo URL"
-                value={demoVideoUrl}
-                onChange={(e) => setDemoVideoUrl(e.target.value)}
-              />
-              <p className="text-[11px] text-text-subtle mt-1.5">
-                A short intro video helps students get to know you.
-              </p>
+            <CardContent className="pt-5 space-y-5">
+              <div>
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider block mb-1.5">Avatar URL</label>
+                <Input
+                  type="url"
+                  placeholder="https://example.com/avatar.jpg"
+                  value={avatarUrl}
+                  onChange={(e) => setAvatarUrl(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider block mb-1.5">About Me</label>
+                <textarea
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  placeholder="Tell students about your teaching style, experience, and what makes you unique..."
+                  rows={5}
+                  className="w-full rounded-xl border border-border/60 bg-surface px-4 py-3 text-[14px] text-text placeholder:text-text-subtle focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand shadow-sm transition-all resize-none"
+                />
+                <p className="text-[11px] font-medium text-text-subtle mt-1.5 text-right">{bio.length}/500</p>
+              </div>
             </CardContent>
           </Card>
 
           {/* Pricing */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center">
-                  <DollarSign className="w-3.5 h-3.5 text-amber-600" />
+          <Card className="border border-border/50 shadow-sm">
+            <CardHeader className="pb-4 border-b border-border/40">
+              <CardTitle className="text-[16px] font-bold text-text flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-gold/20 flex items-center justify-center">
+                  <DollarSign className="w-4 h-4 text-gold-950" />
                 </div>
                 Pricing
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="pt-5 space-y-5">
               <div>
-                <label className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">Hourly Rate (₹)</label>
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider block mb-1.5">Hourly Rate (₹)</label>
                 <Input
                   type="number"
                   min={0}
                   value={hourlyRate}
                   onChange={(e) => setHourlyRate(Number(e.target.value))}
-                  className="mt-1.5"
                 />
-                <div className="mt-2 p-3 bg-surface-inset rounded-xl border border-border text-xs space-y-1.5">
-                  <div className="flex justify-between">
+                <div className="mt-2.5 p-3.5 bg-surface-inset rounded-xl border border-border/50 text-[12px] space-y-2">
+                  <div className="flex justify-between font-medium">
                     <span className="text-text-muted">Platform fee ({COMMISSION_RATE * 100}%):</span>
-                    <span className="text-danger">-₹{(hourlyRate * COMMISSION_RATE).toFixed(0)}</span>
+                    <span className="text-alert">-₹{(hourlyRate * COMMISSION_RATE).toFixed(0)}</span>
                   </div>
-                  <div className="flex justify-between font-semibold text-text border-t border-border pt-1.5">
+                  <div className="flex justify-between font-bold text-text border-t border-border/60 pt-2">
                     <span>You earn:</span>
                     <span className="text-trust">₹{(hourlyRate * (1 - COMMISSION_RATE)).toFixed(0)}/hr</span>
                   </div>
                 </div>
               </div>
               <div>
-                <label className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">Course Rate (₹)</label>
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider block mb-1.5">Course Rate (₹)</label>
                 <Input
                   type="number"
                   min={0}
                   value={courseRate}
                   onChange={(e) => setCourseRate(Number(e.target.value))}
-                  className="mt-1.5"
                 />
-                <div className="mt-2 p-3 bg-surface-inset rounded-xl border border-border text-xs space-y-1.5">
-                  <div className="flex justify-between">
+                <div className="mt-2.5 p-3.5 bg-surface-inset rounded-xl border border-border/50 text-[12px] space-y-2">
+                  <div className="flex justify-between font-medium">
                     <span className="text-text-muted">Platform fee ({COMMISSION_RATE * 100}%):</span>
-                    <span className="text-danger">-₹{(courseRate * COMMISSION_RATE).toFixed(0)}</span>
+                    <span className="text-alert">-₹{(courseRate * COMMISSION_RATE).toFixed(0)}</span>
                   </div>
-                  <div className="flex justify-between font-semibold text-text border-t border-border pt-1.5">
+                  <div className="flex justify-between font-bold text-text border-t border-border/60 pt-2">
                     <span>You earn:</span>
                     <span className="text-trust">₹{(courseRate * (1 - COMMISSION_RATE)).toFixed(0)}/course</span>
                   </div>
                 </div>
               </div>
-              <Button onClick={handleSaveSettings} variant="primary" className="w-full" isLoading={saving}>
-                Save Pricing & Availability
-              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Demo Video */}
+          <Card className="border border-border/50 shadow-sm">
+            <CardHeader className="pb-4 border-b border-border/40">
+              <CardTitle className="text-[16px] font-bold text-text flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-action/10 flex items-center justify-center">
+                  <Video className="w-4 h-4 text-action" />
+                </div>
+                Intro Video
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-5 space-y-3">
+              <div>
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider block mb-1.5">Video URL</label>
+                <Input
+                  type="url"
+                  placeholder="YouTube or Vimeo URL"
+                  value={demoVideoUrl}
+                  onChange={(e) => setDemoVideoUrl(e.target.value)}
+                />
+              </div>
+              <p className="text-[12px] text-text-muted leading-relaxed">
+                A short intro video helps students get to know you and increases booking chances.
+              </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Right Column */}
+        {/* ── RIGHT COLUMN ───────────────────────────── */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Documents */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-brand/10 flex items-center justify-center">
-                  <FileText className="w-3.5 h-3.5 text-brand" />
-                </div>
-                Documents
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {documents.length === 0 ? (
-                <div className="text-center py-10">
-                  <div className="w-16 h-16 rounded-2xl bg-surface-inset flex items-center justify-center mx-auto mb-4">
-                    <Shield className="w-7 h-7 text-text-subtle" />
-                  </div>
-                  <p className="text-sm text-text-muted font-medium">No documents uploaded yet.</p>
-                  <p className="text-xs text-text-subtle mt-1">Upload your qualifications to get verified.</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {documents.map((doc) => {
-                    const typeInfo = DOC_TYPE_LABELS[doc.type] || DOC_TYPE_LABELS.OTHER;
-                    const statusColor = DOC_STATUS_COLORS[doc.status] || "default";
-                    return (
-                      <div key={doc.id} className="flex items-center gap-4 p-4 rounded-xl bg-surface-inset border border-border hover:border-border-strong transition-colors">
-                        <div className="w-11 h-11 rounded-xl bg-surface flex items-center justify-center text-xl">
-                          {typeInfo.icon}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-semibold text-text">{typeInfo.label}</div>
-                          <div className="text-xs text-text-muted mt-0.5">
-                            Uploaded {new Date(doc.createdAt).toLocaleDateString("en-IN")}
-                            {doc.notes && ` · ${doc.notes}`}
-                          </div>
-                        </div>
-                        <Badge variant={statusColor as "default" | "info" | "success" | "outline" | "danger" | "warning"} className="text-xs">
-                          {doc.status}
-                        </Badge>
-                        <a
-                          href={doc.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-brand font-medium hover:underline"
-                        >
-                          View
-                        </a>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
+          
           {/* Availability */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-brand/10 flex items-center justify-center">
-                  <Clock className="w-3.5 h-3.5 text-brand" />
+          <Card className="border border-border/50 shadow-sm h-fit">
+            <CardHeader className="pb-4 border-b border-border/40">
+              <CardTitle className="text-[16px] font-bold text-text flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center">
+                  <Clock className="w-4 h-4 text-brand" />
                 </div>
                 Weekly Availability
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
+            <CardContent className="p-0">
+              <div className="divide-y divide-border/40">
                 {DAYS.map((dayName, dayIndex) => {
                   const daySlots = availability.filter((s) => s.dayOfWeek === dayIndex);
                   const isToday = new Date().getDay() === dayIndex;
                   return (
-                    <div key={dayIndex} className={`border-b border-border pb-3 last:border-0 last:pb-0 ${isToday ? "bg-brand/[0.02] -mx-2 px-2 py-2 rounded-xl" : ""}`}>
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className={`text-sm font-medium w-28 flex items-center gap-2 ${isToday ? "text-brand" : "text-text"}`}>
+                    <div key={dayIndex} className={`p-4 sm:p-5 transition-colors ${isToday ? "bg-brand/[0.02]" : "hover:bg-surface-inset/50"}`}>
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className={`text-[14px] font-bold flex items-center gap-2 ${isToday ? "text-brand" : "text-text"}`}>
                           {dayName}
-                          {isToday && <Badge variant="info" className="text-[9px] py-0">Today</Badge>}
+                          {isToday && <Badge variant="info" className="text-[9px] uppercase tracking-wider font-bold py-0.5 px-2">Today</Badge>}
                         </h3>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => addSlot(dayIndex)}
-                          className="text-brand hover:text-brand hover:bg-brand/10 h-7 text-xs"
+                          className="text-brand hover:text-brand hover:bg-brand/10 h-8 text-[12px] font-bold shadow-none"
                         >
-                          <Plus className="w-3 h-3 mr-1" /> Add Slot
+                          <Plus className="w-3.5 h-3.5 mr-1" /> Add Slot
                         </Button>
                       </div>
+                      
                       {daySlots.length === 0 ? (
-                        <p className="text-xs text-text-subtle italic ml-28">Unavailable</p>
+                        <p className="text-[13px] text-text-subtle font-medium italic">Unavailable on {dayName}s</p>
                       ) : (
-                        <div className="space-y-2 ml-28">
+                        <div className="space-y-2.5">
                           {daySlots.map((slot) => {
                             const globalIdx = availability.indexOf(slot);
                             return (
-                              <div key={globalIdx} className="flex items-center gap-2">
-                                <Input
-                                  type="time"
-                                  value={slot.startTime}
-                                  onChange={(e) => updateSlot(globalIdx, "startTime", e.target.value)}
-                                  className="w-28 h-8 text-xs"
-                                />
-                                <span className="text-xs text-text-muted">to</span>
-                                <Input
-                                  type="time"
-                                  value={slot.endTime}
-                                  onChange={(e) => updateSlot(globalIdx, "endTime", e.target.value)}
-                                  className="w-28 h-8 text-xs"
-                                />
+                              <div key={globalIdx} className="flex flex-wrap items-center gap-3">
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    type="time"
+                                    value={slot.startTime}
+                                    onChange={(e) => updateSlot(globalIdx, "startTime", e.target.value)}
+                                    className="w-28 h-9 text-[13px] font-medium"
+                                  />
+                                  <span className="text-[12px] font-bold text-text-muted">TO</span>
+                                  <Input
+                                    type="time"
+                                    value={slot.endTime}
+                                    onChange={(e) => updateSlot(globalIdx, "endTime", e.target.value)}
+                                    className="w-28 h-9 text-[13px] font-medium"
+                                  />
+                                </div>
                                 <button
                                   onClick={() => removeSlot(globalIdx)}
-                                  className="p-1.5 text-text-subtle hover:text-danger hover:bg-danger/10 rounded-lg transition-colors"
+                                  className="w-9 h-9 flex items-center justify-center text-text-subtle hover:text-alert hover:bg-alert/10 rounded-lg transition-colors border border-transparent hover:border-alert/20"
                                 >
-                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <Trash2 className="w-4 h-4" />
                                 </button>
                               </div>
                             );
@@ -532,6 +467,63 @@ export default function TeacherProfileSettings() {
                   );
                 })}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Documents */}
+          <Card className="border border-border/50 shadow-sm">
+            <CardHeader className="pb-4 border-b border-border/40">
+              <CardTitle className="text-[16px] font-bold text-text flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-trust/10 flex items-center justify-center">
+                  <FileText className="w-4 h-4 text-trust" />
+                </div>
+                Documents & Verification
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-5">
+              {documents.length === 0 ? (
+                <div className="text-center py-12 bg-surface-inset/50 rounded-xl border border-border/40">
+                  <div className="w-16 h-16 rounded-2xl bg-surface-inset flex items-center justify-center mx-auto mb-4 shadow-sm border border-border/60">
+                    <Shield className="w-7 h-7 text-text-subtle" />
+                  </div>
+                  <p className="text-[15px] text-text font-bold mb-1">No documents uploaded yet</p>
+                  <p className="text-[13px] text-text-muted">Upload your qualifications and ID to get verified.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {documents.map((doc) => {
+                    const typeInfo = DOC_TYPE_LABELS[doc.type] || DOC_TYPE_LABELS.OTHER;
+                    const statusColor = DOC_STATUS_COLORS[doc.status] || "warning";
+                    return (
+                      <div key={doc.id} className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-xl bg-surface-inset border border-border/60 hover:border-brand/30 transition-colors group">
+                        <div className="w-12 h-12 rounded-xl bg-surface flex items-center justify-center text-[24px] shadow-sm shrink-0 border border-border/50 group-hover:scale-105 transition-transform">
+                          {typeInfo.icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[15px] font-bold text-text mb-0.5">{typeInfo.label}</div>
+                          <div className="text-[12px] text-text-muted font-medium">
+                            Uploaded {new Date(doc.createdAt).toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" })}
+                            {doc.notes && <span className="block text-alert mt-0.5">Note: {doc.notes}</span>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <Badge variant={statusColor} className="text-[10px] uppercase font-bold tracking-wider py-0.5 px-2">
+                            {doc.status}
+                          </Badge>
+                          <a
+                            href={doc.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[13px] text-brand font-bold hover:underline bg-brand/10 px-3 py-1.5 rounded-lg transition-colors hover:bg-brand/20"
+                          >
+                            View
+                          </a>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
