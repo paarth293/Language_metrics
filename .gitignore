@@ -84,4 +84,6 @@ login_response.json
 **/public/uploads/
 scratch/
 *.sql
+# ...but Prisma migrations must be committed, or the schema history is lost.
+!packages/database/prisma/migrations/**/migration.sql
 language-metrics-architecture.html

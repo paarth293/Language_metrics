@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
-import { loginSchema, registerStudentSchema, registerTeacherSchema } from "@/features/auth/validators/auth";
+import { loginSchema, registerStudentSchema, registerTeacherSchema, parseDateOfBirth } from "@/features/auth/validators/auth";
 import type { User } from "@/types";
 import type { z } from "zod";
 import { generateOtp, hashOtp } from "@/lib/otp";
@@ -71,6 +71,7 @@ export class AuthService {
                 name: data.name,
                 languageToLearn: data.languageToLearn,
                 proficiencyLevel: data.proficiencyLevel?.toUpperCase() || "A1",
+                dateOfBirth: parseDateOfBirth(data.dateOfBirth),
                 onboardingComplete: true,
               }
             }
@@ -97,6 +98,7 @@ export class AuthService {
             name: data.name,
             languageToLearn: data.languageToLearn,
             proficiencyLevel: data.proficiencyLevel === "advanced" ? "ADVANCED" : data.proficiencyLevel === "intermediate" ? "INTERMEDIATE" : "BEGINNER",
+            dateOfBirth: parseDateOfBirth(data.dateOfBirth),
             onboardingComplete: true,
           },
         },
@@ -172,6 +174,7 @@ export class AuthService {
                 language: data.language,
                 languages: data.languages,
                 gender: data.gender,
+                dateOfBirth: parseDateOfBirth(data.dateOfBirth),
                 bio: data.experienceDescription?.trim() || null,
                 onboardingComplete: true,
               },
@@ -212,6 +215,7 @@ export class AuthService {
             language: data.language,
             languages: data.languages,
             gender: data.gender,
+            dateOfBirth: parseDateOfBirth(data.dateOfBirth),
             bio: data.experienceDescription?.trim() || null,
             onboardingComplete: true,
             documents: {

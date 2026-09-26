@@ -14,12 +14,14 @@ import {
   teacherStep2Schema,
   teacherStep3Schema,
   teacherStep4Schema,
+  MIN_AGE,
+  latestBirthDate,
 } from "@/features/auth/validators/auth";
 import { useAuth } from "@/lib/auth-client";
 import { TEACHING_LANGUAGES } from "@/lib/languages";
 
 type Step1Errors = Partial<Record<"name" | "email" | "password", string>>;
-type Step2Errors = Partial<Record<"language" | "languages", string>>;
+type Step2Errors = Partial<Record<"language" | "languages" | "dateOfBirth", string>>;
 type Step3Errors = Partial<
   Record<"qualificationDocUrl" | "idProofDocUrl", string>
 >;
@@ -57,6 +59,7 @@ export default function TeacherRegisterPage() {
   const [primaryLanguage, setPrimaryLanguage] = useState("");
   const [additionalLanguages, setAdditionalLanguages] = useState<string[]>([]);
   const [gender, setGender] = useState<"male" | "female" | "other" | "">("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [step2Errors, setStep2Errors] = useState<Step2Errors>({});
 
   // Step 3 fields — Qualifications
@@ -224,6 +227,7 @@ export default function TeacherRegisterPage() {
         language: primaryLanguage,
         languages: allLanguages,
         gender: gender || undefined,
+        dateOfBirth,
       });
       if (!result.success) {
         const errors: Step2Errors = {};
@@ -298,6 +302,7 @@ export default function TeacherRegisterPage() {
           language: primaryLanguage,
           languages: allLanguages,
           gender: gender || undefined,
+          dateOfBirth,
           qualificationDocUrl,
           idProofDocUrl,
           experienceType,
@@ -517,6 +522,16 @@ export default function TeacherRegisterPage() {
                   <option value="other">Other</option>
                 </select>
               </div>
+
+              {/* Date of birth — teachers must be 18+ */}
+              <div className="space-y-1">
+                <label htmlFor="teacher-dob" className="text-sm font-medium text-text">Date of birth</label>
+                <Input id="teacher-dob" type="date" value={dateOfBirth} max={latestBirthDate(MIN_AGE.TEACHER)}
+                  onChange={(e) => { setDateOfBirth(e.target.value); setStep2Errors((prev) => ({ ...prev, dateOfBirth: undefined })); }}
+                  aria-invalid={!!step2Errors.dateOfBirth} aria-describedby={step2Errors.dateOfBirth ? "teacher-dob-error" : undefined}
+                  className={step2Errors.dateOfBirth ? "border-danger focus:ring-danger" : ""} />
+                {step2Errors.dateOfBirth && <p id="teacher-dob-error" role="alert" className="text-xs text-danger mt-1">{step2Errors.dateOfBirth}</p>}
+              </div>
             </div>
           )}
 
@@ -644,6 +659,7 @@ export default function TeacherRegisterPage() {
                     </div>
                   </div>
                   <div><p className="text-text-muted text-xs">Gender</p><p className="text-text capitalize">{gender || "Not specified"}</p></div>
+                  <div><p className="text-text-muted text-xs">Date of birth</p><p className="text-text">{dateOfBirth}</p></div>
                 </div>
               </div>
 

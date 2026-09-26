@@ -29,6 +29,8 @@ export interface AuthUser {
   email: string;
   role: Role;
   emailVerified: boolean;
+  /** True for student/teacher accounts created before DOB was collected. */
+  needsDateOfBirth?: boolean;
 }
 
 interface AuthContextType {

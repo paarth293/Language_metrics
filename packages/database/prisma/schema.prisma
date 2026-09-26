@@ -63,6 +63,9 @@ model StudentProfile {
   avatarUrl          String?
   onboardingComplete Boolean       @default(false)
   proficiencyLevel   String        @default("A1")
+  /// Required for every new signup (enforced in the API). Nullable only so
+  /// accounts created before DOB collection can be asked for it on login.
+  dateOfBirth        DateTime?     @db.Date
   bookings           Booking[]
   reviews            Review[]
   sessionBillings    SessionBilling[]
@@ -85,6 +88,9 @@ model TeacherProfile {
   avatarUrl          String?
   onboardingComplete Boolean                @default(false)
   languages          String[]               @default([])
+  /// Required for every new signup (enforced in the API, 18+). Nullable only
+  /// so accounts created before DOB collection can be asked for it on login.
+  dateOfBirth        DateTime?              @db.Date
   availability       AvailabilitySlot[]
   bookings           Booking[]
   interviews         Interview[]
