@@ -18,6 +18,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { TEACHING_LANGUAGES } from "@/lib/languages";
+import { MIN_AGE, dateOfBirthSchema, latestBirthDate } from "@/features/auth/validators/auth";
 import { getLevelsForLanguage, type LanguageLevel } from "@/lib/languages";
 
 const EXPERIENCE_LEVELS = [
@@ -52,6 +53,8 @@ export default function OnboardingPage() {
   const [additionalLanguages, setAdditionalLanguages] = useState<string[]>([]);
   const [bio, setBio] = useState("");
   const [gender, setGender] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [dobError, setDobError] = useState<string | null>(null);
   const [experienceLevel, setExperienceLevel] = useState("");
 
   // Toggle additional language
@@ -105,10 +108,11 @@ export default function OnboardingPage() {
 
     const body =
       user?.role === "STUDENT"
-        ? { name, role: "STUDENT", languageToLearn, proficiencyLevel }
+        ? { name, role: "STUDENT", dateOfBirth, languageToLearn, proficiencyLevel }
         : {
             name,
             role: "TEACHER",
+            dateOfBirth,
             language,
             languages: Array.from(new Set([language, ...additionalLanguages])),
             bio,
@@ -265,13 +269,35 @@ export default function OnboardingPage() {
                     Linked from your Google account — can&apos;t be changed here.
                   </p>
                 </div>
+
+                <div className="space-y-1">
+                  <label htmlFor="onboarding-dob" className="text-sm font-medium text-text">Date of birth</label>
+                  <Input
+                    id="onboarding-dob"
+                    type="date"
+                    value={dateOfBirth}
+                    max={latestBirthDate(isStudent ? MIN_AGE.STUDENT : MIN_AGE.TEACHER)}
+                    onChange={(e) => { setDateOfBirth(e.target.value); setDobError(null); }}
+                    aria-invalid={!!dobError}
+                    aria-describedby={dobError ? "onboarding-dob-error" : undefined}
+                    className={dobError ? "border-danger focus:ring-danger" : ""}
+                  />
+                  {dobError && <p id="onboarding-dob-error" role="alert" className="text-xs text-danger mt-1">{dobError}</p>}
+                </div>
               </div>
 
               <Button
                 type="button"
                 variant={isStudent ? "gold" : "primary"}
                 className="w-full mt-4"
-                onClick={() => setStep(2)}
+                onClick={() => {
+                  const check = dateOfBirthSchema(isStudent ? MIN_AGE.STUDENT : MIN_AGE.TEACHER).safeParse(dateOfBirth);
+                  if (!check.success) {
+                    setDobError(check.error.issues[0]?.message ?? "Please enter a valid date of birth.");
+                    return;
+                  }
+                  setStep(2);
+                }}
                 disabled={name.trim().length < 2}
               >
                 Continue
