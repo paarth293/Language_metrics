@@ -7,7 +7,6 @@ import {
   Clock,
   AlertCircle,
   TrendingUp,
-  CreditCard,
   Banknote,
   Calendar,
   Coins,
@@ -119,7 +118,6 @@ export default function TeacherEarnings() {
   }
 
   const { summary, payouts } = earnings;
-  const COMMISSION = 30;
 
   return (
     <div className="space-y-6 pb-16 animate-in fade-in duration-300 h-full flex flex-col">
@@ -161,7 +159,7 @@ export default function TeacherEarnings() {
       {activeTab === "earnings" ? (
         <div className="space-y-6">
           {/* Earnings Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Total Earnings */}
             <Card className="md:col-span-2 bg-gradient-to-br from-[#231d5e] to-[#5046c8] text-white border-none shadow-level-2 overflow-hidden relative">
               <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-white/10 blur-[60px] pointer-events-none" />
@@ -173,7 +171,7 @@ export default function TeacherEarnings() {
                   {formatCurrency(summary.totalEarnings)}
                 </div>
                 <div className="text-[13px] text-white/80 font-medium">
-                  {summary.totalClasses} classes · {COMMISSION}% platform fee
+                  {summary.totalClasses} classes
                 </div>
                 <div className="mt-6 pt-5 border-t border-white/20 grid grid-cols-3 gap-4">
                   <div>
@@ -188,20 +186,6 @@ export default function TeacherEarnings() {
                     <div className="text-[16px] font-bold">{formatCurrency(summary.thisMonth.earnings)}</div>
                     <div className="text-[11px] text-white/60 font-semibold uppercase mt-0.5">Month ({summary.thisMonth.classes})</div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Platform Fee */}
-            <Card className="border border-border/50 shadow-sm bg-alert/5 hover:border-alert/30 transition-colors">
-              <CardContent className="p-5 flex flex-col justify-center h-full text-center">
-                <div className="w-10 h-10 rounded-full bg-alert/10 flex items-center justify-center mx-auto mb-3">
-                  <CreditCard className="w-5 h-5 text-alert" />
-                </div>
-                <div className="text-[11px] font-bold uppercase tracking-wider text-alert/80 mb-1">Platform Fee</div>
-                <div className="text-[28px] font-display font-bold text-text leading-tight">{formatCurrency(summary.totalCommission)}</div>
-                <div className="text-[12px] text-text-muted mt-2 font-medium bg-surface px-2 py-1 rounded-md mx-auto border border-border/50">
-                  {COMMISSION}% commission
                 </div>
               </CardContent>
             </Card>
