@@ -8,12 +8,12 @@ import { AuthLayout } from "@/components/layout/AuthLayout";
 import { OAuthErrorAlert } from "@/components/auth/OAuthErrorAlert";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { registerStudentSchema, PASSWORD_RULES } from "@/features/auth/validators/auth";
+import { registerStudentSchema, PASSWORD_RULES, MIN_AGE, latestBirthDate } from "@/features/auth/validators/auth";
 import { useAuth } from "@/lib/auth-client";
 import { LANGUAGES, getLevelsForLanguage } from "@/lib/languages";
 
 type FieldErrors = Partial<
-  Record<"name" | "email" | "password" | "languageToLearn" | "proficiencyLevel", string>
+  Record<"name" | "email" | "password" | "dateOfBirth" | "languageToLearn" | "proficiencyLevel", string>
 >;
 
 // Password strength: returns 0-4.
@@ -36,6 +36,7 @@ export default function StudentRegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [language, setLanguage] = useState("");
   const [level, setLevel] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -188,6 +189,7 @@ export default function StudentRegisterPage() {
           name,
           email,
           password,
+          dateOfBirth,
           languageToLearn: language,
           proficiencyLevel: level,
         }),
@@ -223,6 +225,7 @@ export default function StudentRegisterPage() {
       name,
       email,
       password,
+      dateOfBirth,
       languageToLearn: language,
       proficiencyLevel: level,
     });
@@ -447,6 +450,22 @@ export default function StudentRegisterPage() {
               </p>
             )}
             {fieldErrors.password && <p id="student-password-error" role="alert" className="text-xs text-danger mt-1">{fieldErrors.password}</p>}
+          </div>
+
+          {/* Date of birth */}
+          <div className="space-y-1">
+            <label htmlFor="student-dob" className="text-sm font-medium text-text">Date of birth</label>
+            <Input
+              id="student-dob"
+              type="date"
+              value={dateOfBirth}
+              max={latestBirthDate(MIN_AGE.STUDENT)}
+              onChange={(e) => { setDateOfBirth(e.target.value); clearError("dateOfBirth"); }}
+              aria-invalid={!!fieldErrors.dateOfBirth}
+              aria-describedby={fieldErrors.dateOfBirth ? "student-dob-error" : undefined}
+              className={fieldErrors.dateOfBirth ? "border-danger focus:ring-danger" : ""}
+            />
+            {fieldErrors.dateOfBirth && <p id="student-dob-error" role="alert" className="text-xs text-danger mt-1">{fieldErrors.dateOfBirth}</p>}
           </div>
 
           {/* Language + Level */}
