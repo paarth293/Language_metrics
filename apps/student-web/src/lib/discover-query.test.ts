@@ -49,6 +49,24 @@ describe("discover-query", () => {
     expect(priceOr.length).toBe(2);
   });
 
+  it("where: language filter matches both the name and the ISO code", () => {
+    // Onboarding stores ISO codes ("en") while the filter UI sends names.
+    const clauses = JSON.stringify((buildDiscoverWhere(baseQuery({ language: "English" })) as any).AND);
+    expect(clauses).toContain('"en"');
+    expect(clauses).toContain('"English"');
+  });
+
+  it("where: 'Chinese' resolves to Mandarin Chinese's code", () => {
+    const where = buildDiscoverWhere(baseQuery({ language: "Chinese" })) as any;
+    expect(JSON.stringify(where.AND)).toContain('"zh"');
+  });
+
+  it("where: gender match is case-insensitive", () => {
+    // Stored as "male" or "Male"; the UI sends "MALE".
+    const where = buildDiscoverWhere(baseQuery({ gender: "MALE" })) as any;
+    expect(where.gender).toEqual({ equals: "MALE", mode: "insensitive" });
+  });
+
   it("paginate: fewer results than limit -> no more pages", () => {
     const fetched = [{ userId: "a" }, { userId: "b" }, { userId: "c" }];
     const page = paginate(fetched, 5);
