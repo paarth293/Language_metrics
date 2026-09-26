@@ -18,6 +18,16 @@ interface Rate {
   amount: number;
 }
 
+interface DemoInfo {
+  coins: number;
+  minutes: number;
+  /** False once the student has a non-cancelled demo with this teacher. */
+  available: boolean;
+}
+
+/** Radio value for the demo option, which has no rate id of its own. */
+const DEMO = "DEMO";
+
 interface TeacherInfo {
   name: string;
   language: string | null;
@@ -30,6 +40,7 @@ export default function BookClassPage() {
 
   const [teacher, setTeacher] = useState<TeacherInfo | null>(null);
   const [rates, setRates] = useState<Rate[]>([]);
+  const [demo, setDemo] = useState<DemoInfo | null>(null);
   const [selectedRate, setSelectedRate] = useState<string>("");
   const [slotStart, setSlotStart] = useState<string>("");
   const [balance, setBalance] = useState(0);
@@ -49,7 +60,13 @@ export default function BookClassPage() {
         const teacherData = await teacherRes.json();
         setTeacher(teacherData.teacher);
         setRates(teacherData.rates);
-        if (teacherData.rates.length > 0) {
+        const demoInfo: DemoInfo | null = teacherData.demo ?? null;
+        setDemo(demoInfo);
+        // "Book Demo" links arrive with ?option=demo; otherwise keep the first rate.
+        const wantsDemo = new URLSearchParams(window.location.search).get("option") === "demo";
+        if (demoInfo?.available && (wantsDemo || teacherData.rates.length === 0)) {
+          setSelectedRate(DEMO);
+        } else if (teacherData.rates.length > 0) {
           setSelectedRate(teacherData.rates[0].id);
         }
 
@@ -87,7 +104,11 @@ export default function BookClassPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ rateId: selectedRate, type: "DEMO", slotStart: parsedStart.toISOString() }),
+        body: JSON.stringify(
+          selectedRate === DEMO
+            ? { demo: true, slotStart: parsedStart.toISOString() }
+            : { rateId: selectedRate, slotStart: parsedStart.toISOString() }
+        ),
       });
 
       const data = await res.json();
@@ -143,8 +164,9 @@ export default function BookClassPage() {
     );
   }
 
-  const selectedRateData = rates.find((r) => r.id === selectedRate);
-  const canAfford = selectedRateData ? balance >= selectedRateData.amount : false;
+  const selectedPrice =
+    selectedRate === DEMO ? demo?.coins : rates.find((r) => r.id === selectedRate)?.amount;
+  const canAfford = selectedPrice !== undefined && balance >= selectedPrice;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -178,7 +200,41 @@ export default function BookClassPage() {
 
         {/* Rate Selection */}
         <div className="space-y-3 mb-6">
-          <label className="text-sm font-medium text-text">Select Class Duration</label>
+          <label className="text-sm font-medium text-text">Choose a Class</label>
+          {demo && (
+            <label
+              className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
+                !demo.available
+                  ? "border-border opacity-50 cursor-not-allowed"
+                  : selectedRate === DEMO
+                    ? "border-brand bg-brand/5 cursor-pointer"
+                    : "border-border hover:border-brand/50 cursor-pointer"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <input
+                  type="radio"
+                  name="rate"
+                  value={DEMO}
+                  checked={selectedRate === DEMO}
+                  disabled={!demo.available}
+                  onChange={() => setSelectedRate(DEMO)}
+                  className="accent-brand"
+                />
+                <div>
+                  <div className="font-medium text-text">Demo class</div>
+                  <div className="text-xs text-text-muted">
+                    {demo.available
+                      ? `${demo.minutes} min · one per teacher`
+                      : "Already booked with this teacher"}
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="font-bold text-brand">{demo.coins} coins</div>
+              </div>
+            </label>
+          )}
           {rates.map((rate) => (
             <label
               key={rate.id}
@@ -218,10 +274,10 @@ export default function BookClassPage() {
           </span>
         </div>
 
-        {!canAfford && selectedRateData && (
+        {!canAfford && selectedPrice !== undefined && (
           <div className="flex items-center gap-2 p-3 rounded-xl bg-danger/10 text-danger text-sm mb-6">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            You need {selectedRateData.amount} coins. Top up your wallet to book.
+            You need {selectedPrice} coins. Top up your wallet to book.
           </div>
         )}
 
