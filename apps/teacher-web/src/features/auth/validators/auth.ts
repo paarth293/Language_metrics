@@ -60,6 +60,59 @@ export const loginSchema = z
   })
   .strict();
 
+// ─── Date of birth ────────────────────────────────────────────────────────────
+/**
+ * Minimum age at signup. Teachers must be adults; the student floor of 5 is a
+ * product assumption (young learners sign up with a parent) — revisit it with
+ * the parental-consent requirements for under-18s.
+ */
+export const MIN_AGE = { STUDENT: 5, TEACHER: 18 } as const;
+
+/** Parses "YYYY-MM-DD" (what <input type="date"> produces) as a UTC calendar date. */
+export function parseDateOfBirth(value: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(`${value}T00:00:00Z`);
+  // Rejects impossible dates such as 2010-02-31, which Date would roll over.
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) return null;
+  return date;
+}
+
+/** Whole years between `dob` and `today`, compared as UTC calendar dates. */
+export function ageInYears(dob: Date, today: Date = new Date()): number {
+  let age = today.getUTCFullYear() - dob.getUTCFullYear();
+  const monthDiff = today.getUTCMonth() - dob.getUTCMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getUTCDate() < dob.getUTCDate())) age--;
+  return age;
+}
+
+/** Latest allowed birth date ("YYYY-MM-DD") for someone at least `minAge` today — for <input max>. */
+export function latestBirthDate(minAge: number, today: Date = new Date()): string {
+  const d = new Date(today);
+  d.setFullYear(d.getFullYear() - minAge);
+  return d.toISOString().slice(0, 10);
+}
+
+/** "YYYY-MM-DD" date of birth, at least `minAge` years ago and not absurdly old. */
+export function dateOfBirthSchema(minAge: number) {
+  return z
+    .string({ message: "Please enter your date of birth." })
+    .superRefine((value, ctx) => {
+      const dob = parseDateOfBirth(value);
+      if (!dob) {
+        ctx.addIssue({ code: "custom", message: "Please enter a valid date of birth." });
+        return;
+      }
+      const age = ageInYears(dob);
+      if (dob.getTime() > Date.now()) {
+        ctx.addIssue({ code: "custom", message: "Date of birth can't be in the future." });
+      } else if (age < minAge) {
+        ctx.addIssue({ code: "custom", message: `You must be at least ${minAge} years old to sign up.` });
+      } else if (age > 120) {
+        ctx.addIssue({ code: "custom", message: "Please enter a valid date of birth." });
+      }
+    });
+}
+
 // ─── Step schemas for teacher multi-step form ─────────────────────────────────
 // Defined as standalone objects so .pick() is never needed.
 // .pick() breaks if the parent schema is ever wrapped in .refine()/.superRefine()
@@ -77,6 +130,7 @@ export const teacherStep2Schema = z
     language: z.string().min(1, "Please select a primary language."),
     languages: z.array(z.string()).min(1, "Please select at least one language."),
     gender: z.enum(["male", "female", "other"]).optional(),
+    dateOfBirth: dateOfBirthSchema(MIN_AGE.TEACHER),
   })
   .strict();
 
@@ -127,6 +181,7 @@ export const registerStudentSchema = z
       .max(50, "Level name is too long.")
       .optional()
       .default("A1"),
+    dateOfBirth: dateOfBirthSchema(MIN_AGE.STUDENT),
   })
   .strict();
 
@@ -139,6 +194,7 @@ export const registerTeacherSchema = z
     language: z.string().min(1, "Please select a primary language."),
     languages: z.array(z.string()).min(1, "Please select at least one language."),
     gender: z.enum(["male", "female", "other"]).optional(),
+    dateOfBirth: dateOfBirthSchema(MIN_AGE.TEACHER),
     qualificationDocUrl: z
       .string()
       .min(1, "Please upload your qualification certificate."),
