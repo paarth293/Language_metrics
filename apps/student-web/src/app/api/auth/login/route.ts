@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+// Forced HMR reload trigger
+
 import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { signAccessToken, signRefreshToken, accessCookieOptions, refreshCookieOptions } from "@/lib/tokens";

@@ -7,6 +7,7 @@ vi.mock("@repo/database", () => {
     db: {
       classSession: {
         findUnique: vi.fn(),
+        findFirst: vi.fn(),
       },
     },
   };

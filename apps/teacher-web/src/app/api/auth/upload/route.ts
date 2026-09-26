@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   // Rate limit: 10 uploads per minute per IP, and 50 per day
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-    
+
   const isDailyLimited = await rateLimitRedis(ip, "upload-daily", { windowMs: 86400_000, max: 50 });
   if (isDailyLimited) {
     return NextResponse.json(
@@ -56,18 +56,43 @@ export async function POST(request: NextRequest) {
   const ext = rawExt.replace(/[^a-zA-Z0-9]/g, "").toLowerCase() || "pdf";
   const safeName = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
 
+  // Fallback content-type detection if browser doesn't send MIME type
+  let contentType = file.type;
+  if (!contentType || contentType === "application/octet-stream") {
+    if (ext === "pdf") contentType = "application/pdf";
+    else if (ext === "png") contentType = "image/png";
+    else if (ext === "jpg" || ext === "jpeg") contentType = "image/jpeg";
+    else if (ext === "webp") contentType = "image/webp";
+    else contentType = "application/pdf";
+  }
+
   const buffer = Buffer.from(await file.arrayBuffer());
 
+  const ALLOWED_TYPES = [
+    "application/pdf",
+    "application/x-pdf",
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+    "image/heic",
+    "image/heif",
+  ];
+
   try {
-    const result = await uploadFile(buffer, safeName, file.type, {
+    const result = await uploadFile(buffer, safeName, contentType, {
       folder: "temp",
-      allowedTypes: ["application/pdf"],
+      allowedTypes: ALLOWED_TYPES,
       maxSizeBytes: 10 * 1024 * 1024, // 10MB
     });
 
     return NextResponse.json({ url: result.url, filename: result.key }, { status: 201 });
   } catch (err) {
     console.error("[Upload] Failed to upload file:", err);
+    const errMessage = err instanceof Error ? err.message : "";
+    if (errMessage.includes("File type") || errMessage.includes("File exceeds") || errMessage.includes("Invalid file")) {
+      return NextResponse.json({ message: errMessage }, { status: 400 });
+    }
     return NextResponse.json(
       { message: "Failed to save file. Please try again." },
       { status: 500 }

@@ -10,6 +10,7 @@
  * Kept as a shim so already-deployed clients and any cached JS bundle keep
  * working. New code should call /api/live/token directly.
  */
+
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { handleTokenRequest } from "@repo/live-classes";

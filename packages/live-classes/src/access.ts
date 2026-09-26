@@ -83,7 +83,7 @@ export async function evaluateJoin(params: EvaluateJoinParams): Promise<JoinDeci
   const config = getLiveKitConfig();
   const now = params.now ?? new Date();
 
-  const session = await db.classSession.findUnique({
+  let session = await db.classSession.findUnique({
     where: { id: params.classSessionId },
     include: {
       booking: {
@@ -95,6 +95,21 @@ export async function evaluateJoin(params: EvaluateJoinParams): Promise<JoinDeci
       billing: true,
     },
   });
+
+  if (!session) {
+    session = await db.classSession.findFirst({
+      where: { bookingId: params.classSessionId, status: "SCHEDULED" },
+      include: {
+        booking: {
+          include: {
+            student: { select: { userId: true, name: true } },
+            teacher: { select: { userId: true, name: true } },
+          },
+        },
+        billing: true,
+      },
+    });
+  }
 
   if (!session) {
     return deny("SESSION_NOT_FOUND", "This class could not be found.", 404);

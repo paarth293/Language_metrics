@@ -80,6 +80,8 @@ cookie.txt
 login_response.json
 *.cookiejar
 
-# Expo
-.expo/
-apps/student-mobile/dist/
+# Uploads & Scratch
+**/public/uploads/
+scratch/
+*.sql
+language-metrics-architecture.html

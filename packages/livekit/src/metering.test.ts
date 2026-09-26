@@ -8,7 +8,7 @@
  * Run: npx vitest run packages/livekit/src/metering.test.ts
  *  or: npx tsx --test packages/livekit/src/metering.test.ts
  */
-import { describe, it } from "node:test";
+import { describe, it } from "vitest";
 import assert from "node:assert/strict";
 
 import {

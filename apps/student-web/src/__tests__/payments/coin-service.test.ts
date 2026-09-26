@@ -1,15 +1,14 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { getCoinBalance, creditCoins, debitCoins } from '../../lib/coin-service';
-import { db } from '../../lib/db';
+import { credit, debit, getCoinBalance as ledgerBalance } from '@repo/database';
 
-vi.mock('../../lib/db', () => ({
-  db: {
-    coinTransaction: {
-      findMany: vi.fn(),
-      create: vi.fn(),
-    }
-  }
+vi.mock('@repo/database', () => ({
+  credit: vi.fn().mockResolvedValue(undefined),
+  debit: vi.fn().mockResolvedValue(undefined),
+  getCoinBalance: vi.fn().mockResolvedValue({ balance: 120, heldBalance: 0, lifetimeEarned: 150, lifetimeSpent: 30 }),
 }));
+
+const testUserId = "11111111-1111-1111-1111-111111111111";
 
 describe('Coin Service', () => {
   beforeEach(() => {
@@ -17,38 +16,42 @@ describe('Coin Service', () => {
   });
 
   it('calculates balance correctly', async () => {
-    (db.coinTransaction.findMany as any).mockResolvedValue([
-      { type: 'PURCHASE', amount: 100 },
-      { type: 'BONUS', amount: 50 },
-      { type: 'SPEND', amount: 30 }
-    ]);
+    (ledgerBalance as any).mockResolvedValue({ balance: 120, heldBalance: 0, lifetimeEarned: 150, lifetimeSpent: 30 });
 
-    const balance = await getCoinBalance('user1');
-    expect(balance).toBe(120); // 100 + 50 - 30
+    const balance = await getCoinBalance(testUserId);
+    expect(balance).toBe(120);
   });
 
   it('credits coins successfully', async () => {
-    await creditCoins('user1', 50, 'test credit');
-    expect(db.coinTransaction.create).toHaveBeenCalledWith({
-      data: { userId: 'user1', amount: 50, type: 'PURCHASE', description: 'test credit' }
+    await creditCoins(testUserId, 50, 'test credit');
+    expect(credit).toHaveBeenCalledWith({
+      userId: testUserId,
+      amount: 50,
+      type: 'PURCHASE',
+      description: 'test credit',
+      idempotencyKey: undefined,
     });
   });
 
   it('debits coins if balance is sufficient', async () => {
-    (db.coinTransaction.findMany as any).mockResolvedValue([{ type: 'PURCHASE', amount: 100 }]);
-    const success = await debitCoins('user1', 50, 'test debit');
+    (debit as any).mockResolvedValue(undefined);
+    const success = await debitCoins(testUserId, 50, 'test debit');
     
     expect(success).toBe(true);
-    expect(db.coinTransaction.create).toHaveBeenCalledWith({
-      data: { userId: 'user1', amount: 50, type: 'SPEND', description: 'test debit' }
+    expect(debit).toHaveBeenCalledWith({
+      userId: testUserId,
+      amount: 50,
+      description: 'test debit',
+      idempotencyKey: undefined,
     });
   });
 
   it('fails to debit coins if balance is insufficient', async () => {
-    (db.coinTransaction.findMany as any).mockResolvedValue([{ type: 'PURCHASE', amount: 20 }]);
-    const success = await debitCoins('user1', 50, 'test debit');
+    const err = new Error('Insufficient balance');
+    err.name = 'InsufficientCoinsError';
+    (debit as any).mockRejectedValueOnce(err);
+    const success = await debitCoins(testUserId, 50, 'test debit');
     
     expect(success).toBe(false);
-    expect(db.coinTransaction.create).not.toHaveBeenCalled();
   });
 });

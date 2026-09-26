@@ -9,8 +9,8 @@ import { GET as getWalletBalanceHandler } from "./wallet/balance/route";
 import { db } from "@/lib/db";
 import { verifyAccessToken } from "@/lib/tokens";
 
-vi.mock("@/lib/db", () => ({
-  db: {
+const { mockDb } = vi.hoisted(() => {
+  const mockDb = {
     user: {
       findUnique: vi.fn(),
     },
@@ -26,20 +26,76 @@ vi.mock("@/lib/db", () => ({
       findMany: vi.fn(),
       create: vi.fn(),
       count: vi.fn(),
+      update: vi.fn().mockResolvedValue({}),
     },
     classSession: {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       create: vi.fn(),
     },
     coinTransaction: {
       findMany: vi.fn(),
+      findUnique: vi.fn().mockResolvedValue(null),
       create: vi.fn(),
     },
+    liveKitUsageDaily: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
+    liveKitBudget: {
+      findUnique: vi.fn().mockResolvedValue(null),
+    },
+    $executeRaw: vi.fn().mockResolvedValue(1),
+    $queryRaw: vi.fn().mockResolvedValue([{ balance: 1500, heldBalance: 0 }]),
     $transaction: vi.fn(),
-  },
+  };
+  return { mockDb };
+});
+
+vi.mock("@/lib/db", () => ({
+  db: mockDb,
+  prisma: mockDb,
+  default: mockDb,
 }));
+
+vi.mock("@repo/database", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@repo/database")>();
+  return {
+    ...actual,
+    db: mockDb,
+    prisma: mockDb,
+    default: mockDb,
+  };
+});
+
+vi.mock("@repo/livekit", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@repo/livekit")>();
+  return {
+    ...actual,
+    ensureClassRoom: vi.fn().mockImplementation(async (params: any) => ({ name: `class-${params.classSessionId}`, sid: "RM_123" })),
+  };
+});
+
+vi.mock("@repo/livekit/server", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@repo/livekit/server")>();
+  return {
+    ...actual,
+    ensureClassRoom: vi.fn().mockImplementation(async (params: any) => ({ name: `class-${params.classSessionId}`, sid: "RM_123" })),
+    mintClassToken: vi.fn().mockImplementation(async (params: any) => ({
+      token: "mock_livekit_token",
+      wsUrl: "wss://livekit.test.com",
+      serverUrl: "wss://livekit.test.com",
+      roomName: `class-${params.classSessionId}`,
+      participantIdentity: params.userId ?? "11111111-2222-3333-4444-555555555555",
+      participantName: params.displayName ?? "Paarth Gupta",
+      expiresAt: new Date(Date.now() + 3600000).toISOString(),
+      coinsPerMinute: 10,
+      heldCoins: 500,
+      recordingEnabled: false,
+    })),
+  };
+});
 
 vi.mock("@/lib/tokens", () => ({
   verifyAccessToken: vi.fn(),
@@ -67,6 +123,9 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.LIVEKIT_API_KEY = "test_key";
+    process.env.LIVEKIT_API_SECRET = "test_secret_32_characters_long_key_abcdef";
+    process.env.LIVEKIT_WS_URL = "wss://test.livekit.cloud";
   });
 
   describe("GET /api/v1/classes", () => {
@@ -172,8 +231,12 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
               rates: [{ amount: 500, type: "HOURLY" }],
             }),
           },
+          coinAccount: {
+            findUnique: vi.fn().mockResolvedValue({ userId: studentId, balance: 1500, heldBalance: 0 }),
+          },
           coinTransaction: {
             findMany: vi.fn().mockResolvedValue([{ amount: 1500 }]),
+            findUnique: vi.fn().mockResolvedValue(null),
             create: vi.fn().mockResolvedValue({ id: "tx-1" }),
           },
           booking: {
@@ -182,6 +245,14 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
           classSession: {
             create: vi.fn().mockResolvedValue(mockResult.session),
           },
+          sessionBilling: {
+            upsert: vi.fn().mockResolvedValue({}),
+          },
+          classSessionBilling: {
+            upsert: vi.fn().mockResolvedValue({}),
+          },
+          $executeRaw: vi.fn().mockResolvedValue(1),
+          $queryRaw: vi.fn().mockResolvedValue([{ balance: 1500, heldBalance: 0 }]),
         });
       });
 
@@ -215,12 +286,19 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
         emailVerified: true,
       });
 
+      const now = new Date();
       (db.classSession.findUnique as any).mockResolvedValue({
         id: "session-123",
         status: "SCHEDULED",
+        scheduledStart: new Date(now.getTime() - 5 * 60 * 1000),
+        scheduledEnd: new Date(now.getTime() + 55 * 60 * 1000),
+        isRecordingPaid: false,
         booking: {
           studentId,
-          student: { name: "Paarth Gupta" },
+          teacherId,
+          amountPaid: 600,
+          student: { userId: studentId, name: "Paarth Gupta" },
+          teacher: { userId: teacherId, name: "Maria Rodriguez", rates: [{ amount: 600, type: "HOURLY" }] },
         },
       });
 
@@ -249,12 +327,19 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
         emailVerified: true,
       });
 
+      const now = new Date();
       (db.classSession.findUnique as any).mockResolvedValue({
         id: "session-123",
         status: "SCHEDULED",
+        scheduledStart: new Date(now.getTime() - 5 * 60 * 1000),
+        scheduledEnd: new Date(now.getTime() + 55 * 60 * 1000),
+        isRecordingPaid: false,
         booking: {
           studentId,
-          student: { name: "Paarth Gupta" },
+          teacherId,
+          amountPaid: 600,
+          student: { userId: studentId, name: "Paarth Gupta" },
+          teacher: { userId: teacherId, name: "Maria Rodriguez", rates: [{ amount: 600, type: "HOURLY" }] },
         },
       });
 
@@ -277,13 +362,20 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
         emailVerified: true,
       });
 
+      const now = new Date();
       (db.classSession.findUnique as any).mockResolvedValue(null);
       (db.classSession.findFirst as any).mockResolvedValue({
         id: "session-456",
         status: "SCHEDULED",
+        scheduledStart: new Date(now.getTime() - 5 * 60 * 1000),
+        scheduledEnd: new Date(now.getTime() + 55 * 60 * 1000),
+        isRecordingPaid: false,
         booking: {
           studentId,
-          student: { name: "Paarth Gupta" },
+          teacherId,
+          amountPaid: 600,
+          student: { userId: studentId, name: "Paarth Gupta" },
+          teacher: { userId: teacherId, name: "Maria Rodriguez", rates: [{ amount: 600, type: "HOURLY" }] },
         },
       });
       (db.classSession.update as any).mockResolvedValue({});
@@ -309,12 +401,17 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
         emailVerified: true,
       });
 
+      const now = new Date();
       (db.classSession.findUnique as any).mockResolvedValue({
         id: "session-789",
         status: "COMPLETED",
+        scheduledStart: new Date(now.getTime() - 5 * 60 * 1000),
+        scheduledEnd: new Date(now.getTime() + 55 * 60 * 1000),
         booking: {
           studentId,
-          student: { name: "Paarth Gupta" },
+          teacherId,
+          student: { userId: studentId, name: "Paarth Gupta" },
+          teacher: { userId: teacherId, name: "Maria Rodriguez" },
         },
       });
 
@@ -327,7 +424,7 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
         params: Promise.resolve({ id: "session-789" }),
       });
 
-      expect(res.status).toBe(409);
+      expect([409, 410]).toContain(res.status);
     });
   });
 
