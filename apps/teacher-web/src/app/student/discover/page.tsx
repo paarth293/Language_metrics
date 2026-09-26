@@ -9,14 +9,16 @@ import {
   Clock,
   AlertCircle,
   Loader2,
-  ChevronDown,
   X,
+  GraduationCap,
+  ArrowRight,
 } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardFooter } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
+import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 
 type Teacher = {
   id: string;
@@ -35,20 +37,7 @@ type Teacher = {
   totalHours: number;
 };
 
-const LANGUAGES = [
-  "English",
-  "Spanish",
-  "French",
-  "Japanese",
-  "German",
-  "Chinese",
-  "Korean",
-  "Russian",
-  "Arabic",
-  "Hindi",
-  "Portuguese",
-  "Italian",
-];
+const LANGUAGES = ["English", "Spanish", "French", "Japanese", "German", "Chinese", "Korean", "Russian", "Arabic", "Hindi", "Portuguese", "Italian"];
 
 const EXPERIENCE_LEVELS = [
   { value: "BEGINNER", label: "Beginner (0-1 yrs)" },
@@ -69,6 +58,9 @@ const BUDGET_RANGES = [
   { value: "1000+", label: "₹1000+", min: 1000, max: Infinity },
 ];
 
+const PILL_COLORS = ["#231d5e","#0f6b58","#c7982f","#dc4c3e","#3d32a0","#0f9d6b"];
+function getInitials(n: string) { return n.split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase(); }
+
 export default function DiscoverPage() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,23 +70,14 @@ export default function DiscoverPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
   const [selectedBudget, setSelectedBudget] = useState<string | null>(null);
-  const [selectedExperience, setSelectedExperience] = useState<string | null>(
-    null
-  );
+  const [selectedExperience, setSelectedExperience] = useState<string | null>(null);
   const [selectedGender, setSelectedGender] = useState<string | null>(null);
   const [availableOnly, setAvailableOnly] = useState(false);
   const [showFilters, setShowFilters] = useState(true);
 
   useEffect(() => {
     fetchTeachers();
-  }, [
-    searchQuery,
-    selectedLanguage,
-    selectedBudget,
-    selectedExperience,
-    selectedGender,
-    availableOnly,
-  ]);
+  }, [searchQuery, selectedLanguage, selectedBudget, selectedExperience, selectedGender, availableOnly]);
 
   const fetchTeachers = async () => {
     try {
@@ -113,9 +96,7 @@ export default function DiscoverPage() {
       if (selectedGender) params.set("gender", selectedGender);
       if (availableOnly) params.set("available", "true");
 
-      const res = await fetch(`/api/students/discover?${params.toString()}`, {
-        credentials: "include",
-      });
+      const res = await fetch(`/api/students/discover?${params.toString()}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to load teachers");
       const data = await res.json();
       setTeachers(data.teachers || []);
@@ -135,349 +116,295 @@ export default function DiscoverPage() {
     setAvailableOnly(false);
   };
 
-  const activeFilterCount = [
-    selectedLanguage,
-    selectedBudget,
-    selectedExperience,
-    selectedGender,
-    availableOnly ? "available" : null,
-  ].filter(Boolean).length;
+  const activeFilterCount = [selectedLanguage, selectedBudget, selectedExperience, selectedGender, availableOnly ? "available" : null].filter(Boolean).length;
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="mb-6">
-        <h1 className="font-display text-3xl font-bold text-text mb-2">
-          Find a Teacher
-        </h1>
-        <p className="text-text-muted">
-          Discover the perfect language tutor for your goals.
-        </p>
+    <div className="space-y-6 pb-16 animate-in fade-in duration-300 h-full flex flex-col">
+      {/* ── HEADER ─────────────────────────────────── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[32px] sm:text-[36px] font-display font-bold text-text tracking-[-0.02em] leading-tight">
+            Find a Teacher
+          </h1>
+          <p className="text-base text-text-muted mt-1">
+            Discover the perfect language tutor for your goals
+          </p>
+        </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="flex items-center gap-3 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
+      {/* ── SEARCH BAR ─────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row items-center gap-3">
+        <div className="relative flex-1 w-full shadow-sm rounded-xl overflow-hidden border border-border/60 bg-surface">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-brand opacity-60" />
           <Input
             type="text"
             placeholder="Search by name, language, or keyword..."
-            className="pl-9"
+            className="pl-11 h-12 border-none bg-transparent focus-visible:ring-0 w-full"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
         <Button
-          variant="outline"
+          variant={showFilters ? "primary" : "outline"}
           onClick={() => setShowFilters(!showFilters)}
-          className="gap-2"
+          className="gap-2 h-12 shadow-sm w-full sm:w-auto"
         >
           <Filter className="w-4 h-4" />
           Filters
           {activeFilterCount > 0 && (
-            <Badge variant="success" className="ml-1 text-[10px]">
+            <span className="ml-1 flex items-center justify-center w-5 h-5 rounded-full bg-white/20 text-[10px] font-bold">
               {activeFilterCount}
-            </Badge>
+            </span>
           )}
         </Button>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-8">
-        {/* Filter Panel */}
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* ── FILTER PANEL ───────────────────────────── */}
         {showFilters && (
-          <aside className="w-full lg:w-72 shrink-0 space-y-5">
-            <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-5">
-              {/* Language Filter */}
-              <div>
-                <h3 className="font-semibold text-text text-sm mb-3">
-                  Language
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {LANGUAGES.map((lang) => (
-                    <Badge
-                      key={lang}
-                      variant={
-                        selectedLanguage === lang ? "success" : "default"
-                      }
-                      className="cursor-pointer"
-                      onClick={() =>
-                        setSelectedLanguage(
-                          selectedLanguage === lang ? null : lang
-                        )
-                      }
-                    >
-                      {lang}
-                    </Badge>
-                  ))}
+          <aside className="w-full lg:w-[280px] shrink-0 space-y-4 animate-in slide-in-from-left-4 duration-300">
+            <Card className="border border-border/50 shadow-sm sticky top-6">
+              <CardContent className="p-5 space-y-6">
+                
+                {/* Language */}
+                <div>
+                  <h3 className="font-semibold text-text text-[13px] uppercase tracking-wider mb-3">Language</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {LANGUAGES.map((lang) => (
+                      <button
+                        key={lang}
+                        onClick={() => setSelectedLanguage(selectedLanguage === lang ? null : lang)}
+                        className={`px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all border ${
+                          selectedLanguage === lang
+                            ? "bg-brand/10 border-brand text-brand"
+                            : "bg-surface border-border/50 text-text-muted hover:border-brand/30 hover:bg-surface-inset"
+                        }`}
+                      >
+                        {lang}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              {/* Budget Filter */}
-              <div>
-                <h3 className="font-semibold text-text text-sm mb-3">
-                  Budget (per hour)
-                </h3>
-                <div className="space-y-2">
-                  {BUDGET_RANGES.map((range) => (
-                    <label
-                      key={range.value}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <input
-                        type="radio"
-                        name="budget"
-                        checked={selectedBudget === range.value}
-                        onChange={() =>
-                          setSelectedBudget(
-                            selectedBudget === range.value ? null : range.value
-                          )
-                        }
-                        className="w-4 h-4 text-amber-600 focus:ring-amber-500"
-                      />
-                      <span className="text-sm text-gray-700">
-                        {range.label}
-                      </span>
-                    </label>
-                  ))}
+                {/* Budget */}
+                <div>
+                  <h3 className="font-semibold text-text text-[13px] uppercase tracking-wider mb-3">Budget (hourly)</h3>
+                  <div className="space-y-2">
+                    {BUDGET_RANGES.map((range) => (
+                      <label key={range.value} className="flex items-center gap-3 cursor-pointer group">
+                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${selectedBudget === range.value ? "border-brand bg-brand" : "border-border/80 group-hover:border-brand/50"}`}>
+                          {selectedBudget === range.value && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                        </div>
+                        <input
+                          type="radio"
+                          className="hidden"
+                          checked={selectedBudget === range.value}
+                          onChange={() => setSelectedBudget(selectedBudget === range.value ? null : range.value)}
+                        />
+                        <span className="text-[13px] font-medium text-text-muted group-hover:text-text transition-colors">
+                          {range.label}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              {/* Experience Level */}
-              <div>
-                <h3 className="font-semibold text-text text-sm mb-3">
-                  Experience Level
-                </h3>
-                <div className="space-y-2">
-                  {EXPERIENCE_LEVELS.map((level) => (
-                    <label
-                      key={level.value}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <input
-                        type="radio"
-                        name="experience"
-                        checked={selectedExperience === level.value}
-                        onChange={() =>
-                          setSelectedExperience(
-                            selectedExperience === level.value
-                              ? null
-                              : level.value
-                          )
-                        }
-                        className="w-4 h-4 text-amber-600 focus:ring-amber-500"
-                      />
-                      <span className="text-sm text-gray-700">
-                        {level.label}
-                      </span>
-                    </label>
-                  ))}
+                {/* Experience */}
+                <div>
+                  <h3 className="font-semibold text-text text-[13px] uppercase tracking-wider mb-3">Experience</h3>
+                  <div className="space-y-2">
+                    {EXPERIENCE_LEVELS.map((level) => (
+                      <label key={level.value} className="flex items-center gap-3 cursor-pointer group">
+                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${selectedExperience === level.value ? "border-brand bg-brand" : "border-border/80 group-hover:border-brand/50"}`}>
+                          {selectedExperience === level.value && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                        </div>
+                        <input
+                          type="radio"
+                          className="hidden"
+                          checked={selectedExperience === level.value}
+                          onChange={() => setSelectedExperience(selectedExperience === level.value ? null : level.value)}
+                        />
+                        <span className="text-[13px] font-medium text-text-muted group-hover:text-text transition-colors">
+                          {level.label}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              {/* Gender Filter */}
-              <div>
-                <h3 className="font-semibold text-text text-sm mb-3">Gender</h3>
-                <div className="flex gap-2">
-                  {GENDERS.map((g) => (
-                    <Badge
-                      key={g.value}
-                      variant={
-                        selectedGender === g.value ? "success" : "default"
-                      }
-                      className="cursor-pointer"
-                      onClick={() =>
-                        setSelectedGender(
-                          selectedGender === g.value ? null : g.value
-                        )
-                      }
-                    >
-                      {g.label}
-                    </Badge>
-                  ))}
+                {/* Gender */}
+                <div>
+                  <h3 className="font-semibold text-text text-[13px] uppercase tracking-wider mb-3">Gender</h3>
+                  <div className="flex gap-2">
+                    {GENDERS.map((g) => (
+                      <button
+                        key={g.value}
+                        onClick={() => setSelectedGender(selectedGender === g.value ? null : g.value)}
+                        className={`px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all border flex-1 ${
+                          selectedGender === g.value
+                            ? "bg-brand/10 border-brand text-brand"
+                            : "bg-surface border-border/50 text-text-muted hover:border-brand/30 hover:bg-surface-inset"
+                        }`}
+                      >
+                        {g.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              {/* Availability Toggle */}
-              <div>
-                <label className="flex items-center justify-between cursor-pointer">
-                  <span className="text-sm font-medium text-gray-700">
-                    Available Now
-                  </span>
-                  <button
-                    onClick={() => setAvailableOnly(!availableOnly)}
-                    className={`relative w-10 h-5 rounded-full transition-colors ${
-                      availableOnly ? "bg-amber-600" : "bg-gray-300"
-                    }`}
-                  >
-                    <div
-                      className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-                        availableOnly ? "translate-x-5" : "translate-x-0.5"
-                      }`}
-                    />
-                  </button>
-                </label>
-              </div>
+                {/* Availability Toggle */}
+                <div className="pt-4 border-t border-border/50">
+                  <label className="flex items-center justify-between cursor-pointer group">
+                    <span className="text-[13px] font-semibold text-text uppercase tracking-wider">Available Now</span>
+                    <button
+                      onClick={() => setAvailableOnly(!availableOnly)}
+                      className={`relative w-10 h-5 rounded-full transition-colors ${availableOnly ? "bg-trust" : "bg-border/80"}`}
+                    >
+                      <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${availableOnly ? "translate-x-5" : "translate-x-0.5"}`} />
+                    </button>
+                  </label>
+                </div>
 
-              {/* Clear Filters */}
-              {activeFilterCount > 0 && (
-                <Button
-                  variant="outline"
-                  className="w-full gap-2"
-                  onClick={clearAllFilters}
-                >
-                  <X className="w-4 h-4" /> Clear All Filters
-                </Button>
-              )}
-            </div>
+                {/* Clear Filters */}
+                {activeFilterCount > 0 && (
+                  <Button variant="outline" size="sm" className="w-full gap-2 mt-4" onClick={clearAllFilters}>
+                    <X className="w-4 h-4" /> Clear All Filters
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
           </aside>
         )}
 
-        {/* Results Grid */}
+        {/* ── RESULTS GRID ───────────────────────────── */}
         <div className="flex-1">
           <div className="flex items-center justify-between mb-4">
-            <div className="text-sm text-text-muted">
+            <div className="text-[14px] text-text-muted">
               {loading ? (
-                "Loading..."
+                "Searching..."
               ) : (
-                <>
-                  Showing{" "}
-                  <span className="font-semibold text-text">
-                    {teachers.length}
-                  </span>{" "}
-                  teachers
-                </>
+                <>Found <span className="font-bold text-text">{teachers.length}</span> teachers</>
               )}
             </div>
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-8 h-8 text-brand animate-spin" />
+            <div className="py-12">
+              <DashboardSkeleton />
             </div>
           ) : error ? (
-            <div className="text-center py-20">
-              <AlertCircle className="w-12 h-12 text-danger mx-auto mb-4" />
-              <p className="text-text-muted">{error}</p>
-              <Button
-                variant="outline"
-                className="mt-4"
-                onClick={fetchTeachers}
-              >
-                Try Again
-              </Button>
+            <div className="text-center py-20 bg-surface rounded-2xl border" style={{ borderColor: "rgba(35,29,94,0.08)" }}>
+              <AlertCircle className="w-12 h-12 text-alert mx-auto mb-4" />
+              <p className="text-text font-semibold mb-1">Failed to load teachers</p>
+              <p className="text-text-muted text-[13px]">{error}</p>
+              <Button variant="outline" className="mt-6" onClick={fetchTeachers}>Try Again</Button>
             </div>
           ) : teachers.length === 0 ? (
-            <div className="text-center py-20">
-              <Search className="w-12 h-12 text-text-subtle mx-auto mb-4" />
-              <p className="text-text-muted font-medium">No teachers found</p>
-              <p className="text-sm text-text-subtle mt-1">
-                Try adjusting your search or filters
-              </p>
-              {activeFilterCount > 0 && (
-                <Button
-                  variant="outline"
-                  className="mt-4"
-                  onClick={clearAllFilters}
-                >
-                  Clear Filters
-                </Button>
-              )}
-            </div>
+            <Card className="border border-border/50 shadow-sm">
+              <CardContent className="py-20 flex flex-col items-center text-center">
+                <div className="w-16 h-16 rounded-2xl bg-surface-inset flex items-center justify-center mb-4 border border-border/40">
+                  <Search className="w-8 h-8 text-brand opacity-60" />
+                </div>
+                <h3 className="text-[18px] font-bold text-text mb-2">No teachers found</h3>
+                <p className="text-[14px] text-text-muted max-w-[280px] mb-6">
+                  Try adjusting your search terms or clearing some filters to see more results.
+                </p>
+                {activeFilterCount > 0 && (
+                  <Button variant="outline" className="shadow-sm" onClick={clearAllFilters}>
+                    Clear Filters
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {teachers.map((teacher) => (
-                <Card
-                  key={teacher.id}
-                  className="overflow-hidden flex flex-col group hover:border-brand/20 transition-all duration-300"
-                >
-                  <CardContent className="p-5 flex-1">
-                    <div className="flex items-start gap-4 mb-4">
-                      <Avatar
-                        src={teacher.avatar || undefined}
-                        size="lg"
-                        online={teacher.availability}
-                      />
-                      <div className="flex-1">
-                        <h3 className="text-lg font-bold text-text flex items-center gap-2">
-                          {teacher.name}
-                          {teacher.experienceLevel && (
-                            <Badge variant="outline" className="text-[10px]">
-                              {teacher.experienceLevel}
-                            </Badge>
-                          )}
-                        </h3>
-                        <p className="text-sm font-medium text-text-muted mb-1">
-                          {teacher.languages.filter(Boolean).join(" • ")}
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center gap-1 text-sm font-medium">
-                            <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                            {teacher.rating > 0 ? teacher.rating : "New"}
-                            {teacher.reviews > 0 && (
-                              <span className="text-text-subtle font-normal">
-                                ({teacher.reviews})
-                              </span>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+              {teachers.map((teacher, index) => {
+                const initials = getInitials(teacher.name);
+                
+                return (
+                  <Card key={teacher.id} className="overflow-hidden flex flex-col border border-border/50 hover:shadow-level-2 hover:border-brand/30 transition-all duration-300">
+                    <CardContent className="p-5 flex-1 flex flex-col">
+                      <div className="flex gap-4 mb-4">
+                        {teacher.avatar ? (
+                          <Avatar src={teacher.avatar} size="lg" online={teacher.availability} className="shadow-sm" />
+                        ) : (
+                          <div className="relative">
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-[14px] font-bold shadow-sm" style={{ background: PILL_COLORS[index % PILL_COLORS.length] }}>
+                              {initials}
+                            </div>
+                            {teacher.availability && (
+                              <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-surface flex items-center justify-center">
+                                <div className="w-2.5 h-2.5 rounded-full bg-trust" />
+                              </div>
                             )}
                           </div>
-                          {teacher.totalHours > 0 && (
-                            <span className="text-xs text-text-subtle">
-                              • {teacher.totalHours}h taught
-                            </span>
-                          )}
+                        )}
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <h3 className="text-[16px] font-bold text-text truncate font-display">
+                              {teacher.name}
+                            </h3>
+                            <div className="flex items-center gap-1 bg-action/10 px-2 py-0.5 rounded-md">
+                              <Star className="w-3.5 h-3.5 text-action fill-action" />
+                              <span className="text-[12px] font-bold text-action-on">{teacher.rating > 0 ? teacher.rating.toFixed(1) : "New"}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center flex-wrap gap-2 text-[12px] font-semibold mb-2">
+                            <span className="text-brand">{teacher.languages.filter(Boolean).join(" • ")}</span>
+                            {teacher.experienceLevel && (
+                              <>
+                                <span className="text-text-subtle">•</span>
+                                <span className="text-text-muted capitalize">{teacher.experienceLevel.toLowerCase()}</span>
+                              </>
+                            )}
+                          </div>
+                          
+                          <div className="flex items-center gap-3 text-[12px] text-text-subtle">
+                            {teacher.reviews > 0 && <span>{teacher.reviews} reviews</span>}
+                            {teacher.totalHours > 0 && <span>{teacher.totalHours}h taught</span>}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <p className="text-text text-sm mb-4 line-clamp-2">
-                      &quot;{teacher.headline}&quot;
-                    </p>
+                      <div className="bg-surface-inset/50 rounded-xl p-3 mb-4 border border-border/40">
+                        <p className="text-[13px] text-text leading-relaxed line-clamp-2 italic opacity-90">
+                          "{teacher.headline}"
+                        </p>
+                      </div>
 
-                    <div className="flex items-center gap-2 text-xs font-medium text-trust bg-trust/10 px-2 py-1 rounded-md w-fit">
-                      <Clock className="w-3.5 h-3.5" /> Next available:{" "}
-                      {teacher.nextAvailable}
-                    </div>
-                  </CardContent>
+                      <div className="mt-auto">
+                        <div className="flex items-center gap-2 text-[11px] font-bold text-trust uppercase tracking-wider mb-3">
+                          <Clock className="w-3.5 h-3.5" /> Next avail: {teacher.nextAvailable}
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-2 mb-4">
+                          <div className="bg-surface border border-border/60 rounded-xl p-3 text-center">
+                            <div className="text-[11px] font-semibold text-text-subtle uppercase tracking-wider mb-1">Hourly</div>
+                            <div className="text-[16px] font-bold text-text font-display">₹{teacher.hourlyRate}</div>
+                          </div>
+                          <div className="bg-action/5 border border-action/20 rounded-xl p-3 text-center">
+                            <div className="text-[11px] font-semibold text-action uppercase tracking-wider mb-1">Demo</div>
+                            <div className="text-[16px] font-bold text-text font-display flex items-center justify-center gap-1">
+                              <span className="text-action">🪙</span> {teacher.demoRate}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
 
-                  <CardFooter className="p-5 pt-0 mt-auto border-t border-border flex flex-col gap-3 bg-surface-inset/50">
-                    <div className="flex items-center justify-between w-full">
-                      <span className="text-xs text-text-muted uppercase tracking-wider font-semibold">
-                        Hourly Rate
-                      </span>
-                      <span className="font-bold text-text text-lg">
-                        ₹{teacher.hourlyRate}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between w-full">
-                      <span className="text-xs text-text-muted uppercase tracking-wider font-semibold">
-                        Demo Class
-                      </span>
-                      <span className="font-semibold text-text flex items-center gap-1">
-                        <span className="text-amber-500">🪙</span>{" "}
-                        {teacher.demoRate}
-                      </span>
-                    </div>
-                    <div className="flex gap-2 w-full">
-                      <Button
-                        asChild
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                      >
-                        <Link href={`/teacher/${teacher.id}`}>Profile</Link>
+                    <CardFooter className="p-4 pt-0 mt-auto border-t border-border/40 bg-surface flex gap-2">
+                      <Button asChild variant="outline" className="flex-1 shadow-sm h-10 text-[13px]">
+                        <Link href={`/student/discover/${teacher.id}`}>View Profile</Link>
                       </Button>
-                      <Button
-                        asChild
-                        variant="primary"
-                        size="sm"
-                        className="flex-1"
-                      >
-                        <Link href={`/teacher/${teacher.id}/book`}>
-                          Book Demo
-                        </Link>
+                      <Button asChild variant="primary" className="flex-1 shadow-sm h-10 text-[13px]">
+                        <Link href={`/student/discover/${teacher.id}/book`}>Book Demo</Link>
                       </Button>
-                    </div>
-                  </CardFooter>
-                </Card>
-              ))}
+                    </CardFooter>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>

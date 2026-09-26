@@ -11,9 +11,9 @@
  * bug this replaces returned `duplicate` for any pre-existing row, so a failed
  * event could never succeed on LiveKit's retry.
  *
- * Run: npm run test:livekit
+ * Run: npm test --workspace @repo/live-classes
  */
-import { describe, it } from "node:test";
+import { describe, it } from "vitest";
 import assert from "node:assert/strict";
 
 import {
