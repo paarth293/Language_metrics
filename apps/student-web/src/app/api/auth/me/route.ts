@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+// Forced HMR reload trigger
+
 import { verifyAccessToken } from "@/lib/tokens";
 import { db } from "@/lib/db";
 

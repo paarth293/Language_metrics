@@ -13,3 +13,4 @@ export async function updateSessionStatus(sessionId: string, bookingId: string, 
   revalidatePath(`/classes/${bookingId}`);
   revalidatePath(`/classes`);
 }
+

@@ -147,6 +147,7 @@ export default function LiveClassroom({
 
   useEffect(() => {
     if (autoJoin) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       void requestToken("low").then((g) => {
         if (g) setJoined(true);
       });

@@ -1,3 +1,4 @@
+import { describe, it, expect } from "vitest";
 import {
   validateLoginBody,
   validateDiscoverQuery,
@@ -11,234 +12,173 @@ import {
   validateChatMessage,
 } from "./validation";
 
-let pass = 0;
-let fail = 0;
+describe("validation", () => {
+  it("validates login body", () => {
+    const r1 = validateLoginBody({ email: "  Student@Example.com ", password: "hunter2" });
+    expect(r1.ok).toBe(true);
+    if (r1.ok) expect(r1.data.email).toBe("student@example.com");
 
-function check(cond: boolean, label: string, detail?: unknown) {
-  if (cond) {
-    pass++;
-    console.log(`PASS  ${label}`);
-  } else {
-    fail++;
-    console.log(`FAIL  ${label}`);
-    if (detail !== undefined) console.log("      " + JSON.stringify(detail));
-  }
-}
+    const r2 = validateLoginBody({ email: "not-an-email", password: "x" });
+    expect(r2.ok).toBe(false);
 
-// ── login ──────────────────────────────────────────────────────────────
-{
-  const r = validateLoginBody({ email: "  Student@Example.com ", password: "hunter2" });
-  check(r.ok === true, "login: valid body accepted");
-  if (r.ok) {
-    check(r.data.email === "student@example.com", "login: email normalized to lowercase+trim", r.data);
-  }
-}
-{
-  const r = validateLoginBody({ email: "not-an-email", password: "x" });
-  check(r.ok === false, "login: malformed email rejected");
-}
-{
-  const r = validateLoginBody({ email: "a@b.com" });
-  check(r.ok === false, "login: missing password rejected");
-}
-{
-  const r = validateLoginBody({ email: "a@b.com", password: "x", role: "ADMIN" });
-  check(r.ok === false, "login: invalid role rejected");
-}
-{
-  const r = validateLoginBody("not an object");
-  check(r.ok === false, "login: non-object body rejected");
-}
+    const r3 = validateLoginBody({ email: "a@b.com" });
+    expect(r3.ok).toBe(false);
 
-// ── discover query ─────────────────────────────────────────────────────
-{
-  const r = validateDiscoverQuery(new URLSearchParams(""));
-  check(r.ok === true, "discover: empty query uses defaults");
-  if (r.ok) {
-    check(r.data.minPrice === 0 && r.data.maxPrice === 99999 && r.data.limit === 20, "discover: default values correct", r.data);
-  }
-}
-{
-  // This is the exact bug class the old code had: parseInt("abc") -> NaN,
-  // and `x >= NaN` is always false, so every teacher was silently filtered
-  // out with no error. The new validator must reject this instead.
-  const r = validateDiscoverQuery(new URLSearchParams("minPrice=abc"));
-  check(r.ok === false, "discover: non-numeric minPrice rejected instead of silently becoming NaN");
-}
-{
-  const r = validateDiscoverQuery(new URLSearchParams("minPrice=500&maxPrice=100"));
-  check(r.ok === false, "discover: maxPrice < minPrice rejected");
-}
-{
-  const r = validateDiscoverQuery(new URLSearchParams("limit=500"));
-  check(r.ok === true, "discover: oversized limit is clamped, not rejected (preserves old behavior)");
-  if (r.ok) check(r.data.limit === 50, "discover: oversized limit clamped to 50", r.data);
-}
-{
-  const r = validateDiscoverQuery(new URLSearchParams("limit=0"));
-  check(r.ok === false, "discover: limit=0 rejected");
-}
-{
-  const r = validateDiscoverQuery(new URLSearchParams("search=" + encodeURIComponent("  spanish  ")));
-  check(r.ok === true && r.ok && r.data.search === "spanish", "discover: search is trimmed");
-}
-{
-  const r = validateDiscoverQuery(new URLSearchParams("cursor=" + encodeURIComponent("'; DROP TABLE teachers; --")));
-  check(r.ok === false, "discover: cursor with non-id characters rejected");
-}
-{
-  const r = validateDiscoverQuery(new URLSearchParams("cursor=8b1f7e2a-aaaa-bbbb-cccc-000000000000"));
-  check(r.ok === true, "discover: uuid-shaped cursor accepted");
-}
+    const r4 = validateLoginBody({ email: "a@b.com", password: "x", role: "ADMIN" });
+    expect(r4.ok).toBe(false);
 
-// ── classes filter ─────────────────────────────────────────────────────
-{
-  const r = validateClassesFilter(null);
-  check(r.ok === true && r.ok && r.data === "upcoming", "classes filter: missing defaults to upcoming");
-}
-{
-  const r = validateClassesFilter("past");
-  check(r.ok === true && r.ok && r.data === "past", "classes filter: valid value accepted");
-}
-{
-  // Old behavior: an unrecognized filter silently fell through the if/else
-  // chain and returned EVERY booking regardless of status. New behavior:
-  // reject it with a clear 400 instead of quietly over-sharing data.
-  const r = validateClassesFilter("literally-anything");
-  check(r.ok === false, "classes filter: unrecognized value rejected instead of silently returning all bookings");
-}
+    const r5 = validateLoginBody("not an object");
+    expect(r5.ok).toBe(false);
+  });
 
-// ── profile update ─────────────────────────────────────────────────────
-{
-  const r = validateProfileUpdate({ name: "  Jordan  ", proficiencyLevel: "b2" });
-  check(r.ok === true, "profile: valid partial update accepted");
-  if (r.ok) {
-    check(r.data.name === "Jordan" && r.data.proficiencyLevel === "B2", "profile: name trimmed, proficiencyLevel uppercased", r.data);
-  }
-}
-{
-  const r = validateProfileUpdate({ proficiencyLevel: "expert" });
-  check(r.ok === false, "profile: invalid CEFR level rejected");
-}
-{
-  const r = validateProfileUpdate({});
-  check(r.ok === false, "profile: empty update body rejected");
-}
-{
-  const r = validateProfileUpdate({ avatarUrl: null });
-  check(r.ok === true, "profile: avatarUrl null accepted (clearing avatar)");
-}
+  it("validates discover query", () => {
+    const r1 = validateDiscoverQuery(new URLSearchParams(""));
+    expect(r1.ok).toBe(true);
+    if (r1.ok) {
+      expect(r1.data.minPrice).toBe(0);
+      expect(r1.data.maxPrice).toBe(99999);
+      expect(r1.data.limit).toBe(20);
+    }
 
-// ── complaint ──────────────────────────────────────────────────────────
-{
-  const r = validateComplaint({ category: "PAYMENT_ISSUE", subject: "Refund", description: "My class was cancelled and I was not refunded." });
-  check(r.ok === true, "complaint: valid ticket accepted");
-}
-{
-  const r = validateComplaint({ category: "NOT_A_CATEGORY", subject: "x", description: "y" });
-  check(r.ok === false, "complaint: unknown category rejected");
-}
-{
-  const r = validateComplaint({ category: "OTHER", subject: "ab", description: "too short too" });
-  check(r.ok === false, "complaint: too-short subject rejected");
-}
+    const r2 = validateDiscoverQuery(new URLSearchParams("minPrice=abc"));
+    expect(r2.ok).toBe(false);
 
-// ── device token ───────────────────────────────────────────────────────
-{
-  const r = validateDeviceToken({ token: "a".repeat(64), platform: "iOS" });
-  check(r.ok === true, "device token: valid token accepted, platform lowercased");
-  if (r.ok) check(r.data.platform === "ios", "device token: platform normalized", r.data);
-}
-{
-  const r = validateDeviceToken({ token: "short", platform: "ios" });
-  check(r.ok === false, "device token: too-short token rejected");
-}
-{
-  const r = validateDeviceToken({ token: "a".repeat(64), platform: "windows-phone" });
-  check(r.ok === false, "device token: unsupported platform rejected");
-}
+    const r3 = validateDiscoverQuery(new URLSearchParams("minPrice=500&maxPrice=100"));
+    expect(r3.ok).toBe(false);
 
-// ── notification update ────────────────────────────────────────────────
-{
-  const r = validateNotificationUpdate({});
-  check(r.ok === true, "notification update: empty body (mark-all-read) accepted");
-}
-{
-  const r = validateNotificationUpdate({ notificationId: "abc-123" });
-  check(r.ok === true, "notification update: valid id accepted");
-}
-{
-  const r = validateNotificationUpdate({ notificationId: 12345 });
-  check(r.ok === false, "notification update: non-string id rejected");
-}
+    const r4 = validateDiscoverQuery(new URLSearchParams("limit=500"));
+    expect(r4.ok).toBe(true);
+    if (r4.ok) expect(r4.data.limit).toBe(50);
 
-// ── change password ────────────────────────────────────────────────────
-{
-  const r = validateChangePassword({ currentPassword: "oldPass1", newPassword: "newPass123" });
-  check(r.ok === true, "change password: valid body accepted");
-}
-{
-  const r = validateChangePassword({ currentPassword: "oldPass1", newPassword: "short" });
-  check(r.ok === false, "change password: too-short new password rejected");
-}
-{
-  const r = validateChangePassword({ currentPassword: "oldPass1", newPassword: 12345678 as unknown as string });
-  check(r.ok === false, "change password: non-string new password rejected (was an unguarded .length crash)");
-}
-{
-  const r = validateChangePassword({ currentPassword: "", newPassword: "newPass123" });
-  check(r.ok === false, "change password: empty current password rejected");
-}
-{
-  const r = validateChangePassword({ currentPassword: "samePass1", newPassword: "samePass1" });
-  check(r.ok === false, "change password: identical old/new password rejected");
-}
-{
-  const r = validateChangePassword({});
-  check(r.ok === false, "change password: missing fields rejected");
-}
+    const r5 = validateDiscoverQuery(new URLSearchParams("limit=0"));
+    expect(r5.ok).toBe(false);
 
-// ── book class ─────────────────────────────────────────────────────────
-{
-  const r = validateBookClass({ rateId: "rate-abc123" });
-  check(r.ok === true, "book class: valid rateId accepted");
-}
-{
-  const r = validateBookClass({ rateId: "" });
-  check(r.ok === false, "book class: empty rateId rejected");
-}
-{
-  const r = validateBookClass({ rateId: 12345 as unknown as string });
-  check(r.ok === false, "book class: non-string rateId rejected (was previously only checked for truthiness)");
-}
-{
-  const r = validateBookClass({});
-  check(r.ok === false, "book class: missing rateId rejected");
-}
+    const r6 = validateDiscoverQuery(new URLSearchParams("search=" + encodeURIComponent("  spanish  ")));
+    expect(r6.ok).toBe(true);
+    if (r6.ok) expect(r6.data.search).toBe("spanish");
 
-// ── chat message ───────────────────────────────────────────────────────
-{
-  const r = validateChatMessage({ content: "Hi, can we reschedule Tuesday's class?" });
-  check(r.ok === true, "chat message: valid content accepted");
-}
-{
-  const r = validateChatMessage({ content: "  trim me  " });
-  check(r.ok === true, "chat message: content trimmed");
-  if (r.ok) check(r.data.content === "trim me", "chat message: trimmed value correct", r.data);
-}
-{
-  const r = validateChatMessage({ content: "x".repeat(5001) });
-  check(r.ok === false, "chat message: over-length content rejected");
-}
-{
-  const r = validateChatMessage({ content: { not: "a string" } as unknown as string });
-  check(r.ok === false, "chat message: non-string content rejected");
-}
-{
-  const r = validateChatMessage({});
-  check(r.ok === true, "chat message: missing content allowed (attachment-only message)");
-  if (r.ok) check(r.data.content === "", "chat message: defaults to empty string", r.data);
-}
+    const r7 = validateDiscoverQuery(new URLSearchParams("cursor=" + encodeURIComponent("'; DROP TABLE teachers; --")));
+    expect(r7.ok).toBe(false);
 
-console.log(`\n${pass} passed, ${fail} failed`);
-if (fail > 0) process.exit(1);
+    const r8 = validateDiscoverQuery(new URLSearchParams("cursor=8b1f7e2a-aaaa-bbbb-cccc-000000000000"));
+    expect(r8.ok).toBe(true);
+  });
+
+  it("validates classes filter", () => {
+    const r1 = validateClassesFilter(null);
+    expect(r1.ok).toBe(true);
+    if (r1.ok) expect(r1.data).toBe("upcoming");
+
+    const r2 = validateClassesFilter("past");
+    expect(r2.ok).toBe(true);
+    if (r2.ok) expect(r2.data).toBe("past");
+
+    const r3 = validateClassesFilter("literally-anything");
+    expect(r3.ok).toBe(false);
+  });
+
+  it("validates profile update", () => {
+    const r1 = validateProfileUpdate({ name: "  Jordan  ", proficiencyLevel: "b2" });
+    expect(r1.ok).toBe(true);
+    if (r1.ok) {
+      expect(r1.data.name).toBe("Jordan");
+      expect(r1.data.proficiencyLevel).toBe("B2");
+    }
+
+    const r2 = validateProfileUpdate({ proficiencyLevel: "expert" });
+    expect(r2.ok).toBe(false);
+
+    const r3 = validateProfileUpdate({});
+    expect(r3.ok).toBe(false);
+
+    const r4 = validateProfileUpdate({ avatarUrl: null });
+    expect(r4.ok).toBe(true);
+  });
+
+  it("validates complaint", () => {
+    const r1 = validateComplaint({ category: "PAYMENT_ISSUE", subject: "Refund", description: "My class was cancelled and I was not refunded." });
+    expect(r1.ok).toBe(true);
+
+    const r2 = validateComplaint({ category: "NOT_A_CATEGORY", subject: "x", description: "y" });
+    expect(r2.ok).toBe(false);
+
+    const r3 = validateComplaint({ category: "OTHER", subject: "ab", description: "too short too" });
+    expect(r3.ok).toBe(false);
+  });
+
+  it("validates device token", () => {
+    const r1 = validateDeviceToken({ token: "a".repeat(64), platform: "iOS" });
+    expect(r1.ok).toBe(true);
+    if (r1.ok) expect(r1.data.platform).toBe("ios");
+
+    const r2 = validateDeviceToken({ token: "short", platform: "ios" });
+    expect(r2.ok).toBe(false);
+
+    const r3 = validateDeviceToken({ token: "a".repeat(64), platform: "windows-phone" });
+    expect(r3.ok).toBe(false);
+  });
+
+  it("validates notification update", () => {
+    const r1 = validateNotificationUpdate({});
+    expect(r1.ok).toBe(true);
+
+    const r2 = validateNotificationUpdate({ notificationId: "abc-123" });
+    expect(r1.ok).toBe(true);
+
+    const r3 = validateNotificationUpdate({ notificationId: 12345 });
+    expect(r3.ok).toBe(false);
+  });
+
+  it("validates change password", () => {
+    const r1 = validateChangePassword({ currentPassword: "oldPass1", newPassword: "newPass123" });
+    expect(r1.ok).toBe(true);
+
+    const r2 = validateChangePassword({ currentPassword: "oldPass1", newPassword: "short" });
+    expect(r2.ok).toBe(false);
+
+    const r3 = validateChangePassword({ currentPassword: "oldPass1", newPassword: 12345678 as unknown as string });
+    expect(r3.ok).toBe(false);
+
+    const r4 = validateChangePassword({ currentPassword: "", newPassword: "newPass123" });
+    expect(r4.ok).toBe(false);
+
+    const r5 = validateChangePassword({ currentPassword: "samePass1", newPassword: "samePass1" });
+    expect(r5.ok).toBe(false);
+
+    const r6 = validateChangePassword({});
+    expect(r6.ok).toBe(false);
+  });
+
+  it("validates book class", () => {
+    const r1 = validateBookClass({ rateId: "rate-abc123" });
+    expect(r1.ok).toBe(true);
+
+    const r2 = validateBookClass({ rateId: "" });
+    expect(r2.ok).toBe(false);
+
+    const r3 = validateBookClass({ rateId: 12345 as unknown as string });
+    expect(r3.ok).toBe(false);
+
+    const r4 = validateBookClass({});
+    expect(r4.ok).toBe(false);
+  });
+
+  it("validates chat message", () => {
+    const r1 = validateChatMessage({ content: "Hi, can we reschedule Tuesday's class?" });
+    expect(r1.ok).toBe(true);
+
+    const r2 = validateChatMessage({ content: "  trim me  " });
+    expect(r2.ok).toBe(true);
+    if (r2.ok) expect(r2.data.content).toBe("trim me");
+
+    const r3 = validateChatMessage({ content: "x".repeat(5001) });
+    expect(r3.ok).toBe(false);
+
+    const r4 = validateChatMessage({ content: { not: "a string" } as unknown as string });
+    expect(r4.ok).toBe(false);
+
+    const r5 = validateChatMessage({});
+    expect(r5.ok).toBe(true);
+    if (r5.ok) expect(r5.data.content).toBe("");
+  });
+});

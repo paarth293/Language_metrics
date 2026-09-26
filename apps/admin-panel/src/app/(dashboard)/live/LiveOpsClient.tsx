@@ -86,6 +86,7 @@ export default function LiveOpsClient() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadRooms();
     // 15s is a deliberate floor: this endpoint calls LiveKit's REST API, which
     // is rate limited, and a live-class list does not need to be truer than

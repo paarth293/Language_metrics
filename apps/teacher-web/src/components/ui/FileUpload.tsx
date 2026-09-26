@@ -25,7 +25,15 @@ interface FileUploadProps {
   uploadUrl?: string;
 }
 
-const DEFAULT_ACCEPT = ["application/pdf"];
+const DEFAULT_ACCEPT = [
+  "application/pdf",
+  "application/x-pdf",
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+];
 const DEFAULT_MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
 export function FileUpload({
@@ -50,9 +58,11 @@ export function FileUpload({
     async (file: File) => {
       setError(null);
 
-      // Validate type
-      if (!accept.includes(file.type)) {
-        const msg = "Invalid file type. Please upload a PDF file.";
+      // Validate type (PDF and standard Image formats)
+      const ext = file.name.split(".").pop()?.toLowerCase();
+      const isAllowedExt = ["pdf", "png", "jpg", "jpeg", "webp", "heic"].includes(ext || "");
+      if (!isAllowedExt && accept.length > 0 && !accept.includes(file.type)) {
+        const msg = "Invalid file type. Please upload a PDF, PNG, JPG, or WEBP document.";
         setError(msg);
         onError?.(msg);
         return;
@@ -220,7 +230,7 @@ export function FileUpload({
               <span className="text-brand">Click to upload</span> or drag and drop
             </p>
             <p className="text-xs text-text-muted">
-              PDF only (max {maxSize / (1024 * 1024)}MB)
+              PDF, PNG, JPG, or WEBP (max {maxSize / (1024 * 1024)}MB)
             </p>
           </>
         )}

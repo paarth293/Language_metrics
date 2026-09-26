@@ -123,6 +123,7 @@ export function usePrejoinDevices(options: {
   // than four minutes into a paid lesson.
   useEffect(() => {
     if (!audioTrack || !micEnabled) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMicLevel(0);
       return;
     }

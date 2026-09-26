@@ -9,47 +9,73 @@
  * Behaviour:
  *  - Lazy-creates on first call to getRedisClient().
  *  - Logs connection errors but never crashes the process.
- *  - Returns null (instead of throwing) if REDIS_URL is not set,
- *    so callers can degrade gracefully.
+ *  - Returns null (instead of throwing) if REDIS_URL is not set
+ *    or if the connection fails, so callers can degrade gracefully.
  */
 
 import Redis from "ioredis";
 
 let _client: Redis | null = null;
 let _initialised = false;
+let _connectionOk = false;
 
 /**
- * Returns a connected ioredis client, or `null` if REDIS_URL is missing.
- * Safe to call repeatedly — always returns the same instance.
+ * Returns a connected ioredis client, or `null` if REDIS_URL is missing
+ * or the connection has failed. Safe to call repeatedly — always returns
+ * the same instance.
  */
 export function getRedisClient(): Redis | null {
-  if (_initialised) return _client;
+  if (_initialised) return _connectionOk ? _client : null;
   _initialised = true;
 
-  const url = process.env.REDIS_URL;
+  const url = process.env.REDIS_URL?.trim();
   if (!url) {
     console.warn("[Redis] REDIS_URL is not set — OTP rate limiting will be disabled.");
     return null;
   }
 
-  _client = new Redis(url, {
-    lazyConnect: false,
-    maxRetriesPerRequest: 3,
-    enableReadyCheck: true,
-    retryStrategy(times) {
-      // Exponential backoff capped at 5 seconds
-      const delay = Math.min(times * 200, 5000);
-      return delay;
-    },
-  });
+  try {
+    _client = new Redis(url, {
+      lazyConnect: true,
+      maxRetriesPerRequest: 1,
+      enableReadyCheck: true,
+      connectTimeout: 3000,
+      retryStrategy(times) {
+        if (times > 2) {
+          _connectionOk = false;
+          return null; // stop retrying
+        }
+        return Math.min(times * 200, 2000);
+      },
+    });
 
-  _client.on("connect", () => {
-    console.log("[Redis] Connected successfully.");
-  });
+    _client.on("error", () => {
+      // Suppress noisy ioredis error logs — the connection failure
+      // is already handled below and callers degrade gracefully.
+    });
 
-  _client.on("error", (err) => {
-    console.error("[Redis] Connection error:", err.message);
-  });
+    // Attempt connection asynchronously. Until this resolves,
+    // _connectionOk stays false, so callers get null (safe fallback).
+    _client.connect()
+      .then(() => _client!.ping())
+      .then(() => {
+        console.log("[Redis] Connected successfully.");
+        _connectionOk = true;
+      })
+      .catch((err) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn(`[Redis] Could not connect — OTP rate limiting will be disabled: ${msg}`);
+        _connectionOk = false;
+        try { _client?.disconnect(); } catch { /* ignore */ }
+        _client = null;
+      });
+  } catch (err) {
+    console.warn("[Redis] Failed to create client:", err);
+    _client = null;
+  }
 
-  return _client;
+  // On the first call, return null (safe). Once the async connect
+  // succeeds, subsequent calls will return the live client.
+  return null;
 }
+
