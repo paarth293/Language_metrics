@@ -17,11 +17,11 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
   const ThemeIcon = theme === "light" ? Moon : Sun;
 
   return (
-    <div className="flex min-h-screen bg-bg">
+    <div className="aa-contrast flex min-h-screen bg-bg">
       {/* Left side: Form */}
       <div className="flex w-full flex-col lg:w-1/2">
         {/* Header */}
-        <header className="flex items-center justify-between px-6 py-3 md:px-12">
+        <header className="flex h-16 items-center justify-between px-6 md:px-12">
           <Link href="/" aria-label="Language Metrics — home">
             <Logo variant="full" size={40} />
           </Link>
@@ -62,7 +62,7 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
 
         {/* Text zone — lower 45%, completely clear of the image */}
         <div className="flex flex-1 flex-col items-center justify-center px-12 pb-16 text-center text-navy">
-          <h2 className="font-display text-4xl font-bold text-balance leading-tight text-navy mb-4">
+          <h2 className="font-display text-[28px] font-bold text-balance leading-tight text-navy mb-4">
             Find the right teacher.<br />Learn on your own schedule.
           </h2>
           <p className="text-navy-2/75 text-base font-medium max-w-sm">

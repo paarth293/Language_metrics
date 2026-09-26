@@ -122,13 +122,13 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 
 export default function FAQPage() {
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="aa-contrast min-h-screen bg-bg">
       {/* Hero */}
       <section className="bg-gradient-to-br from-[#0f0c29] via-[#1a1547] to-[#231d5e] text-white py-16 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <span className="inline-block px-4 py-1.5 rounded-full bg-white/10 text-sm font-medium mb-6">Help Center</span>
           <h1 className="font-display text-4xl md:text-5xl font-bold mb-4">Frequently Asked Questions</h1>
-          <p className="text-lg text-white/70 max-w-xl mx-auto">
+          <p className="text-[20px] text-white/70 max-w-xl mx-auto">
             Everything you need to know about Language Metrics. Can&apos;t find an answer? Contact us.
           </p>
         </div>
@@ -142,7 +142,7 @@ export default function FAQPage() {
                 <HelpCircle className="w-5 h-5 text-brand" />
                 {section.category}
               </h2>
-              <div className="space-y-3">
+              <div className="space-y-6">
                 {section.items.map((faq) => (
                   <FAQItem key={faq.q} q={faq.q} a={faq.a} />
                 ))}
@@ -155,9 +155,9 @@ export default function FAQPage() {
       {/* CTA */}
       <section className="py-16 px-4 border-t border-border">
         <div className="max-w-2xl mx-auto text-center">
-          <h2 className="font-display text-2xl font-bold text-text mb-3">Still have questions?</h2>
+          <h2 className="font-display text-[28px] font-bold text-text mb-3">Still have questions?</h2>
           <p className="text-text-muted mb-6">Our support team is here to help.</p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/contact"
               className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-navy text-white font-medium text-sm hover:bg-navy-2 transition-all"

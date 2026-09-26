@@ -146,7 +146,7 @@ export default function ForgotPasswordPage() {
         {step === "email" && (
           <Link
             href="/login"
-            className="inline-flex items-center gap-2 text-sm font-medium text-text-muted hover:text-text mb-6 transition-colors"
+            className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-text-muted hover:text-text mb-4 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to login
@@ -157,7 +157,7 @@ export default function ForgotPasswordPage() {
           {step === "success" ? <CheckCircle className="w-6 h-6 text-trust" /> : (step === "password" ? <KeyRound className="w-6 h-6" /> : <Mail className="w-6 h-6" />)}
         </div>
 
-        <h1 className="font-display text-3xl font-bold text-text mb-2">
+        <h1 className="font-display text-[28px] font-bold text-text mb-2">
           {step === "email" && "Reset your password"}
           {step === "otp" && "Enter reset code"}
           {step === "password" && "Choose a new password"}
@@ -219,7 +219,7 @@ export default function ForgotPasswordPage() {
                 placeholder="000000"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                className="text-center text-2xl tracking-widest"
+                className="text-center text-[20px] tracking-widest"
                 autoFocus
               />
             </div>
@@ -234,7 +234,7 @@ export default function ForgotPasswordPage() {
             <button
               onClick={(e) => handleSendEmail(e, true)}
               disabled={isResending}
-              className="font-medium text-brand hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex min-h-11 items-center -my-3 font-medium text-brand hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isResending ? "Sending..." : "Resend code"}
             </button>

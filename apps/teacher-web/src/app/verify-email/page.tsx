@@ -58,19 +58,16 @@ function TokenVerifyContent({ token }: { token: string }) {
         >
           <CheckCircle className="w-14 h-14 text-trust" />
           <div>
-            <h2 className="font-display text-2xl font-bold text-text mb-2">
+            <h2 className="font-display text-[28px] font-bold text-text mb-2">
               Email verified!
             </h2>
             <p className="text-text-muted mb-6">
               Your email has been successfully verified. You can now log in.
             </p>
           </div>
-          <Link
-            href="/login"
-            className="px-6 py-2.5 rounded-full bg-brand text-brand-on text-sm font-semibold hover:bg-brand-hover transition-colors"
-          >
-            Go to Login
-          </Link>
+          <Button asChild variant="primary" className="px-6 font-semibold">
+            <Link href="/login">Go to Login</Link>
+          </Button>
         </motion.div>
       )}
 
@@ -82,17 +79,14 @@ function TokenVerifyContent({ token }: { token: string }) {
         >
           <XCircle className="w-14 h-14 text-danger" />
           <div>
-            <h2 className="font-display text-2xl font-bold text-text mb-2">
+            <h2 className="font-display text-[28px] font-bold text-text mb-2">
               Verification failed
             </h2>
             <p className="text-text-muted mb-6">{message}</p>
           </div>
-          <Link
-            href="/login"
-            className="px-6 py-2.5 rounded-full border border-border bg-surface text-text text-sm font-semibold hover:border-gold hover:text-gold transition-colors"
-          >
-            Back to Login
-          </Link>
+          <Button asChild variant="outline" className="px-6 font-semibold bg-surface">
+            <Link href="/login">Back to Login</Link>
+          </Button>
         </motion.div>
       )}
     </div>
@@ -196,9 +190,9 @@ function OtpVerifyContent({ email }: { email: string }) {
     <>
       <div className="mb-8 text-center sm:text-left">
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gold/10 text-gold mb-4">
-          <span className="text-2xl">✉️</span>
+          <span className="text-[20px]">✉️</span>
         </div>
-        <h1 className="font-display text-3xl font-bold text-text mb-2">Verify your email</h1>
+        <h1 className="font-display text-[28px] font-bold text-text mb-2">Verify your email</h1>
         <p className="text-text-muted">
           We sent a 6-digit code to <strong>{email}</strong>.
         </p>
@@ -227,7 +221,7 @@ function OtpVerifyContent({ email }: { email: string }) {
             placeholder="000000"
             value={otp}
             onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-            className="text-center text-2xl tracking-widest"
+            className="text-center text-[20px] tracking-widest"
           />
         </div>
 
@@ -241,7 +235,7 @@ function OtpVerifyContent({ email }: { email: string }) {
         <button
           onClick={handleResend}
           disabled={isResending}
-          className="font-medium text-gold hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex min-h-11 items-center -my-3 font-medium text-gold-strong hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isResending ? "Sending..." : "Resend code"}
         </button>
@@ -271,7 +265,7 @@ export default function VerifyEmailPage() {
   return (
     <AuthLayout>
       <div className="mb-8 text-center">
-        <h1 className="font-display text-3xl font-bold text-text mb-2">
+        <h1 className="font-display text-[28px] font-bold text-text mb-2">
           Email Verification
         </h1>
       </div>
