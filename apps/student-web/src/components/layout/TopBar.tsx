@@ -1,7 +1,7 @@
 "use client";
 
 import type { User } from "@/types";
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Bell, Menu, Search, Moon, Sun } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { useTheme } from "@/components/ThemeProvider";
@@ -11,12 +11,70 @@ import Link from "next/link";
 interface TopBarProps {
   onMenuClick: () => void;
   user: User | null;
+  unreadCount?: number;
 }
 
-export function TopBar({ onMenuClick, user }: TopBarProps) {
+export function TopBar({ onMenuClick, user, unreadCount: initialUnreadCount }: TopBarProps) {
   const { theme, setTheme } = useTheme();
   const { logout } = useAuth();
   const notificationsHref = "/notifications";
+
+  const [unreadCount, setUnreadCount] = useState<number>(initialUnreadCount ?? 0);
+
+  // Fetch using the dedicated lightweight unread-count endpoint.
+  // Falls back to the full notifications list if the dedicated endpoint fails.
+  const checkUnreadCount = useCallback(async (signal?: AbortSignal) => {
+    try {
+      const res = await fetch("/api/students/notifications/unread-count", {
+        credentials: "include",
+        signal,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (typeof data.unreadCount === "number") {
+          setUnreadCount(data.unreadCount);
+        }
+      }
+    } catch (err) {
+      // AbortError is expected when the component unmounts — ignore it.
+      if (err instanceof DOMException && err.name === "AbortError") return;
+    }
+  }, []);
+
+  useEffect(() => {
+    // If the parent has already resolved the count server-side, use it.
+    if (initialUnreadCount !== undefined) {
+      setUnreadCount(initialUnreadCount);
+      return;
+    }
+
+    const controller = new AbortController();
+    checkUnreadCount(controller.signal);
+
+    // Re-check when the notifications page signals a change.
+    const handleNotificationsUpdated = (e: Event) => {
+      const customEvent = e as CustomEvent<{ unreadCount?: number }>;
+      if (customEvent.detail && typeof customEvent.detail.unreadCount === "number") {
+        // Fast path: the page already computed the new count.
+        setUnreadCount(customEvent.detail.unreadCount);
+      } else {
+        // Slow path: re-query the server for the canonical count.
+        checkUnreadCount();
+      }
+    };
+
+    // Re-check when the user returns to the tab (catches out-of-band changes).
+    const handleFocus = () => checkUnreadCount();
+
+    window.addEventListener("notifications-updated", handleNotificationsUpdated);
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      controller.abort();
+      window.removeEventListener("notifications-updated", handleNotificationsUpdated);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [initialUnreadCount, checkUnreadCount]);
 
   const toggleTheme = () => {
     setTheme(theme === "light" ? "dark" : "light");
@@ -61,16 +119,20 @@ export function TopBar({ onMenuClick, user }: TopBarProps) {
           <ThemeIcon className="h-[18px] w-[18px]" />
         </button>
 
-        {/* Notifications */}
+        {/* Notifications Bell with unread indicator dot */}
         <Link
           href={notificationsHref}
           className="min-h-[44px] min-w-[44px] flex items-center justify-center relative rounded-xl p-2.5 text-text-muted hover:bg-surface-inset hover:text-text transition-all duration-200"
-          aria-label="View notifications"
+          aria-label={unreadCount > 0 ? `View notifications (${unreadCount} unread)` : "View notifications"}
         >
           <Bell className="h-[18px] w-[18px]" />
-          <span className="absolute right-1.5 top-1.5 flex h-2 w-2 rounded-full bg-danger">
-            <span className="absolute inset-0 rounded-full bg-danger animate-ping opacity-75" />
-          </span>
+
+          {unreadCount > 0 && (
+            <span
+              className="absolute top-2 right-2 h-2 w-2 rounded-full bg-danger ring-2 ring-white transition-all duration-200"
+              aria-hidden="true"
+            />
+          )}
         </Link>
 
         {/* Divider */}
