@@ -2,7 +2,7 @@
 
 import { Bell, LogOut, Menu, Moon, Search, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore, useState, useEffect } from "react";
 import type { SessionUser } from "@/lib/rbac";
 
 const emptySubscribe = () => () => undefined;
@@ -10,11 +10,19 @@ const emptySubscribe = () => () => undefined;
 interface TopNavProps {
   admin: SessionUser;
   onMenuClick: () => void;
+  unreadCount?: number;
 }
 
-export function TopNav({ admin, onMenuClick }: TopNavProps) {
+export function TopNav({ admin, onMenuClick, unreadCount: initialUnreadCount }: TopNavProps) {
   const { theme, setTheme } = useTheme();
   const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
+  const [unreadCount, setUnreadCount] = useState<number>(initialUnreadCount ?? 0);
+
+  useEffect(() => {
+    if (initialUnreadCount !== undefined) {
+      setUnreadCount(initialUnreadCount);
+    }
+  }, [initialUnreadCount]);
 
   const initials = admin.name
     .split(" ")
@@ -75,12 +83,14 @@ export function TopNav({ admin, onMenuClick }: TopNavProps) {
         <button
           type="button"
           className="lm-icon-button relative h-9 min-h-9 w-9 min-w-9"
-          aria-label="Notifications"
+          aria-label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : "Notifications"}
         >
           <Bell size={17} strokeWidth={1.8} aria-hidden="true" />
-          <span className="absolute right-1.5 top-1.5 flex h-2 w-2 rounded-full bg-[var(--danger)]">
-            <span className="absolute inset-0 animate-ping rounded-full bg-[var(--danger)] opacity-60" />
-          </span>
+          {unreadCount > 0 && (
+            <span className="absolute right-1.5 top-1.5 flex h-2 w-2 rounded-full bg-[var(--danger)]">
+              <span className="absolute inset-0 animate-ping rounded-full bg-[var(--danger)] opacity-60" />
+            </span>
+          )}
         </button>
 
         {/* Divider */}

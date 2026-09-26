@@ -457,6 +457,13 @@ model Notification {
   isRead    Boolean          @default(false)
   createdAt DateTime         @default(now())
   user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Compound index for efficient unread count queries:
+  ///   SELECT COUNT(*) WHERE userId = ? AND isRead = false
+  @@index([userId, isRead])
+  /// Index for list fetching ordered by creation time:
+  ///   SELECT * WHERE userId = ? ORDER BY createdAt DESC
+  @@index([userId, createdAt(sort: Desc)])
 }
 
 /// RLS: Public read. Admin only write.

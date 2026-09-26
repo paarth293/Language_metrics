@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { X, LogOut, ChevronRight } from "lucide-react";
@@ -20,6 +20,36 @@ export function Sidebar({ navItems, isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
 
+  // Mirror the unread count that TopBar tracks, kept in sync via the
+  // same "notifications-updated" custom event so there is exactly one
+  // source of truth (the database, surfaced by the API).
+  const [notifUnreadCount, setNotifUnreadCount] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/students/notifications/unread-count", { credentials: "include" })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (!cancelled && data && typeof data.unreadCount === "number") {
+          setNotifUnreadCount(data.unreadCount);
+        }
+      })
+      .catch(() => {});
+
+    const handleUpdate = (e: Event) => {
+      const detail = (e as CustomEvent<{ unreadCount?: number }>).detail;
+      if (typeof detail?.unreadCount === "number") {
+        setNotifUnreadCount(detail.unreadCount);
+      }
+    };
+
+    window.addEventListener("notifications-updated", handleUpdate);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("notifications-updated", handleUpdate);
+    };
+  }, []);
+
   return (
     <aside
       className={cn(
@@ -28,9 +58,8 @@ export function Sidebar({ navItems, isOpen, onClose }: SidebarProps) {
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}
     >
-      {/* Logo */}
       <div className="flex h-[72px] items-center justify-between px-6 border-b border-white/[0.08]">
-        <Link href="/" className="flex items-center gap-3" aria-label="Language Metrics — home">
+        <Link href="/" className="flex items-center gap-3" aria-label="Language Metrics home">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
             <span className="text-white font-bold text-sm">LM</span>
           </div>
@@ -48,18 +77,19 @@ export function Sidebar({ navItems, isOpen, onClose }: SidebarProps) {
         </button>
       </div>
 
-      {/* Section Label */}
       <div className="px-6 pt-6 pb-2">
         <span className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/30">
           Navigation
         </span>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 pb-4">
         <ul className="space-y-1">
           {navItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+            const isNotifications = item.href === "/notifications";
+            const badgeCount = isNotifications ? notifUnreadCount : 0;
+
             return (
               <li key={item.href}>
                 <Link
@@ -72,21 +102,27 @@ export function Sidebar({ navItems, isOpen, onClose }: SidebarProps) {
                       : "text-white/50 hover:bg-white/[0.06] hover:text-white/80"
                   )}
                 >
-                  {/* Active glow */}
                   {isActive && (
                     <span className="absolute inset-0 rounded-xl bg-gradient-to-r from-amber-400/10 to-transparent pointer-events-none" />
                   )}
-                  {/* Active indicator */}
                   {isActive && (
                     <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-gradient-to-b from-amber-400 to-amber-600 rounded-r-full shadow-lg shadow-amber-500/40" />
                   )}
-                  <div className={cn(
-                    "w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200",
-                    isActive
-                      ? "bg-amber-500/20 text-amber-400"
-                      : "bg-white/[0.04] text-white/40 group-hover:bg-white/[0.08] group-hover:text-white/60"
-                  )}>
-                    <item.icon className="h-[16px] w-[16px]" />
+                  <div className="relative">
+                    <div className={cn(
+                      "w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200",
+                      isActive
+                        ? "bg-amber-500/20 text-amber-400"
+                        : "bg-white/[0.04] text-white/40 group-hover:bg-white/[0.08] group-hover:text-white/60"
+                    )}>
+                      <item.icon className="h-[16px] w-[16px]" />
+                    </div>
+                    {badgeCount > 0 && (
+                      <span
+                        className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-[#1a1547] transition-all duration-200"
+                        aria-hidden="true"
+                      />
+                    )}
                   </div>
                   <span className="flex-1">{item.label}</span>
                   {isActive && (
@@ -99,7 +135,6 @@ export function Sidebar({ navItems, isOpen, onClose }: SidebarProps) {
         </ul>
       </nav>
 
-      {/* User Card */}
       <div className="p-3 border-t border-white/[0.08]">
         <div className="flex items-center gap-3 rounded-xl bg-white/[0.06] backdrop-blur-sm px-3.5 py-3">
           <div className="relative">
@@ -120,11 +155,10 @@ export function Sidebar({ navItems, isOpen, onClose }: SidebarProps) {
         </div>
       </div>
 
-      {/* Footer */}
       <div className="px-6 py-3 border-t border-white/[0.05]">
         <div className="text-[11px] text-white/20 flex items-center gap-1.5">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          Language Metrics © {new Date().getFullYear()}
+          Language Metrics
         </div>
       </div>
     </aside>
