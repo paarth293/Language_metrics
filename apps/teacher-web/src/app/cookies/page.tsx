@@ -9,26 +9,26 @@ export const metadata: Metadata = {
 
 export default function CookiesPage() {
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="aa-contrast min-h-screen bg-bg">
       {/* Hero */}
       <section className="bg-gradient-to-br from-[#0f0c29] via-[#1a1547] to-[#231d5e] text-white py-16 px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <Link href="/" className="inline-flex items-center gap-2 text-white/60 hover:text-white text-sm mb-6 transition-colors">
+          <Link href="/" className="inline-flex min-h-11 items-center gap-2 text-white/60 hover:text-white text-sm mb-4 transition-colors">
             <ArrowLeft className="w-4 h-4" /> Back to Home
           </Link>
           <h1 className="font-display text-4xl md:text-5xl font-bold mb-4">Cookie Policy</h1>
-          <p className="text-lg text-white/70">Last updated: August 28, 2026</p>
+          <p className="text-[20px] text-white/70">Last updated: August 28, 2026</p>
         </div>
       </section>
 
       <section className="py-16 px-4">
         <div className="max-w-3xl mx-auto prose prose-sm max-w-none">
-          <h2 className="font-display text-2xl font-bold text-text mb-4">What Are Cookies?</h2>
+          <h2 className="font-display text-[20px] font-bold text-text mb-4">What Are Cookies?</h2>
           <p className="text-text-muted leading-relaxed mb-6">
             Cookies are small text files stored on your device when you visit a website. They help us provide a better experience by remembering your preferences and keeping you logged in.
           </p>
 
-          <h2 className="font-display text-2xl font-bold text-text mb-4">Essential Cookies</h2>
+          <h2 className="font-display text-[20px] font-bold text-text mb-4">Essential Cookies</h2>
           <p className="text-text-muted leading-relaxed mb-6">
             These cookies are necessary for the platform to function. They handle authentication (httpOnly cookies for JWT tokens), session management, and security (CSRF protection). You cannot opt out of these cookies as the platform will not work without them.
           </p>
@@ -62,17 +62,17 @@ export default function CookiesPage() {
             </table>
           </div>
 
-          <h2 className="font-display text-2xl font-bold text-text mb-4">Analytics Cookies</h2>
+          <h2 className="font-display text-[20px] font-bold text-text mb-4">Analytics Cookies</h2>
           <p className="text-text-muted leading-relaxed mb-6">
             We use privacy-friendly analytics (Plausible) that do not use cookies and do not track you across sites. This helps us understand how the platform is used without compromising your privacy.
           </p>
 
-          <h2 className="font-display text-2xl font-bold text-text mb-4">Managing Cookies</h2>
+          <h2 className="font-display text-[20px] font-bold text-text mb-4">Managing Cookies</h2>
           <p className="text-text-muted leading-relaxed mb-6">
             You can manage your cookie preferences through our cookie consent banner. You can also clear cookies through your browser settings. Note that disabling essential cookies will prevent you from using the platform.
           </p>
 
-          <h2 className="font-display text-2xl font-bold text-text mb-4">Contact</h2>
+          <h2 className="font-display text-[20px] font-bold text-text mb-4">Contact</h2>
           <p className="text-text-muted leading-relaxed">
             For questions about cookies, email us at{" "}
             <a href="mailto:hello@languagemetrics.com" className="text-brand hover:underline">hello@languagemetrics.com</a>.
