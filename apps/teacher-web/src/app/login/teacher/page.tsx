@@ -68,10 +68,10 @@ export default function TeacherLoginPage() {
 
   return (
     <AuthLayout>
-      <div className="mb-5 text-center sm:text-left flex flex-col items-center sm:items-start">
+      <div className="mb-6 text-center sm:text-left flex flex-col items-center sm:items-start">
         <Link
           href="/login"
-          className="inline-flex items-center gap-2 text-sm font-medium text-text-muted hover:text-text mb-3 transition-colors"
+          className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-text-muted hover:text-text mb-2 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Back
@@ -79,7 +79,7 @@ export default function TeacherLoginPage() {
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-brand/10 text-brand mb-2">
           <BookOpen className="w-6 h-6" />
         </div>
-        <h1 className="font-display text-3xl font-bold text-text mb-2">Teacher Login</h1>
+        <h1 className="font-display text-[28px] font-bold text-text mb-2">Teacher Login</h1>
         <p className="text-text-muted">Sign in to manage your classes</p>
       </div>
 
@@ -131,7 +131,7 @@ export default function TeacherLoginPage() {
         <div className="space-y-1">
           <div className="flex items-center justify-between">
             <label className="text-sm font-medium text-text">Password</label>
-            <Link href="/forgot-password" className="text-sm font-medium text-gold hover:text-gold-dark transition-colors">
+            <Link href="/forgot-password" className="inline-flex min-h-11 items-center -my-3 text-sm font-medium text-gold-strong hover:underline transition-colors">
               Forgot password?
             </Link>
           </div>
@@ -148,7 +148,7 @@ export default function TeacherLoginPage() {
 
         <div className="flex items-center gap-2">
           <input type="checkbox" id="remember" className="rounded border-border bg-surface-inset text-gold focus:ring-gold" />
-          <label htmlFor="remember" className="text-sm text-text-muted cursor-pointer">Remember me for 30 days</label>
+          <label htmlFor="remember" className="flex min-h-11 items-center text-sm text-text-muted cursor-pointer">Remember me for 30 days</label>
         </div>
 
         <Button type="submit" variant="primary" className="w-full mt-2" disabled={isLoading}>
@@ -158,7 +158,7 @@ export default function TeacherLoginPage() {
 
       <p className="mt-8 text-center text-sm text-text-muted">
         Don&apos;t have an account?{" "}
-        <Link href="/register/teacher" className="font-medium text-gold hover:underline">Apply to Teach</Link>
+        <Link href="/register/teacher" className="inline-flex min-h-11 items-center -my-3 font-medium text-gold-strong hover:underline">Apply to Teach</Link>
       </p>
     </AuthLayout>
   );
