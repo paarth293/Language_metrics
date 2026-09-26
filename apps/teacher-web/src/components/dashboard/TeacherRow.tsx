@@ -21,7 +21,7 @@ export function TeacherRow({ teacher }: TeacherRowProps) {
           <div className="text-[12px] text-text-muted truncate">{teacher.language}</div>
         </div>
       </div>
-      <Link href={`/student/discover/${teacher.id}`} className="text-[12px] font-medium text-action hover:text-action-hover opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity auth-focus rounded px-1 shrink-0">
+      <Link href={`/student/teacher/${teacher.id}`} className="text-[12px] font-medium text-action hover:text-action-hover opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity auth-focus rounded px-1 shrink-0">
         Book
       </Link>
     </div>
