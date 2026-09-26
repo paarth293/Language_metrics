@@ -1,6 +1,7 @@
 import { db } from "@repo/database";
 import { requireAdmin } from "@/lib/guards";
 import { notFound } from "next/navigation";
+import { CoinWalletCard } from "@/components/coins/CoinWalletCard";
 import Link from "next/link";
 import { ArrowLeft, Ban, PlayCircle, AlertOctagon } from "lucide-react";
 import { updateStudentStatus } from "./actions";
@@ -8,7 +9,7 @@ import { updateStudentStatus } from "./actions";
 export const dynamic = 'force-dynamic';
 
 export default async function StudentProfilePage({ params }: { params: Promise<{ id: string }> }) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const { id } = await params;
 
   const student = await db.studentProfile.findUnique({
@@ -151,6 +152,8 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
             </div>
           </div>
           
+          <CoinWalletCard userId={student.userId} admin={admin} />
+
           {/* Payment History Preview */}
           <div style={cardStyle} className="rounded-lg p-6">
             <h2 className="text-md font-semibold text-white mb-4">Recent Payments</h2>

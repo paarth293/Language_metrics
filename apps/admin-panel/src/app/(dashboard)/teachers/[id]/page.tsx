@@ -1,6 +1,7 @@
 import { db } from "@repo/database";
 import { requireAdmin } from "@/lib/guards";
 import { notFound } from "next/navigation";
+import { CoinWalletCard } from "@/components/coins/CoinWalletCard";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle, XCircle, Clock } from "lucide-react";
 import { updateTeacherStatus } from "./actions";
@@ -8,7 +9,7 @@ import { updateTeacherStatus } from "./actions";
 export const dynamic = 'force-dynamic';
 
 export default async function TeacherProfilePage({ params }: { params: Promise<{ id: string }> }) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const { id } = await params;
 
   const teacher = await db.teacherProfile.findUnique({
@@ -169,6 +170,8 @@ export default async function TeacherProfilePage({ params }: { params: Promise<{
               </form>
             </div>
           </div>
+
+          <CoinWalletCard userId={teacher.userId} admin={admin} />
         </div>
       </div>
     </div>

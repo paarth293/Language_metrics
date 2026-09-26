@@ -194,6 +194,38 @@ export async function debit(
   params: { userId: string; amount: number } & EntryContext,
   client: Tx = db
 ): Promise<CoinBalance> {
+  return debitAs("SPEND", params, client);
+}
+
+/**
+ * Manual correction by an admin, in either direction.
+ *
+ * `delta` is signed: positive adds spendable coins, negative removes them.
+ * A removal never dips into held coins and never takes spendable below zero —
+ * it fails with InsufficientCoinsError instead. Unlike the other entry points
+ * the description and idempotency key are mandatory, because every manual
+ * movement of money must say why and must be safe to retry.
+ */
+export async function adjust(
+  params: { userId: string; delta: number; description: string; idempotencyKey: string },
+  client: Tx = db
+): Promise<CoinBalance> {
+  const { userId, delta, description, idempotencyKey } = params;
+  if (!Number.isInteger(delta) || delta === 0) throw new Error("adjust() requires a non-zero integer delta.");
+  if (!description.trim()) throw new Error("adjust() requires a description.");
+  if (!idempotencyKey) throw new Error("adjust() requires an idempotency key.");
+
+  const ctx = { userId, description, idempotencyKey };
+  return delta > 0
+    ? credit({ ...ctx, amount: delta, type: "ADJUSTMENT" }, client)
+    : debitAs("ADJUSTMENT", { ...ctx, amount: -delta }, client);
+}
+
+async function debitAs(
+  type: "SPEND" | "ADJUSTMENT",
+  params: { userId: string; amount: number } & EntryContext,
+  client: Tx
+): Promise<CoinBalance> {
   const { userId, amount, ...ctx } = params;
   if (amount <= 0) throw new Error("debit() requires a positive amount.");
   if (await alreadyApplied(ctx.idempotencyKey, client)) return getCoinBalance(userId, client);
@@ -213,7 +245,7 @@ export async function debit(
     const current = await getCoinBalance(userId, client);
     throw new InsufficientCoinsError(amount, current.balance);
   }
-  await writeEntry(client, userId, "SPEND", -amount, rows[0]!.balance, ctx);
+  await writeEntry(client, userId, type, -amount, rows[0]!.balance, ctx);
   return getCoinBalance(userId, client);
 }
 
@@ -392,8 +424,12 @@ export async function backfillCoinAccounts(): Promise<{ accounts: number; rowsNo
     SELECT t."userId",
            COALESCE(SUM(t."amount"), 0)::int,
            0,
-           COALESCE(SUM(CASE WHEN t."type" IN ('PURCHASE','BONUS') THEN t."amount" ELSE 0 END), 0)::int,
-           COALESCE(SUM(CASE WHEN t."type" = 'SPEND' THEN -t."amount" ELSE 0 END), 0)::int,
+           COALESCE(SUM(CASE WHEN t."type" IN ('PURCHASE','BONUS') THEN t."amount"
+                             WHEN t."type" = 'ADJUSTMENT' AND t."amount" > 0 THEN t."amount"
+                             ELSE 0 END), 0)::int,
+           COALESCE(SUM(CASE WHEN t."type" = 'SPEND' THEN -t."amount"
+                             WHEN t."type" = 'ADJUSTMENT' AND t."amount" < 0 THEN -t."amount"
+                             ELSE 0 END), 0)::int,
            0, NOW(), NOW()
       FROM "CoinTransaction" t
      GROUP BY t."userId"
