@@ -31,6 +31,24 @@ describe("validation", () => {
     expect(r5.ok).toBe(false);
   });
 
+  it("converts the discover page's rupee budget to paise", () => {
+    const r1 = validateDiscoverQuery(new URLSearchParams("minRate=200&maxRate=500"));
+    expect(r1.ok && [r1.data.minPrice, r1.data.maxPrice]).toEqual([20000, 50000]);
+
+    // minRate alone ("₹1000+") has no upper bound.
+    const r2 = validateDiscoverQuery(new URLSearchParams("minRate=1000"));
+    expect(r2.ok).toBe(true);
+    if (r2.ok) expect(r2.data.maxPrice).toBeGreaterThan(100000);
+  });
+
+  it("validates discover experience against the enum", () => {
+    const r1 = validateDiscoverQuery(new URLSearchParams("experience=fresher"));
+    expect(r1.ok && r1.data.experience).toBe("FRESHER");
+
+    const r2 = validateDiscoverQuery(new URLSearchParams("experience=EXPERT"));
+    expect(r2.ok).toBe(false);
+  });
+
   it("validates discover query", () => {
     const r1 = validateDiscoverQuery(new URLSearchParams(""));
     expect(r1.ok).toBe(true);

@@ -97,11 +97,21 @@ export function validateLoginBody(body: unknown): ValidationResult<LoginBody> {
 
 // ── Discover (teacher search) query params ──────────────────────────────
 
+/** Mirrors the TeacherExperienceLevel enum in schema.prisma. */
+export const EXPERIENCE_LEVELS = ["FRESHER", "EXPERIENCED"] as const;
+export type ExperienceLevel = (typeof EXPERIENCE_LEVELS)[number];
+
+/** TeacherRate.amount is an Int4 column; this is its ceiling. */
+const MAX_PRICE_PAISE = 2_147_483_647;
+
 export interface DiscoverQuery {
   search?: string;
   language?: string;
   minPrice: number;
   maxPrice: number;
+  experience?: ExperienceLevel;
+  gender?: string;
+  availableOnly?: boolean;
   limit: number;
   cursor?: string;
 }
@@ -157,8 +167,19 @@ export function validateDiscoverQuery(
     }
   }
 
-  const minPrice = parseNonNegativeInt(params.get("minPrice"), "minPrice", 0, errors);
-  const maxPrice = parseNonNegativeInt(params.get("maxPrice"), "maxPrice", 99_999, errors);
+  // minPrice/maxPrice are in paise. The discover page sends its budget as
+  // minRate/maxRate in rupees; when present those take precedence. A
+  // minRate with no maxRate ("₹1000+") means no upper bound.
+  let minPrice = parseNonNegativeInt(params.get("minPrice"), "minPrice", 0, errors);
+  let maxPrice = parseNonNegativeInt(params.get("maxPrice"), "maxPrice", 99_999, errors);
+  const hasMinRate = params.get("minRate") !== null;
+  const hasMaxRate = params.get("maxRate") !== null;
+  if (hasMinRate || hasMaxRate) {
+    minPrice = parseNonNegativeInt(params.get("minRate"), "minRate", 0, errors) * 100;
+    maxPrice = hasMaxRate
+      ? parseNonNegativeInt(params.get("maxRate"), "maxRate", 0, errors) * 100
+      : MAX_PRICE_PAISE;
+  }
   if (errors.length === 0 && maxPrice < minPrice) {
     errors.push("maxPrice must be greater than or equal to minPrice.");
   }
@@ -190,9 +211,28 @@ export function validateDiscoverQuery(
     }
   }
 
+  const rawExperience = params.get("experience");
+  let experience: ExperienceLevel | undefined;
+  if (rawExperience !== null && rawExperience.trim().length > 0) {
+    const value = rawExperience.trim().toUpperCase();
+    if (!(EXPERIENCE_LEVELS as readonly string[]).includes(value)) {
+      errors.push(`experience must be one of: ${EXPERIENCE_LEVELS.join(", ")}.`);
+    } else {
+      experience = value as ExperienceLevel;
+    }
+  }
+
+  const rawGender = params.get("gender");
+  let gender: string | undefined;
+  if (rawGender !== null && rawGender.trim().length > 0) {
+    gender = rawGender.trim().toUpperCase();
+  }
+
+  const availableOnly = params.get("available") === "true";
+
   if (errors.length > 0) return invalid(errors);
 
-  return ok({ search, language, minPrice, maxPrice, limit, cursor });
+  return ok({ search, language, minPrice, maxPrice, experience, gender, availableOnly, limit, cursor });
 }
 
 // ── Classes filter ───────────────────────────────────────────────────────

@@ -592,3 +592,35 @@ export const TEACHING_LANGUAGES = LANGUAGES.map((l) => ({
   code: l.code,
   flag: l.flag,
 }));
+
+// ── Stored-value matching ──────────────────────────────────────────────
+
+/**
+ * Resolve a language by name, ISO code, or a single word of its name
+ * (so the discover filter's "Chinese" finds "Mandarin Chinese").
+ */
+function findLanguage(value: string): LanguageConfig | undefined {
+  const v = value.trim().toLowerCase();
+  return (
+    getLanguageConfig(v) ??
+    LANGUAGES.find((l) => l.name.toLowerCase().split(" ").includes(v))
+  );
+}
+
+/**
+ * Every spelling a teacher's language may be stored under. Onboarding saves
+ * the ISO code ("en") while older rows hold the name ("Spanish"/"spanish"),
+ * so filters must match all of them.
+ */
+export function getLanguageAliases(value: string): string[] {
+  const lang = findLanguage(value);
+  const aliases = lang
+    ? [lang.name, lang.name.toLowerCase(), lang.code, value.trim()]
+    : [value.trim()];
+  return Array.from(new Set(aliases));
+}
+
+/** Display name for a stored language value ("en" → "English"). */
+export function getLanguageDisplayName(value: string): string {
+  return findLanguage(value)?.name ?? value;
+}

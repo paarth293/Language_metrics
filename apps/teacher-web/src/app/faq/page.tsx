@@ -31,7 +31,7 @@ const faqs = [
       },
       {
         q: "What is a demo class?",
-        a: "A demo class is a discounted introductory session (49 coins) that lets you meet the teacher and assess if they're the right fit before committing to regular classes.",
+        a: "A demo class is a discounted introductory session (29 coins) that lets you meet the teacher and assess if they're the right fit before committing to regular classes.",
       },
       {
         q: "Can I cancel or reschedule a booking?",

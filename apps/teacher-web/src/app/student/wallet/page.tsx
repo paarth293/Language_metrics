@@ -115,10 +115,10 @@ export default function WalletPage() {
           </Card>
 
           {/* Info Card */}
-          <Card className="border border-brand/20 bg-brand/5 shadow-sm">
+          <Card className="border border-border bg-surface shadow-sm">
             <CardContent className="p-4 flex gap-3 items-start">
               <ShieldCheck className="w-5 h-5 text-brand shrink-0 mt-0.5" />
-              <div className="text-[13px] text-brand-subtle font-medium leading-relaxed">
+              <div className="text-[13px] text-text-muted font-medium leading-relaxed">
                 Coins never expire. <strong className="text-brand">1 Coin = ₹1</strong>. Payments are secured by Razorpay.
               </div>
             </CardContent>

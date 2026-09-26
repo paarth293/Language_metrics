@@ -105,7 +105,7 @@ export default function TeacherStudents() {
               <div className="text-[24px] font-display font-bold text-brand leading-none mb-1">
                 {students.length}
               </div>
-              <div className="text-[11px] font-semibold text-brand-subtle uppercase tracking-wider">
+              <div className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">
                 Total Students
               </div>
             </CardContent>
