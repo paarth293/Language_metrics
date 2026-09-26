@@ -9,6 +9,7 @@ export const ALL_PERMISSIONS = [
   "classes:manage",
   "payments:view",
   "payments:refund",
+  "coins:adjust",
   "invoices:manage",
   "payouts:manage",
   "recordings:manage",
