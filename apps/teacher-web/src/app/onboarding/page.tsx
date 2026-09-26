@@ -202,7 +202,7 @@ export default function OnboardingPage() {
                     />
                   ) : (
                     <div
-                      className={`w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold text-white ${
+                      className={`w-20 h-20 rounded-full flex items-center justify-center text-[28px] font-bold text-white ${
                         isStudent ? "bg-gold" : "bg-brand"
                       }`}
                     >
@@ -217,7 +217,7 @@ export default function OnboardingPage() {
                 <div
                   className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold mb-2 ${
                     isStudent
-                      ? "bg-gold/10 text-gold"
+                      ? "bg-gold/10 text-gold-strong"
                       : "bg-brand/10 text-brand"
                   }`}
                 >
@@ -231,7 +231,7 @@ export default function OnboardingPage() {
               </div>
 
               <div className="mb-4">
-                <h1 className="font-display text-2xl font-bold text-text mb-1">
+                <h1 className="font-display text-[28px] font-bold text-text mb-1">
                   Welcome! Let&apos;s get you set up
                 </h1>
                 <p className="text-text-muted text-sm">
@@ -289,10 +289,10 @@ export default function OnboardingPage() {
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
             >
-              <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gold/10 text-gold mb-3">
+              <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gold/10 text-gold-strong mb-3">
                 <Globe className="w-5 h-5" />
               </div>
-              <h1 className="font-display text-2xl font-bold text-text mb-1">
+              <h1 className="font-display text-[28px] font-bold text-text mb-1">
                 What are you learning?
               </h1>
               <p className="text-text-muted text-sm mb-4">
@@ -332,9 +332,9 @@ export default function OnboardingPage() {
                               : "border-border bg-surface hover:border-gold/40 hover:bg-surface-inset"
                           }`}
                         >
-                          <span className="text-lg font-bold text-brand">{lvl.shortLabel}</span>
-                          <span className="text-[10px] font-semibold text-text leading-tight">{lvl.label}</span>
-                          <span className="text-[9px] text-text-muted leading-tight">{lvl.description}</span>
+                          <span className="text-[20px] font-bold text-brand">{lvl.shortLabel}</span>
+                          <span className="text-xs font-semibold text-text leading-tight">{lvl.label}</span>
+                          <span className="text-xs text-text-muted leading-tight">{lvl.description}</span>
                         </button>
                       ))}
                     </div>
@@ -348,7 +348,7 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              <div className="flex gap-3 mt-4">
+              <div className="flex gap-4 mt-4">
                 <Button
                   type="button"
                   variant="ghost"
@@ -383,7 +383,7 @@ export default function OnboardingPage() {
               <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-brand/10 text-brand mb-3">
                 <BookOpen className="w-5 h-5" />
               </div>
-              <h1 className="font-display text-2xl font-bold text-text mb-1">
+              <h1 className="font-display text-[28px] font-bold text-text mb-1">
                 Tell us about your teaching
               </h1>
               <p className="text-text-muted text-sm mb-4">
@@ -418,7 +418,7 @@ export default function OnboardingPage() {
                       </span>
                     )}
                   </div>
-                  <div className="grid grid-cols-3 gap-1.5 max-h-[180px] overflow-y-auto pr-1">
+                  <div className="grid grid-cols-3 gap-2 max-h-52 overflow-y-auto pr-1">
                     {TEACHING_LANGUAGES.filter((l) => l.code !== language).map((lang) => {
                       const isSelected = additionalLanguages.includes(lang.code);
                       return (
@@ -426,7 +426,7 @@ export default function OnboardingPage() {
                           key={lang.code}
                           type="button"
                           onClick={() => toggleAdditionalLanguage(lang.code)}
-                          className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-all cursor-pointer text-left ${
+                          className={`flex min-h-11 items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-all cursor-pointer text-left ${
                             isSelected
                               ? "border-brand bg-brand/10 text-brand shadow-sm"
                               : "border-border bg-surface-inset text-text-muted hover:border-brand/30 hover:bg-surface hover:text-text"
@@ -503,7 +503,7 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              <div className="flex gap-3 mt-4">
+              <div className="flex gap-4 mt-4">
                 <Button
                   type="button"
                   variant="ghost"
@@ -539,7 +539,7 @@ export default function OnboardingPage() {
               <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-brand/10 text-brand mb-3">
                 <BookOpen className="w-5 h-5" />
               </div>
-              <h1 className="font-display text-2xl font-bold text-text mb-1">
+              <h1 className="font-display text-[28px] font-bold text-text mb-1">
                 Upload your qualifications
               </h1>
               <p className="text-text-muted text-sm mb-4">
@@ -602,7 +602,7 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              <div className="flex gap-3 mt-4">
+              <div className="flex gap-4 mt-4">
                 <Button
                   type="button"
                   variant="ghost"
@@ -638,7 +638,7 @@ export default function OnboardingPage() {
               <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-brand/10 text-brand mb-3">
                 <BookOpen className="w-5 h-5" />
               </div>
-              <h1 className="font-display text-2xl font-bold text-text mb-1">
+              <h1 className="font-display text-[28px] font-bold text-text mb-1">
                 {experienceLevel === "EXPERIENCED"
                   ? "Upload experience proof"
                   : "Almost done!"}
@@ -694,7 +694,7 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              <div className="flex gap-3 mt-4">
+              <div className="flex gap-4 mt-4">
                 <Button
                   type="button"
                   variant="ghost"
