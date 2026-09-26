@@ -276,6 +276,17 @@
 }
 
 
+/* Signed-in app (student/teacher dashboards): captions need ≥4.5:1 contrast
+   on white, cream and inset surfaces. Scoped to AppShell so the marketing
+   homepage keeps its original palette. */
+.app-shell {
+  --text-subtle: #5f6880;
+  --color-text-subtle: var(--text-subtle); /* re-resolve: :root already baked the old value in */
+}
+[data-theme="dark"] .app-shell {
+  --text-subtle: #949db0;
+}
+
 /* ── 3. TAILWIND v4 @theme — exposes tokens as utility classes ── */
 @theme {
   /* Brand primary → bg-brand, text-brand, border-brand */
