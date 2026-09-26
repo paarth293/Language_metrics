@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { useAuth } from "@/lib/auth-client";
+import { DateOfBirthPrompt } from "@/components/auth/DateOfBirthPrompt";
 import type { Role } from "@/types";
 
 export interface NavItem {
@@ -41,7 +42,7 @@ function dashboardPathFor(role: Role): string {
 
 export function AppShell({ children, navItems, requiredRole }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, refreshUser } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -90,7 +91,11 @@ export function AppShell({ children, navItems, requiredRole }: AppShellProps) {
 
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8">
           <div className="mx-auto max-w-7xl">
-            {children}
+            {user.needsDateOfBirth ? (
+              <DateOfBirthPrompt role={user.role} onSaved={refreshUser} />
+            ) : (
+              children
+            )}
           </div>
         </main>
       </div>
