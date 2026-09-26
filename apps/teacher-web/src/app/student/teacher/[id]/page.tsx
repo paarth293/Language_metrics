@@ -212,7 +212,7 @@ export default function TeacherProfilePage() {
 
           {/* Book Button */}
           <Link
-            href={`/teacher/${id}/book`}
+            href={`/student/teacher/${id}/book`}
             className="block w-full text-center py-3 rounded-xl bg-navy text-white font-medium text-sm hover:bg-navy-2 transition-all"
           >
             Book a Class

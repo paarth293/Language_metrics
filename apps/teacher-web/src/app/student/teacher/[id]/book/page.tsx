@@ -149,7 +149,7 @@ export default function BookClassPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <Link
-        href={`/teacher/${teacherId}`}
+        href={`/student/teacher/${teacherId}`}
         className="inline-flex items-center gap-2 text-sm text-text-muted hover:text-text transition-colors"
       >
         <ArrowLeft className="w-4 h-4" /> Back to Profile
