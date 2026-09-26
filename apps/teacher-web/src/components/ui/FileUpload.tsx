@@ -168,7 +168,7 @@ export function FileUpload({
             <button
               type="button"
               onClick={onRemove}
-              className="flex-shrink-0 p-1.5 rounded-md hover:bg-danger/10 text-text-muted hover:text-danger transition-colors cursor-pointer"
+              className="flex-shrink-0 inline-flex h-11 w-11 items-center justify-center rounded-md hover:bg-danger/10 text-text-muted hover:text-danger transition-colors cursor-pointer"
               aria-label="Remove file"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
