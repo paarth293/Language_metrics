@@ -22,7 +22,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { InsufficientCoinsError, getCoinBalance } from "@repo/database";
-import { holdCoinsForSession } from "@repo/live-classes";
+import {
+  DEMO_CLASS_COINS,
+  DEMO_CLASS_MINUTES,
+  DemoAlreadyUsedError,
+  assertDemoAvailable,
+  hasUsedDemo,
+  holdCoinsForSession,
+} from "@repo/live-classes";
 import { invalidateCache } from "@/lib/api-cache";
 import { validateBookClass } from "@/lib/validation";
 import { exceedsMaxBodySize, rateLimitRedis } from "@/lib/rate-limit";
@@ -82,19 +89,22 @@ export async function POST(
         { status: 400 }
       );
     }
-    const { rateId } = validation.data;
+    const isDemo = validation.data.demo;
+    const rateId = validation.data.demo ? null : validation.data.rateId;
 
-    const durationMinutes =
-      typeof body.durationMinutes === "number" &&
-      body.durationMinutes >= 15 &&
-      body.durationMinutes <= 180
+    // A demo's length is fixed; for rate bookings the client may choose.
+    const durationMinutes = isDemo
+      ? DEMO_CLASS_MINUTES
+      : typeof body.durationMinutes === "number" &&
+          body.durationMinutes >= 15 &&
+          body.durationMinutes <= 180
         ? Math.round(body.durationMinutes)
         : 60;
 
     const teacher = await db.teacherProfile.findUnique({
       where: { userId: teacherId },
       include: {
-        rates: { where: { id: rateId } },
+        rates: rateId ? { where: { id: rateId } } : { take: 0 },
         availability: { orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }] },
       },
     });
@@ -105,9 +115,21 @@ export async function POST(
         { status: 404 }
       );
     }
-    const rate = teacher.rates[0];
-    if (!rate) {
+    const rate = rateId ? teacher.rates[0] : null;
+    if (rateId && !rate) {
       return NextResponse.json({ error: "Invalid rate selected" }, { status: 400 });
+    }
+    // Demos are platform-priced; everything else uses the teacher's rate.
+    const price = rate ? rate.amount : DEMO_CLASS_COINS;
+    const bookingType = rate ? (rate.type === "HOURLY" ? "HOURLY" : "COURSE") : "DEMO";
+
+    // Fast, friendly refusal. The authoritative check runs again under a lock
+    // inside the booking transaction below.
+    if (isDemo && (await hasUsedDemo(auth.user.sub, teacherId))) {
+      return NextResponse.json(
+        { code: "DEMO_ALREADY_USED", error: new DemoAlreadyUsedError().message },
+        { status: 409 }
+      );
     }
 
     // Resolve the slot. An explicit slotStart wins; otherwise fall back to the
@@ -147,12 +169,12 @@ export async function POST(
     const slotEnd = new Date(slotStart.getTime() + durationMinutes * 60_000);
 
     const balance = await getCoinBalance(auth.user.sub);
-    if (balance.balance < rate.amount) {
+    if (balance.balance < price) {
       return NextResponse.json(
         {
           code: "INSUFFICIENT_COINS",
-          error: `You need ${rate.amount} coins but have ${balance.balance}.`,
-          required: rate.amount,
+          error: `You need ${price} coins but have ${balance.balance}.`,
+          required: price,
           available: balance.balance,
         },
         { status: 400 }
@@ -160,19 +182,21 @@ export async function POST(
     }
 
     const commissionPct = 20;
-    const commissionAmount = Math.round((rate.amount * commissionPct) / 100);
+    const commissionAmount = Math.round((price * commissionPct) / 100);
 
     const { booking, session } = await db.$transaction(async (tx) => {
+      if (isDemo) await assertDemoAvailable(tx, auth.user.sub, teacherId);
+
       const newBooking = await tx.booking.create({
         data: {
           studentId: auth.user.sub,
           teacherId,
-          type: rate.type === "HOURLY" ? "HOURLY" : "COURSE",
+          type: bookingType,
           status: "CONFIRMED",
-          amountPaid: rate.amount,
+          amountPaid: price,
           commissionPct,
           commissionAmount,
-          teacherEarnings: rate.amount - commissionAmount,
+          teacherEarnings: price - commissionAmount,
         },
       });
 
@@ -198,7 +222,7 @@ export async function POST(
         classSessionId: session.id,
         studentId: auth.user.sub,
         teacherId,
-        heldCoins: rate.amount,
+        heldCoins: price,
         durationMinutes,
       });
     } catch (err) {
@@ -234,11 +258,14 @@ export async function POST(
           slotEnd: session.scheduledEnd.toISOString(),
           createdAt: booking.createdAt,
         },
-        message: `Class booked with ${sanitizeOrFallback(teacher.name, "your teacher")}. ${rate.amount} coins are reserved and you are only charged for the minutes you are taught.`,
+        message: `${isDemo ? "Demo class" : "Class"} booked with ${sanitizeOrFallback(teacher.name, "your teacher")}. ${price} coins are reserved and you are only charged for the minutes you are taught.`,
       },
       { status: 201 }
     );
   } catch (error) {
+    if (error instanceof DemoAlreadyUsedError) {
+      return NextResponse.json({ code: "DEMO_ALREADY_USED", error: error.message }, { status: 409 });
+    }
     if (error instanceof InsufficientCoinsError) {
       return NextResponse.json(
         { code: "INSUFFICIENT_COINS", error: error.message },
