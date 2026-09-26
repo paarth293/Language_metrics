@@ -8,6 +8,19 @@
  */
 
 import type { DiscoverQuery } from "./validation";
+import { getLanguageAliases } from "./languages";
+
+/**
+ * Matches a teacher whose primary or additional languages include any
+ * spelling of `value` — stored values are a mix of ISO codes and names.
+ */
+function languageClauses(value: string, mode: "equals" | "contains"): Record<string, unknown>[] {
+  const aliases = getLanguageAliases(value);
+  return [
+    ...aliases.map((a) => ({ language: { [mode]: a, mode: "insensitive" } })),
+    { languages: { hasSome: aliases } },
+  ];
+}
 
 /**
  * Builds the Prisma `where` clause for TeacherProfile.findMany() from a
@@ -49,19 +62,13 @@ export function buildDiscoverWhere(query: DiscoverQuery): Record<string, unknown
     and.push({
       OR: [
         { name: { contains: query.search, mode: "insensitive" } },
-        { language: { contains: query.search, mode: "insensitive" } },
-        { languages: { has: query.search } },
+        ...languageClauses(query.search, "contains"),
       ],
     });
   }
 
   if (query.language) {
-    and.push({
-      OR: [
-        { language: { equals: query.language, mode: "insensitive" } },
-        { languages: { has: query.language } },
-      ],
-    });
+    and.push({ OR: languageClauses(query.language, "equals") });
   }
 
   const priceRangeIsDefault = query.minPrice === 0 && query.maxPrice === 99_999;
@@ -82,6 +89,19 @@ export function buildDiscoverWhere(query: DiscoverQuery): Record<string, unknown
       priceOr.push({ rates: { none: { type: "HOURLY" } } });
     }
     and.push({ OR: priceOr });
+  }
+
+  if (query.experience) {
+    where.experienceLevel = query.experience;
+  }
+
+  // Gender is free text: registration saves "male", onboarding saves "Male".
+  if (query.gender) {
+    where.gender = { equals: query.gender, mode: "insensitive" };
+  }
+
+  if (query.availableOnly) {
+    and.push({ availability: { some: {} } });
   }
 
   if (and.length > 0) {
