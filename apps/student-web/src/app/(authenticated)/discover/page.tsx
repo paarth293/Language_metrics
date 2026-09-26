@@ -468,7 +468,7 @@ export default function DiscoverPage() {
                         size="sm"
                         className="flex-1"
                       >
-                        <Link href={`/teacher/${teacher.id}/book`}>
+                        <Link href={`/teacher/${teacher.id}/book?option=demo`}>
                           Book Demo
                         </Link>
                       </Button>
