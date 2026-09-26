@@ -9,6 +9,11 @@ import {
   teacherStep3Schema,
   teacherStep4Schema,
   PASSWORD_RULES,
+  MIN_AGE,
+  ageInYears,
+  parseDateOfBirth,
+  dateOfBirthSchema,
+  latestBirthDate,
 } from "./auth";
 
 describe("loginSchema", () => {
@@ -91,6 +96,7 @@ describe("registerStudentSchema", () => {
     email: "john@example.com",
     password: "SecurePass1",
     languageToLearn: "Spanish",
+    dateOfBirth: "2005-04-12",
   };
 
   it("should accept valid student registration", () => {
@@ -182,6 +188,7 @@ describe("registerTeacherSchema", () => {
     idProofDocUrl: "https://example.com/id.pdf",
     experienceType: "experienced" as const,
     experienceDocUrl: "https://example.com/exp.pdf",
+    dateOfBirth: "1990-05-10",
   };
 
   it("should accept valid teacher registration", () => {
@@ -240,6 +247,7 @@ describe("Password strength validation", () => {
     name: "Test User",
     email: "test@example.com",
     languageToLearn: "English",
+    dateOfBirth: "2005-04-12",
   };
 
   it("should reject passwords shorter than minimum length", () => {
@@ -370,6 +378,7 @@ describe("teacherStep2Schema", () => {
     const result = teacherStep2Schema.safeParse({
       language: "French",
       languages: ["French"],
+      dateOfBirth: "1990-05-10",
     });
     expect(result.success).toBe(true);
   });
@@ -379,6 +388,7 @@ describe("teacherStep2Schema", () => {
       language: "French",
       languages: ["French"],
       gender: "male",
+      dateOfBirth: "1990-05-10",
     });
     expect(result.success).toBe(true);
   });
@@ -437,5 +447,47 @@ describe("teacherStep4Schema", () => {
       experienceType: "senior" as unknown as "fresher",
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("date of birth", () => {
+  const today = new Date("2026-09-26T12:00:00Z");
+
+  it("parses YYYY-MM-DD and rejects impossible or malformed dates", () => {
+    expect(parseDateOfBirth("2000-02-29")?.toISOString()).toBe("2000-02-29T00:00:00.000Z");
+    expect(parseDateOfBirth("2001-02-29")).toBeNull(); // not a leap year
+    expect(parseDateOfBirth("2010-13-01")).toBeNull();
+    expect(parseDateOfBirth("26/09/2000")).toBeNull();
+    expect(parseDateOfBirth("")).toBeNull();
+  });
+
+  it("counts a birthday as reached only on or after the day", () => {
+    expect(ageInYears(new Date("2008-09-26T00:00:00Z"), today)).toBe(18);
+    expect(ageInYears(new Date("2008-09-27T00:00:00Z"), today)).toBe(17);
+  });
+
+  it("latestBirthDate is exactly minAge years back", () => {
+    expect(latestBirthDate(MIN_AGE.TEACHER, today)).toBe("2008-09-26");
+  });
+
+  it("enforces 18+ for teachers and 5+ for students", () => {
+    const eighteenToday = latestBirthDate(MIN_AGE.TEACHER);
+    expect(dateOfBirthSchema(MIN_AGE.TEACHER).safeParse(eighteenToday).success).toBe(true);
+    expect(dateOfBirthSchema(MIN_AGE.TEACHER).safeParse("2015-01-01").success).toBe(false);
+    expect(dateOfBirthSchema(MIN_AGE.STUDENT).safeParse("2015-01-01").success).toBe(true);
+    expect(dateOfBirthSchema(MIN_AGE.STUDENT).safeParse(latestBirthDate(3)).success).toBe(false);
+  });
+
+  it("rejects missing, future and implausibly old dates", () => {
+    expect(dateOfBirthSchema(MIN_AGE.STUDENT).safeParse(undefined).success).toBe(false);
+    expect(dateOfBirthSchema(MIN_AGE.STUDENT).safeParse("2999-01-01").success).toBe(false);
+    expect(dateOfBirthSchema(MIN_AGE.STUDENT).safeParse("1850-01-01").success).toBe(false);
+  });
+
+  it("is required by both registration schemas", () => {
+    const missing = teacherStep2Schema.safeParse({ language: "en", languages: ["en"] });
+    expect(missing.success).toBe(false);
+    const ok = teacherStep2Schema.safeParse({ language: "en", languages: ["en"], dateOfBirth: "1990-05-10" });
+    expect(ok.success).toBe(true);
   });
 });
