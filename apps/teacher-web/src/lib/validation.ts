@@ -22,12 +22,12 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-export interface BookClassBody {
-  rateId: string;
-}
+/** `{ demo: true }` books the fixed-price demo class; otherwise `rateId` picks one of the teacher's rates. */
+export type BookClassBody = { demo: true } | { demo: false; rateId: string };
 
 export function validateBookClass(body: unknown): ValidationResult<BookClassBody> {
   if (!isPlainObject(body)) return invalid(["Request body must be a JSON object."]);
+  if (body.demo === true) return ok({ demo: true });
 
   if (typeof body.rateId !== "string" || body.rateId.trim().length === 0) {
     return invalid(["rateId must be a non-empty string."]);
@@ -36,5 +36,5 @@ export function validateBookClass(body: unknown): ValidationResult<BookClassBody
     return invalid(["rateId is not valid."]);
   }
 
-  return ok({ rateId: body.rateId.trim() });
+  return ok({ demo: false, rateId: body.rateId.trim() });
 }
