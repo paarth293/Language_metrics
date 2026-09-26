@@ -396,10 +396,10 @@ export default function DiscoverPage() {
 
                     <CardFooter className="p-4 pt-0 mt-auto border-t border-border/40 bg-surface flex gap-2">
                       <Button asChild variant="outline" className="flex-1 shadow-sm h-10 text-[13px]">
-                        <Link href={`/student/discover/${teacher.id}`}>View Profile</Link>
+                        <Link href={`/student/teacher/${teacher.id}`}>View Profile</Link>
                       </Button>
                       <Button asChild variant="primary" className="flex-1 shadow-sm h-10 text-[13px]">
-                        <Link href={`/student/discover/${teacher.id}/book`}>Book Demo</Link>
+                        <Link href={`/student/teacher/${teacher.id}/book`}>Book Demo</Link>
                       </Button>
                     </CardFooter>
                   </Card>
