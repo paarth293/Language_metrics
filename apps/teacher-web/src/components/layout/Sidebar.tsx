@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { X, ChevronDown } from "lucide-react";
+import { X, ChevronDown, LogOut } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { NavItem } from "./AppShell";
+import { useAuth } from "@/lib/auth-client";
 
 interface SidebarProps {
   navItems: NavItem[];
@@ -15,6 +16,7 @@ interface SidebarProps {
 
 export function Sidebar({ navItems, isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const { logout } = useAuth();
 
   // Group nav items by section
   const sectionsMap = new Map<string, NavItem[]>();
@@ -55,7 +57,7 @@ export function Sidebar({ navItems, isOpen, onClose }: SidebarProps) {
       )}
     >
       {/* Logo */}
-      <div className="flex h-[76px] shrink-0 items-center justify-between px-6">
+      <div className="flex h-16 shrink-0 items-center justify-between px-6">
         <Link href="/" className="flex items-center gap-3" aria-label="Language Metrics — home">
           <div className="relative flex-shrink-0">
             <img
@@ -68,21 +70,22 @@ export function Sidebar({ navItems, isOpen, onClose }: SidebarProps) {
               }}
             />
             <div
-              className="hidden w-8 h-8 rounded-lg items-center justify-center text-[13px] font-bold text-white"
+              className="hidden w-8 h-8 rounded-lg items-center justify-center text-sm font-bold text-white"
               style={{ background: "linear-gradient(135deg, #c7982f, #e0b24a)" }}
             >
               LM
             </div>
           </div>
           <div className="flex flex-col leading-none mt-0.5">
-            <span className="font-display font-bold text-[18px] text-text tracking-tight">
+            <span className="font-display font-bold text-[20px] text-text tracking-tight">
               Language<span className="text-brand">Metrics</span>
             </span>
           </div>
         </Link>
         <button
-          className="lg:hidden rounded-lg p-1.5 transition-colors text-text-muted hover:bg-surface-inset"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-xl lg:hidden transition-colors text-text-muted hover:bg-surface-inset auth-focus"
           onClick={onClose}
+          aria-label="Close navigation menu"
         >
           <X className="h-5 w-5" />
         </button>
@@ -98,7 +101,7 @@ export function Sidebar({ navItems, isOpen, onClose }: SidebarProps) {
               href={item.href}
               onClick={onClose}
               className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-[14px] text-[15px] font-medium transition-all duration-200 focus:outline-none mb-1",
+                "flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium transition-all duration-200 focus:outline-none mb-1",
                 isActive
                   ? "text-brand bg-brand/5 border border-brand/20 shadow-sm"
                   : "text-text-muted hover:bg-surface-inset hover:text-text border border-transparent"
@@ -115,12 +118,14 @@ export function Sidebar({ navItems, isOpen, onClose }: SidebarProps) {
 
       {/* Footer */}
       <div className="px-6 py-5 border-t border-border">
-        <div className="flex items-center gap-3 text-text-muted hover:text-text cursor-pointer transition-colors">
-          <span className="flex items-center gap-2 text-[14px] font-medium">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-            Log out
-          </span>
-        </div>
+        <button
+          type="button"
+          onClick={() => void logout()}
+          className="flex w-full min-h-11 items-center gap-2 text-sm font-medium text-text-muted hover:text-text transition-colors auth-focus rounded-lg"
+        >
+          <LogOut className="h-[18px] w-[18px]" aria-hidden="true" />
+          Log out
+        </button>
       </div>
     </aside>
   );
