@@ -260,7 +260,7 @@ export default function StudentRegisterPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="font-display text-2xl font-bold text-text mb-2">Account Created!</h2>
+          <h2 className="font-display text-[28px] font-bold text-text mb-2">Account Created!</h2>
           <p className="text-text-muted">Taking you to your dashboard...</p>
         </div>
       </AuthLayout>
@@ -270,7 +270,7 @@ export default function StudentRegisterPage() {
   return (
     <AuthLayout>
       <div className="mb-8 text-center sm:text-left">
-        <h1 className="font-display text-3xl font-bold text-text mb-2">Start learning</h1>
+        <h1 className="font-display text-[28px] font-bold text-text mb-2">Start learning</h1>
         <p className="text-text-muted">Create a free student account</p>
       </div>
 
@@ -300,7 +300,7 @@ export default function StudentRegisterPage() {
           </div>
 
           {/* OTP Input Boxes */}
-          <div className="flex justify-center gap-2.5 mb-4">
+          <div className="flex justify-center gap-2 mb-4">
             {otpValues.map((val, i) => (
               <input
                 key={i}
@@ -313,7 +313,7 @@ export default function StudentRegisterPage() {
                 onKeyDown={(e) => handleOtpKeyDown(i, e)}
                 onPaste={i === 0 ? handleOtpPaste : undefined}
                 disabled={otpVerifying}
-                className={`w-11 h-13 text-center text-xl font-bold rounded-lg border-2 bg-surface-inset text-text
+                className={`w-11 h-12 text-center text-xl font-bold rounded-lg border-2 bg-surface-inset text-text
                   focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand
                   transition-all duration-200
                   ${otpError ? "border-danger shake" : val ? "border-brand" : "border-border"}
@@ -337,7 +337,7 @@ export default function StudentRegisterPage() {
               type="button"
               onClick={sendOtp}
               disabled={cooldown > 0 || otpSending}
-              className={`text-sm font-medium transition-colors ${
+              className={`inline-flex min-h-11 items-center text-sm font-medium transition-colors ${
                 cooldown > 0
                   ? "text-text-muted cursor-not-allowed"
                   : "text-brand hover:text-brand-hover cursor-pointer"
@@ -357,7 +357,7 @@ export default function StudentRegisterPage() {
                 setOtpValues(["", "", "", "", "", ""]);
                 setOtpError(null);
               }}
-              className="text-sm text-text-muted hover:text-text transition-colors cursor-pointer"
+              className="inline-flex min-h-11 items-center text-sm text-text-muted hover:text-text transition-colors cursor-pointer"
             >
               ← Change email
             </button>
@@ -498,7 +498,7 @@ export default function StudentRegisterPage() {
 
       {!showOtp && (
         <p className="mt-8 text-center text-sm text-text-muted">
-          Already have an account? <Link href="/login" className="font-medium text-gold hover:underline">Sign in</Link>
+          Already have an account? <Link href="/login" className="inline-flex min-h-11 items-center -my-3 font-medium text-gold-strong hover:underline">Sign in</Link>
         </p>
       )}
     </AuthLayout>
