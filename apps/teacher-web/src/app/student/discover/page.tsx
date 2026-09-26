@@ -40,10 +40,8 @@ type Teacher = {
 const LANGUAGES = ["English", "Spanish", "French", "Japanese", "German", "Chinese", "Korean", "Russian", "Arabic", "Hindi", "Portuguese", "Italian"];
 
 const EXPERIENCE_LEVELS = [
-  { value: "BEGINNER", label: "Beginner (0-1 yrs)" },
-  { value: "INTERMEDIATE", label: "Intermediate (1-3 yrs)" },
-  { value: "EXPERIENCED", label: "Experienced (3-5 yrs)" },
-  { value: "EXPERT", label: "Expert (5+ yrs)" },
+  { value: "FRESHER", label: "Fresher (0-1 yrs)" },
+  { value: "EXPERIENCED", label: "Experienced (1+ yrs)" },
 ];
 
 const GENDERS = [
