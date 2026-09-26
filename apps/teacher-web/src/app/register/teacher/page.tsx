@@ -336,7 +336,7 @@ export default function TeacherRegisterPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="font-display text-2xl font-bold text-brand mb-2">Application Submitted</h2>
+          <h2 className="font-display text-[28px] font-bold text-brand mb-2">Application Submitted</h2>
           <p className="text-text-muted">Our team will review your profile and documents shortly. Taking you to your portal...</p>
         </div>
       </AuthLayout>
@@ -348,7 +348,7 @@ export default function TeacherRegisterPage() {
   return (
     <AuthLayout>
       <div className="mb-8 text-center sm:text-left">
-        <h1 className="font-display text-3xl font-bold text-brand mb-2">Apply to teach</h1>
+        <h1 className="font-display text-[28px] font-bold text-brand mb-2">Apply to teach</h1>
         <p className="text-text-muted">Join our global community of educators.</p>
 
         <div className="flex items-center gap-1.5 mt-6" role="progressbar" aria-valuenow={step} aria-valuemin={1} aria-valuemax={TOTAL_STEPS} aria-label={`Step ${step} of ${TOTAL_STEPS}`}>
@@ -380,12 +380,12 @@ export default function TeacherRegisterPage() {
             <h2 className="font-display text-xl font-bold text-text mb-1">Verify your email</h2>
             <p className="text-text-muted text-sm">We sent a 6-digit code to <strong className="text-text">{email}</strong></p>
           </div>
-          <div className="flex justify-center gap-2.5 mb-4">
+          <div className="flex justify-center gap-2 mb-4">
             {otpValues.map((val, i) => (
               <input key={i} ref={(el) => { otpRefs.current[i] = el; }} type="text" inputMode="numeric" maxLength={1} value={val}
                 onChange={(e) => handleOtpChange(i, e.target.value)} onKeyDown={(e) => handleOtpKeyDown(i, e)}
                 onPaste={i === 0 ? handleOtpPaste : undefined} disabled={otpVerifying}
-                className={`w-11 h-13 text-center text-xl font-bold rounded-lg border-2 bg-surface-inset text-text focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand transition-all duration-200 ${otpError ? "border-danger shake" : val ? "border-brand" : "border-border"} ${otpVerifying ? "opacity-60" : ""}`}
+                className={`w-11 h-12 text-center text-xl font-bold rounded-lg border-2 bg-surface-inset text-text focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand transition-all duration-200 ${otpError ? "border-danger shake" : val ? "border-brand" : "border-border"} ${otpVerifying ? "opacity-60" : ""}`}
                 aria-label={`Digit ${i + 1}`}
               />
             ))}
@@ -394,11 +394,11 @@ export default function TeacherRegisterPage() {
           {otpVerifying && <p className="text-center text-sm text-text-muted mb-3">Verifying...</p>}
           <div className="flex flex-col items-center gap-2 mt-4">
             <button type="button" onClick={sendOtp} disabled={cooldown > 0 || otpSending}
-              className={`text-sm font-medium transition-colors ${cooldown > 0 ? "text-text-muted cursor-not-allowed" : "text-brand hover:text-brand-hover cursor-pointer"}`}>
+              className={`inline-flex min-h-11 items-center text-sm font-medium transition-colors ${cooldown > 0 ? "text-text-muted cursor-not-allowed" : "text-brand hover:text-brand-hover cursor-pointer"}`}>
               {otpSending ? "Sending..." : cooldown > 0 ? `Resend code in ${cooldown}s` : "Resend code"}
             </button>
             <button type="button" onClick={() => { setShowOtp(false); setOtpValues(["", "", "", "", "", ""]); setOtpError(null); }}
-              className="text-sm text-text-muted hover:text-text transition-colors cursor-pointer">← Change email</button>
+              className="inline-flex min-h-11 items-center text-sm text-text-muted hover:text-text transition-colors cursor-pointer">← Change email</button>
           </div>
         </div>
       )}
@@ -524,7 +524,7 @@ export default function TeacherRegisterPage() {
           {step === 3 && (
             <div className="space-y-5 animate-fade-up flex-1">
               <div>
-                <h2 className="font-display text-lg font-bold text-text mb-1">Upload your qualifications</h2>
+                <h2 className="font-display text-[20px] font-bold text-text mb-1">Upload your qualifications</h2>
                 <p className="text-sm text-text-muted">These documents will be reviewed by our admin team before your account is approved.</p>
               </div>
 
@@ -555,7 +555,7 @@ export default function TeacherRegisterPage() {
           {step === 4 && (
             <div className="space-y-5 animate-fade-up flex-1">
               <div>
-                <h2 className="font-display text-lg font-bold text-text mb-1">Teaching experience</h2>
+                <h2 className="font-display text-[20px] font-bold text-text mb-1">Teaching experience</h2>
                 <p className="text-sm text-text-muted">Let us know about your teaching background. This helps us tailor your experience on the platform.</p>
               </div>
 
@@ -607,16 +607,16 @@ export default function TeacherRegisterPage() {
 
           {/* ── Step 5: Review & Submit ──────────────────────────────────── */}
           {step === 5 && (
-            <div className="space-y-4 animate-fade-up flex-1">
+            <div className="space-y-6 animate-fade-up flex-1">
               <div>
-                <h2 className="font-display text-lg font-bold text-text mb-1">Review your application</h2>
+                <h2 className="font-display text-[20px] font-bold text-text mb-1">Review your application</h2>
                 <p className="text-sm text-text-muted">Please verify all details before submitting. Our team will review your application and documents.</p>
               </div>
 
-              <div className="p-4 rounded-lg border border-border bg-surface-inset/50">
+              <div className="p-5 rounded-lg border border-border bg-surface-inset/50">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-text">Account Details</h3>
-                  <button type="button" onClick={() => setStep(1)} className="text-xs text-brand hover:underline cursor-pointer">Edit</button>
+                  <h3 className="font-display font-semibold text-base text-text tracking-[-0.01em]">Account Details</h3>
+                  <button type="button" onClick={() => setStep(1)} className="inline-flex min-h-11 items-center -my-3 px-2 -mx-2 text-xs text-brand hover:underline cursor-pointer">Edit</button>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div><p className="text-text-muted text-xs">Name</p><p className="text-text">{name}</p></div>
@@ -624,10 +624,10 @@ export default function TeacherRegisterPage() {
                 </div>
               </div>
 
-              <div className="p-4 rounded-lg border border-border bg-surface-inset/50">
+              <div className="p-5 rounded-lg border border-border bg-surface-inset/50">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-text">Teaching Details</h3>
-                  <button type="button" onClick={() => setStep(2)} className="text-xs text-brand hover:underline cursor-pointer">Edit</button>
+                  <h3 className="font-display font-semibold text-base text-text tracking-[-0.01em]">Teaching Details</h3>
+                  <button type="button" onClick={() => setStep(2)} className="inline-flex min-h-11 items-center -my-3 px-2 -mx-2 text-xs text-brand hover:underline cursor-pointer">Edit</button>
                 </div>
                 <div className="space-y-2 text-sm">
                   <div>
@@ -647,10 +647,10 @@ export default function TeacherRegisterPage() {
                 </div>
               </div>
 
-              <div className="p-4 rounded-lg border border-border bg-surface-inset/50">
+              <div className="p-5 rounded-lg border border-border bg-surface-inset/50">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-text">Qualifications</h3>
-                  <button type="button" onClick={() => setStep(3)} className="text-xs text-brand hover:underline cursor-pointer">Edit</button>
+                  <h3 className="font-display font-semibold text-base text-text tracking-[-0.01em]">Qualifications</h3>
+                  <button type="button" onClick={() => setStep(3)} className="inline-flex min-h-11 items-center -my-3 px-2 -mx-2 text-xs text-brand hover:underline cursor-pointer">Edit</button>
                 </div>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2">
@@ -670,10 +670,10 @@ export default function TeacherRegisterPage() {
                 </div>
               </div>
 
-              <div className="p-4 rounded-lg border border-border bg-surface-inset/50">
+              <div className="p-5 rounded-lg border border-border bg-surface-inset/50">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-text">Experience</h3>
-                  <button type="button" onClick={() => setStep(4)} className="text-xs text-brand hover:underline cursor-pointer">Edit</button>
+                  <h3 className="font-display font-semibold text-base text-text tracking-[-0.01em]">Experience</h3>
+                  <button type="button" onClick={() => setStep(4)} className="inline-flex min-h-11 items-center -my-3 px-2 -mx-2 text-xs text-brand hover:underline cursor-pointer">Edit</button>
                 </div>
                 <div className="space-y-2 text-sm">
                   <div><p className="text-text-muted text-xs">Level</p><p className="text-text capitalize">{experienceType === "fresher" ? "New / Fresher" : "Experienced"}</p></div>
@@ -691,7 +691,7 @@ export default function TeacherRegisterPage() {
               </div>
 
               <div className="flex items-start gap-2 p-3 rounded-lg bg-gold/5 border border-gold/20">
-                <svg className="w-4 h-4 text-gold mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="w-4 h-4 text-gold-strong mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
                 <p className="text-xs text-text-muted">After submission, our admin team will review your documents and profile. You&apos;ll receive an email once your application is approved. This typically takes 1–3 business days.</p>
@@ -699,7 +699,7 @@ export default function TeacherRegisterPage() {
             </div>
           )}
 
-          <div className="flex gap-3 pt-4 mt-auto">
+          <div className="flex gap-4 pt-4 mt-auto">
             {step > 1 && (
               <Button type="button" variant="outline" className="flex-1" onClick={() => setStep(step - 1)}>Back</Button>
             )}
@@ -716,7 +716,7 @@ export default function TeacherRegisterPage() {
 
       {step === 1 && !showOtp && (
         <p className="mt-8 text-center text-sm text-text-muted">
-          Already have an account? <Link href="/login" className="font-medium text-brand hover:underline">Sign in</Link>
+          Already have an account? <Link href="/login" className="inline-flex min-h-11 items-center -my-3 font-medium text-brand hover:underline">Sign in</Link>
         </p>
       )}
     </AuthLayout>
