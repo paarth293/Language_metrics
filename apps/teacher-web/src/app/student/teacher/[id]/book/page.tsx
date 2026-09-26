@@ -31,6 +31,7 @@ export default function BookClassPage() {
   const [teacher, setTeacher] = useState<TeacherInfo | null>(null);
   const [rates, setRates] = useState<Rate[]>([]);
   const [selectedRate, setSelectedRate] = useState<string>("");
+  const [slotStart, setSlotStart] = useState<string>("");
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState(false);
@@ -70,16 +71,23 @@ export default function BookClassPage() {
   }, [teacherId]);
 
   const handleBook = async () => {
-    if (!selectedRate) return;
+    if (!selectedRate || !slotStart) return;
     setBooking(true);
     setError(null);
+
+    const parsedStart = new Date(slotStart);
+    if (parsedStart <= new Date()) {
+      setError("The selected time must be in the future.");
+      setBooking(false);
+      return;
+    }
 
     try {
       const res = await fetch(`/api/students/teacher/${teacherId}/book`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ rateId: selectedRate, type: "DEMO" }),
+        body: JSON.stringify({ rateId: selectedRate, type: "DEMO", slotStart: parsedStart.toISOString() }),
       });
 
       const data = await res.json();
@@ -186,6 +194,21 @@ export default function BookClassPage() {
           ))}
         </div>
 
+        {/* Start Time Selection */}
+        <div className="space-y-3 mb-6">
+          <label className="text-sm font-medium text-text">Select Start Time</label>
+          <div className="flex items-center gap-2 p-3 rounded-xl border border-border focus-within:border-brand/50 transition-colors">
+            <Clock className="w-5 h-5 text-text-muted" />
+            <input
+              type="datetime-local"
+              className="w-full bg-transparent outline-none text-text"
+              value={slotStart}
+              onChange={(e) => setSlotStart(e.target.value)}
+              min={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+            />
+          </div>
+        </div>
+
         {/* Balance Check */}          <div className="flex items-center justify-between p-4 rounded-xl bg-surface-inset mb-6">
           <div className="flex items-center gap-2 text-sm text-text-muted">
             <Wallet className="w-4 h-4" /> Your balance
@@ -211,7 +234,7 @@ export default function BookClassPage() {
 
         <button
           onClick={handleBook}
-          disabled={!canAfford || booking || !selectedRate}
+          disabled={!canAfford || booking || !selectedRate || !slotStart}
           className="w-full py-3 rounded-xl bg-navy text-white font-medium text-sm hover:bg-navy-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {booking ? (
