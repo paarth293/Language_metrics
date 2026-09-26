@@ -7,7 +7,6 @@ import { MetricCard } from "@/components/dashboard/MetricCard";
 import { NextClassCard } from "@/components/dashboard/NextClassCard";
 import { CoinBalanceCard } from "@/components/dashboard/CoinBalanceCard";
 import { PracticeChart } from "@/components/dashboard/PracticeChart";
-import { StreakDots } from "@/components/dashboard/StreakDots";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -47,7 +46,7 @@ export default function StudentDashboard() {
           <AlertCircle className="w-10 h-10 text-danger mx-auto mb-3" />
           <p className="font-semibold text-text mb-1">Unable to load dashboard</p>
           <p className="text-text-muted text-sm mb-4">{error}</p>
-          <button onClick={() => window.location.reload()} className="px-5 py-2 rounded-xl bg-brand text-white text-sm font-semibold">Retry</button>
+          <Button onClick={() => window.location.reload()} variant="primary">Retry</Button>
         </div>
       </div>
     );
@@ -63,17 +62,17 @@ export default function StudentDashboard() {
   const showNextClass = !!nextClass || hasHistory;
 
   return (
-    <div className="space-y-6 pb-16 animate-in fade-in duration-300">
+    <div className="space-y-8 pb-16 animate-in fade-in duration-300">
 
       {/* ── GREETING ─────────────────────────────────── */}
       <DashboardGreeting
         name={profile.name}
-        language={profile.languageToLearn}
-        proficiencyLevel={profile.proficiencyLevel}
+        subtitle={`Ready to continue your ${profile.languageToLearn} journey?`}
+        badge={profile.proficiencyLevel}
       />
 
       {/* ── METRIC CARDS ─────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
           icon={Flame}
           label="Study streak"
@@ -115,39 +114,22 @@ export default function StudentDashboard() {
 
       {/* ── SECOND ROW ───────────────────────────────── */}
       {showNextClass ? (
-        /* Has class or history — show Next Class (2 col) + sidebar (1 col) */
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2">
+        /* Has class or history — show Next Class (2 col) + coin balance (1 col) */
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 flex">
             <NextClassCard cls={nextClass} hasHistory={hasHistory} />
           </div>
-          <div className="flex flex-col gap-4">
-            <CoinBalanceCard balance={stats.coinBalance} />
-            <Card className="flex-1 hover:shadow-level-2 transition-shadow duration-180">
-              <CardContent className="p-5 sm:p-6 h-full flex flex-col">
-                <div className="text-[11px] font-semibold text-text-subtle uppercase tracking-[0.12em] mb-3">
-                  Study streak
-                </div>
-                <div className="flex items-baseline gap-2 mb-2">
-                  <span className="text-[28px] font-display font-bold text-text leading-none">{stats.streak}</span>
-                  <span className="text-sm text-text-muted">days</span>
-                </div>
-                <StreakDots count={stats.streak} />
-                {stats.streak === 0 && (
-                  <p className="text-[12px] text-text-muted mt-2">Complete a class to start your streak</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+          <CoinBalanceCard balance={stats.coinBalance} />
         </div>
       ) : (
-        /* Brand new user — no class, no history. Show a clean 3-card row. */
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        /* Brand new user — no class, no history. Show a clean 2-card row. */
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Get Started Card */}
           <Card className="hover:shadow-level-2 transition-shadow duration-180">
-            <CardContent className="p-5 sm:p-6 flex flex-col h-full">
-              <div className="text-[11px] font-semibold text-text-subtle uppercase tracking-[0.12em] mb-4">
-                Get Started
-              </div>
+            <CardContent className="p-5 flex flex-col h-full">
+              <h3 className="font-display font-semibold text-base text-text tracking-[-0.01em] mb-4">
+                Get started
+              </h3>
               <div className="flex flex-col items-center justify-center flex-1 text-center py-4">
                 <div
                   className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3"
@@ -155,8 +137,8 @@ export default function StudentDashboard() {
                 >
                   <Calendar className="w-6 h-6" style={{ color: "#5046c8" }} />
                 </div>
-                <p className="text-[14px] font-semibold text-text mb-1">Book your first class</p>
-                <p className="text-[12px] text-text-muted mb-5 max-w-[200px]">
+                <p className="text-sm font-semibold text-text mb-1">Book your first class</p>
+                <p className="text-xs text-text-muted mb-5 max-w-[200px]">
                   Find a {profile.languageToLearn} teacher and start learning today
                 </p>
                 <Button asChild variant="primary" className="w-full">
@@ -171,23 +153,6 @@ export default function StudentDashboard() {
 
           {/* Coin Balance */}
           <CoinBalanceCard balance={stats.coinBalance} />
-
-          {/* Streak */}
-          <Card className="hover:shadow-level-2 transition-shadow duration-180">
-            <CardContent className="p-5 sm:p-6 h-full flex flex-col">
-              <div className="text-[11px] font-semibold text-text-subtle uppercase tracking-[0.12em] mb-3">
-                Study streak
-              </div>
-              <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-[28px] font-display font-bold text-text leading-none">{stats.streak}</span>
-                <span className="text-sm text-text-muted">days</span>
-              </div>
-              <StreakDots count={stats.streak} />
-              {stats.streak === 0 && (
-                <p className="text-[12px] text-text-muted mt-2">Complete a class to start your streak</p>
-              )}
-            </CardContent>
-          </Card>
         </div>
       )}
 
@@ -201,12 +166,12 @@ export default function StudentDashboard() {
       {/* ── UPCOMING CLASSES LIST ─────────────────────── */}
       {upcomingClasses.length > 1 && (
         <Card className="hover:shadow-level-2 transition-shadow duration-180">
-          <CardContent className="p-5 sm:p-6">
+          <CardContent className="p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-display font-semibold text-base text-text tracking-[-0.01em]">
                 Upcoming classes
               </h3>
-              <Link href="/student/classes" className="text-sm font-medium text-action hover:text-action-hover transition-colors auth-focus rounded px-1 -mx-1">
+              <Link href="/student/classes" className="text-sm font-medium text-action hover:text-action-hover transition-colors auth-focus rounded-md inline-flex min-h-11 items-center -my-3 px-2 -mx-2">
                 View all
               </Link>
             </div>
@@ -217,21 +182,21 @@ export default function StudentDashboard() {
                 return (
                   <div key={cls.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
                     <div
-                      className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-[11px] font-bold shrink-0"
+                      className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-xs font-bold shrink-0"
                       style={{ background: "linear-gradient(135deg, #231d5e, #5046c8)" }}
                     >
                       {initials}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[14px] font-semibold text-text truncate">{cls.teacher}</p>
-                      <p className="text-[12px] text-text-muted capitalize">
+                      <p className="text-sm font-semibold text-text truncate">{cls.teacher}</p>
+                      <p className="text-xs text-text-muted capitalize">
                         {cls.language} · {cls.type.toLowerCase()}
                         {start ? ` · ${start.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}` : ""}
                       </p>
                     </div>
                     <Link
-                      href={`/student/classes/${cls.id}`}
-                      className="text-[12px] font-semibold text-brand hover:text-brand-hover transition-colors auth-focus rounded px-1 -mx-1 shrink-0"
+                      href="/student/classes"
+                      className="text-xs font-semibold text-brand hover:text-brand-hover transition-colors auth-focus rounded-md inline-flex min-h-11 items-center -my-3 px-2 -mx-2 shrink-0"
                     >
                       Details
                     </Link>

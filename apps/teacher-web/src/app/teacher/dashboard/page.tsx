@@ -2,9 +2,10 @@
 
 import React from "react";
 import {
-  AlertCircle, Users, AlertTriangle, TrendingUp, Star,
-  BookOpen, ChevronRight, CircleDollarSign, Clock,
+  AlertCircle, Users, AlertTriangle, Star,
+  BookOpen, CircleDollarSign, Clock, CalendarDays,
 } from "lucide-react";
+import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -54,33 +55,19 @@ export default function TeacherDashboard() {
   }
 
   const { stats, weeklySchedule, profileName } = data;
-  const firstName = profileName.split(" ")[0];
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   const rating = stats.averageRating > 0 ? stats.averageRating : 0;
   const maxW = Math.max(...weeklySchedule.map(d => d.count), 1);
   const totalWeeklyClasses = weeklySchedule.reduce((a, d) => a + d.count, 0);
 
   return (
-    <div className="space-y-6 pb-16 animate-in fade-in duration-300">
+    <div className="space-y-8 pb-16 animate-in fade-in duration-300">
 
       {/* ── GREETING ─────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div>
-          <h1 className="text-[32px] sm:text-[36px] lg:text-[44px] leading-[1.05] font-display font-bold text-text tracking-[-0.02em]">
-            {greeting}, {firstName}
-          </h1>
-          <p className="text-base text-text-muted mt-2">
-            Here's your teaching overview for today
-          </p>
-        </div>
-        <div className="inline-flex px-3 py-1.5 rounded-full bg-surface-inset text-text-muted text-[11px] font-semibold tracking-[0.14em] uppercase self-start shrink-0 mt-1">
-          {new Date().toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "long" }).toUpperCase()}
-        </div>
-      </div>
+      <DashboardGreeting name={profileName} subtitle="Here's your teaching overview for today" />
 
       {/* ── METRIC CARDS ─────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Rating lives only in the "Your rating" card below. */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         <MetricCard
           icon={Users}
           label="Active students"
@@ -97,14 +84,6 @@ export default function TeacherDashboard() {
           delta={stats.pendingBookings > 0 ? { value: stats.pendingBookings, trend: "up" } : undefined}
         />
         <MetricCard
-          icon={Star}
-          label="Average rating"
-          value={rating > 0 ? rating.toFixed(1) : "—"}
-          accentColor="#c7982f"
-          accentBg="rgba(199,152,47,0.08)"
-          highlight
-        />
-        <MetricCard
           icon={BookOpen}
           label="Total reviews"
           value={stats.totalReviews}
@@ -114,38 +93,37 @@ export default function TeacherDashboard() {
       </div>
 
       {/* ── MAIN ROW ─────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* Weekly Schedule Chart — 2 cols */}
         <Card className="lg:col-span-2 hover:shadow-level-2 transition-shadow duration-180">
-          <CardContent className="p-5 sm:p-6">
+          <CardContent className="p-5">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="font-display font-semibold text-base text-text tracking-[-0.01em]">
                   Weekly schedule
                 </h3>
-                <p className="text-[13px] text-text-muted mt-0.5">
+                <p className="text-sm text-text-muted mt-0.5">
                   {totalWeeklyClasses} class{totalWeeklyClasses !== 1 ? "es" : ""} this week
                 </p>
               </div>
-              <div className="px-2.5 py-1 rounded-full bg-brand/10 text-brand text-[12px] font-semibold">
+              <div className="px-2.5 py-1 rounded-full bg-brand/10 text-brand text-xs font-semibold">
                 This week
               </div>
             </div>
 
             {/* Bar Chart */}
-            <div className="flex items-end gap-2 h-36">
+            <div className="flex items-end gap-2">
               {weeklySchedule.map((d, i) => {
                 const pct = d.count > 0 ? Math.max((d.count / maxW) * 100, 8) : 4;
                 const today = new Date().getDay();
                 const isToday = today === (i + 1 > 6 ? 0 : i + 1);
                 return (
-                  <div key={d.day} className="flex-1 flex flex-col items-center gap-2.5 group cursor-pointer">
-                    <div className="w-full flex flex-col items-center justify-end" style={{ height: "104px" }}>
+                  <div key={d.day} className="flex-1 flex flex-col items-center gap-2 group cursor-pointer">
+                    <div className="w-full h-28 flex flex-col items-center justify-end">
                       {d.count > 0 && (
                         <span
-                          className="text-[10px] font-bold mb-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                          style={{ color: isToday ? "#5046c8" : "#8a93a6" }}
+                          className={`text-xs font-bold mb-1.5 opacity-0 group-hover:opacity-100 transition-opacity ${isToday ? "text-brand" : "text-text-subtle"}`}
                         >
                           {d.count}
                         </span>
@@ -165,8 +143,7 @@ export default function TeacherDashboard() {
                       />
                     </div>
                     <span
-                      className="text-[11px] font-semibold"
-                      style={{ color: isToday ? "#231d5e" : "#8a93a6" }}
+                      className={`text-xs font-semibold ${isToday ? "text-text" : "text-text-subtle"}`}
                     >
                       {d.day}
                     </span>
@@ -179,11 +156,11 @@ export default function TeacherDashboard() {
             <div className="flex items-center gap-5 mt-4 pt-4 border-t border-border/50">
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-sm" style={{ background: "linear-gradient(to top, #231d5e, #5046c8)" }} />
-                <span className="text-[11px] text-text-muted">Today</span>
+                <span className="text-xs text-text-muted">Today</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-sm bg-brand/22" />
-                <span className="text-[11px] text-text-muted">Scheduled</span>
+                <span className="text-xs text-text-muted">Scheduled</span>
               </div>
             </div>
           </CardContent>
@@ -191,14 +168,14 @@ export default function TeacherDashboard() {
 
         {/* Right: Rating — 1 col */}
         <Card className="hover:shadow-level-2 transition-shadow duration-180">
-          <CardContent className="p-5 sm:p-6 h-full flex flex-col">
-            <div className="text-[11px] font-semibold text-text-subtle uppercase tracking-[0.12em] mb-4">
+          <CardContent className="p-5 h-full flex flex-col">
+            <h3 className="font-display font-semibold text-base text-text tracking-[-0.01em] mb-4">
               Your rating
-            </div>
+            </h3>
 
             {/* Large rating */}
             <div className="flex items-baseline gap-2 mb-2">
-              <span className="text-[48px] font-display font-bold text-text leading-none tracking-[-0.02em]">
+              <span className="font-display text-[20px] sm:text-[28px] font-bold leading-none tracking-[-0.01em] text-text">
                 {rating > 0 ? rating.toFixed(1) : "—"}
               </span>
               <span className="text-text-muted text-sm">/ 5</span>
@@ -216,14 +193,14 @@ export default function TeacherDashboard() {
               ))}
             </div>
 
-            <p className="text-[13px] text-text-muted mb-5">
+            <p className="text-sm text-text-muted mb-5">
               {stats.totalReviews > 0 ? `Based on ${stats.totalReviews} review${stats.totalReviews !== 1 ? "s" : ""}` : "No reviews yet"}
             </p>
 
             {/* Rating bar */}
             {rating > 0 && (
               <div className="mb-6">
-                <div className="flex justify-between text-[11px] mb-1.5">
+                <div className="flex justify-between text-xs mb-1.5">
                   <span className="text-text-muted">Score</span>
                   <span className="font-bold text-text">{Math.round((rating / 5) * 100)}%</span>
                 </div>
@@ -236,47 +213,34 @@ export default function TeacherDashboard() {
               </div>
             )}
 
-            <div className="mt-auto">
-              {stats.pendingBookings > 0 && (
-                <Link href="/teacher/bookings">
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-alert/8 border border-alert/20 group hover:bg-alert/12 transition-colors cursor-pointer">
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 text-alert shrink-0" />
-                      <span className="text-[13px] font-semibold text-text">{stats.pendingBookings} pending</span>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-text-subtle opacity-0 group-hover:opacity-60 transition-opacity" />
-                  </div>
-                </Link>
-              )}
-            </div>
           </CardContent>
         </Card>
       </div>
 
       {/* ── QUICK ACTIONS ────────────────────────────── */}
       <Card className="hover:shadow-level-2 transition-shadow duration-180">
-        <CardContent className="p-5 sm:p-6">
+        <CardContent className="p-5">
           <h3 className="font-display font-semibold text-base text-text tracking-[-0.01em] mb-4">
             Quick actions
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
-              { Icon: Clock, label: "Review Bookings", sub: `${stats.pendingBookings} waiting`, hex: "#dc4c3e", href: "/teacher/bookings" },
+              { Icon: Clock, label: "Sessions", sub: "Review bookings", hex: "#dc4c3e", href: "/teacher/sessions" },
               { Icon: Users, label: "My Students", sub: `${stats.activeStudents} active`, hex: "#0f9d6b", href: "/teacher/students" },
               { Icon: CircleDollarSign, label: "Earnings", sub: "View payouts", hex: "#c7982f", href: "/teacher/earnings" },
-              { Icon: TrendingUp, label: "Analytics", sub: "See trends", hex: "#5046c8", href: "/teacher/analytics" },
+              { Icon: CalendarDays, label: "Schedule", sub: "Set availability", hex: "#5046c8", href: "/teacher/schedule" },
             ].map(({ Icon, label, sub, hex, href }) => (
               <Link
                 key={label}
                 href={href}
-                className="flex items-center gap-3 p-4 rounded-2xl border border-border/50 hover:border-brand/20 hover:bg-surface-inset/60 transition-all duration-150 group"
+                className="flex items-center gap-3 p-5 rounded-2xl border border-border/50 hover:border-brand/20 hover:bg-surface-inset/60 transition-all duration-150 group"
               >
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${hex}12` }}>
                   <Icon className="w-4.5 h-4.5" style={{ color: hex }} strokeWidth={2} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[13px] font-semibold text-text truncate">{label}</p>
-                  <p className="text-[11px] text-text-muted">{sub}</p>
+                  <p className="text-sm font-semibold text-text truncate">{label}</p>
+                  <p className="text-xs text-text-muted">{sub}</p>
                 </div>
               </Link>
             ))}

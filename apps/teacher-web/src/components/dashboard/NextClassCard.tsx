@@ -27,10 +27,10 @@ export function NextClassCard({ cls, hasHistory }: NextClassCardProps) {
 
     return (
       <Card className="flex-1 flex flex-col hover:shadow-level-2 transition-shadow duration-180">
-        <CardContent className="p-5 sm:p-6 flex-1 flex flex-col">
-          <div className="text-[11px] font-semibold text-text-subtle uppercase tracking-[0.12em] mb-auto">
-            Next Class
-          </div>
+        <CardContent className="p-5 flex-1 flex flex-col">
+          <h3 className="font-display font-semibold text-base text-text tracking-[-0.01em] mb-auto">
+            Next class
+          </h3>
           <div className="flex flex-col items-center justify-center flex-1">
             <Calendar className="w-6 h-6 text-text-subtle mb-3" />
             <p className="text-sm text-text-muted text-center mb-6">Nothing booked yet.</p>
@@ -65,10 +65,10 @@ export function NextClassCard({ cls, hasHistory }: NextClassCardProps) {
       "flex-1 flex flex-col transition-all duration-180",
       isActive ? "border border-action/30 hover:border-action/60 shadow-level-1 hover:shadow-level-2 dark:border-action/35" : "hover:shadow-level-2"
     )}>
-      <CardContent className="p-5 sm:p-6 flex-1 flex flex-col">
-        <div className="text-[11px] font-semibold text-text-subtle uppercase tracking-[0.12em] mb-4">
-          Next Class
-        </div>
+      <CardContent className="p-5 flex-1 flex flex-col">
+        <h3 className="font-display font-semibold text-base text-text tracking-[-0.01em] mb-4">
+          Next class
+        </h3>
         
         <div className="flex gap-4 items-start mb-6">
           <Avatar src={cls.avatar || undefined} size="lg" />
@@ -77,8 +77,8 @@ export function NextClassCard({ cls, hasHistory }: NextClassCardProps) {
               {cls.teacher}
             </h3>
             <div className="flex flex-wrap gap-1.5">
-              <Badge variant="info" className="text-[10px] uppercase py-0">{cls.language}</Badge>
-              <Badge variant={cls.type === "DEMO" ? "warning" : "default"} className="text-[10px] uppercase py-0">
+              <Badge variant="info" className="text-xs uppercase py-0">{cls.language}</Badge>
+              <Badge variant={cls.type === "DEMO" ? "warning" : "default"} className="text-xs uppercase py-0">
                 {cls.type === "DEMO" ? "Demo" : "Regular"}
               </Badge>
             </div>
@@ -105,7 +105,7 @@ export function NextClassCard({ cls, hasHistory }: NextClassCardProps) {
             </Button>
           ) : (
             <Button asChild variant="outline" className="w-full auth-focus">
-              <Link href={`/student/classes/${cls.id}`}>
+              <Link href="/student/classes">
                 View details
               </Link>
             </Button>

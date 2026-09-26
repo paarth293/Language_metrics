@@ -67,7 +67,7 @@ export function AppShell({ children, navItems, requiredRole }: AppShellProps) {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-bg text-text transition-colors duration-200">
+    <div className="app-shell flex h-screen overflow-hidden bg-bg text-text transition-colors duration-200">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div

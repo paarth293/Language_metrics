@@ -23,7 +23,7 @@ const CustomTooltip = ({ active, payload }: any) => {
     const data = payload[0].payload;
     const dateStr = new Date(data.weekStart).toLocaleDateString("en-US", { day: "numeric", month: "short" });
     return (
-      <div className="bg-surface shadow-level-1 rounded-[10px] p-[10px] text-sm text-text border border-border dark:border-border-strong">
+      <div className="bg-surface shadow-level-1 rounded-md p-3 text-sm text-text border border-border dark:border-border-strong">
         <div className="font-semibold mb-1">Week of {dateStr}</div>
         <div className="flex items-center gap-2 text-text-muted">
           <div className="w-1.5 h-1.5 rounded-full bg-brand" />
@@ -52,7 +52,7 @@ export function PracticeChart({ data = [], hoursThisWeek, hoursLastWeek }: Pract
   const renderContent = () => {
     if (viewAsTable) {
       return (
-        <div className="flex-1 overflow-auto bg-surface-inset/40 rounded-[10px] p-4 text-sm mt-4">
+        <div className="flex-1 overflow-auto bg-surface-inset/40 rounded-md p-4 text-sm mt-4">
           <table className="w-full text-left">
             <thead>
               <tr className="text-text-subtle border-b border-border">
@@ -76,7 +76,7 @@ export function PracticeChart({ data = [], hoursThisWeek, hoursLastWeek }: Pract
     if (isBrandNew) {
       return (
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-[13px] text-text-muted text-center max-w-[240px]">
+          <p className="text-sm text-text-muted text-center max-w-[240px]">
             Your practice hours will appear here after your first class.
           </p>
         </div>
@@ -86,10 +86,10 @@ export function PracticeChart({ data = [], hoursThisWeek, hoursLastWeek }: Pract
     if (isFirstWeek) {
       return (
         <div className="flex-1 flex flex-col items-center justify-center text-center">
-          <div className="text-[40px] font-display font-bold text-text leading-none tracking-[-0.02em] mb-4">
+          <div className="font-display text-[20px] sm:text-[28px] font-bold leading-none tracking-[-0.01em] text-text mb-4">
             {hoursThisWeek}
           </div>
-          <p className="text-[13px] text-text-muted max-w-[240px]">
+          <p className="text-sm text-text-muted max-w-[240px]">
             Your first week. Come back next week to see the trend.
           </p>
         </div>
@@ -98,7 +98,7 @@ export function PracticeChart({ data = [], hoursThisWeek, hoursLastWeek }: Pract
 
     return (
       <>
-        <div className="flex-1 mt-4 relative bg-surface-inset/40 rounded-[10px] p-4 pb-0">
+        <div className="flex-1 mt-4 relative bg-surface-inset/40 rounded-md p-4 pb-0">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
               <defs>
@@ -132,7 +132,7 @@ export function PracticeChart({ data = [], hoursThisWeek, hoursLastWeek }: Pract
             </AreaChart>
           </ResponsiveContainer>
         </div>
-        <div className="flex justify-between text-[12px] text-text-subtle mt-2 px-4">
+        <div className="flex justify-between text-xs text-text-subtle mt-2 px-4">
           <span>{firstDate}</span>
           <span>{lastDate}</span>
         </div>
@@ -142,20 +142,22 @@ export function PracticeChart({ data = [], hoursThisWeek, hoursLastWeek }: Pract
 
   return (
     <Card className="col-span-1 lg:col-span-2 h-[320px] flex flex-col hover:shadow-level-2 transition-shadow duration-180">
-      <CardContent className="p-5 sm:p-6 flex-1 flex flex-col relative group">
+      <CardContent className="p-5 flex-1 flex flex-col relative group">
         <div className="flex justify-between items-start">
           <div>
             <h3 className="font-display font-semibold text-base text-text tracking-[-0.01em]">Practice momentum</h3>
-            <p className="text-[13px] text-text-muted mt-0.5">Hours practised, last 8 weeks</p>
+            <p className="text-sm text-text-muted mt-0.5">Hours practised, last 8 weeks</p>
           </div>
           <div className="flex items-center gap-3">
-            <button 
+            <button
+              type="button"
               onClick={() => setViewAsTable(!viewAsTable)}
-              className="opacity-0 group-hover:opacity-100 transition-opacity text-[11px] font-medium text-action hover:text-action-hover auth-focus rounded px-1 -mx-1"
+              aria-pressed={viewAsTable}
+              className="text-xs font-medium text-action hover:text-action-hover auth-focus rounded-md inline-flex min-h-11 items-center -my-3 px-2 -mx-2"
             >
               {viewAsTable ? "View chart" : "View table"}
             </button>
-            <div className={`px-2 py-0.5 rounded-full text-[11px] font-medium flex items-center gap-1 ${
+            <div className={`px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 ${
               isPositive 
                 ? 'bg-trust-subtle text-trust' 
                 : 'bg-surface-inset text-text-muted'

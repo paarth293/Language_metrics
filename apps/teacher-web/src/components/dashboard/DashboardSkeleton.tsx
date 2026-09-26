@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 
 export function DashboardSkeleton() {
   return (
-    <div className="flex flex-col gap-[28px] animate-pulse">
+    <div className="flex flex-col gap-8 animate-pulse">
       {/* Zone A: Greeting */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
@@ -29,7 +29,7 @@ export function DashboardSkeleton() {
       </div>
 
       {/* Zone C: Metric rail */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
         {[...Array(4)].map((_, i) => (
           <Card key={i} className="shadow-none border-none bg-surface h-[110px]">
             <CardContent className="h-full bg-surface-inset/50" />

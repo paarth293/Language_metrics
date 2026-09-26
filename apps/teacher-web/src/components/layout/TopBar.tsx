@@ -70,11 +70,12 @@ export function TopBar({ onMenuClick, user, unreadCount: initialUnreadCount }: T
   const ThemeIcon = theme === "light" ? Moon : Sun;
 
   return (
-    <header className="flex h-[68px] shrink-0 items-center justify-between border-b border-[rgba(35,29,94,0.08)] bg-[#f5f0e4]/90 backdrop-blur-xl px-4 md:px-8 sticky top-0 z-20 transition-colors">
+    <header className="flex h-16 shrink-0 items-center justify-between border-b border-[rgba(35,29,94,0.08)] bg-[#f5f0e4]/90 backdrop-blur-xl px-4 md:px-6 lg:px-8 sticky top-0 z-20 transition-colors">
       <div className="flex items-center gap-4">
         <button
-          className="text-text-muted hover:text-text lg:hidden transition-colors p-2 rounded-xl hover:bg-surface-inset"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-text-muted hover:text-text lg:hidden transition-colors hover:bg-surface-inset auth-focus"
           onClick={onMenuClick}
+          aria-label="Open navigation menu"
         >
           <Menu className="h-5 w-5" />
         </button>
@@ -87,7 +88,7 @@ export function TopBar({ onMenuClick, user, unreadCount: initialUnreadCount }: T
             placeholder="Search students, sessions, earnings..."
             className="h-10 w-80 rounded-xl border border-border bg-surface-inset/80 pl-11 pr-4 text-sm text-text placeholder:text-text-subtle focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/15 transition-all duration-200"
           />
-          <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden lg:inline-flex items-center gap-0.5 rounded-md bg-surface border border-border px-1.5 py-0.5 text-[10px] font-medium text-text-subtle">
+          <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden lg:inline-flex items-center gap-0.5 rounded-md bg-surface border border-border px-1.5 py-0.5 text-xs font-medium text-text-subtle">
             ⌘K
           </kbd>
         </div>
@@ -98,8 +99,9 @@ export function TopBar({ onMenuClick, user, unreadCount: initialUnreadCount }: T
         {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
-          className="rounded-xl p-2.5 text-text-muted hover:bg-surface-inset hover:text-text transition-all duration-200 auth-focus"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-text-muted hover:bg-surface-inset hover:text-text transition-all duration-200 auth-focus"
           title={`Theme: ${theme}`}
+          aria-label={`Switch theme (current: ${theme})`}
         >
           <ThemeIcon className="h-[18px] w-[18px]" />
         </button>
@@ -107,13 +109,13 @@ export function TopBar({ onMenuClick, user, unreadCount: initialUnreadCount }: T
         {/* Notifications */}
         <Link
           href={notificationsHref}
-          className="relative rounded-xl p-2.5 text-text-muted hover:bg-surface-inset hover:text-text transition-all duration-200 auth-focus"
+          className="relative inline-flex h-11 w-11 items-center justify-center rounded-xl text-text-muted hover:bg-surface-inset hover:text-text transition-all duration-200 auth-focus"
           aria-label={unreadCount > 0 ? `View notifications (${unreadCount} unread)` : "View notifications"}
         >
           <Bell className="h-[18px] w-[18px]" />
           {unreadCount > 0 && (
             <span
-              className="absolute top-2 right-2 h-2 w-2 rounded-full bg-danger ring-2 ring-white transition-all duration-200"
+              className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full bg-danger ring-2 ring-white transition-all duration-200"
               aria-hidden="true"
             />
           )}
@@ -129,7 +131,7 @@ export function TopBar({ onMenuClick, user, unreadCount: initialUnreadCount }: T
         >
           <div className="hidden text-right md:block">
             <div className="text-sm font-semibold text-text leading-tight">{user?.name || "User"}</div>
-            <div className="text-[11px] text-text-muted">View Profile</div>
+            <div className="text-xs text-text-muted">View Profile</div>
           </div>
           <div className="flex items-center gap-1.5">
             <Avatar initials={user?.name?.[0] || "U"} online={true} />
