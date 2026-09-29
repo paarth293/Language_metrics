@@ -175,7 +175,9 @@ export async function GET(request: Request) {
         reviews: t.reviews.length,
         hourlyRate,
         demoRate,
-        headline: t.bio || `Experienced ${t.language || "language"} teacher`,
+        // Only the teacher's own words. The old fallback invented
+        // "Experienced <code> teacher", mislabelling freshers.
+        headline: t.bio?.trim() || null,
         nextAvailable,
         experienceLevel: t.experienceLevel,
         availability: t.availability.length > 0,
