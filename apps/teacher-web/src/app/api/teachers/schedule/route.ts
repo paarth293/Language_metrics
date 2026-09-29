@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getJoinWindow } from "@repo/live-classes";
+import { currentOrNextSession, getJoinWindow } from "@repo/live-classes";
 
 export async function GET(request: Request) {
   const auth = await requireAuth(request, "TEACHER");
@@ -26,12 +26,7 @@ export async function GET(request: Request) {
       // The next session that can still be joined. A class stays here until
       // its join window closes (scheduled end + grace), not just its end —
       // otherwise a class running a few minutes over vanished mid-lesson.
-      const nextSession = booking.sessions.find(
-        (s) =>
-          s.status !== "COMPLETED" &&
-          s.status !== "CANCELLED" &&
-          getJoinWindow(s).closesAt > now
-      );
+      const nextSession = currentOrNextSession(booking.sessions, now);
       const joinWindow = nextSession ? getJoinWindow(nextSession) : null;
 
       return {
