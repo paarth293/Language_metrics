@@ -82,6 +82,23 @@ export function getJoinWindow(session: { scheduledStart: Date; scheduledEnd: Dat
   };
 }
 
+/**
+ * The session to show a participant right now: the one in progress, or else
+ * the next one to come. A session stays current until its join window closes
+ * — not merely until its start time — so a class never drops off a dashboard
+ * while it is running or can still be joined.
+ */
+export function currentOrNextSession<
+  T extends { status: string; scheduledStart: Date; scheduledEnd: Date },
+>(sessions: T[], now: Date = new Date()): T | undefined {
+  return sessions
+    .filter(
+      (s) =>
+        (s.status === "SCHEDULED" || s.status === "ONGOING") && getJoinWindow(s).closesAt > now
+    )
+    .sort((a, b) => a.scheduledStart.getTime() - b.scheduledStart.getTime())[0];
+}
+
 export interface EvaluateJoinParams {
   classSessionId: string;
   userId: string;
