@@ -29,7 +29,7 @@ type Teacher = {
   reviews: number;
   hourlyRate: number;
   demoRate: number;
-  headline: string;
+  headline: string | null;
   nextAvailable: string;
   experienceLevel: string;
   availability: boolean;
@@ -366,11 +366,13 @@ export default function DiscoverPage() {
                         </div>
                       </div>
 
-                      <div className="bg-surface-inset/50 rounded-xl p-3 mb-4 border border-border/40">
-                        <p className="text-[13px] text-text leading-relaxed line-clamp-2 italic opacity-90">
-                          "{teacher.headline}"
-                        </p>
-                      </div>
+                      {teacher.headline && (
+                        <div className="bg-surface-inset/50 rounded-xl p-3 mb-4 border border-border/40">
+                          <p className="text-[13px] text-text leading-relaxed line-clamp-2 italic opacity-90">
+                            &quot;{teacher.headline}&quot;
+                          </p>
+                        </div>
+                      )}
 
                       <div className="mt-auto">
                         <div className="flex items-center gap-2 text-[11px] font-bold text-trust uppercase tracking-wider mb-3">
