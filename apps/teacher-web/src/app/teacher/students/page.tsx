@@ -28,6 +28,7 @@ type Student = {
   totalSpent: number;
   lastClassDate: string | null;
   rating: number | null;
+  reviewComment: string | null;
 };
 
 const PILL_COLORS = ["#0f9d6b","#231d5e","#c7982f","#5046c8","#dc4c3e","#3d32a0"];
@@ -284,6 +285,15 @@ export default function TeacherStudents() {
                         ₹{Math.round(student.totalSpent / 100).toLocaleString("en-IN")}
                       </div>
                     </div>
+
+                    {/* Review Section */}
+                    {student.reviewComment && (
+                      <div className="p-4 bg-action/5 border-t border-border/40 text-[13px] text-text-muted italic flex gap-2">
+                        <span className="text-action-on font-serif text-lg leading-none">"</span>
+                        <span className="leading-snug">{student.reviewComment}</span>
+                        <span className="text-action-on font-serif text-lg leading-none mt-auto">"</span>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               );
