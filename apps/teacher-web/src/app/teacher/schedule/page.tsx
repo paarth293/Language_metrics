@@ -14,6 +14,8 @@ import {
   CheckCircle2,
   CalendarDays,
   Settings,
+  Search,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -85,6 +87,7 @@ export default function TeacherSchedule() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [tempAvailability, setTempAvailability] = useState<AvailabilitySlot[]>([]);
+  const [bookingSearch, setBookingSearch] = useState("");
 
   const weekDates = getWeekDates(weekOffset);
   const today = new Date();
@@ -136,6 +139,19 @@ export default function TeacherSchedule() {
         return aTime - bTime;
       });
   };
+
+  // Soonest-scheduled first; bookings with no upcoming session (e.g. pending
+  // requests) sink to the bottom instead of interleaving by createdAt.
+  const sortedBookings = [...bookings].sort((a, b) => {
+    if (!a.nextSession && !b.nextSession) return 0;
+    if (!a.nextSession) return 1;
+    if (!b.nextSession) return -1;
+    return new Date(a.nextSession.scheduledStart).getTime() - new Date(b.nextSession.scheduledStart).getTime();
+  });
+
+  const filteredBookings = bookingSearch.trim()
+    ? sortedBookings.filter((b) => b.student.name.toLowerCase().includes(bookingSearch.trim().toLowerCase()))
+    : sortedBookings;
 
   const getAvailabilityForDay = (dayOfWeek: number) => {
     return tempAvailability.filter((s) => s.dayOfWeek === dayOfWeek);
@@ -349,10 +365,22 @@ export default function TeacherSchedule() {
                 <div className={`text-[11px] font-bold uppercase tracking-wider ${isToday ? "text-brand-subtle" : "text-text-muted"}`}>
                   {DAY_SHORT[date.getDay()]}
                 </div>
-                <div className={`text-[24px] font-display font-bold leading-none mt-1 ${isToday ? "text-white" : "text-text"}`}>
-                  {date.getDate()}
+                <div className="flex items-center justify-center gap-1.5 mt-1">
+                  <div className={`text-[24px] font-display font-bold leading-none ${isToday ? "text-white" : "text-text"}`}>
+                    {date.getDate()}
+                  </div>
+                  {sessions.length > 0 && (
+                    <span
+                      className={`text-[10px] font-bold rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center ${
+                        isToday ? "bg-white/20 text-white" : "bg-brand/10 text-brand"
+                      }`}
+                      title={`${sessions.length} class${sessions.length !== 1 ? "es" : ""}`}
+                    >
+                      {sessions.length}
+                    </span>
+                  )}
                 </div>
-                
+
                 {/* Availability Bar */}
                 <div className="flex justify-center gap-1 mt-2 h-1.5">
                   {avail.length > 0 ? avail.map((s, i) => (
@@ -368,63 +396,66 @@ export default function TeacherSchedule() {
                 </div>
               </div>
 
-              {/* Sessions List */}
-              <div className={`flex-1 p-2 space-y-2 min-h-[160px] ${isToday ? "bg-brand/5" : "bg-surface"}`}>
+              {/* Sessions List — capped height + internal scroll so a busy day
+                  (many bookings) can't stretch the whole week row out of shape. */}
+              <div className={`flex-1 min-h-[160px] max-h-[380px] overflow-y-auto ${isToday ? "bg-brand/5" : "bg-surface"}`}>
                 {sessions.length === 0 ? (
-                  <div className="h-full flex items-center justify-center p-4">
+                  <div className="h-full min-h-[160px] flex items-center justify-center p-4">
                     <span className="text-[12px] font-medium text-text-subtle text-center">
                       {avail.length > 0 ? "No classes scheduled" : "Unavailable"}
                     </span>
                   </div>
                 ) : (
-                  sessions.map((booking) => {
-                    const session = booking.nextSession!;
-                    const startTime = new Date(session.scheduledStart);
-                    const endTime = new Date(session.scheduledEnd);
-                    const joinState = getJoinState(session, now);
-                    const isOngoing = joinState === "live";
-                    const joinable = canJoin(joinState);
-                    const isStartingSoon = joinState === "open" || joinState === "soon";
+                  <div className="p-2 space-y-2">
+                    {sessions.map((booking) => {
+                      const session = booking.nextSession!;
+                      const startTime = new Date(session.scheduledStart);
+                      const endTime = new Date(session.scheduledEnd);
+                      const joinState = getJoinState(session, now);
+                      const isOngoing = joinState === "live";
+                      const joinable = canJoin(joinState);
+                      const isStartingSoon = joinState === "open" || joinState === "soon";
 
-                    return (
-                      <div
-                        key={booking.id}
-                        className={`rounded-xl p-3 border shadow-sm transition-all relative overflow-hidden group ${
-                          isOngoing
-                            ? "bg-trust/10 border-trust/30"
-                            : isStartingSoon
-                            ? "bg-action/10 border-action/30"
-                            : "bg-surface border-border hover:border-brand/30"
-                        }`}
-                      >
-                        {(isOngoing || isStartingSoon) && (
-                          <div className={`absolute top-0 left-0 w-1 h-full ${isOngoing ? "bg-trust" : "bg-action"}`} />
-                        )}
-                        
-                        <div className="font-bold text-[13px] text-text truncate mb-1 pr-4">
-                          {booking.student.name}
-                        </div>
-                        <div className="text-[11px] font-medium text-text-muted flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {startTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} – {endTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </div>
-                        
-                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
-                          <Badge variant={isOngoing ? "success" : isStartingSoon ? "warning" : "info"} className="text-[9px] py-0 px-1.5 uppercase font-bold tracking-wider">
-                            {isOngoing ? "Live" : joinable ? "Open" : isStartingSoon ? "Soon" : booking.student.proficiencyLevel}
-                          </Badge>
-                        </div>
+                      return (
+                        <div
+                          key={booking.id}
+                          className={`rounded-xl p-3 border shadow-sm transition-all relative overflow-hidden group ${
+                            isOngoing
+                              ? "bg-trust/10 border-trust/30"
+                              : isStartingSoon
+                              ? "bg-action/10 border-action/30"
+                              : "bg-surface border-border hover:border-brand/30"
+                          }`}
+                        >
+                          {(isOngoing || isStartingSoon) && (
+                            <div className={`absolute top-0 left-0 w-1 h-full ${isOngoing ? "bg-trust" : "bg-action"}`} />
+                          )}
 
-                        {joinable && (
-                          <Button asChild variant="primary" size="sm" className="w-full mt-2 h-8 text-[12px] shadow-sm">
-                            <Link href={`/live/${session.id}`}>
-                              <Video className="w-3.5 h-3.5 mr-1.5" /> {isOngoing ? "Rejoin" : "Join class"}
-                            </Link>
-                          </Button>
-                        )}
-                      </div>
-                    );
-                  })
+                          <div className="font-bold text-[13px] text-text truncate mb-1 pr-4">
+                            {booking.student.name}
+                          </div>
+                          <div className="text-[11px] font-medium text-text-muted flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {startTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} – {endTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </div>
+
+                          <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
+                            <Badge variant={isOngoing ? "success" : isStartingSoon ? "warning" : "info"} className="text-[9px] py-0 px-1.5 uppercase font-bold tracking-wider">
+                              {isOngoing ? "Live" : joinable ? "Open" : isStartingSoon ? "Soon" : booking.student.proficiencyLevel}
+                            </Badge>
+                          </div>
+
+                          {joinable && (
+                            <Button asChild variant="primary" size="sm" className="w-full mt-2 h-8 text-[12px] shadow-sm">
+                              <Link href={`/live/${session.id}`}>
+                                <Video className="w-3.5 h-3.5 mr-1.5" /> {isOngoing ? "Rejoin" : "Join class"}
+                              </Link>
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
             </div>
@@ -435,17 +466,41 @@ export default function TeacherSchedule() {
       {/* ── UPCOMING BOOKINGS LIST ───────────────────── */}
       {bookings.length > 0 && (
         <div className="mt-4">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center">
-              <CalendarDays className="w-4 h-4 text-brand" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center">
+                <CalendarDays className="w-4 h-4 text-brand" />
+              </div>
+              <h2 className="text-[18px] font-display font-bold text-text">
+                Upcoming Bookings
+              </h2>
+              <span className="text-[12px] font-bold text-text-muted bg-surface-inset px-2 py-0.5 rounded-full">
+                {bookings.length}
+              </span>
             </div>
-            <h2 className="text-[18px] font-display font-bold text-text">
-              Upcoming Bookings
-            </h2>
+
+            {bookings.length > 6 && (
+              <div className="relative w-full sm:w-64">
+                <Search className="w-3.5 h-3.5 text-text-subtle absolute left-3 top-1/2 -translate-y-1/2" />
+                <Input
+                  type="text"
+                  placeholder="Search students…"
+                  value={bookingSearch}
+                  onChange={(e) => setBookingSearch(e.target.value)}
+                  className="h-9 pl-9 text-[13px] bg-surface border-border focus:border-brand"
+                />
+              </div>
+            )}
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {bookings.slice(0, 6).map((b) => (
+
+          {filteredBookings.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-2 py-12 text-center border border-dashed rounded-2xl" style={{ borderColor: "rgba(35,29,94,0.12)" }}>
+              <Users className="w-6 h-6 text-text-subtle" />
+              <span className="text-[13px] font-medium text-text-muted">No students match “{bookingSearch}”</span>
+            </div>
+          ) : (
+          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${bookings.length > 6 ? "max-h-[640px] overflow-y-auto pr-1 -mr-1" : ""}`}>
+            {filteredBookings.map((b) => (
               <Card key={b.id} className="overflow-hidden hover:shadow-level-2 transition-shadow duration-180 border" style={{ borderColor: "rgba(35,29,94,0.08)" }}>
                 <CardContent className="p-4 flex items-center gap-4">
                   <Avatar src={b.student.avatarUrl || undefined} size="md" className="shadow-sm" />
@@ -486,6 +541,7 @@ export default function TeacherSchedule() {
               </Card>
             ))}
           </div>
+          )}
         </div>
       )}
     </div>
