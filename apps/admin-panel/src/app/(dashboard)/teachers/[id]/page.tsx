@@ -2,6 +2,7 @@ import { db } from "@repo/database";
 import { requireAdmin } from "@/lib/guards";
 import { notFound } from "next/navigation";
 import { CoinWalletCard } from "@/components/coins/CoinWalletCard";
+import { TeacherPayoutCard } from "@/components/payouts/TeacherPayoutCard";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle, XCircle, Clock } from "lucide-react";
 import { updateTeacherStatus } from "./actions";
@@ -23,6 +24,12 @@ export default async function TeacherProfilePage({ params }: { params: Promise<{
   if (!teacher) {
     return notFound();
   }
+
+  const payouts = await db.payout.findMany({
+    where: { teacherId: id },
+    orderBy: { createdAt: "desc" },
+    take: 10,
+  });
 
   const cardStyle = {
     background: "var(--lm-surface)",
@@ -172,6 +179,7 @@ export default async function TeacherProfilePage({ params }: { params: Promise<{
           </div>
 
           <CoinWalletCard userId={teacher.userId} admin={admin} />
+          <TeacherPayoutCard payouts={payouts} teacherId={teacher.userId} />
         </div>
       </div>
     </div>

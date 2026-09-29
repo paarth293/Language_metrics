@@ -304,6 +304,7 @@ export class TeacherService {
           totalSpent: 0,
           lastClassDate: null as Date | null,
           rating: null as number | null,
+          reviewComment: null as string | null,
           joinedAt: booking.student.userId,
         });
       }
@@ -316,7 +317,10 @@ export class TeacherService {
         const d = new Date(booking.sessions[0].scheduledStart);
         if (!s.lastClassDate || d > s.lastClassDate) s.lastClassDate = d;
       }
-      if (booking.review) s.rating = booking.review.rating;
+      if (booking.review) {
+        s.rating = booking.review.rating;
+        s.reviewComment = booking.review.comment;
+      }
     }
 
     return Array.from(studentMap.values()).sort(

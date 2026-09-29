@@ -41,4 +41,20 @@ export async function updateQAStatus(teacherId: string, qaStatus: boolean) {
   // Wait, BGV and QA might be separate tables or JSON fields. Since we can't change the schema without migrations, we will just use the available fields.
 }
 
+export async function createPayout(teacherId: string, amount: number, note: string) {
+  await requirePermission("coins:adjust");
+  
+  await db.payout.create({
+    data: {
+      teacherId,
+      amount,
+      status: "PAID",
+      periodStart: new Date(),
+      periodEnd: new Date(),
+      transactionRef: note
+    }
+  });
+
+  revalidatePath(`/teachers/${teacherId}`);
+}
 

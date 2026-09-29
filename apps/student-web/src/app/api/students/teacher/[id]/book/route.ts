@@ -147,10 +147,39 @@ export async function POST(
           { status: 400 }
         );
       }
+      
+      const slotStartHour = parsed.getUTCHours();
+      const slotStartMin = parsed.getUTCMinutes();
+      const slotStartTotalMins = slotStartHour * 60 + slotStartMin;
+      const slotEndTotalMins = slotStartTotalMins + durationMinutes;
+
+      const isValidAvailability = teacher.availability.some(a => {
+        if (a.dayOfWeek !== parsed.getUTCDay()) return false;
+        const [sH, sM] = a.startTime.split(":").map(Number);
+        const startMins = sH * 60 + sM;
+        const [eH, eM] = a.endTime.split(":").map(Number);
+        const endMins = eH * 60 + eM;
+        return slotStartTotalMins >= startMins && slotEndTotalMins <= endMins;
+      });
+
+      if (!isValidAvailability) {
+        return NextResponse.json(
+          { code: "INVALID_SLOT", error: "The selected time is outside the teacher's available hours." },
+          { status: 400 }
+        );
+      }
       slotStart = parsed;
     } else {
       const candidates = teacher.availability
-        .map((a) => nextOccurrence(a.dayOfWeek, a.startTime, now))
+        .map((a) => {
+          const occ = nextOccurrence(a.dayOfWeek, a.startTime, now);
+          if (!occ) return null;
+          const [eH, eM] = a.endTime.split(":").map(Number);
+          const endMins = eH * 60 + eM;
+          const startMins = occ.getUTCHours() * 60 + occ.getUTCMinutes();
+          if (startMins + durationMinutes > endMins) return null;
+          return occ;
+        })
         .filter((d): d is Date => d !== null)
         .sort((a, b) => a.getTime() - b.getTime());
       slotStart = candidates[0] ?? null;
@@ -186,6 +215,21 @@ export async function POST(
 
     const { booking, session } = await db.$transaction(async (tx) => {
       if (isDemo) await assertDemoAvailable(tx, auth.user.sub, teacherId);
+
+      const overlappingSession = await tx.classSession.findFirst({
+        where: {
+          booking: {
+            teacherId,
+          },
+          status: { notIn: ["CANCELLED", "COMPLETED"] },
+          scheduledStart: { lt: slotEnd },
+          scheduledEnd: { gt: slotStart! },
+        },
+      });
+
+      if (overlappingSession) {
+        throw new Error("SLOT_TAKEN");
+      }
 
       const newBooking = await tx.booking.create({
         data: {
@@ -263,6 +307,12 @@ export async function POST(
       { status: 201 }
     );
   } catch (error) {
+    if (error instanceof Error && error.message === "SLOT_TAKEN") {
+      return NextResponse.json(
+        { code: "SLOT_TAKEN", error: "This time slot has already been booked by another student." },
+        { status: 409 }
+      );
+    }
     if (error instanceof DemoAlreadyUsedError) {
       return NextResponse.json({ code: "DEMO_ALREADY_USED", error: error.message }, { status: 409 });
     }
