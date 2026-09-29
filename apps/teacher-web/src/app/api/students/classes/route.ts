@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { currentOrNextSession, getJoinWindow } from "@repo/live-classes";
 
 /**
  * GET /api/students/classes
@@ -61,19 +62,18 @@ export async function GET(request: Request) {
     // Format response
     const formattedBookings = bookings.map((b) => {
       const completedSessions = b.sessions.filter((s) => s.status === "COMPLETED").length;
-      const nextSession = b.sessions.find(
-        (s) => s.status === "SCHEDULED" && new Date(s.scheduledStart) > now
-      );
+      // In progress or next up; kept until its join window closes so a class
+      // doesn't vanish from the list the moment it starts.
+      const nextSession = currentOrNextSession(b.sessions, now);
+      const joinWindow = nextSession ? getJoinWindow(nextSession) : null;
 
       // Determine status for display
       let displayStatus: string = b.status;
-      if (nextSession) {
-        const timeUntil = new Date(nextSession.scheduledStart).getTime() - now.getTime();
-        const minutesUntil = timeUntil / (1000 * 60);
-        if (minutesUntil <= 10 && minutesUntil > 0) {
-          displayStatus = "STARTS_SOON";
-        } else if (minutesUntil <= 0 && minutesUntil > -60) {
+      if (nextSession && joinWindow) {
+        if (nextSession.status === "ONGOING" || now >= nextSession.scheduledStart) {
           displayStatus = "ONGOING";
+        } else if (now >= joinWindow.opensAt) {
+          displayStatus = "STARTS_SOON";
         }
       }
 
@@ -92,6 +92,8 @@ export async function GET(request: Request) {
               scheduledStart: nextSession.scheduledStart.toISOString(),
               scheduledEnd: nextSession.scheduledEnd.toISOString(),
               status: nextSession.status,
+              joinOpensAt: joinWindow!.opensAt.toISOString(),
+              joinClosesAt: joinWindow!.closesAt.toISOString(),
             }
           : null,
         review: b.review,
