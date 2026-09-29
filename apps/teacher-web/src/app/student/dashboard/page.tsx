@@ -23,6 +23,7 @@ type DashboardData = {
   upcomingClasses: Array<{
     id: string; sessionId?: string; teacher: string; avatar: string | null;
     language: string; type: string; scheduledStart?: string; scheduledEnd?: string;
+    sessionStatus?: string; joinOpensAt?: string; joinClosesAt?: string;
   }>;
 };
 
