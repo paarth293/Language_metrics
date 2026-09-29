@@ -221,7 +221,7 @@ export async function POST(
           booking: {
             teacherId,
           },
-          status: { notIn: ["CANCELLED", "COMPLETED", "FAILED"] },
+          status: { notIn: ["CANCELLED", "COMPLETED"] },
           scheduledStart: { lt: slotEnd },
           scheduledEnd: { gt: slotStart! },
         },

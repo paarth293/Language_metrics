@@ -45,6 +45,8 @@ export default function MyClassesPage() {
   const [error, setError] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState<string | null>(null);
+  const [reschedulingSession, setReschedulingSession] = useState<{ id: string, scheduledStart: string } | null>(null);
+  const [newStartTime, setNewStartTime] = useState<string>("");
 
   useEffect(() => {
     fetchBookings();
@@ -82,6 +84,29 @@ export default function MyClassesPage() {
       fetchBookings(); // Refresh list
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to cancel");
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
+  const handleReschedule = async () => {
+    if (!reschedulingSession || !newStartTime) return;
+    setCancellingId(reschedulingSession.id);
+    try {
+      const res = await fetch(`/api/students/classes/${reschedulingSession.id}/reschedule`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ newStartTime }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to reschedule booking");
+      }
+      setReschedulingSession(null);
+      fetchBookings();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to reschedule");
     } finally {
       setCancellingId(null);
     }
@@ -326,8 +351,14 @@ export default function MyClassesPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="flex-1 text-text-muted"
-                              disabled
+                              className="flex-1 text-text-muted hover:text-brand hover:bg-brand/10"
+                              onClick={() => {
+                                setReschedulingSession({ id: booking.nextSession!.id, scheduledStart: booking.nextSession!.scheduledStart });
+                                const currentStart = new Date(booking.nextSession!.scheduledStart);
+                                const tzoffset = currentStart.getTimezoneOffset() * 60000;
+                                const localISOTime = (new Date(currentStart.getTime() - tzoffset)).toISOString().slice(0, 16);
+                                setNewStartTime(localISOTime);
+                              }}
                             >
                               <RefreshCcw className="w-3.5 h-3.5 mr-1" />{" "}
                               Reschedule
@@ -415,6 +446,59 @@ export default function MyClassesPage() {
                   <CalendarX2 className="w-4 h-4 mr-2" />
                 )}
                 Cancel Booking
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reschedule Modal */}
+      {reschedulingSession && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                <RefreshCcw className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-navy-900">Reschedule Class</h3>
+                <p className="text-sm text-gray-500">
+                  Select a new time (within 1 hour range)
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">New Start Time</label>
+              <input
+                type="datetime-local"
+                value={newStartTime}
+                onChange={(e) => setNewStartTime(e.target.value)}
+                className="w-full border rounded-md p-2 text-sm text-black"
+              />
+              <p className="text-xs text-text-muted mt-2">
+                You can reschedule this class up to 1 hour before or after its original scheduled time for free, provided the teacher is available.
+              </p>
+            </div>
+
+            <div className="flex gap-3 justify-end mt-4">
+              <Button
+                variant="outline"
+                onClick={() => setReschedulingSession(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleReschedule}
+                disabled={cancellingId === reschedulingSession.id || !newStartTime}
+                className="bg-brand hover:bg-brand/90 text-white"
+              >
+                {cancellingId === reschedulingSession.id ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCcw className="w-4 h-4 mr-2" />
+                )}
+                Confirm Reschedule
               </Button>
             </div>
           </div>
