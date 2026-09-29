@@ -127,16 +127,24 @@ const nextConfig: NextConfig = {
           },
         ],
       },
-      // Static assets — aggressive caching
-      {
-        source: "/_next/static/(.*)",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-        ],
-      },
+      // Static assets — aggressive caching, production only. Production
+      // chunk names are content-hashed, so "immutable" is safe there. Dev
+      // (Turbopack) reuses the same chunk names across edits; caching them
+      // for a year made the browser run stale code against fresh server
+      // HTML and throw hydration mismatches after every change.
+      ...(isProd
+        ? [
+            {
+              source: "/_next/static/(.*)",
+              headers: [
+                {
+                  key: "Cache-Control",
+                  value: "public, max-age=31536000, immutable",
+                },
+              ],
+            },
+          ]
+        : []),
       // Brand images — cache for 7 days
       {
         source: "/brand/(.*)",
