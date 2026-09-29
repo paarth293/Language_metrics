@@ -27,7 +27,7 @@ type Teacher = {
   reviews: number;
   hourlyRate: number;
   demoRate: number;
-  headline: string;
+  headline: string | null;
   nextAvailable: string;
   experienceLevel: string;
   availability: boolean;
@@ -425,9 +425,11 @@ export default function DiscoverPage() {
                       </div>
                     </div>
 
-                    <p className="text-text text-sm mb-4 line-clamp-2">
-                      &quot;{teacher.headline}&quot;
-                    </p>
+                    {teacher.headline && (
+                      <p className="text-text text-sm mb-4 line-clamp-2">
+                        &quot;{teacher.headline}&quot;
+                      </p>
+                    )}
 
                     <div className="flex items-center gap-2 text-xs font-medium text-trust bg-trust/10 px-2 py-1 rounded-md w-fit">
                       <Clock className="w-3.5 h-3.5" /> Next available:{" "}
