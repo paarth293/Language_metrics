@@ -66,6 +66,12 @@ export async function GET(request: Request) {
       // doesn't vanish from the list the moment it starts.
       const nextSession = currentOrNextSession(b.sessions, now);
       const joinWindow = nextSession ? getJoinWindow(nextSession) : null;
+      // Past its join window but not settled yet (the reconcile job settles
+      // it). Returned so the card can say the class ended rather than claim
+      // nothing was ever scheduled.
+      const endedSession = nextSession
+        ? undefined
+        : [...b.sessions].reverse().find((s) => s.status === "SCHEDULED" || s.status === "ONGOING");
 
       // Determine status for display
       let displayStatus: string = b.status;
@@ -94,6 +100,12 @@ export async function GET(request: Request) {
               status: nextSession.status,
               joinOpensAt: joinWindow!.opensAt.toISOString(),
               joinClosesAt: joinWindow!.closesAt.toISOString(),
+            }
+          : null,
+        endedSession: endedSession
+          ? {
+              scheduledStart: endedSession.scheduledStart.toISOString(),
+              scheduledEnd: endedSession.scheduledEnd.toISOString(),
             }
           : null,
         review: b.review,
