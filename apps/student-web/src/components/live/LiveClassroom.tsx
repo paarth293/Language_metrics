@@ -217,12 +217,8 @@ function Prejoin({
     height: preset.height || 360,
     audioOnly: preset.audioOnly,
   });
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-
-  useEffect(() => {
-    devices.attachVideo(videoRef.current);
-  }, [devices]);
-
+  // Kept separate from `devices` so only this callback is treated as a ref.
+  const { attachVideo } = devices;
   return (
     <div className="flex items-center justify-center min-h-[calc(100dvh-72px)] bg-bg px-4 py-8">
       <div className="w-full max-w-2xl">
@@ -230,7 +226,7 @@ function Prejoin({
           <div className="relative aspect-video bg-surface-inset flex items-center justify-center">
             {devices.cameraEnabled && devices.videoTrack ? (
               <video
-                ref={videoRef}
+                ref={attachVideo}
                 autoPlay
                 muted
                 playsInline
