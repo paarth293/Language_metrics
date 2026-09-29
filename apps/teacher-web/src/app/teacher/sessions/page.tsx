@@ -19,6 +19,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
+import { canJoin, getJoinState, useNow } from "@/lib/class-join";
 
 type Booking = {
   id: string;
@@ -35,6 +36,8 @@ type Booking = {
     status: string;
     scheduledStart: string;
     scheduledEnd: string;
+    joinOpensAt?: string;
+    joinClosesAt?: string;
   } | null;
   totalSessions: number;
   completedSessions: number;
@@ -54,6 +57,8 @@ export default function TeacherSessions() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
+  // Ticks so Join appears the moment the window opens, without a reload.
+  const now = useNow();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -162,7 +167,9 @@ export default function TeacherSessions() {
           {filtered.map((booking) => {
             const statusConfig = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING;
             const session = booking.nextSession;
-            const isLive = session?.status === "ONGOING";
+            const joinState = session ? getJoinState(session, now) : "closed";
+            const isLive = joinState === "live";
+            const joinable = tab === "upcoming" && canJoin(joinState);
 
             return (
               <Card
@@ -218,17 +225,22 @@ export default function TeacherSessions() {
                       {booking.completedSessions}/{booking.totalSessions} sessions
                     </div>
 
-                    {isLive ? (
-                      <Button asChild variant="primary" className="w-full bg-trust hover:bg-trust-hover text-trust-on">
-                        <Link href={`/session/${booking.id}`}>
-                          <Video className="w-4 h-4 mr-1.5" /> Join Now
+                    {joinable && session ? (
+                      <Button
+                        asChild
+                        variant="primary"
+                        className={`w-full ${isLive ? "bg-trust hover:bg-trust-hover text-trust-on" : ""}`}
+                      >
+                        <Link href={`/live/${session.id}`}>
+                          <Video className="w-4 h-4 mr-1.5" /> {isLive ? "Rejoin" : "Join class"}
                         </Link>
                       </Button>
                     ) : tab === "upcoming" && session ? (
-                      <Button asChild variant="primary" className="w-full">
-                        <Link href={`/session/${booking.id}`}>
-                          <Video className="w-4 h-4 mr-1.5" /> View Session
-                        </Link>
+                      <Button variant="outline" className="w-full" disabled>
+                        Opens{" "}
+                        {new Date(
+                          session.joinOpensAt ?? Date.parse(session.scheduledStart) - 10 * 60_000
+                        ).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" })}
                       </Button>
                     ) : (
                       <Button variant="outline" className="w-full" disabled>

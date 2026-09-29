@@ -20,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
+import { canJoin, getJoinState, useNow } from "@/lib/class-join";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const DAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -44,6 +45,8 @@ type Booking = {
     status: string;
     scheduledStart: string;
     scheduledEnd: string;
+    joinOpensAt?: string;
+    joinClosesAt?: string;
   } | null;
   totalSessions: number;
   completedSessions: number;
@@ -85,6 +88,8 @@ export default function TeacherSchedule() {
 
   const weekDates = getWeekDates(weekOffset);
   const today = new Date();
+  // Ticks so Join appears the moment the window opens, without a reload.
+  const now = useNow();
 
   const fetchData = useCallback(async () => {
     try {
@@ -113,6 +118,9 @@ export default function TeacherSchedule() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
+    // Refresh so a class turns "Live" once the student is in the room.
+    const id = setInterval(fetchData, 60_000);
+    return () => clearInterval(id);
   }, [fetchData]);
 
   const getSessionsForDay = (date: Date) => {
@@ -373,10 +381,10 @@ export default function TeacherSchedule() {
                     const session = booking.nextSession!;
                     const startTime = new Date(session.scheduledStart);
                     const endTime = new Date(session.scheduledEnd);
-                    const isOngoing = session.status === "ONGOING";
-                    const startMs = startTime.getTime();
-                    const diffMin = (startMs - Date.now()) / 60000;
-                    const isStartingSoon = diffMin >= 0 && diffMin <= 15;
+                    const joinState = getJoinState(session, now);
+                    const isOngoing = joinState === "live";
+                    const joinable = canJoin(joinState);
+                    const isStartingSoon = joinState === "open" || joinState === "soon";
 
                     return (
                       <div
@@ -403,17 +411,17 @@ export default function TeacherSchedule() {
                         
                         <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
                           <Badge variant={isOngoing ? "success" : isStartingSoon ? "warning" : "info"} className="text-[9px] py-0 px-1.5 uppercase font-bold tracking-wider">
-                            {isOngoing ? "Live" : isStartingSoon ? "Soon" : booking.student.proficiencyLevel}
+                            {isOngoing ? "Live" : joinable ? "Open" : isStartingSoon ? "Soon" : booking.student.proficiencyLevel}
                           </Badge>
-                          
-                          {(isOngoing || isStartingSoon) && (
-                            <Button asChild variant="primary" size="icon" className="h-6 w-6 rounded-md shadow-sm">
-                              <Link href={`/session/${booking.id}`}>
-                                <Video className="w-3 h-3" />
-                              </Link>
-                            </Button>
-                          )}
                         </div>
+
+                        {joinable && (
+                          <Button asChild variant="primary" size="sm" className="w-full mt-2 h-8 text-[12px] shadow-sm">
+                            <Link href={`/live/${session.id}`}>
+                              <Video className="w-3.5 h-3.5 mr-1.5" /> {isOngoing ? "Rejoin" : "Join class"}
+                            </Link>
+                          </Button>
+                        )}
                       </div>
                     );
                   })
@@ -458,9 +466,18 @@ export default function TeacherSchedule() {
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-1.5 shrink-0">
-                    <Badge variant={b.status === "COMPLETED" ? "success" : "default"} className="text-[9px] uppercase tracking-wider py-0 px-2">
-                      {b.status}
-                    </Badge>
+                    {b.nextSession && canJoin(getJoinState(b.nextSession, now)) ? (
+                      <Button asChild variant="primary" size="sm" className="h-8 text-[12px] shadow-sm">
+                        <Link href={`/live/${b.nextSession.id}`}>
+                          <Video className="w-3.5 h-3.5 mr-1.5" />
+                          {b.nextSession.status === "ONGOING" ? "Rejoin" : "Join class"}
+                        </Link>
+                      </Button>
+                    ) : (
+                      <Badge variant={b.status === "COMPLETED" ? "success" : "default"} className="text-[9px] uppercase tracking-wider py-0 px-2">
+                        {b.status}
+                      </Badge>
+                    )}
                     <span className="text-[11px] font-medium text-text-muted bg-surface-inset px-2 py-0.5 rounded-md">
                       {b.completedSessions}/{b.totalSessions}
                     </span>

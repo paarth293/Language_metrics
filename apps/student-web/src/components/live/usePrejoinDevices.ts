@@ -34,6 +34,7 @@ export interface PrejoinState {
   ready: boolean;
   toggleCamera: () => Promise<void>;
   toggleMic: () => Promise<void>;
+  /** Callback ref for the preview `<video>`: pass it as `ref={attachVideo}`. */
   attachVideo: (el: HTMLVideoElement | null) => void;
   /** Release the hardware. Always call before connecting to the room. */
   stop: () => void;
@@ -54,12 +55,26 @@ export function usePrejoinDevices(options: {
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
-  const videoElRef = useRef<HTMLVideoElement | null>(null);
+  // The element is state, not a ref, so the attach effect below re-runs when
+  // the <video> mounts. With a ref, the track usually arrived first, the
+  // effect found no element, and nothing ever retried — a blank preview.
+  const [videoEl, setVideoEl] = useState<HTMLVideoElement | null>(null);
   const analyserCleanup = useRef<(() => void) | null>(null);
-  const stoppedRef = useRef(false);
+
+  // Latest tracks for stop(). Reading state through a closure meant the
+  // unmount cleanup called a stale stop() that saw no tracks, and the camera
+  // was never released.
+  const videoTrackRef = useRef<LocalVideoTrack | null>(null);
+  const audioTrackRef = useRef<LocalAudioTrack | null>(null);
+  useEffect(() => {
+    videoTrackRef.current = videoTrack;
+  }, [videoTrack]);
+  useEffect(() => {
+    audioTrackRef.current = audioTrack;
+  }, [audioTrack]);
 
   const attachVideo = useCallback((el: HTMLVideoElement | null) => {
-    videoElRef.current = el;
+    setVideoEl(el);
   }, []);
 
   // Acquire devices once on mount.
@@ -111,13 +126,12 @@ export function usePrejoinDevices(options: {
 
   // Keep the preview element attached to whatever track currently exists.
   useEffect(() => {
-    const el = videoElRef.current;
-    if (!el || !videoTrack) return;
-    videoTrack.attach(el);
+    if (!videoEl || !videoTrack) return;
+    videoTrack.attach(videoEl);
     return () => {
-      videoTrack.detach(el);
+      videoTrack.detach(videoEl);
     };
-  }, [videoTrack]);
+  }, [videoTrack, videoEl]);
 
   // Live mic level, so a student with a dead microphone finds out here rather
   // than four minutes into a paid lesson.
@@ -187,13 +201,15 @@ export function usePrejoinDevices(options: {
     setMicEnabled(next);
   }, [audioTrack, micEnabled]);
 
+  // Idempotent: stopping an already-stopped track is a no-op, and the refs are
+  // cleared so a second call has nothing to do.
   const stop = useCallback(() => {
-    if (stoppedRef.current) return;
-    stoppedRef.current = true;
     analyserCleanup.current?.();
-    videoTrack?.stop();
-    audioTrack?.stop();
-  }, [videoTrack, audioTrack]);
+    videoTrackRef.current?.stop();
+    audioTrackRef.current?.stop();
+    videoTrackRef.current = null;
+    audioTrackRef.current = null;
+  }, []);
 
   // Release hardware if the component unmounts without an explicit stop —
   // otherwise the camera light stays on after the user navigates away.

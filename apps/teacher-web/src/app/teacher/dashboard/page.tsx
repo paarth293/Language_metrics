@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
 import { MetricCard } from "@/components/dashboard/MetricCard";
+import { NextTeacherClassBanner } from "@/components/dashboard/NextTeacherClassBanner";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
@@ -64,6 +65,9 @@ export default function TeacherDashboard() {
 
       {/* ── GREETING ─────────────────────────────────── */}
       <DashboardGreeting name={profileName} subtitle="Here's your teaching overview for today" />
+
+      {/* ── NEXT CLASS (only while joinable or about to be) ── */}
+      <NextTeacherClassBanner />
 
       {/* ── METRIC CARDS ─────────────────────────────── */}
       {/* Rating lives only in the "Your rating" card below. */}
