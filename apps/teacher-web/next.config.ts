@@ -2,6 +2,28 @@ import type { NextConfig } from "next";
 
 const isProd = process.env.NODE_ENV === "production";
 
+/**
+ * Origins the live classroom must reach from the browser. The LiveKit client
+ * opens a WebSocket to the project URL and, on LiveKit Cloud, also fetches
+ * region settings and may fail over to a regional host — all under
+ * *.livekit.cloud. A self-hosted server is allowed by its configured host.
+ * Without these, CSP silently blocks the connection and the classroom shows
+ * "could not establish signal connection: Failed to fetch".
+ */
+const liveKitConnectSrc = (() => {
+  const origins = ["wss://*.livekit.cloud", "https://*.livekit.cloud"];
+  const raw = (process.env.LIVEKIT_WS_URL ?? process.env.LIVEKIT_URL ?? "").trim();
+  if (raw) {
+    try {
+      const host = new URL(raw.includes("://") ? raw : `wss://${raw}`).host;
+      if (!host.endsWith(".livekit.cloud")) origins.push(`wss://${host}`, `https://${host}`);
+    } catch {
+      // Malformed URL: the LiveKit config reports it; don't break every page's headers.
+    }
+  }
+  return origins.join(" ");
+})();
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
@@ -96,7 +118,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https://lh3.googleusercontent.com https://i.pravatar.cc https://avatars.githubusercontent.com https://flagcdn.com",
-              "connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com",
+              `connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com ${liveKitConnectSrc}`,
               "frame-src https://accounts.google.com",
               "form-action 'self'",
               "base-uri 'self'",
