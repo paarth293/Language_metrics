@@ -65,6 +65,23 @@ function deny(
   return { ok: false, code, message, httpStatus, ...extra };
 }
 
+/**
+ * When a class can be joined: from `joinWindowMinutes` before the start until
+ * `graceMinutes` after the scheduled end. The single definition — evaluateJoin
+ * enforces it and dashboards display it, so a Join button is shown exactly
+ * when the server will accept the join.
+ */
+export function getJoinWindow(session: { scheduledStart: Date; scheduledEnd: Date }): {
+  opensAt: Date;
+  closesAt: Date;
+} {
+  const config = getLiveKitConfig();
+  return {
+    opensAt: new Date(session.scheduledStart.getTime() - config.joinWindowMinutes * 60_000),
+    closesAt: new Date(session.scheduledEnd.getTime() + config.graceMinutes * 60_000),
+  };
+}
+
 export interface EvaluateJoinParams {
   classSessionId: string;
   userId: string;
@@ -138,10 +155,7 @@ export async function evaluateJoin(params: EvaluateJoinParams): Promise<JoinDeci
     return deny("BOOKING_NOT_CONFIRMED", "This booking is not confirmed yet.", 409);
   }
 
-  const joinOpensAt = new Date(
-    session.scheduledStart.getTime() - config.joinWindowMinutes * 60_000
-  );
-  const hardEndsAt = new Date(session.scheduledEnd.getTime() + config.graceMinutes * 60_000);
+  const { opensAt: joinOpensAt, closesAt: hardEndsAt } = getJoinWindow(session);
 
   // Admins observe at any time; they are `hidden` participants and the
   // monitoring case is exactly the case where the window is inconvenient.
