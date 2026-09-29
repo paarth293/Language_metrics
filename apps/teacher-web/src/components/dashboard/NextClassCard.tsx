@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
 import { Calendar, Video } from "lucide-react";
@@ -6,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/cn";
+import { canJoin, getJoinState, useNow } from "@/lib/class-join";
 
 interface NextClassCardProps {
   cls?: {
@@ -17,11 +20,17 @@ interface NextClassCardProps {
     type: string;
     scheduledStart?: string;
     scheduledEnd?: string;
+    sessionStatus?: string;
+    joinOpensAt?: string;
+    joinClosesAt?: string;
   };
   hasHistory: boolean;
 }
 
 export function NextClassCard({ cls, hasHistory }: NextClassCardProps) {
+  // Ticks so the card switches to "Live now" / Join on time without a reload.
+  const nowMs = useNow();
+
   if (!cls) {
     if (!hasHistory) return null; // handled by tier 1 outside
 
@@ -44,13 +53,27 @@ export function NextClassCard({ cls, hasHistory }: NextClassCardProps) {
   }
 
   const startTime = cls.scheduledStart ? new Date(cls.scheduledStart) : null;
-  const now = new Date();
-  const diffMs = startTime ? startTime.getTime() - now.getTime() : 0;
+  const diffMs = startTime ? startTime.getTime() - nowMs : 0;
   const diffMins = Math.floor(diffMs / 60000);
-  
-  const isLive = diffMins <= 0 && diffMins > -60; // rough live check
-  const isSoon = diffMins > 0 && diffMins <= 15;
-  const isActive = isLive || isSoon;
+
+  // Driven by the server's join window, so "Join class" shows exactly while
+  // joining will be accepted — including after the start time has passed.
+  const joinState =
+    cls.scheduledStart && cls.scheduledEnd
+      ? getJoinState(
+          {
+            status: cls.sessionStatus ?? "SCHEDULED",
+            scheduledStart: cls.scheduledStart,
+            scheduledEnd: cls.scheduledEnd,
+            joinOpensAt: cls.joinOpensAt,
+            joinClosesAt: cls.joinClosesAt,
+          },
+          nowMs
+        )
+      : "upcoming";
+  const isLive = joinState === "live" || (joinState === "open" && diffMins <= 0);
+  const isSoon = joinState === "open" && diffMins > 0;
+  const isActive = canJoin(joinState);
 
   const timeStr = startTime ? startTime.toLocaleString("en-US", { weekday: "short", hour: "2-digit", minute: "2-digit" }) : "TBD";
   

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { currentOrNextSession, getJoinWindow } from "@repo/live-classes";
 
 /**
  * GET /api/students/dashboard
@@ -88,14 +89,14 @@ export async function GET(request: Request) {
 
     // Upcoming classes (next 7 days)
     const now = new Date();
+    // A class stays listed while it is in progress, until its join window
+    // closes — previously it vanished on refresh the moment it started.
+    // Soonest first, so the dashboard's "next class" really is the next one.
     const upcomingBookings = bookings
-      .filter((b) => {
-        if (b.status !== "CONFIRMED") return false;
-        const nextSession = b.sessions.find(
-          (s) => s.status === "SCHEDULED" && new Date(s.scheduledStart) > now
-        );
-        return !!nextSession;
-      })
+      .filter((b) => b.status === "CONFIRMED")
+      .map((b) => ({ booking: b, session: currentOrNextSession(b.sessions, now) }))
+      .filter((x): x is { booking: typeof x.booking; session: NonNullable<typeof x.session> } => !!x.session)
+      .sort((x, y) => x.session.scheduledStart.getTime() - y.session.scheduledStart.getTime())
       .slice(0, 5);
 
     // Recent activity
@@ -144,19 +145,20 @@ export async function GET(request: Request) {
         monthlyClasses,
         streak: Math.min(completedSessions.length, 30),
       },
-      upcomingClasses: upcomingBookings.map((b) => {
-        const nextSession = b.sessions.find(
-          (s) => s.status === "SCHEDULED" && new Date(s.scheduledStart) > now
-        );
+      upcomingClasses: upcomingBookings.map(({ booking: b, session: nextSession }) => {
+        const joinWindow = getJoinWindow(nextSession);
         return {
           id: b.id,
-          sessionId: nextSession?.id,
+          sessionId: nextSession.id,
           teacher: b.teacher.name,
           avatar: b.teacher.avatarUrl,
           language: b.teacher.language || b.teacher.languages?.[0] || "Unknown",
           type: b.type,
-          scheduledStart: nextSession?.scheduledStart.toISOString(),
-          scheduledEnd: nextSession?.scheduledEnd.toISOString(),
+          scheduledStart: nextSession.scheduledStart.toISOString(),
+          scheduledEnd: nextSession.scheduledEnd.toISOString(),
+          sessionStatus: nextSession.status,
+          joinOpensAt: joinWindow.opensAt.toISOString(),
+          joinClosesAt: joinWindow.closesAt.toISOString(),
         };
       }),
       recentActivity,
