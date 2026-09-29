@@ -32,6 +32,8 @@ type Booking = {
     scheduledEnd: string;
     status: string;
   } | null;
+  /** Past its join window, waiting for automatic settlement. */
+  endedSession?: { scheduledStart: string; scheduledEnd: string } | null;
   review: { rating: number; comment: string | null } | null;
   amountPaid: number;
   scheduledStart: string;
@@ -307,7 +309,13 @@ export default function MyClassesPage() {
                                 hour: "2-digit",
                                 minute: "2-digit",
                               })
-                            : "No session scheduled"}
+                            : booking.endedSession
+                              ? `Class ended ${new Date(booking.endedSession.scheduledEnd).toLocaleString("en-US", {
+                                  weekday: "short",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })} · settling automatically`
+                              : "No session scheduled"}
                         </div>
                         <div className="text-xs text-text-subtle mt-1">
                           {booking.completedSessions}/{booking.totalSessions}{" "}
