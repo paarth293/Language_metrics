@@ -90,8 +90,16 @@ export class TeacherService {
     ]);
   }
 
-  static async updateAvailability(teacherId: string, slots: { dayOfWeek: number; startTime: string; endTime: string }[]) {
+  static async updateAvailability(
+    teacherId: string,
+    slots: { dayOfWeek: number; startTime: string; endTime: string }[],
+    timeZone?: string
+  ) {
     await db.$transaction(async (tx) => {
+      // The slot times only mean something in the zone they were entered in.
+      if (timeZone) {
+        await tx.teacherProfile.update({ where: { userId: teacherId }, data: { timeZone } });
+      }
       await tx.availabilitySlot.deleteMany({ where: { teacherId } });
       if (slots.length > 0) {
         await tx.availabilitySlot.createMany({
@@ -363,7 +371,7 @@ export class TeacherService {
       transactions: recentTransactions.map((t) => ({
         id: t.id,
         type: t.type,
-        amount: t.type === "SPEND" ? -t.amount : t.amount,
+        amount: t.amount,
         description: t.description,
         createdAt: t.createdAt,
       })),

@@ -7,6 +7,7 @@
  */
 
 export * from "./access";
+export * from "./booking";
 export * from "./demo";
 export * from "./handlers";
 export * from "./settlement";
