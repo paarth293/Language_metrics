@@ -221,6 +221,8 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
         totalCost: 500,
       };
 
+      const txExecuteRaw = vi.fn().mockResolvedValue(1);
+      const txBillingUpsert = vi.fn().mockResolvedValue({});
       (db.$transaction as any).mockImplementation(async (cb: any) => {
         return cb({
           teacherProfile: {
@@ -243,15 +245,17 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
             create: vi.fn().mockResolvedValue(mockResult.newBooking),
           },
           classSession: {
+            // No clashing session: the teacher is free.
+            findFirst: vi.fn().mockResolvedValue(null),
             create: vi.fn().mockResolvedValue(mockResult.session),
           },
           sessionBilling: {
-            upsert: vi.fn().mockResolvedValue({}),
+            upsert: txBillingUpsert,
           },
           classSessionBilling: {
             upsert: vi.fn().mockResolvedValue({}),
           },
-          $executeRaw: vi.fn().mockResolvedValue(1),
+          $executeRaw: txExecuteRaw,
           $queryRaw: vi.fn().mockResolvedValue([{ balance: 1500, heldBalance: 0 }]),
         });
       });
@@ -275,6 +279,9 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
       expect(json.id).toBe("b-new-1");
       expect(json.coinCost).toBe(500);
       expect(json.teacherName).toBe("Maria Rodriguez");
+      // The calendar lock and the coin hold both run in the booking transaction.
+      expect(txExecuteRaw).toHaveBeenCalled();
+      expect(txBillingUpsert).toHaveBeenCalled();
     });
   });
 

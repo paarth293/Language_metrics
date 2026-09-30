@@ -159,6 +159,7 @@ export default function TeacherProfileSettings() {
           courseRate: Math.round(courseRate * 100),
           currency,
           availability,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         }),
       });
 

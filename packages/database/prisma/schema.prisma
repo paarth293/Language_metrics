@@ -92,6 +92,10 @@ model TeacherProfile {
   /// Required for every new signup (enforced in the API, 18+). Nullable only
   /// so accounts created before DOB collection can be asked for it on login.
   dateOfBirth        DateTime?              @db.Date
+  /// IANA zone the teacher's AvailabilitySlot times are written in (e.g.
+  /// "Asia/Kolkata"). Saved with the availability; null for teachers who have
+  /// not re-saved since it was added, who fall back to the platform default.
+  timeZone           String?
   availability       AvailabilitySlot[]
   bookings           Booking[]
   interviews         Interview[]
@@ -241,6 +245,10 @@ model ClassSession {
   bookingId       String        @db.Uuid
   scheduledStart  DateTime
   scheduledEnd    DateTime
+  /// Start time as first booked. Set on the first reschedule so the
+  /// reschedule window is always measured from the booked time, not from the
+  /// previous reschedule.
+  originalStart   DateTime?
   actualStart     DateTime?
   actualEnd       DateTime?
   status          SessionStatus @default(SCHEDULED)

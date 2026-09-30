@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { TeacherService } from "@/features/teacher/services/teacher-service";
 import { CURRENCY_CODES } from "@repo/currency";
+import { isValidTimeZone } from "@repo/live-classes";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,8 @@ const settingsSchema = z.object({
     startTime: z.string(),
     endTime: z.string(),
   })).optional(),
+  /** IANA zone the availability times are written in. */
+  timeZone: z.string().max(64).refine(isValidTimeZone, "Unknown time zone").optional(),
 });
 
 export async function GET(request: Request) {
@@ -45,7 +48,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ message: "Invalid data", errors: result.error.format() }, { status: 400 });
     }
     
-    const { hourlyRate, courseRate, currency, availability } = result.data;
+    const { hourlyRate, courseRate, currency, availability, timeZone } = result.data;
 
     // Update rates if provided
     if (hourlyRate !== undefined && courseRate !== undefined) {
@@ -54,7 +57,7 @@ export async function PUT(request: Request) {
     
     // Update availability if provided
     if (availability !== undefined) {
-      await TeacherService.updateAvailability(auth.user.sub, availability);
+      await TeacherService.updateAvailability(auth.user.sub, availability, timeZone);
     }
 
     return NextResponse.json({ message: "Settings updated successfully" }, { status: 200 });

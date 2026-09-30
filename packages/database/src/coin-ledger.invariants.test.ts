@@ -61,6 +61,14 @@ class LedgerModel {
     return true;
   }
 
+  /** Legacy refund of already-spent coins; lifetime counters untouched. */
+  refund(amount: number): boolean {
+    if (amount <= 0) return false;
+    this.balance += amount;
+    this.rows.push({ type: "REFUND", amount });
+    return true;
+  }
+
   captureHold(heldAmount: number, chargeAmount: number): boolean {
     if (chargeAmount > heldAmount) return false;
     if (this.heldBalance < heldAmount) return false;
@@ -142,7 +150,7 @@ describe("ledger invariants — randomised", () => {
     const openHolds: number[] = [];
 
     for (let i = 0; i < 20_000; i++) {
-      switch (pick(5)) {
+      switch (pick(6)) {
         case 0:
           m.credit(1 + pick(500));
           break;
@@ -169,6 +177,9 @@ describe("ledger invariants — randomised", () => {
           if (m.captureHold(held, charge)) openHolds.splice(idx, 1);
           break;
         }
+        case 5:
+          m.refund(1 + pick(200));
+          break;
       }
       m.check(`op ${i}`);
     }

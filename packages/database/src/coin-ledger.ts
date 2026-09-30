@@ -184,6 +184,37 @@ export async function credit(
 }
 
 /**
+ * Return coins that were already SPENT.
+ *
+ * Only for bookings made before holds existed, where the class price was
+ * debited at booking time. A held class is refunded with releaseHold() — using
+ * this on one would return the money on top of the hold.
+ *
+ * Lifetime counters are left alone, matching how backfillCoinAccounts()
+ * derives them from REFUND rows.
+ */
+export async function refund(
+  params: { userId: string; amount: number } & EntryContext,
+  client: Tx = db
+): Promise<CoinBalance> {
+  const { userId, amount, ...ctx } = params;
+  if (amount <= 0) throw new Error("refund() requires a positive amount.");
+  if (await alreadyApplied(ctx.idempotencyKey, client)) return getCoinBalance(userId, client);
+
+  await ensureCoinAccount(userId, client);
+  const rows = await client.$queryRaw<Array<{ balance: number }>>`
+    UPDATE "CoinAccount"
+       SET "balance"   = "balance" + ${amount},
+           "version"   = "version" + 1,
+           "updatedAt" = NOW()
+     WHERE "userId" = ${userId}::uuid
+    RETURNING "balance"
+  `;
+  await writeEntry(client, userId, "REFUND", amount, rows[0]?.balance ?? 0, ctx);
+  return getCoinBalance(userId, client);
+}
+
+/**
  * Spend coins immediately.
  *
  * The balance check IS the WHERE clause. If the row does not match, nothing
