@@ -4,6 +4,8 @@ import { TeacherService } from "@/features/teacher/services/teacher-service";
 import { CURRENCY_CODES } from "@repo/currency";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const settingsSchema = z.object({
   hourlyRate: z.number().min(0).optional(),
   courseRate: z.number().min(0).optional(),

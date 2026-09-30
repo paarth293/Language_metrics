@@ -144,8 +144,8 @@ export async function proxy(request: NextRequest) {
     return res;
   }
 
-  const accessToken = request.cookies.get("lm_access_token")?.value;
-  const refreshToken = request.cookies.get("lm_refresh_token")?.value;
+  const accessToken = request.cookies.get("lm_teacher_access_token")?.value;
+  const refreshToken = request.cookies.get("lm_teacher_refresh_token")?.value;
 
   if (!accessToken) {
     if (refreshToken) {
@@ -175,10 +175,27 @@ export async function proxy(request: NextRequest) {
       audience: AUDIENCE,
     });
 
+    const role = (payload as any).role;
+    const emailVerified = (payload as any).emailVerified;
+
+    if (!emailVerified && pathname !== "/verify-email") {
+      const verifyUrl = new URL("/verify-email", request.url);
+      verifyUrl.searchParams.set("next", pathname);
+      return NextResponse.redirect(verifyUrl);
+    }
+
+    if (pathname.startsWith("/teacher") && role !== "TEACHER") {
+      return NextResponse.redirect(new URL(role === "STUDENT" ? "/student/dashboard" : "/login", request.url));
+    }
+
+    if (pathname.startsWith("/student") && role !== "STUDENT") {
+      return NextResponse.redirect(new URL(role === "TEACHER" ? "/teacher/dashboard" : "/login", request.url));
+    }
+
     // Token valid — pass identity to server components
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-user-id", payload.sub ?? "");
-    requestHeaders.set("x-user-role", (payload as { role?: string }).role ?? "");
+    requestHeaders.set("x-user-role", role ?? "");
 
     const res = NextResponse.next({ request: { headers: requestHeaders } });
     res.headers.set("X-Request-ID", crypto.randomUUID());
@@ -194,7 +211,7 @@ export async function proxy(request: NextRequest) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
     const res = NextResponse.redirect(loginUrl);
-    res.cookies.set("lm_access_token", "", { maxAge: 0, path: "/" });
+    res.cookies.set("lm_teacher_access_token", "", { maxAge: 0, path: "/" });
     return res;
   }
 }

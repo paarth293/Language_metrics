@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 // Forced HMR reload trigger
 
-import { verifyAccessToken } from "@/lib/tokens";
+import { verifyAccessToken, ACCESS_COOKIE } from "@/lib/tokens";
 import { db } from "@/lib/db";
 
 /**
@@ -11,7 +11,7 @@ import { db } from "@/lib/db";
  */
 export async function GET(request: NextRequest) {
   try {
-    const accessToken = request.cookies.get("lm_access_token")?.value;
+    const accessToken = request.cookies.get(ACCESS_COOKIE)?.value;
 
     if (!accessToken) {
       return NextResponse.json({ user: null }, { status: 200 });
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     const payload = await verifyAccessToken(accessToken);
     if (!payload?.sub) {
       const res = NextResponse.json({ user: null }, { status: 200 });
-      res.cookies.set("lm_access_token", "", { maxAge: 0, path: "/" });
+      res.cookies.set(ACCESS_COOKIE, "", { maxAge: 0, path: "/" });
       return res;
     }
 

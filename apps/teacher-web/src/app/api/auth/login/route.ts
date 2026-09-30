@@ -86,8 +86,8 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
 
-    response.cookies.set("lm_access_token", accessToken, accessCookieOptions);
-    response.cookies.set("lm_refresh_token", refreshToken, {
+    response.cookies.set("lm_teacher_access_token", accessToken, accessCookieOptions);
+    response.cookies.set("lm_teacher_refresh_token", refreshToken, {
       ...refreshCookieOptions,
       // Allow the refresh token cookie to reach /api/auth routes
       path: "/api/auth",

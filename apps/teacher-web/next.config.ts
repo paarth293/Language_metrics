@@ -146,7 +146,17 @@ const nextConfig: NextConfig = {
               ],
             },
           ]
-        : []),
+        : [
+            // Browsers that loaded the app while dev chunks were still sent
+            // as "immutable" never revalidate them, so they keep running old
+            // code (hydration mismatches, "module factory is not available").
+            // Tell the browser to drop its HTTP cache on every dev page load
+            // so those poisoned entries can't survive. Dev only.
+            {
+              source: "/((?!_next|api).*)",
+              headers: [{ key: "Clear-Site-Data", value: '"cache"' }],
+            },
+          ]),
       // Brand images — cache for 7 days
       {
         source: "/brand/(.*)",

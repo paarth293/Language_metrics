@@ -9,6 +9,8 @@ import { buildDiscoverWhere, paginate } from "@/lib/discover-query";
 import { sanitizeOrFallback } from "@/lib/sanitize";
 import { convertBudgetRangeToAllCurrencies, convertMinorUnitsSafe, getCurrencyInfo } from "@repo/currency";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/students/discover
  * Returns approved teachers with their rates, ratings, and availability.

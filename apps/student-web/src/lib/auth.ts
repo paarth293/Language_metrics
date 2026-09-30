@@ -3,7 +3,7 @@
  *
  * Replaces the old HS256/jsonwebtoken/Bearer-header system entirely.
  *
- * All protected API routes call requireAuth() to verify the lm_access_token
+ * All protected API routes call requireAuth() to verify the access token
  * httpOnly cookie using the RS256 public key. Never reads Authorization header.
  *
  * Return pattern:
@@ -14,7 +14,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { verifyAccessToken } from "@/lib/tokens";
+import { verifyAccessToken, ACCESS_COOKIE } from "@/lib/tokens";
 import type { Role } from "@/types";
 import type { AccessTokenPayload } from "@/lib/tokens";
 
@@ -42,7 +42,7 @@ export interface AuthFailure {
 // ── Core guard ─────────────────────────────────────────────────────────────
 
 /**
- * Reads and verifies the lm_access_token cookie (RS256).
+ * Reads and verifies the access token cookie (RS256).
  * Optionally checks that the user's role is one of `allowedRoles`.
  * Also enforces email verification — unverified users are rejected with 403.
  *
@@ -60,7 +60,7 @@ export async function requireAuth(
   try {
     // Read token from httpOnly cookie
     const cookieHeader = request.headers.get("cookie") ?? "";
-    const accessToken = parseCookie(cookieHeader, "lm_access_token");
+    const accessToken = parseCookie(cookieHeader, ACCESS_COOKIE);
 
     if (!accessToken) {
       return {
