@@ -5,7 +5,7 @@ export const WebLinks = {
   register: `${PUBLIC_SITE_URL}/register/student`,
   forgotPassword: `${PUBLIC_SITE_URL}/forgot-password`,
   wallet: `${STUDENT_WEB_URL}/wallet`,
-  classroom: (bookingId: string) => `${STUDENT_WEB_URL}/live/${encodeURIComponent(bookingId)}`,
+  classroom: (classSessionId: string) => `${STUDENT_WEB_URL}/live/${encodeURIComponent(classSessionId)}`,
   faq: `${STUDENT_WEB_URL}/faq`,
   support: `${STUDENT_WEB_URL}/support`,
   terms: `${STUDENT_WEB_URL}/terms`,

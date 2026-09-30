@@ -300,7 +300,12 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
         scheduledStart: new Date(now.getTime() - 5 * 60 * 1000),
         scheduledEnd: new Date(now.getTime() + 55 * 60 * 1000),
         isRecordingPaid: false,
+        // Bookings place a coin hold, which creates the billing row; without
+        // it the token handler treats the booking as unpaid.
+        billing: { id: "billing-123" },
         booking: {
+          id: "booking-123",
+          createdAt: new Date(now.getTime() - 24 * 60 * 60 * 1000),
           studentId,
           teacherId,
           amountPaid: 600,
@@ -341,7 +346,12 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
         scheduledStart: new Date(now.getTime() - 5 * 60 * 1000),
         scheduledEnd: new Date(now.getTime() + 55 * 60 * 1000),
         isRecordingPaid: false,
+        // Bookings place a coin hold, which creates the billing row; without
+        // it the token handler treats the booking as unpaid.
+        billing: { id: "billing-123" },
         booking: {
+          id: "booking-123",
+          createdAt: new Date(now.getTime() - 24 * 60 * 60 * 1000),
           studentId,
           teacherId,
           amountPaid: 600,
@@ -377,7 +387,12 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
         scheduledStart: new Date(now.getTime() - 5 * 60 * 1000),
         scheduledEnd: new Date(now.getTime() + 55 * 60 * 1000),
         isRecordingPaid: false,
+        // Bookings place a coin hold, which creates the billing row; without
+        // it the token handler treats the booking as unpaid.
+        billing: { id: "billing-123" },
         booking: {
+          id: "booking-123",
+          createdAt: new Date(now.getTime() - 24 * 60 * 60 * 1000),
           studentId,
           teacherId,
           amountPaid: 600,

@@ -6,6 +6,7 @@ import { AppText, Badge, Banner, Button, Card, EmptyState, LoadingBlock, Segment
 import { MobileApiClient, type ClassesFilter } from "../lib/api-client";
 import { formatDateTime, formatNumber, formatTime, minutesBetween } from "../lib/format";
 import { openWebLink, WebLinks } from "../lib/links";
+import { liveVideoAvailable } from "../live/registerGlobals";
 import { useTheme } from "../theme/ThemeProvider";
 import { layout, spacing } from "../theme/tokens";
 
@@ -15,14 +16,19 @@ const FILTERS = [
   { value: "cancelled", label: "Cancelled" },
 ] as const;
 
-/** A classroom opens 10 minutes before the scheduled start and closes at the scheduled end. */
+/**
+ * A classroom opens 10 minutes before the scheduled start and closes 10 minutes
+ * after the scheduled end — the same defaults the token endpoint enforces
+ * (packages/live-classes getJoinWindow), so the button matches what the server accepts.
+ */
 const JOIN_OPENS_MINUTES_BEFORE = 10;
+const JOIN_GRACE_MINUTES_AFTER = 10;
 
 function joinWindow(booking: BookingDetail, now: number) {
   const start = new Date(booking.slotStart).getTime();
-  const end = new Date(booking.slotEnd).getTime();
+  const closesAt = new Date(booking.slotEnd).getTime() + JOIN_GRACE_MINUTES_AFTER * 60_000;
   const opensAt = start - JOIN_OPENS_MINUTES_BEFORE * 60_000;
-  return { canJoin: now >= opensAt && now <= end, opensAt: new Date(opensAt), ended: now > end };
+  return { canJoin: now >= opensAt && now <= closesAt, opensAt: new Date(opensAt), ended: now > closesAt };
 }
 
 const STATUS_TONE = {
@@ -39,7 +45,14 @@ const STATUS_LABEL = {
   CANCELLED: "Cancelled",
 } as const;
 
-export function ClassesScreen({ onBrowseTeachers }: { onBrowseTeachers: () => void }) {
+export function ClassesScreen({
+  onBrowseTeachers,
+  onJoinLive,
+}: {
+  onBrowseTeachers: () => void;
+  /** Opens the in-app live classroom for a class session. */
+  onJoinLive: (classSessionId: string) => void;
+}) {
   const { colors } = useTheme();
   const [filter, setFilter] = useState<ClassesFilter>("upcoming");
   const [bookings, setBookings] = useState<BookingDetail[]>([]);
@@ -143,7 +156,16 @@ export function ClassesScreen({ onBrowseTeachers }: { onBrowseTeachers: () => vo
 
                 {joinable ? (
                   slotWindow.canJoin ? (
-                    <Button label="Join classroom" onPress={() => setJoinTarget(booking)} style={styles.joinButton} />
+                    <Button
+                      label="Join classroom"
+                      onPress={() => {
+                        // In-app video needs the native LiveKit module (dev/release
+                        // build) and a scheduled session; otherwise use the web classroom.
+                        if (liveVideoAvailable && booking.sessionId) onJoinLive(booking.sessionId);
+                        else setJoinTarget(booking);
+                      }}
+                      style={styles.joinButton}
+                    />
                   ) : slotWindow.ended ? (
                     <AppText variant="small" tone="muted" style={styles.joinHint}>
                       This class time has passed.
@@ -164,8 +186,8 @@ export function ClassesScreen({ onBrowseTeachers }: { onBrowseTeachers: () => vo
         visible={Boolean(joinTarget)}
         title="Join your classroom"
         message={
-          "Live video inside the mobile app arrives with the LiveKit mobile SDK (Phase 3). " +
-          "For now your classroom opens on the Language Metrics student portal — sign in there with this same account."
+          "Live video isn't available in this version of the app. " +
+          "Your classroom will open on the Language Metrics student portal — sign in there with this same account."
         }
         onDismiss={() => setJoinTarget(null)}
         actions={[
@@ -175,7 +197,7 @@ export function ClassesScreen({ onBrowseTeachers }: { onBrowseTeachers: () => vo
               const target = joinTarget;
               setJoinTarget(null);
               if (!target) return;
-              const opened = await openWebLink(WebLinks.classroom(target.id));
+              const opened = await openWebLink(WebLinks.classroom(target.sessionId ?? target.id));
               setLinkError(opened ? null : "Couldn't open your browser. Visit the student portal to join the class.");
             },
           },
