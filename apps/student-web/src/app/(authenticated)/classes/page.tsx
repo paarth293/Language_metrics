@@ -169,7 +169,7 @@ export default function MyClassesPage() {
       {/* Welcome Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl font-bold text-brand mb-2">
+          <h1 className="lm-page-title mb-2">
             My Classes
           </h1>
           <p className="text-text-muted">
@@ -263,6 +263,8 @@ export default function MyClassesPage() {
                       <div className="relative">
                         <Avatar
                           src={booking.avatar || undefined}
+                          alt={booking.teacher}
+                          initials={booking.teacher.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
                           size="lg"
                           online={isLive || isStartingSoon}
                         />

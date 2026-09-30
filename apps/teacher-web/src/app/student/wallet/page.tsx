@@ -79,7 +79,7 @@ export default function WalletPage() {
       {/* ── HEADER ─────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-[32px] sm:text-[36px] font-display font-bold text-text tracking-[-0.02em] leading-tight">
+          <h1 className="lm-page-title">
             My Wallet
           </h1>
           <p className="text-base text-text-muted mt-1">

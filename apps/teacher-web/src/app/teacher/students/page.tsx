@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { Suspense, useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Users,
   Search,
@@ -20,36 +21,79 @@ import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 type Student = {
   id: string;
   name: string;
-  avatar: string;
+  avatar: string | null;
   level: string;
   totalClasses: number;
   completedClasses: number;
   upcomingClasses: number;
   totalSpent: number;
   lastClassDate: string | null;
+  nextClassDate: string | null;
   rating: number | null;
   reviewComment: string | null;
 };
 
-const PILL_COLORS = ["#0f9d6b","#231d5e","#c7982f","#5046c8","#dc4c3e","#3d32a0"];
-function getInitials(n: string) { return n.split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase(); }
+function getInitials(n: string) { return n.split(" ").filter(Boolean).map(w => w[0]).join("").slice(0,2).toUpperCase(); }
 
-function timeAgo(dateStr: string | null): string {
-  if (!dateStr) return "Never";
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const days = Math.floor(diff / 86400000);
-  if (days === 0) return "Today";
-  if (days === 1) return "Yesterday";
+function timeAgo(dateStr: string): string {
+  // Calendar days, so a class at 11 PM yesterday reads "yesterday" just after midnight.
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((startOfDay(new Date()) - startOfDay(new Date(dateStr))) / 86400000);
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
   if (days < 7) return `${days} days ago`;
-  if (days < 30) return `${Math.floor(days / 7)} weeks ago`;
-  return `${Math.floor(days / 30)} months ago`;
+  if (days < 30) return `${Math.floor(days / 7)} week${days < 14 ? "" : "s"} ago`;
+  const months = Math.floor(days / 30);
+  return `${months} month${months === 1 ? "" : "s"} ago`;
 }
 
-export default function TeacherStudents() {
+function formatNextClass(dateStr: string): string {
+  const d = new Date(dateStr);
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  if (d.toDateString() === today.toDateString()) return `today, ${time}`;
+  if (d.toDateString() === tomorrow.toDateString()) return `tomorrow, ${time}`;
+  return `${d.toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short" })}, ${time}`;
+}
+
+function StatTile({ icon: Icon, label, value, tone }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string; tone: string }) {
+  return (
+    <div className="rounded-2xl border border-border bg-surface p-4 shadow-level-1 sm:p-5">
+      <div className="flex items-center gap-2 text-[12px] font-semibold text-text-muted">
+        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${tone}`}>
+          <Icon className="h-3.5 w-3.5" />
+        </span>
+        <span className="truncate">{label}</span>
+      </div>
+      <div className="mt-3 font-display text-[26px] font-bold leading-none tracking-[-0.01em] text-text">{value}</div>
+    </div>
+  );
+}
+
+export default function TeacherStudentsPage() {
+  // useSearchParams needs a Suspense boundary so the page can still prerender.
+  return (
+    <Suspense>
+      <TeacherStudents />
+    </Suspense>
+  );
+}
+
+function TeacherStudents() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  // ?q= pre-fills the search (the header's quick search links here), and
+  // a new ?q= while already on the page replaces it.
+  const urlQuery = useSearchParams().get("q") ?? "";
+  const [search, setSearch] = useState(urlQuery);
+  const [appliedQuery, setAppliedQuery] = useState(urlQuery);
+  if (urlQuery !== appliedQuery) {
+    setAppliedQuery(urlQuery);
+    setSearch(urlQuery);
+  }
   const [levelFilter, setLevelFilter] = useState<string>("ALL");
 
   useEffect(() => {
@@ -86,7 +130,7 @@ export default function TeacherStudents() {
       {/* ── HEADER ─────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-[32px] sm:text-[36px] font-display font-bold text-text tracking-[-0.02em] leading-tight">
+          <h1 className="lm-page-title">
             My Students
           </h1>
           <p className="text-base text-text-muted mt-1">
@@ -98,58 +142,25 @@ export default function TeacherStudents() {
       {/* ── SUMMARY STATS ──────────────────────────── */}
       {students.length > 0 && !loading && !error && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="border border-border/50 hover:border-brand/30 transition-colors shadow-sm bg-brand/5">
-            <CardContent className="p-4 flex flex-col items-center justify-center text-center">
-              <div className="w-8 h-8 rounded-full bg-brand/10 flex items-center justify-center mb-2">
-                <Users className="w-4 h-4 text-brand" />
-              </div>
-              <div className="text-[24px] font-display font-bold text-brand leading-none mb-1">
-                {students.length}
-              </div>
-              <div className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">
-                Total Students
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border border-border/50 hover:border-trust/30 transition-colors shadow-sm bg-trust/5">
-            <CardContent className="p-4 flex flex-col items-center justify-center text-center">
-              <div className="w-8 h-8 rounded-full bg-trust/10 flex items-center justify-center mb-2">
-                <CheckCircle2 className="w-4 h-4 text-trust" />
-              </div>
-              <div className="text-[24px] font-display font-bold text-trust leading-none mb-1">
-                {students.reduce((a, s) => a + s.completedClasses, 0)}
-              </div>
-              <div className="text-[11px] font-semibold text-trust/80 uppercase tracking-wider">
-                Classes Done
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border border-border/50 hover:border-action/30 transition-colors shadow-sm bg-action/5">
-            <CardContent className="p-4 flex flex-col items-center justify-center text-center">
-              <div className="w-8 h-8 rounded-full bg-action/10 flex items-center justify-center mb-2">
-                <Star className="w-4 h-4 text-action" />
-              </div>
-              <div className="text-[24px] font-display font-bold text-action-on leading-none mb-1">
-                {students.filter((s) => s.rating && s.rating >= 4).length}
-              </div>
-              <div className="text-[11px] font-semibold text-action-on/80 uppercase tracking-wider">
-                High Ratings
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border border-border/50 hover:border-danger/30 transition-colors shadow-sm">
-            <CardContent className="p-4 flex flex-col items-center justify-center text-center">
-              <div className="w-8 h-8 rounded-full bg-surface-inset flex items-center justify-center mb-2">
-                <TrendingUp className="w-4 h-4 text-text-subtle" />
-              </div>
-              <div className="text-[24px] font-display font-bold text-text leading-none mb-1">
-                ₹{Math.round(students.reduce((a, s) => a + s.totalSpent, 0) / 100).toLocaleString("en-IN")}
-              </div>
-              <div className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">
-                Total Earned
-              </div>
-            </CardContent>
-          </Card>
+          <StatTile icon={Users} label="Students" value={String(students.length)} tone="bg-brand/10 text-brand" />
+          <StatTile
+            icon={CheckCircle2}
+            label="Classes completed"
+            value={String(students.reduce((a, s) => a + s.completedClasses, 0))}
+            tone="bg-trust/10 text-trust"
+          />
+          <StatTile
+            icon={Star}
+            label="4★ and above"
+            value={String(students.filter((s) => s.rating && s.rating >= 4).length)}
+            tone="bg-action/15 text-gold-strong"
+          />
+          <StatTile
+            icon={TrendingUp}
+            label="Total earned"
+            value={`₹${Math.round(students.reduce((a, s) => a + s.totalSpent, 0) / 100).toLocaleString("en-IN")}`}
+            tone="bg-brand/10 text-brand"
+          />
         </div>
       )}
 
@@ -165,7 +176,7 @@ export default function TeacherStudents() {
             className="w-full h-12 border-none bg-transparent pl-11 pr-4 text-[14px] text-text placeholder:text-text-subtle focus:ring-0 focus:outline-none"
           />
         </div>
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
+        <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1 sm:pb-0">
           <button
             onClick={() => setLevelFilter("ALL")}
             className={`px-4 h-12 rounded-xl text-[13px] font-bold tracking-wide uppercase whitespace-nowrap transition-all border shadow-sm ${
@@ -199,7 +210,7 @@ export default function TeacherStudents() {
             <DashboardSkeleton />
           </div>
         ) : error ? (
-          <div className="text-center py-20 bg-surface rounded-2xl border" style={{ borderColor: "rgba(35,29,94,0.08)" }}>
+          <div className="text-center py-20 bg-surface rounded-2xl border border-border">
             <AlertCircle className="w-12 h-12 text-alert mx-auto mb-4" />
             <p className="text-text font-semibold mb-1">Failed to load students</p>
             <p className="text-text-muted text-[13px]">{error}</p>
@@ -228,23 +239,23 @@ export default function TeacherStudents() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
-            {filtered.map((student, idx) => {
+            {filtered.map((student) => {
               const initials = getInitials(student.name);
-              
+
               return (
                 <Card key={student.id} className="overflow-hidden flex flex-col border border-border/50 hover:shadow-level-2 hover:border-brand/30 transition-all duration-300">
                   <CardContent className="p-0 flex flex-col h-full">
                     {/* Header: Student Info */}
-                    <div className="p-5 flex items-start gap-4 border-b border-border/40">
-                      {student.avatar ? (
-                        <Avatar src={student.avatar} size="lg" className="shadow-sm" />
-                      ) : (
-                        <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-[14px] font-bold shadow-sm" style={{ background: PILL_COLORS[idx % PILL_COLORS.length] }}>
-                          {initials}
-                        </div>
-                      )}
-                      
-                      <div className="flex-1 min-w-0 pt-0.5">
+                    <div className="p-5 flex items-center gap-4 border-b border-border/40">
+                      <Avatar
+                        src={student.avatar || undefined}
+                        alt={student.name}
+                        initials={initials}
+                        size="lg"
+                        className="shrink-0"
+                      />
+
+                      <div className="flex-1 min-w-0">
                         <h3 className="text-[16px] font-bold text-text truncate font-display mb-1">
                           {student.name}
                         </h3>
@@ -264,21 +275,25 @@ export default function TeacherStudents() {
                         <div className="text-[18px] font-bold text-text leading-tight">{student.upcomingClasses}</div>
                         <div className="text-[10px] font-semibold text-text-muted uppercase tracking-wider mt-1">Upcoming</div>
                       </div>
-                      <div className="bg-action/5 border border-action/20 rounded-xl p-3 text-center flex flex-col justify-center">
-                        <div className="text-[18px] font-bold text-action-on flex items-center justify-center gap-1 leading-tight">
-                          <Star className="w-3.5 h-3.5 text-action fill-action" />
-                          {student.rating ? student.rating.toFixed(1) : "—"}
+                      <div className="bg-surface border border-border/50 rounded-xl p-3 text-center flex flex-col justify-center">
+                        <div className={`text-[18px] font-bold flex items-center justify-center gap-1 leading-tight ${student.rating ? "text-text" : "text-text-subtle"}`}>
+                          <Star className={`w-3.5 h-3.5 ${student.rating ? "text-action fill-action" : "text-text-subtle"}`} />
+                          {student.rating ? student.rating.toFixed(1) : "–"}
                         </div>
-                        <div className="text-[10px] font-semibold text-action-on/70 uppercase tracking-wider mt-1">Rating</div>
+                        <div className="text-[10px] font-semibold text-text-muted uppercase tracking-wider mt-1">Rating</div>
                       </div>
                     </div>
 
                     {/* Footer Info */}
-                    <div className="mt-auto p-4 bg-surface-inset/30 flex items-center justify-between text-[12px] font-medium border-t border-border/40">
-                      <div className="flex items-center gap-1.5 text-text-muted">
-                        <Calendar className="w-3.5 h-3.5 opacity-70" />
-                        <span className={student.lastClassDate ? "" : "italic opacity-70"}>
-                          Last class: {timeAgo(student.lastClassDate)}
+                    <div className="mt-auto p-4 bg-surface-inset/30 flex items-center justify-between gap-3 text-[12px] font-medium border-t border-border/40">
+                      <div className="flex min-w-0 items-center gap-1.5 text-text-muted">
+                        <Calendar className="w-3.5 h-3.5 shrink-0 opacity-70" />
+                        <span className="truncate">
+                          {student.nextClassDate
+                            ? `Next class ${formatNextClass(student.nextClassDate)}`
+                            : student.lastClassDate
+                              ? `Last class ${timeAgo(student.lastClassDate)}`
+                              : "No classes yet"}
                         </span>
                       </div>
                       <div className="text-brand font-bold bg-brand/10 px-2.5 py-1 rounded-md">
@@ -289,9 +304,9 @@ export default function TeacherStudents() {
                     {/* Review Section */}
                     {student.reviewComment && (
                       <div className="p-4 bg-action/5 border-t border-border/40 text-[13px] text-text-muted italic flex gap-2">
-                        <span className="text-action-on font-serif text-lg leading-none">"</span>
+                        <span className="text-gold-strong font-serif text-lg leading-none" aria-hidden>&ldquo;</span>
                         <span className="leading-snug">{student.reviewComment}</span>
-                        <span className="text-action-on font-serif text-lg leading-none mt-auto">"</span>
+                        <span className="text-gold-strong font-serif text-lg leading-none mt-auto" aria-hidden>&rdquo;</span>
                       </div>
                     )}
                   </CardContent>

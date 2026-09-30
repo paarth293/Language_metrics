@@ -3,6 +3,33 @@ import type { NextRequest } from "next/server";
 import { verifyAccessToken } from "@/lib/tokens";
 import { db } from "@/lib/db";
 
+type MeRow = {
+  id: string;
+  email: string;
+  role: "STUDENT" | "TEACHER" | "ADMIN";
+  emailVerified: boolean;
+  studentProfile: {
+    name: string;
+    avatarUrl: string | null;
+    languageToLearn: string;
+    proficiencyLevel: string;
+    onboardingComplete: boolean;
+    status: string;
+    hasDateOfBirth: boolean;
+  } | null;
+  teacherProfile: {
+    name: string;
+    avatarUrl: string | null;
+    bio: string | null;
+    gender: string | null;
+    language: string | null;
+    experienceLevel: string;
+    onboardingComplete: boolean;
+    status: string;
+    hasDateOfBirth: boolean;
+  } | null;
+};
+
 /**
  * GET /api/auth/me
  *
@@ -24,39 +51,25 @@ export async function GET(request: NextRequest) {
       return res;
     }
 
-    const user = await db.user.findUnique({
-      where: { id: payload.sub },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        emailVerified: true,
-        studentProfile: {
-          select: {
-            name: true,
-            avatarUrl: true,
-            languageToLearn: true,
-            proficiencyLevel: true,
-            onboardingComplete: true,
-            status: true,
-            dateOfBirth: true,
-          },
-        },
-        teacherProfile: {
-          select: {
-            name: true,
-            avatarUrl: true,
-            bio: true,
-            gender: true,
-            language: true,
-            experienceLevel: true,
-            onboardingComplete: true,
-            status: true,
-            dateOfBirth: true,
-          },
-        },
-      },
-    });
+    // One round trip instead of three (user + each profile): every signed-in
+    // page waits on this before it renders.
+    const [row] = await db.$queryRaw<MeRow[]>`
+      SELECT u.id, u.email, u.role::text AS role, u."emailVerified",
+             CASE WHEN sp."userId" IS NULL THEN NULL ELSE json_build_object(
+               'name', sp.name, 'avatarUrl', sp."avatarUrl", 'languageToLearn', sp."languageToLearn",
+               'proficiencyLevel', sp."proficiencyLevel", 'onboardingComplete', sp."onboardingComplete",
+               'status', sp.status, 'hasDateOfBirth', sp."dateOfBirth" IS NOT NULL) END AS "studentProfile",
+             CASE WHEN tp."userId" IS NULL THEN NULL ELSE json_build_object(
+               'name', tp.name, 'avatarUrl', tp."avatarUrl", 'bio', tp.bio, 'gender', tp.gender,
+               'language', tp.language, 'experienceLevel', tp."experienceLevel",
+               'onboardingComplete', tp."onboardingComplete", 'status', tp.status,
+               'hasDateOfBirth', tp."dateOfBirth" IS NOT NULL) END AS "teacherProfile"
+        FROM "User" u
+        LEFT JOIN "StudentProfile" sp ON sp."userId" = u.id
+        LEFT JOIN "TeacherProfile" tp ON tp."userId" = u.id
+       WHERE u.id = ${payload.sub}::uuid
+    `;
+    const user = row ?? null;
 
     if (!user) {
       return NextResponse.json({ user: null }, { status: 200 });
@@ -75,7 +88,7 @@ export async function GET(request: NextRequest) {
           avatarUrl: profile?.avatarUrl ?? null,
           onboardingComplete: profile?.onboardingComplete ?? false,
           // Accounts created before DOB collection are asked for it on login.
-          needsDateOfBirth: !!profile && profile.dateOfBirth === null,
+          needsDateOfBirth: !!profile && !profile.hasDateOfBirth,
           profile:
             user.role === "STUDENT"
               ? {

@@ -168,7 +168,7 @@ export default function SupportPage() {
               <ChevronLeft className="w-4 h-4" /> Back to tickets
             </button>
           )}
-          <h1 className="text-2xl font-bold text-navy-900">
+          <h1 className="lm-page-title">
             {view === "list" ? "My Support Tickets" : "Raise a Complaint"}
           </h1>
           <p className="text-gray-600 mt-1">

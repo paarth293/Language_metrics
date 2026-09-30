@@ -1,4 +1,7 @@
 @import "tailwindcss";
+
+/* dark: follows the in-app theme toggle (data-theme), not the OS setting. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 @source "..";
 
 /* ============================================================
@@ -474,14 +477,47 @@ body {
   text-wrap: balance;
 }
 
+/* Admin-panel page title: compact, bold sans. */
+@utility lm-page-title {
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: clamp(24px, 3vw, 30px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+/* Signed-in app pages follow the admin panel's all-sans typography; the
+   serif display face stays on the marketing pages outside the shell. */
+.app-shell {
+  --font-display: var(--font-body);
+  /* The admin panel's tighter corners: 12px panels, 8–10px controls. */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 14px;
+  --radius-3xl: 16px;
+}
+
+/* Inside the app, buttons take the admin panel's 8px corners; the marketing
+   and auth pages keep their pill buttons. */
+.app-shell .lm-button {
+  border-radius: 8px;
+}
+
 @utility focus-ring {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(199, 152, 47, 0.45);
+  &:focus-visible {
+    box-shadow: 0 0 0 3px rgba(199, 152, 47, 0.45);
+  }
 }
 
 @utility auth-focus {
   outline: none;
-  box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-action);
+  &:focus-visible {
+    box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-action);
+  }
 }
 
 @utility hide-scrollbar {

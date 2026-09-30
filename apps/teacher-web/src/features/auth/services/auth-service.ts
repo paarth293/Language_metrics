@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { loginSchema, registerStudentSchema, registerTeacherSchema, parseDateOfBirth } from "@/features/auth/validators/auth";
-import type { User } from "@/types";
+import type { Role, User } from "@/types";
 import type { z } from "zod";
 import { generateOtp, hashOtp } from "@/lib/otp";
 import { sendVerificationOTP } from "@/lib/email";
@@ -14,10 +14,19 @@ export class AuthService {
   static async login(
     data: LoginInput
   ): Promise<{ user: User } | { error: "USER_NOT_FOUND" | "INVALID_CREDENTIALS" | "UNVERIFIED_EMAIL" }> {
-    const user = await db.user.findUnique({
-      where: { email: data.email },
-      include: { studentProfile: true, teacherProfile: true },
-    });
+    // One round trip for just the fields login needs; loading both full
+    // profiles took three (≈1.3s against the remote database).
+    const [user] = await db.$queryRaw<
+      Array<{ id: string; email: string; role: Role; passwordHash: string | null; emailVerified: boolean; name: string | null }>
+    >`
+      SELECT u.id, u.email, u.role::text AS role, u."passwordHash", u."emailVerified",
+             COALESCE(sp.name, tp.name) AS name
+        FROM "User" u
+        LEFT JOIN "StudentProfile" sp ON sp."userId" = u.id
+        LEFT JOIN "TeacherProfile" tp ON tp."userId" = u.id
+       WHERE u.email = ${data.email}
+       LIMIT 1
+    `;
     if (!user) return { error: "USER_NOT_FOUND" };
     if (!user.passwordHash) return { error: "INVALID_CREDENTIALS" };
 
@@ -32,7 +41,7 @@ export class AuthService {
       return { error: "UNVERIFIED_EMAIL" };
     }
 
-    const name = user.studentProfile?.name ?? user.teacherProfile?.name ?? "User";
+    const name = user.name ?? "User";
     return {
       user: {
         id: user.id,

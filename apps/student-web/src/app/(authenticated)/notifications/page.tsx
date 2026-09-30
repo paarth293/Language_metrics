@@ -286,12 +286,12 @@ export default function StudentNotifications() {
       {/* Toast notifications */}
       <ToastList toasts={toasts} onDismiss={dismissToast} />
 
-      <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-3xl mx-auto w-full">
+      <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-3xl w-full">
 
         {/* ── Page header ── */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-3xl font-display font-bold text-text">Notifications</h1>
+            <h1 className="lm-page-title">Notifications</h1>
             <p className="text-text-muted mt-1">
               {unreadCount > 0
                 ? `You have ${unreadCount} unread notification${unreadCount !== 1 ? "s" : ""}`

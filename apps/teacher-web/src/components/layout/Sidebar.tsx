@@ -1,131 +1,132 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { X, ChevronDown, LogOut } from "lucide-react";
+import { ChevronRight, LogOut, X } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { NavItem } from "./AppShell";
+import type { NavItem } from "./AppShell";
 import { useAuth } from "@/lib/auth-client";
+import type { User } from "@/types";
 
 interface SidebarProps {
   navItems: NavItem[];
+  user: User;
   isOpen: boolean;
   onClose: () => void;
 }
 
-export function Sidebar({ navItems, isOpen, onClose }: SidebarProps) {
+export function isNavActive(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(href + "/");
+}
+
+const initialsOf = (name: string) =>
+  name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join("") || "U";
+
+export function Sidebar({ navItems, user, isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { logout } = useAuth();
 
-  // Group nav items by section
-  const sectionsMap = new Map<string, NavItem[]>();
-  navItems.forEach(item => {
-    const section = item.section || "General";
-    if (!sectionsMap.has(section)) sectionsMap.set(section, []);
-    sectionsMap.get(section)!.push(item);
-  });
-
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    Learn: true,
-    Account: true,
-    Help: false
-  });
-
-  useEffect(() => {
-    const saved = localStorage.getItem("sidebar_sections");
-    if (saved) {
-      try {
-        setOpenSections(prev => ({ ...prev, ...JSON.parse(saved) }));
-      } catch (e) {}
-    }
-  }, []);
-
-  const toggleSection = (section: string) => {
-    setOpenSections(prev => {
-      const next = { ...prev, [section]: !prev[section] };
-      localStorage.setItem("sidebar_sections", JSON.stringify(next));
-      return next;
-    });
-  };
+  // Group in first-seen order, like the admin panel's module groups.
+  const sections: Array<{ name: string; items: NavItem[] }> = [];
+  for (const item of navItems) {
+    const name = item.section ?? "General";
+    const existing = sections.find((s) => s.name === name);
+    if (existing) existing.items.push(item);
+    else sections.push({ name, items: [item] });
+  }
 
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 bg-surface border-r border-border shadow-[2px_0_10px_rgba(0,0,0,0.02)]",
+        "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-surface transition-transform duration-300 ease-in-out lg:static lg:translate-x-0",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}
     >
-      {/* Logo */}
-      <div className="flex h-16 shrink-0 items-center justify-between px-6">
-        <Link href="/" className="flex items-center gap-3" aria-label="Language Metrics — home">
-          <div className="relative flex-shrink-0">
-            <img
-              src="/brand/logo-full.png"
-              alt="LM"
-              className="w-8 h-8 rounded-lg object-contain"
-              onError={(e) => {
-                e.currentTarget.style.display = "none";
-                (e.currentTarget.nextElementSibling as HTMLElement)!.style.display = "flex";
-              }}
-            />
-            <div
-              className="hidden w-8 h-8 rounded-lg items-center justify-center text-sm font-bold text-white"
-              style={{ background: "linear-gradient(135deg, #c7982f, #e0b24a)" }}
-            >
-              LM
-            </div>
-          </div>
-          <div className="flex flex-col leading-none mt-0.5">
-            <span className="font-display font-bold text-[20px] text-text tracking-tight">
-              Language<span className="text-brand">Metrics</span>
+      {/* Brand */}
+      <div className="flex h-16 shrink-0 items-center justify-between border-b border-border px-5">
+        <Link href="/" className="flex items-center gap-2.5" aria-label="Language Metrics — home">
+          <span className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-cream ring-1 ring-border-strong">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/logo-full.png" alt="" className="h-full w-full scale-[1.22] object-cover object-[50%_5%]" />
+          </span>
+          <span>
+            <span className="block text-[12px] font-bold leading-tight text-text">Language Metrics</span>
+            <span className="block text-[10px] leading-tight text-text-subtle">
+              {user.role === "TEACHER" ? "Teacher" : "Student"}
             </span>
-          </div>
+          </span>
         </Link>
         <button
-          className="inline-flex h-11 w-11 items-center justify-center rounded-xl lg:hidden transition-colors text-text-muted hover:bg-surface-inset auth-focus"
+          type="button"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface-inset hover:text-text lg:hidden auth-focus"
           onClick={onClose}
           aria-label="Close navigation menu"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4" />
         </button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-4 py-2 space-y-1 hide-scrollbar">
-        {navItems.map(item => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={onClose}
-              className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium transition-all duration-200 focus:outline-none mb-1",
-                isActive
-                  ? "text-brand bg-brand/5 border border-brand/20 shadow-sm"
-                  : "text-text-muted hover:bg-surface-inset hover:text-text border border-transparent"
-              )}
-            >
-              <span className="flex-shrink-0">
-                <item.icon className={cn("w-5 h-5", isActive ? "text-brand" : "text-text-muted")} />
-              </span>
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
+      <nav aria-label="Main navigation" className="flex-1 overflow-y-auto py-2 hide-scrollbar">
+        {sections.map((section, i) => (
+          <div key={section.name} className={cn("px-3", i > 0 && "mt-1 border-t border-border pt-1")}>
+            <p className="mb-1 px-2 pt-2 text-[9px] font-bold uppercase tracking-[0.18em] text-text-subtle">
+              {section.name}
+            </p>
+            <ul className="space-y-0.5">
+              {section.items.map((item) => {
+                const active = isNavActive(pathname, item.href);
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={onClose}
+                      aria-current={active ? "page" : undefined}
+                      className={cn(
+                        "relative flex items-center gap-3 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors duration-150 auth-focus",
+                        active ? "bg-action/10 text-text" : "text-text-muted hover:bg-surface-inset hover:text-text"
+                      )}
+                    >
+                      {active && (
+                        <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-action" aria-hidden />
+                      )}
+                      <item.icon className={cn("h-4 w-4 shrink-0", active && "text-gold-strong")} strokeWidth={1.8} />
+                      <span className="flex-1 truncate">{item.label}</span>
+                      {active && <ChevronRight className="h-3.5 w-3.5 text-gold-strong opacity-60" aria-hidden />}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
       </nav>
 
-      {/* Footer */}
-      <div className="px-6 py-5 border-t border-border">
-        <button
-          type="button"
-          onClick={() => void logout()}
-          className="flex w-full min-h-11 items-center gap-2 text-sm font-medium text-text-muted hover:text-text transition-colors auth-focus rounded-lg"
-        >
-          <LogOut className="h-[18px] w-[18px]" aria-hidden="true" />
-          Log out
-        </button>
+      {/* Signed-in user */}
+      <div className="shrink-0 border-t border-border p-3">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-action/15 text-[11px] font-bold text-text">
+            {initialsOf(user.name)}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[12px] font-semibold text-text">{user.name}</p>
+            <p className="truncate text-[10px] text-text-subtle">{user.email}</p>
+          </div>
+          <button
+            type="button"
+            title="Sign out"
+            aria-label="Sign out"
+            onClick={() => void logout()}
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-alert/10 hover:text-alert auth-focus"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        <div className="mt-3 flex items-center gap-1.5 text-[10px] text-text-subtle">
+          <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden />
+          Language Metrics © {new Date().getFullYear()}
+        </div>
       </div>
     </aside>
   );

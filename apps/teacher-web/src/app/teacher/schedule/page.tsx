@@ -1,549 +1,457 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import {
+  AlertCircle,
+  CalendarDays,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  Plus,
   Clock,
-  Video,
+  LayoutGrid,
+  List,
   Loader2,
-  AlertCircle,
-  Trash2,
-  CheckCircle2,
-  CalendarDays,
-  Settings,
-  Search,
+  Settings2,
+  Timer,
   Users,
+  Video,
 } from "lucide-react";
+import { cn } from "@/lib/cn";
 import { Button } from "@/components/ui/Button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Avatar } from "@/components/ui/Avatar";
-import { Badge } from "@/components/ui/Badge";
-import { Input } from "@/components/ui/Input";
-import { canJoin, getJoinState, useNow } from "@/lib/class-join";
+import { useNow } from "@/lib/class-join";
+import { WeekGrid } from "@/components/schedule/WeekGrid";
+import { ListView } from "@/components/schedule/ListView";
+import { AvailabilityEditor } from "@/components/schedule/AvailabilityEditor";
+import { AvailabilitySummary, DayAgenda } from "@/components/schedule/ScheduleSidebar";
+import {
+  type AvailabilitySlot,
+  type ScheduleSession,
+  TONE_LABEL,
+  TONE_STYLES,
+  addDays,
+  dayKey,
+  formatDuration,
+  formatRelativeStart,
+  formatTime,
+  formatWeekRange,
+  getHourRange,
+  getSessionTone,
+  sessionMinutes,
+  startOfWeek,
+} from "@/components/schedule/schedule-utils";
 
-const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const DAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+type View = "week" | "list";
 
-type AvailabilitySlot = {
-  dayOfWeek: number;
-  startTime: string;
-  endTime: string;
-};
-
-type Booking = {
-  id: string;
-  status: string;
-  student: {
-    userId: string;
-    name: string;
-    avatarUrl: string | null;
-    proficiencyLevel: string;
-  };
-  nextSession: {
-    id: string;
-    status: string;
-    scheduledStart: string;
-    scheduledEnd: string;
-    joinOpensAt?: string;
-    joinClosesAt?: string;
-  } | null;
-  totalSessions: number;
-  completedSessions: number;
-};
-
-function getWeekDates(offset: number): Date[] {
-  const now = new Date();
-  const start = new Date(now);
-  start.setDate(now.getDate() - now.getDay() + offset * 7);
-  start.setHours(0, 0, 0, 0);
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(start);
-    d.setDate(start.getDate() + i);
-    return d;
-  });
-}
-
-function formatDate(d: Date): string {
-  return `${d.getDate()} ${d.toLocaleString("en-US", { month: "short" })}`;
-}
-
-function isSameDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
+const SMALL_SCREEN = "(max-width: 767px)";
+function useIsSmallScreen() {
+  return useSyncExternalStore(
+    (cb) => {
+      const mq = window.matchMedia(SMALL_SCREEN);
+      mq.addEventListener("change", cb);
+      return () => mq.removeEventListener("change", cb);
+    },
+    () => window.matchMedia(SMALL_SCREEN).matches,
+    () => false
   );
 }
 
 export default function TeacherSchedule() {
-  const [loading, setLoading] = useState(true);
-  const [availability, setAvailability] = useState<AvailabilitySlot[]>([]);
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [weekOffset, setWeekOffset] = useState(0);
-  const [saving, setSaving] = useState(false);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [showSettings, setShowSettings] = useState(false);
-  const [tempAvailability, setTempAvailability] = useState<AvailabilitySlot[]>([]);
-  const [bookingSearch, setBookingSearch] = useState("");
-
-  const weekDates = getWeekDates(weekOffset);
-  const today = new Date();
-  // Ticks so Join appears the moment the window opens, without a reload.
+  // Ticks so Join buttons and the "now" line stay current without a reload.
   const now = useNow();
 
-  const fetchData = useCallback(async () => {
-    try {
-      const [scheduleRes, settingsRes] = await Promise.all([
-        fetch("/api/teachers/schedule", { credentials: "include" }),
-        fetch("/api/teachers/settings", { credentials: "include" }),
-      ]);
+  const [weekOffset, setWeekOffset] = useState(0);
+  const weekStart = useMemo(() => addDays(startOfWeek(new Date()), weekOffset * 7), [weekOffset]);
+  const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
+  const weekKey = dayKey(weekStart);
 
-      if (scheduleRes.ok) {
-        const data = await scheduleRes.json();
-        setBookings(data.upcoming || []);
-      }
-      if (settingsRes.ok) {
-        const data = await settingsRes.json();
-        const avail = data.profile?.availability || [];
-        setAvailability(avail);
-        setTempAvailability(avail);
-      }
+  const [sessions, setSessions] = useState<ScheduleSession[]>([]);
+  const [loadedWeek, setLoadedWeek] = useState<string | null>(null);
+  const [isFetching, setIsFetching] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  // null until loaded, so an empty "not set" state never flashes while fetching.
+  const [loadedAvailability, setAvailability] = useState<AvailabilitySlot[] | null>(null);
+  const availability = useMemo(() => loadedAvailability ?? [], [loadedAvailability]);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
+  const [selectedDay, setSelectedDay] = useState(() => new Date());
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+
+  const isSmallScreen = useIsSmallScreen();
+  const [chosenView, setChosenView] = useState<View | null>(null);
+  const view: View = chosenView ?? (isSmallScreen ? "list" : "week");
+
+  // ── Data ──────────────────────────────────────────────────────────────
+  // Any response for the week on screen is usable, so a duplicate or slower
+  // request never makes us wait; responses for weeks already left are dropped.
+  const shownWeek = useRef(weekKey);
+  const loadWeek = useCallback(async (start: Date) => {
+    const key = dayKey(start);
+    setIsFetching(true);
+    try {
+      const params = new URLSearchParams({ from: start.toISOString(), to: addDays(start, 7).toISOString() });
+      const res = await fetch(`/api/teachers/schedule?${params}`, { credentials: "include" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      // Working hours ride along with every week, so they are always current.
+      setAvailability(data.availability ?? []);
+      if (key !== shownWeek.current) return;
+      setSessions(data.sessions ?? []);
+      setLoadedWeek(key);
+      setLoadError(false);
     } catch (err) {
-      console.error("Error fetching schedule data:", err);
+      console.error("Error loading schedule:", err);
+      if (key === shownWeek.current) setLoadError(true);
     } finally {
-      setLoading(false);
+      if (key === shownWeek.current) setIsFetching(false);
     }
   }, []);
 
   useEffect(() => {
+    shownWeek.current = dayKey(weekStart);
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchData();
+    loadWeek(weekStart);
     // Refresh so a class turns "Live" once the student is in the room.
-    const id = setInterval(fetchData, 60_000);
-    return () => clearInterval(id);
-  }, [fetchData]);
+    const t = setInterval(() => loadWeek(weekStart), 60_000);
+    return () => clearInterval(t);
+  }, [loadWeek, weekStart]);
 
-  const getSessionsForDay = (date: Date) => {
-    return bookings
-      .filter((b) => {
-        if (!b.nextSession) return false;
-        const sessionDate = new Date(b.nextSession.scheduledStart);
-        return isSameDay(sessionDate, date);
-      })
-      .sort((a, b) => {
-        const aTime = new Date(a.nextSession!.scheduledStart).getTime();
-        const bTime = new Date(b.nextSession!.scheduledStart).getTime();
-        return aTime - bTime;
-      });
-  };
+  // ── Derived ───────────────────────────────────────────────────────────
+  const weekSessions = useMemo(
+    () => (loadedWeek === weekKey ? sessions : []),
+    [sessions, loadedWeek, weekKey]
+  );
 
-  // Soonest-scheduled first; bookings with no upcoming session (e.g. pending
-  // requests) sink to the bottom instead of interleaving by createdAt.
-  const sortedBookings = [...bookings].sort((a, b) => {
-    if (!a.nextSession && !b.nextSession) return 0;
-    if (!a.nextSession) return 1;
-    if (!b.nextSession) return -1;
-    return new Date(a.nextSession.scheduledStart).getTime() - new Date(b.nextSession.scheduledStart).getTime();
-  });
-
-  const filteredBookings = bookingSearch.trim()
-    ? sortedBookings.filter((b) => b.student.name.toLowerCase().includes(bookingSearch.trim().toLowerCase()))
-    : sortedBookings;
-
-  const getAvailabilityForDay = (dayOfWeek: number) => {
-    return tempAvailability.filter((s) => s.dayOfWeek === dayOfWeek);
-  };
-
-  const addSlot = (day: number) => {
-    setTempAvailability([...tempAvailability, { dayOfWeek: day, startTime: "09:00", endTime: "17:00" }]);
-  };
-
-  const updateSlot = (dayIndex: number, slotIndex: number, field: "startTime" | "endTime", value: string) => {
-    const daySlots = tempAvailability.filter((s) => s.dayOfWeek === dayIndex);
-    const globalIdx = tempAvailability.indexOf(daySlots[slotIndex]);
-    if (globalIdx === -1) return;
-    const updated = [...tempAvailability];
-    updated[globalIdx] = { ...updated[globalIdx], [field]: value };
-    setTempAvailability(updated);
-  };
-
-  const removeSlot = (dayIndex: number, slotIndex: number) => {
-    const daySlots = tempAvailability.filter((s) => s.dayOfWeek === dayIndex);
-    const globalIdx = tempAvailability.indexOf(daySlots[slotIndex]);
-    if (globalIdx === -1) return;
-    const updated = [...tempAvailability];
-    updated.splice(globalIdx, 1);
-    setTempAvailability(updated);
-  };
-
-  const saveAvailability = async () => {
-    setSaving(true);
-    try {
-      const res = await fetch("/api/teachers/settings", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ availability: tempAvailability }),
-      });
-      if (res.ok) {
-        setAvailability(tempAvailability);
-        setSuccessMsg("Availability saved!");
-        setTimeout(() => setSuccessMsg(null), 3000);
-        setShowSettings(false);
-      }
-    } catch {
-    } finally {
-      setSaving(false);
+  const sessionsByDay = useMemo(() => {
+    const map = new Map<string, ScheduleSession[]>();
+    for (const s of weekSessions) {
+      const key = dayKey(new Date(s.scheduledStart));
+      const list = map.get(key);
+      if (list) list.push(s);
+      else map.set(key, [s]);
     }
+    for (const list of map.values()) list.sort((a, b) => Date.parse(a.scheduledStart) - Date.parse(b.scheduledStart));
+    return map;
+  }, [weekSessions]);
+
+  const hourRange = useMemo(() => getHourRange(weekSessions, availability), [weekSessions, availability]);
+
+  const stats = useMemo(() => {
+    const active = weekSessions.filter((s) => getSessionTone(s, now) !== "cancelled");
+    const upcoming = active
+      .filter((s) => ["live", "open", "soon", "upcoming", "pending"].includes(getSessionTone(s, now)))
+      .sort((a, b) => Date.parse(a.scheduledStart) - Date.parse(b.scheduledStart));
+    return {
+      classes: active.length,
+      minutes: active.reduce((n, s) => n + sessionMinutes(s), 0),
+      students: new Set(active.map((s) => s.student.userId)).size,
+      next: upcoming.find((s) => getSessionTone(s, now) === "live") ?? upcoming[0] ?? null,
+    };
+  }, [weekSessions, now]);
+
+  const weekIsPast = addDays(weekStart, 7).getTime() <= now;
+
+  // ── Actions ───────────────────────────────────────────────────────────
+  const goToWeek = (offset: number) => {
+    setWeekOffset(offset);
+    setLoadError(false);
+    const start = addDays(startOfWeek(new Date()), offset * 7);
+    setSelectedDay(offset === 0 ? new Date() : start);
+    setSelectedSessionId(null);
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 text-brand animate-spin" />
-          <span className="text-sm text-text-muted font-medium">Loading schedule…</span>
-        </div>
-      </div>
-    );
-  }
+  const selectSession = (s: ScheduleSession) => {
+    setSelectedDay(new Date(s.scheduledStart));
+    setSelectedSessionId(s.id);
+  };
 
-  const weekStart = weekDates[0];
-  const weekEnd = weekDates[6];
-  const isCurrentWeek = weekOffset === 0;
-  const weekClasses = weekDates.reduce((acc, d) => acc + getSessionsForDay(d).length, 0);
+  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
+  const onAvailabilitySaved = (slots: AvailabilitySlot[]) => {
+    setAvailability(slots);
+    setDrawerOpen(false);
+    setToast("Working hours saved");
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const initialLoading = loadedWeek === null && !loadError;
+  const selectedDaySessions = sessionsByDay.get(dayKey(selectedDay)) ?? [];
 
   return (
-    <div className="space-y-6 pb-16 animate-in fade-in slide-in-from-bottom-4 duration-500 h-full flex flex-col">
-      {/* ── HEADER ─────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-6 pb-16 animate-in fade-in duration-300">
+      {/* ── Header ───────────────────────────────────── */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-[32px] sm:text-[36px] font-display font-bold text-text tracking-[-0.02em] leading-tight">
+          <h1 className="lm-page-title">
             Schedule
           </h1>
-          <p className="text-base text-text-muted mt-1">
-            <span className="font-semibold text-brand">{weekClasses} class{weekClasses !== 1 ? "es" : ""}</span> this week · Manage your availability
-          </p>
+          <p className="mt-1 text-[15px] text-text-muted">See who you&apos;re teaching and when, and keep your hours up to date.</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant={showSettings ? "primary" : "outline"} className="shadow-sm" onClick={() => setShowSettings(!showSettings)}>
-            <Settings className="w-4 h-4 mr-1.5" /> Manage Availability
-          </Button>
-        </div>
+        <Button variant="outline" onClick={() => setDrawerOpen(true)} className="self-start sm:self-auto">
+          <Settings2 className="mr-2 h-4 w-4" /> Working hours
+        </Button>
       </div>
 
-      {/* ── SUCCESS MESSAGE ──────────────────────────── */}
-      {successMsg && (
-        <div className="px-4 py-3 rounded-xl bg-trust/10 text-trust flex items-center gap-2 text-[14px] font-semibold border border-trust/20 shadow-sm animate-in fade-in duration-300">
-          <CheckCircle2 className="w-5 h-5" /> {successMsg}
-        </div>
-      )}
-
-      {/* ── AVAILABILITY SETTINGS ────────────────────── */}
-      {showSettings && (
-        <Card className="border border-brand/20 shadow-level-2 animate-in slide-in-from-top-4 duration-300">
-          <CardHeader className="pb-4 border-b" style={{ borderColor: "rgba(35,29,94,0.06)" }}>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-[18px] font-display font-bold text-text">Availability Settings</CardTitle>
-                <p className="text-[13px] text-text-muted mt-1">Set your regular weekly working hours</p>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={() => { setTempAvailability(availability); setShowSettings(false); }}>
-                  Cancel
-                </Button>
-                <Button variant="primary" size="sm" onClick={saveAvailability} isLoading={saving} className="shadow-sm">
-                  Save Changes
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {DAY_NAMES.map((dayName, dayIndex) => {
-                const daySlots = getAvailabilityForDay(dayIndex);
-                const hasSlots = daySlots.length > 0;
-                return (
-                  <div key={dayIndex} className="bg-surface-inset/30 border rounded-xl p-4 transition-colors hover:border-brand/30" style={{ borderColor: "rgba(35,29,94,0.08)" }}>
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-[14px] font-bold text-text">{dayName}</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => addSlot(dayIndex)}
-                        className="text-brand hover:text-brand hover:bg-brand/10 h-7 px-2 text-[12px]"
-                      >
-                        <Plus className="w-3 h-3 mr-1" /> Add Slot
-                      </Button>
-                    </div>
-                    
-                    {!hasSlots ? (
-                      <div className="text-[12px] text-text-subtle font-medium bg-surface-inset py-2 px-3 rounded-lg text-center border border-dashed border-border">
-                        Unavailable
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {daySlots.map((slot, slotIdx) => (
-                          <div key={slotIdx} className="flex items-center gap-1.5 group">
-                            <Input
-                              type="time"
-                              value={slot.startTime}
-                              onChange={(e) => updateSlot(dayIndex, slotIdx, "startTime", e.target.value)}
-                              className="w-full h-8 text-[12px] px-2 text-center bg-surface border-border focus:border-brand"
-                            />
-                            <span className="text-[11px] text-text-muted font-medium px-1">to</span>
-                            <Input
-                              type="time"
-                              value={slot.endTime}
-                              onChange={(e) => updateSlot(dayIndex, slotIdx, "endTime", e.target.value)}
-                              className="w-full h-8 text-[12px] px-2 text-center bg-surface border-border focus:border-brand"
-                            />
-                            <button
-                              onClick={() => removeSlot(dayIndex, slotIdx)}
-                              className="p-1.5 text-text-subtle hover:text-alert hover:bg-alert/10 rounded-md transition-colors opacity-0 group-hover:opacity-100"
-                              title="Remove slot"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* ── CALENDAR NAV ─────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-center justify-between bg-surface border rounded-2xl p-2 px-4 shadow-sm" style={{ borderColor: "rgba(35,29,94,0.08)" }}>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="w-8 h-8 rounded-full hover:bg-brand/10 hover:text-brand" onClick={() => setWeekOffset((o) => o - 1)}>
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <div className="text-[14px] font-bold text-text w-[160px] text-center">
-            {formatDate(weekStart)} – {formatDate(weekEnd)}
-          </div>
-          <Button variant="ghost" size="icon" className="w-8 h-8 rounded-full hover:bg-brand/10 hover:text-brand" onClick={() => setWeekOffset((o) => o + 1)}>
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-          {!isCurrentWeek && (
-            <Button variant="outline" size="sm" className="ml-2 h-8 text-[12px] rounded-full" onClick={() => setWeekOffset(0)}>
-              Today
-            </Button>
-          )}
-        </div>
-        <div className="text-[12px] font-medium text-text-muted mt-2 sm:mt-0 flex items-center gap-1.5 bg-surface-inset px-3 py-1.5 rounded-full">
-          <Clock className="w-3.5 h-3.5 text-text-subtle" /> Timezone: {Intl.DateTimeFormat().resolvedOptions().timeZone}
-        </div>
-      </div>
-
-      {/* ── CALENDAR GRID ────────────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
-        {weekDates.map((date, dayIdx) => {
-          const sessions = getSessionsForDay(date);
-          const avail = getAvailabilityForDay(date.getDay());
-          const isToday = isSameDay(date, today);
-          const isPast = date < today && !isToday;
-
-          return (
-            <div key={dayIdx} className={`flex flex-col rounded-2xl overflow-hidden border shadow-sm transition-all duration-200 ${isPast ? "opacity-60 hover:opacity-100" : ""} ${isToday ? "ring-2 ring-brand ring-offset-2 border-transparent" : "border-border"}`} style={!isToday ? { borderColor: "rgba(35,29,94,0.08)" } : {}}>
-              
-              {/* Day Header */}
-              <div
-                className="text-center p-3 border-b"
-                style={{
-                  background: isToday ? "linear-gradient(135deg, #231d5e, #5046c8)" : "#f8f9fa",
-                  borderColor: isToday ? "transparent" : "rgba(35,29,94,0.06)"
-                }}
-              >
-                <div className={`text-[11px] font-bold uppercase tracking-wider ${isToday ? "text-brand-subtle" : "text-text-muted"}`}>
-                  {DAY_SHORT[date.getDay()]}
-                </div>
-                <div className="flex items-center justify-center gap-1.5 mt-1">
-                  <div className={`text-[24px] font-display font-bold leading-none ${isToday ? "text-white" : "text-text"}`}>
-                    {date.getDate()}
-                  </div>
-                  {sessions.length > 0 && (
-                    <span
-                      className={`text-[10px] font-bold rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center ${
-                        isToday ? "bg-white/20 text-white" : "bg-brand/10 text-brand"
-                      }`}
-                      title={`${sessions.length} class${sessions.length !== 1 ? "es" : ""}`}
-                    >
-                      {sessions.length}
-                    </span>
-                  )}
-                </div>
-
-                {/* Availability Bar */}
-                <div className="flex justify-center gap-1 mt-2 h-1.5">
-                  {avail.length > 0 ? avail.map((s, i) => (
-                    <div
-                      key={i}
-                      className="rounded-full flex-1 max-w-[20px]"
-                      style={{ background: isToday ? "rgba(255,255,255,0.4)" : "rgba(15,157,107,0.3)" }}
-                      title={`${s.startTime} – ${s.endTime}`}
-                    />
-                  )) : (
-                    <div className="rounded-full w-4" style={{ background: isToday ? "rgba(255,255,255,0.1)" : "rgba(35,29,94,0.06)" }} />
-                  )}
-                </div>
-              </div>
-
-              {/* Sessions List — capped height + internal scroll so a busy day
-                  (many bookings) can't stretch the whole week row out of shape. */}
-              <div className={`flex-1 min-h-[160px] max-h-[380px] overflow-y-auto ${isToday ? "bg-brand/5" : "bg-surface"}`}>
-                {sessions.length === 0 ? (
-                  <div className="h-full min-h-[160px] flex items-center justify-center p-4">
-                    <span className="text-[12px] font-medium text-text-subtle text-center">
-                      {avail.length > 0 ? "No classes scheduled" : "Unavailable"}
-                    </span>
-                  </div>
-                ) : (
-                  <div className="p-2 space-y-2">
-                    {sessions.map((booking) => {
-                      const session = booking.nextSession!;
-                      const startTime = new Date(session.scheduledStart);
-                      const endTime = new Date(session.scheduledEnd);
-                      const joinState = getJoinState(session, now);
-                      const isOngoing = joinState === "live";
-                      const joinable = canJoin(joinState);
-                      const isStartingSoon = joinState === "open" || joinState === "soon";
-
-                      return (
-                        <div
-                          key={booking.id}
-                          className={`rounded-xl p-3 border shadow-sm transition-all relative overflow-hidden group ${
-                            isOngoing
-                              ? "bg-trust/10 border-trust/30"
-                              : isStartingSoon
-                              ? "bg-action/10 border-action/30"
-                              : "bg-surface border-border hover:border-brand/30"
-                          }`}
-                        >
-                          {(isOngoing || isStartingSoon) && (
-                            <div className={`absolute top-0 left-0 w-1 h-full ${isOngoing ? "bg-trust" : "bg-action"}`} />
-                          )}
-
-                          <div className="font-bold text-[13px] text-text truncate mb-1 pr-4">
-                            {booking.student.name}
-                          </div>
-                          <div className="text-[11px] font-medium text-text-muted flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {startTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} – {endTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                          </div>
-
-                          <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
-                            <Badge variant={isOngoing ? "success" : isStartingSoon ? "warning" : "info"} className="text-[9px] py-0 px-1.5 uppercase font-bold tracking-wider">
-                              {isOngoing ? "Live" : joinable ? "Open" : isStartingSoon ? "Soon" : booking.student.proficiencyLevel}
-                            </Badge>
-                          </div>
-
-                          {joinable && (
-                            <Button asChild variant="primary" size="sm" className="w-full mt-2 h-8 text-[12px] shadow-sm">
-                              <Link href={`/live/${session.id}`}>
-                                <Video className="w-3.5 h-3.5 mr-1.5" /> {isOngoing ? "Rejoin" : "Join class"}
-                              </Link>
-                            </Button>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* ── UPCOMING BOOKINGS LIST ───────────────────── */}
-      {bookings.length > 0 && (
-        <div className="mt-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center">
-                <CalendarDays className="w-4 h-4 text-brand" />
-              </div>
-              <h2 className="text-[18px] font-display font-bold text-text">
-                Upcoming Bookings
-              </h2>
-              <span className="text-[12px] font-bold text-text-muted bg-surface-inset px-2 py-0.5 rounded-full">
-                {bookings.length}
-              </span>
-            </div>
-
-            {bookings.length > 6 && (
-              <div className="relative w-full sm:w-64">
-                <Search className="w-3.5 h-3.5 text-text-subtle absolute left-3 top-1/2 -translate-y-1/2" />
-                <Input
-                  type="text"
-                  placeholder="Search students…"
-                  value={bookingSearch}
-                  onChange={(e) => setBookingSearch(e.target.value)}
-                  className="h-9 pl-9 text-[13px] bg-surface border-border focus:border-brand"
-                />
-              </div>
-            )}
-          </div>
-
-          {filteredBookings.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-2 py-12 text-center border border-dashed rounded-2xl" style={{ borderColor: "rgba(35,29,94,0.12)" }}>
-              <Users className="w-6 h-6 text-text-subtle" />
-              <span className="text-[13px] font-medium text-text-muted">No students match “{bookingSearch}”</span>
-            </div>
-          ) : (
-          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${bookings.length > 6 ? "max-h-[640px] overflow-y-auto pr-1 -mr-1" : ""}`}>
-            {filteredBookings.map((b) => (
-              <Card key={b.id} className="overflow-hidden hover:shadow-level-2 transition-shadow duration-180 border" style={{ borderColor: "rgba(35,29,94,0.08)" }}>
-                <CardContent className="p-4 flex items-center gap-4">
-                  <Avatar src={b.student.avatarUrl || undefined} size="md" className="shadow-sm" />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-bold text-[14px] text-text truncate mb-0.5">{b.student.name}</div>
-                    <div className="text-[12px] font-medium text-brand truncate flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 opacity-70" />
-                      {b.nextSession
-                        ? `${new Date(b.nextSession.scheduledStart).toLocaleDateString("en-US", {
-                            weekday: "short",
-                            month: "short",
-                            day: "numeric",
-                          })} at ${new Date(b.nextSession.scheduledStart).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}`
-                        : "Schedule TBD"}
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-1.5 shrink-0">
-                    {b.nextSession && canJoin(getJoinState(b.nextSession, now)) ? (
-                      <Button asChild variant="primary" size="sm" className="h-8 text-[12px] shadow-sm">
-                        <Link href={`/live/${b.nextSession.id}`}>
-                          <Video className="w-3.5 h-3.5 mr-1.5" />
-                          {b.nextSession.status === "ONGOING" ? "Rejoin" : "Join class"}
-                        </Link>
-                      </Button>
-                    ) : (
-                      <Badge variant={b.status === "COMPLETED" ? "success" : "default"} className="text-[9px] uppercase tracking-wider py-0 px-2">
-                        {b.status}
-                      </Badge>
-                    )}
-                    <span className="text-[11px] font-medium text-text-muted bg-surface-inset px-2 py-0.5 rounded-md">
-                      {b.completedSessions}/{b.totalSessions}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
+      {/* ── Week at a glance ─────────────────────────── */}
+      {loadedWeek !== weekKey && !loadError ? (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+          <div className="h-[104px] animate-pulse rounded-2xl bg-surface-inset" />
+          <div className="grid grid-cols-3 gap-3 sm:gap-4 lg:contents">
+            {Array.from({ length: 3 }, (_, i) => (
+              <div key={i} className="h-[88px] animate-pulse rounded-2xl bg-surface-inset sm:h-[104px]" />
             ))}
           </div>
-          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+          <NextUpTile session={stats.next} now={now} weekIsPast={weekIsPast} />
+          <div className="grid grid-cols-3 gap-3 sm:gap-4 lg:contents">
+            <StatTile icon={CalendarDays} label="Classes" value={String(stats.classes)} sub="this week" />
+            <StatTile icon={Timer} label="Teaching" value={stats.minutes ? formatDuration(stats.minutes) : "0h"} sub="booked" />
+            <StatTile icon={Users} label="Students" value={String(stats.students)} sub={stats.students === 1 ? "learner" : "learners"} />
+          </div>
         </div>
       )}
+
+      {/* ── Calendar + sidebar ───────────────────────── */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <section className="overflow-hidden rounded-2xl border border-border bg-surface shadow-level-1 xl:self-start" aria-label="Calendar">
+          {/* Toolbar */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-4 py-3 sm:px-5">
+            <div className="flex items-center gap-1">
+              <IconButton label="Previous week" onClick={() => goToWeek(weekOffset - 1)}>
+                <ChevronLeft className="h-4 w-4" />
+              </IconButton>
+              <IconButton label="Next week" onClick={() => goToWeek(weekOffset + 1)}>
+                <ChevronRight className="h-4 w-4" />
+              </IconButton>
+            </div>
+            <h2 className="font-display text-[17px] font-bold tracking-[-0.01em] text-text sm:text-[18px]">
+              {formatWeekRange(weekStart)}
+            </h2>
+            {weekOffset !== 0 && (
+              <button
+                type="button"
+                onClick={() => goToWeek(0)}
+                className="rounded-full border border-border px-3 py-1 text-[12px] font-semibold text-text-secondary transition-colors hover:border-brand/40 hover:text-brand focus-ring"
+              >
+                Today
+              </button>
+            )}
+            {isFetching && !initialLoading && <Loader2 className="h-4 w-4 animate-spin text-text-subtle" aria-label="Loading" />}
+
+            <div className="ml-auto flex rounded-full bg-surface-inset p-1" role="tablist" aria-label="Calendar view">
+              {(
+                [
+                  { id: "week", label: "Week", Icon: LayoutGrid },
+                  { id: "list", label: "List", Icon: List },
+                ] as const
+              ).map(({ id, label, Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={view === id}
+                  onClick={() => setChosenView(id)}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-all focus-ring",
+                    view === id ? "bg-surface text-text shadow-sm" : "text-text-muted hover:text-text"
+                  )}
+                >
+                  <Icon className="h-3.5 w-3.5" /> {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Body */}
+          {loadError && loadedWeek !== weekKey ? (
+            <div className="flex flex-col items-center gap-3 px-6 py-20 text-center">
+              <AlertCircle className="h-8 w-8 text-alert" />
+              <p className="text-[15px] font-semibold text-text">We couldn&apos;t load this week</p>
+              <Button variant="outline" size="sm" onClick={() => loadWeek(weekStart)}>
+                Try again
+              </Button>
+            </div>
+          ) : initialLoading || loadedWeek !== weekKey ? (
+            <div className="space-y-3 p-5" aria-busy="true">
+              <div className="h-14 animate-pulse rounded-xl bg-surface-inset" />
+              <div className="h-[420px] animate-pulse rounded-xl bg-surface-inset/70" />
+            </div>
+          ) : view === "week" ? (
+            <>
+              <WeekGrid
+                days={days}
+                sessionsByDay={sessionsByDay}
+                availability={availability}
+                hourRange={hourRange}
+                now={now}
+                selectedDay={selectedDay}
+                selectedSessionId={selectedSessionId}
+                onSelectDay={(d) => {
+                  setSelectedDay(d);
+                  setSelectedSessionId(null);
+                }}
+                onSelectSession={selectSession}
+              />
+              <Legend />
+            </>
+          ) : (
+            <ListView days={days} sessionsByDay={sessionsByDay} now={now} selectedSessionId={selectedSessionId} />
+          )}
+        </section>
+
+        <aside className="space-y-6">
+          {view === "week" && (
+            <DayAgenda
+              day={selectedDay}
+              sessions={selectedDaySessions}
+              availability={availability}
+              availabilityLoading={loadedAvailability === null}
+              now={now}
+              selectedSessionId={selectedSessionId}
+            />
+          )}
+          <AvailabilitySummary
+            availability={availability}
+            loading={loadedAvailability === null}
+            now={now}
+            onEdit={() => setDrawerOpen(true)}
+          />
+        </aside>
+      </div>
+
+      <AvailabilityEditor
+        open={drawerOpen}
+        availability={availability}
+        onClose={closeDrawer}
+        onSaved={onAvailabilitySaved}
+      />
+
+      {toast && (
+        <div
+          role="status"
+          className="fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full bg-text px-4 py-2.5 text-[13px] font-semibold text-bg shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-200"
+        >
+          <CheckCircle2 className="h-4 w-4 text-trust" /> {toast}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Small pieces ─────────────────────────────────────────────────────────
+
+function IconButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-text-muted transition-colors hover:border-brand/40 hover:bg-brand/5 hover:text-brand focus-ring"
+    >
+      {children}
+    </button>
+  );
+}
+
+function StatTile({
+  icon: Icon,
+  label,
+  value,
+  sub,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+  sub: string;
+}) {
+  return (
+    <div className="min-w-0 rounded-2xl border border-border bg-surface p-3.5 shadow-level-1 sm:p-5">
+      <div className="flex items-center gap-2 text-[12px] font-semibold text-text-muted">
+        <span className="hidden h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand/10 sm:flex">
+          <Icon className="h-3.5 w-3.5 text-brand" />
+        </span>
+        <span className="truncate">{label}</span>
+      </div>
+      <div className="mt-2 flex items-baseline gap-1.5 sm:mt-3">
+        <span className="font-display text-[22px] font-bold leading-none tracking-[-0.01em] text-text sm:text-[26px]">{value}</span>
+        <span className="hidden text-[12px] text-text-subtle sm:inline">{sub}</span>
+      </div>
+    </div>
+  );
+}
+
+function NextUpTile({ session, now, weekIsPast }: { session: ScheduleSession | null; now: number; weekIsPast: boolean }) {
+  const tone = session ? getSessionTone(session, now) : null;
+  const joinable = tone === "live" || tone === "open";
+  const started = !!session && now >= Date.parse(session.scheduledStart);
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl bg-navy p-4 text-cream shadow-level-2 dark:border dark:border-gold/20 sm:p-5">
+      <div
+        className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-gold/20 blur-2xl"
+        aria-hidden
+      />
+      <div className="relative flex items-center gap-2 text-[12px] font-semibold text-cream/70">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cream/10">
+          <Clock className="h-3.5 w-3.5 text-gold" />
+        </span>
+        {tone === "live" ? "In progress" : started ? "Happening now" : "Up next"}
+      </div>
+
+      {session && tone ? (
+        <div className="relative mt-3 flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate font-display text-[20px] font-bold leading-tight">{session.student.name}</p>
+            <p className="mt-1 text-[12px] text-cream/70">
+              {started
+                ? `Started ${formatTime(new Date(session.scheduledStart))} · until ${formatTime(new Date(session.scheduledEnd))}`
+                : formatRelativeStart(new Date(session.scheduledStart), now)}
+            </p>
+          </div>
+          {joinable ? (
+            <Button asChild variant="gold" size="sm" className="h-8 shrink-0 px-3 text-[12px]">
+              <Link href={`/live/${session.id}`}>
+                <Video className="mr-1.5 h-3.5 w-3.5" /> {tone === "live" ? "Rejoin" : "Join"}
+              </Link>
+            </Button>
+          ) : (
+            tone === "pending" && (
+              <span className="shrink-0 rounded-full bg-cream/10 px-2.5 py-1 text-[11px] font-semibold">Pending</span>
+            )
+          )}
+        </div>
+      ) : (
+        <div className="relative mt-3">
+          <p className="font-display text-[20px] font-bold leading-tight">{weekIsPast ? "Week complete" : "All clear"}</p>
+          <p className="mt-1 text-[12px] text-cream/70">
+            {weekIsPast ? "Nothing left to teach this week." : "No upcoming classes this week."}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Legend() {
+  const items = (["upcoming", "soon", "live", "pending", "completed", "cancelled"] as const).map((t) => ({
+    tone: t,
+    label: t === "upcoming" ? "Scheduled" : TONE_LABEL[t],
+  }));
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border px-5 py-3 text-[11px] text-text-muted">
+      <span className="flex items-center gap-1.5">
+        <span className="h-3 w-3 rounded-sm border-l-2 border-trust/30 bg-trust/[0.12]" /> Working hours
+      </span>
+      {items.map(({ tone, label }) => (
+        <span key={tone} className="flex items-center gap-1.5">
+          <span className={cn("h-3 w-1 rounded-full", TONE_STYLES[tone].bar)} /> {label}
+        </span>
+      ))}
+      <span className="ml-auto flex items-center gap-1.5 text-text-subtle">
+        <Clock className="h-3 w-3" /> {Intl.DateTimeFormat().resolvedOptions().timeZone}
+      </span>
     </div>
   );
 }
