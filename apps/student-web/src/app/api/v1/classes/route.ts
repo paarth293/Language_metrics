@@ -6,6 +6,8 @@ import {
   type BookingListResponse,
 } from "@repo/api-contracts";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/v1/classes
  *
@@ -26,10 +28,20 @@ export async function GET(request: NextRequest) {
       studentId,
     };
 
+    const now = new Date();
+
     if (filter === "upcoming") {
-      whereClause.status = { in: ["PENDING", "CONFIRMED"] };
+      whereClause.OR = [
+        { status: "PENDING" },
+        { status: "CONFIRMED", sessions: { some: { scheduledEnd: { gt: now } } } },
+        { status: "CONFIRMED", sessions: { none: {} } },
+      ];
     } else if (filter === "past") {
-      whereClause.status = "COMPLETED";
+      whereClause.OR = [
+        { status: "COMPLETED" },
+        // `some: {}` because `every` is vacuously true for a booking with no sessions yet.
+        { status: "CONFIRMED", sessions: { some: {}, every: { scheduledEnd: { lte: now } } } }
+      ];
     } else if (filter === "cancelled") {
       whereClause.status = "CANCELLED";
     }

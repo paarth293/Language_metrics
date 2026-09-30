@@ -14,6 +14,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  BackHandler,
   Pressable,
   StyleSheet,
   View,
@@ -27,6 +28,7 @@ import {
   useTracks,
 } from "@livekit/react-native";
 import { Track } from "livekit-client";
+import { useKeepAwake } from "expo-keep-awake";
 
 import { AppText, Button } from "../components/ui";
 import { useTheme } from "../theme/ThemeProvider";
@@ -55,22 +57,40 @@ export function LiveClassScreen({
   const [grant, setGrant] = useState<Grant | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // A lesson is mostly watching and talking, not touching the screen; without
+  // this the phone dims and locks mid-class.
+  useKeepAwake();
+
+  // The app has no navigator, so Android's back button would otherwise close
+  // the whole app. Treat it as "leave the class".
+  useEffect(() => {
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      onExit();
+      return true;
+    });
+    return () => sub.remove();
+  }, [onExit]);
+
   // Route audio to the speaker and claim the audio focus. Without this the
   // call comes out of the earpiece at barely audible volume on Android, which
   // users report as "the teacher's mic is broken".
   useEffect(() => {
-    let started = false;
-    void (async () => {
-      await AudioSession.startAudioSession();
-      started = true;
-    })();
+    // Stop after the start settles, so leaving while "Connecting…" still
+    // releases the speaker route and audio focus.
+    const starting = AudioSession.startAudioSession();
     return () => {
-      if (started) void AudioSession.stopAudioSession();
+      void starting.then(
+        () => AudioSession.stopAudioSession(),
+        () => undefined
+      );
     };
   }, []);
 
   const join = useCallback(async () => {
     setError(null);
+    // Drop the old token first, or <LiveKitRoom> reconnects with it (possibly
+    // expired — the reason for the error) before the fresh one arrives.
+    setGrant(null);
     try {
       const res = await api.getLiveKitToken(classSessionId);
       setGrant(res as unknown as Grant);
