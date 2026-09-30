@@ -16,6 +16,7 @@
     "@aws-sdk/s3-request-presigner": "^3.1120.0",
     "@livekit/components-react": "^2.9.3",
     "@repo/api-contracts": "*",
+    "@repo/currency": "*",
     "@repo/database": "*",
     "@repo/live-classes": "*",
     "@repo/livekit": "*",
