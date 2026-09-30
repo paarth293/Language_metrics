@@ -50,7 +50,31 @@ function languageClauses(value: string, mode: "equals" | "contains"): Record<str
  *    (matching the original `t.rates.find(...)?.amount || 0` fallback), so
  *    they're only included when the caller's range covers 0.
  */
-export function buildDiscoverWhere(query: DiscoverQuery): Record<string, unknown> {
+/**
+ * Per-currency price bounds, from `@repo/currency`'s
+ * `convertBudgetRangeToAllCurrencies` — the caller's min/max price (entered
+ * in the viewer's own currency) converted into every supported currency's
+ * minor units, so a teacher pricing in USD is matched by USD-converted
+ * bounds and one pricing in EUR by EUR-converted bounds, etc.
+ */
+export interface PerCurrencyBounds {
+  currency: string;
+  gte?: number;
+  lte?: number;
+}
+
+/**
+ * `perCurrencyBounds` is optional and, when omitted, the price filter
+ * assumes every rate is in the same currency as `query.minPrice`/
+ * `maxPrice` (the historical behavior, still correct for an all-INR
+ * dataset). Pass it once teachers can price in more than one currency, so
+ * the filter compares each teacher's rate against bounds in *their own*
+ * currency instead of misreading a differently-denominated number.
+ */
+export function buildDiscoverWhere(
+  query: DiscoverQuery,
+  perCurrencyBounds?: PerCurrencyBounds[]
+): Record<string, unknown> {
   const where: Record<string, unknown> = {
     status: "APPROVED",
     onboardingComplete: true,
@@ -73,16 +97,20 @@ export function buildDiscoverWhere(query: DiscoverQuery): Record<string, unknown
 
   const priceRangeIsDefault = query.minPrice === 0 && query.maxPrice === 99_999;
   if (!priceRangeIsDefault) {
-    const priceOr: Record<string, unknown>[] = [
-      {
-        rates: {
-          some: {
-            type: "HOURLY",
-            amount: { gte: query.minPrice, lte: query.maxPrice },
+    const priceOr: Record<string, unknown>[] = perCurrencyBounds
+      ? perCurrencyBounds.map(({ currency, gte, lte }) => ({
+          rates: { some: { type: "HOURLY", currency, amount: { gte, lte } } },
+        }))
+      : [
+          {
+            rates: {
+              some: {
+                type: "HOURLY",
+                amount: { gte: query.minPrice, lte: query.maxPrice },
+              },
+            },
           },
-        },
-      },
-    ];
+        ];
     // Preserve the old "no rate row => treated as free (0)" behavior only
     // when 0 is actually inside the requested range.
     if (query.minPrice <= 0) {

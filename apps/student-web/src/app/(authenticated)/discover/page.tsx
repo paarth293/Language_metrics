@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardFooter } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
+import { getCurrencyInfo } from "@repo/currency";
 
 type Teacher = {
   id: string;
@@ -26,6 +27,7 @@ type Teacher = {
   rating: number;
   reviews: number;
   hourlyRate: number;
+  currency: string;
   demoRate: number;
   headline: string | null;
   nextAvailable: string;
@@ -60,15 +62,23 @@ const GENDERS = [
   { value: "FEMALE", label: "Female" },
 ];
 
-const BUDGET_RANGES = [
-  { value: "0-200", label: "Under ₹200", min: 0, max: 200 },
-  { value: "200-500", label: "₹200 - ₹500", min: 200, max: 500 },
-  { value: "500-1000", label: "₹500 - ₹1000", min: 500, max: 1000 },
-  { value: "1000+", label: "₹1000+", min: 1000, max: Infinity },
+const BUDGET_THRESHOLDS = [
+  { value: "0-200", min: 0, max: 200 },
+  { value: "200-500", min: 200, max: 500 },
+  { value: "500-1000", min: 500, max: 1000 },
+  { value: "1000+", min: 1000, max: Infinity },
 ];
+/** Labels use the viewer's own currency symbol — the thresholds are compared in it too. */
+function budgetLabel(min: number, max: number, symbol: string) {
+  if (max === Infinity) return `${symbol}${min}+`;
+  if (min === 0) return `Under ${symbol}${max}`;
+  return `${symbol}${min} - ${symbol}${max}`;
+}
 
 export default function DiscoverPage() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [studentCurrency, setStudentCurrency] = useState("INR");
+  const currencySymbol = getCurrencyInfo(studentCurrency).symbol;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -101,7 +111,7 @@ export default function DiscoverPage() {
       if (searchQuery) params.set("search", searchQuery);
       if (selectedLanguage) params.set("language", selectedLanguage);
       if (selectedBudget) {
-        const range = BUDGET_RANGES.find((r) => r.value === selectedBudget);
+        const range = BUDGET_THRESHOLDS.find((r) => r.value === selectedBudget);
         if (range) {
           params.set("minRate", String(range.min));
           if (range.max !== Infinity) params.set("maxRate", String(range.max));
@@ -117,6 +127,7 @@ export default function DiscoverPage() {
       if (!res.ok) throw new Error("Failed to load teachers");
       const data = await res.json();
       setTeachers(data.teachers || []);
+      setStudentCurrency(data.currency || "INR");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
@@ -215,7 +226,7 @@ export default function DiscoverPage() {
                   Budget (per hour)
                 </h3>
                 <div className="space-y-2">
-                  {BUDGET_RANGES.map((range) => (
+                  {BUDGET_THRESHOLDS.map((range) => (
                     <label
                       key={range.value}
                       className="flex items-center gap-2 cursor-pointer"
@@ -232,7 +243,7 @@ export default function DiscoverPage() {
                         className="w-4 h-4 text-amber-600 focus:ring-amber-500"
                       />
                       <span className="text-sm text-gray-700">
-                        {range.label}
+                        {budgetLabel(range.min, range.max, currencySymbol)}
                       </span>
                     </label>
                   ))}
@@ -443,7 +454,7 @@ export default function DiscoverPage() {
                         Hourly Rate
                       </span>
                       <span className="font-bold text-text text-lg">
-                        ₹{teacher.hourlyRate}
+                        {getCurrencyInfo(teacher.currency).symbol}{teacher.hourlyRate}
                       </span>
                     </div>
                     <div className="flex items-center justify-between w-full">

@@ -49,6 +49,28 @@ describe("discover-query", () => {
     expect(priceOr.length).toBe(2);
   });
 
+  it("where: perCurrencyBounds builds one clause per currency, each scoped to that currency", () => {
+    const where = buildDiscoverWhere(baseQuery({ minPrice: 200, maxPrice: 500 }), [
+      { currency: "INR", gte: 20000, lte: 50000 },
+      { currency: "USD", gte: 240, lte: 600 },
+    ]) as any;
+    const priceOr = where.AND[0].OR;
+    // 2 currency-scoped clauses + the no-rate fallback (minPrice > 0 here, so none expected)
+    expect(priceOr.length).toBe(2);
+    expect(priceOr).toContainEqual({ rates: { some: { type: "HOURLY", currency: "INR", amount: { gte: 20000, lte: 50000 } } } });
+    expect(priceOr).toContainEqual({ rates: { some: { type: "HOURLY", currency: "USD", amount: { gte: 240, lte: 600 } } } });
+  });
+
+  it("where: perCurrencyBounds + minPrice<=0 still adds the no-rate fallback once", () => {
+    const where = buildDiscoverWhere(baseQuery({ minPrice: 0, maxPrice: 500 }), [
+      { currency: "INR", gte: 0, lte: 50000 },
+      { currency: "USD", gte: 0, lte: 600 },
+    ]) as any;
+    const priceOr = where.AND[0].OR;
+    expect(priceOr.length).toBe(3);
+    expect(priceOr).toContainEqual({ rates: { none: { type: "HOURLY" } } });
+  });
+
   it("where: language filter matches both the name and the ISO code", () => {
     // Onboarding stores ISO codes ("en") while the filter UI sends names.
     const clauses = JSON.stringify((buildDiscoverWhere(baseQuery({ language: "English" })) as any).AND);

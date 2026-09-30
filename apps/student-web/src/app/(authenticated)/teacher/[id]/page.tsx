@@ -13,6 +13,7 @@ import {
   Calendar,
   BookOpen,
 } from "lucide-react";
+import { formatMoney } from "@repo/currency";
 
 interface TeacherData {
   id: string;
@@ -29,6 +30,9 @@ interface Rate {
   id: string;
   type: string;
   amount: number;
+  currency: string;
+  displayAmount: number;
+  displayCurrency: string;
 }
 
 interface Review {
@@ -147,8 +151,10 @@ export default function TeacherProfilePage() {
           <div className="flex flex-col gap-2">
             {rates.length > 0 && (
               <div className="text-right">
-                <div className="text-2xl font-bold text-gold">{rates[0].amount}</div>
-                <div className="text-xs text-white/60">coins ({rates[0].type.toLowerCase()})</div>
+                <div className="text-2xl font-bold text-gold">
+                  {formatMoney(rates[0].displayAmount, rates[0].displayCurrency)}
+                </div>
+                <div className="text-xs text-white/60">per {rates[0].type.toLowerCase()} class</div>
               </div>
             )}
           </div>
@@ -171,7 +177,9 @@ export default function TeacherProfilePage() {
                     className="flex items-center justify-between p-3 rounded-xl bg-surface-inset"
                   >
                     <span className="text-sm text-text capitalize">{rate.type.toLowerCase()} rate</span>
-                    <span className="font-bold text-brand">{rate.amount} coins</span>
+                    <span className="font-bold text-brand">
+                      {formatMoney(rate.displayAmount, rate.displayCurrency)}
+                    </span>
                   </div>
                 ))}
               </div>
