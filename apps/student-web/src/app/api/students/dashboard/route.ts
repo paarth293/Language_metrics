@@ -14,16 +14,52 @@ export async function GET(request: Request) {
   try {
     const userId = auth.user.sub;
 
-    // Fetch student profile — gracefully handle missing profile
-    const profile = await db.studentProfile.findUnique({
-      where: { userId },
-      select: {
-        name: true,
-        languageToLearn: true,
-        proficiencyLevel: true,
-        avatarUrl: true,
-      },
-    });
+    // The three lookups are independent, so they run in parallel: each is a
+    // full round trip to the remote database.
+    const [profile, bookings, coinBalance] = await Promise.all([
+      db.studentProfile.findUnique({
+        where: { userId },
+        select: {
+          name: true,
+          languageToLearn: true,
+          proficiencyLevel: true,
+          avatarUrl: true,
+        },
+      }),
+      db.booking.findMany({
+        where: { studentId: userId },
+        include: {
+          teacher: {
+            select: {
+              name: true,
+              avatarUrl: true,
+              language: true,
+              languages: true,
+            },
+          },
+          sessions: {
+            select: {
+              id: true,
+              scheduledStart: true,
+              scheduledEnd: true,
+              actualStart: true,
+              actualEnd: true,
+              status: true,
+              recordingUrl: true,
+            },
+            orderBy: { scheduledStart: "asc" },
+          },
+          review: {
+            select: { rating: true, comment: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      db.coinTransaction.aggregate({
+        where: { userId },
+        _sum: { amount: true },
+      }),
+    ]);
 
     // If no profile yet, return empty defaults so the dashboard still renders
     if (!profile) {
@@ -47,44 +83,18 @@ export async function GET(request: Request) {
       });
     }
 
-    // Fetch bookings with sessions
-    const bookings = await db.booking.findMany({
-      where: { studentId: userId },
-      include: {
-        teacher: {
-          select: {
-            name: true,
-            avatarUrl: true,
-            language: true,
-            languages: true,
-          },
-        },
-        sessions: {
-          select: {
-            id: true,
-            scheduledStart: true,
-            scheduledEnd: true,
-            actualStart: true,
-            actualEnd: true,
-            status: true,
-            recordingUrl: true,
-          },
-          orderBy: { scheduledStart: "asc" },
-        },
-        review: {
-          select: { rating: true, comment: true },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
     // Calculate stats
     const completedBookings = bookings.filter((b) => b.status === "COMPLETED");
     const totalClasses = completedBookings.reduce(
       (acc, b) => acc + b.sessions.filter((s) => s.status === "COMPLETED").length,
       0
     );
-    const totalHours = totalClasses * 0.5;
+    // Real time spent in completed classes (scheduled length), to one decimal.
+    const completedMinutes = completedBookings
+      .flatMap((b) => b.sessions)
+      .filter((s) => s.status === "COMPLETED")
+      .reduce((acc, s) => acc + (s.scheduledEnd.getTime() - s.scheduledStart.getTime()) / 60_000, 0);
+    const totalHours = Math.round((completedMinutes / 60) * 10) / 10;
     const uniqueTeachers = new Set(bookings.map((b) => b.teacherId)).size;
 
     // Upcoming classes (next 7 days)
@@ -109,12 +119,6 @@ export async function GET(request: Request) {
       date: b.createdAt.toISOString(),
       amount: b.amountPaid,
     }));
-
-    // Coin balance
-    const coinBalance = await db.coinTransaction.aggregate({
-      where: { userId },
-      _sum: { amount: true },
-    });
 
     // Streak calculation
     const completedSessions = bookings

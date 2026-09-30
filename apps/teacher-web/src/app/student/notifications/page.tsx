@@ -126,7 +126,7 @@ export default function StudentNotifications() {
 
   if (loading) {
     return (
-      <div className="py-8 max-w-3xl mx-auto w-full">
+      <div className="py-8 max-w-3xl w-full">
         <DashboardSkeleton />
       </div>
     );
@@ -134,7 +134,7 @@ export default function StudentNotifications() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh] max-w-3xl mx-auto w-full">
+      <div className="flex items-center justify-center min-h-[50vh] max-w-3xl w-full">
         <Card className="max-w-md w-full border border-border/50 shadow-sm bg-surface">
           <CardContent className="p-8 text-center">
             <div className="w-16 h-16 rounded-2xl bg-alert/10 flex items-center justify-center mx-auto mb-4 border border-alert/20">
@@ -152,11 +152,11 @@ export default function StudentNotifications() {
   }
 
   return (
-    <div className="space-y-6 pb-16 animate-in fade-in duration-300 h-full flex flex-col max-w-3xl mx-auto w-full">
+    <div className="space-y-6 pb-16 animate-in fade-in duration-300 h-full flex flex-col max-w-3xl w-full">
       {/* ── HEADER ─────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-[32px] sm:text-[36px] font-display font-bold text-text tracking-[-0.02em] leading-tight">
+          <h1 className="lm-page-title">
             Notifications
           </h1>
           <p className="text-base text-text-muted mt-1">
@@ -173,7 +173,7 @@ export default function StudentNotifications() {
       </div>
 
       {/* ── TABS ───────────────────────────────────── */}
-      <div className="flex overflow-x-auto no-scrollbar border-b" style={{ borderColor: "rgba(35,29,94,0.08)" }}>
+      <div className="flex overflow-x-auto hide-scrollbar border-b border-border">
         <button
           onClick={() => setFilter("all")}
           className={`px-5 py-3.5 font-semibold text-[14px] transition-all relative whitespace-nowrap ${

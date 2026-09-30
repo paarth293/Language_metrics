@@ -144,7 +144,7 @@ export default function DiscoverPage() {
   return (
     <div className="flex flex-col h-full">
       <div className="mb-6">
-        <h1 className="font-display text-3xl font-bold text-text mb-2">
+        <h1 className="lm-page-title mb-2">
           Find a Teacher
         </h1>
         <p className="text-text-muted">

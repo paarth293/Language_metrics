@@ -121,7 +121,7 @@ export default function DiscoverPage() {
       {/* ── HEADER ─────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-[32px] sm:text-[36px] font-display font-bold text-text tracking-[-0.02em] leading-tight">
+          <h1 className="lm-page-title">
             Find a Teacher
           </h1>
           <p className="text-base text-text-muted mt-1">
@@ -291,7 +291,7 @@ export default function DiscoverPage() {
               <DashboardSkeleton />
             </div>
           ) : error ? (
-            <div className="text-center py-20 bg-surface rounded-2xl border" style={{ borderColor: "rgba(35,29,94,0.08)" }}>
+            <div className="text-center py-20 bg-surface rounded-2xl border border-border">
               <AlertCircle className="w-12 h-12 text-alert mx-auto mb-4" />
               <p className="text-text font-semibold mb-1">Failed to load teachers</p>
               <p className="text-text-muted text-[13px]">{error}</p>
@@ -345,7 +345,7 @@ export default function DiscoverPage() {
                             </h3>
                             <div className="flex items-center gap-1 bg-action/10 px-2 py-0.5 rounded-md">
                               <Star className="w-3.5 h-3.5 text-action fill-action" />
-                              <span className="text-[12px] font-bold text-action-on">{teacher.rating > 0 ? teacher.rating.toFixed(1) : "New"}</span>
+                              <span className="text-[12px] font-bold text-gold-strong">{teacher.rating > 0 ? teacher.rating.toFixed(1) : "New"}</span>
                             </div>
                           </div>
                           

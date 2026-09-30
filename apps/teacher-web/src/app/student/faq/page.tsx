@@ -163,7 +163,7 @@ export default function FAQPage() {
       {/* Header */}
       <div className="text-center">
         <HelpCircle className="w-12 h-12 text-amber-700 mx-auto mb-3" />
-        <h1 className="text-2xl font-bold text-navy-900">Help & FAQ</h1>
+        <h1 className="lm-page-title">Help & FAQ</h1>
         <p className="text-gray-600 mt-2">
           Find answers to common questions about Language Metrics
         </p>

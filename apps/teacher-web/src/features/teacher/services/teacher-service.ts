@@ -1,5 +1,42 @@
 import { db } from "@/lib/db";
 import type { VerificationStatus } from "@repo/database";
+import { currentOrNextSession, getJoinWindow } from "@repo/live-classes";
+
+type DashboardSessionRow = {
+  id: string;
+  bookingId: string;
+  status: string;
+  scheduledStart: string;
+  scheduledEnd: string;
+  bookingStatus: string;
+  bookingType: string;
+  userId: string;
+  name: string;
+  avatarUrl: string | null;
+  proficiencyLevel: string;
+};
+
+type DashboardRow = {
+  activeStudents: number;
+  pendingBookings: number;
+  classesTaught: number;
+  averageRating: number;
+  totalReviews: number;
+  monthEarnings: number;
+  availabilitySlots: number;
+  profile: { name: string; status: string; avatarUrl: string | null; hasBio: boolean } | null;
+  weekSessions: DashboardSessionRow[];
+  upcoming: DashboardSessionRow[];
+  recentBookings: Array<{
+    id: string;
+    status: string;
+    type: string;
+    amount: number;
+    createdAt: string;
+    name: string;
+    avatarUrl: string | null;
+  }>;
+};
 
 export class TeacherService {
   // ── Profile ──────────────────────────────────────────────────────────────
@@ -17,10 +54,13 @@ export class TeacherService {
   }
 
   static async getProfileWithSettings(userId: string) {
-    return db.teacherProfile.findUnique({
+    const profile = await db.teacherProfile.findUnique({
       where: { userId },
-      include: { rates: true, availability: true, documents: true },
+      include: { rates: true, availability: true, documents: true, user: { select: { email: true } } },
     });
+    if (!profile) return null;
+    const { user, ...rest } = profile;
+    return { ...rest, email: user.email };
   }
 
   static async updateProfile(userId: string, data: { bio?: string; avatarUrl?: string; demoVideoUrl?: string }) {
@@ -66,217 +106,114 @@ export class TeacherService {
 
   // ── Dashboard ────────────────────────────────────────────────────────────
 
-  static async getDashboardData(teacherId: string) {
-    const now = new Date();
-    const todayStart = new Date(now);
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date(todayStart);
-    todayEnd.setDate(todayEnd.getDate() + 1);
+  /**
+   * Everything the teacher dashboard shows, in ONE SQL statement. The
+   * database is reached through a single pooled connection, so a dozen Prisma
+   * queries ran one after another (~14s); one round trip keeps it fast.
+   * Week/month bounds come from the browser so "this week" matches the
+   * teacher's own timezone.
+   */
+  static async getDashboardData(
+    teacherId: string,
+    range: { weekStart: Date; weekEnd: Date; monthStart: Date; monthEnd: Date }
+  ) {
+    // Timestamps are stored as UTC without a zone: compare against UTC wall
+    // time, and tag outputs as UTC so the client parses them correctly.
+    const [row] = await db.$queryRaw<DashboardRow[]>`
+      WITH mine AS (
+        SELECT b.id, b."studentId", b.status, b.type, b."teacherEarnings", b."createdAt"
+          FROM "Booking" b
+         WHERE b."teacherId" = ${teacherId}::uuid
+      ),
+      sessions AS (
+        SELECT s.id, s."bookingId", s.status, s."scheduledStart", s."scheduledEnd",
+               m.status AS "bookingStatus", m.type AS "bookingType",
+               st."userId", st.name, st."avatarUrl", st."proficiencyLevel"
+          FROM "ClassSession" s
+          JOIN mine m ON m.id = s."bookingId"
+          JOIN "StudentProfile" st ON st."userId" = m."studentId"
+      )
+      SELECT
+        (SELECT COUNT(DISTINCT "studentId") FROM mine WHERE status IN ('CONFIRMED', 'COMPLETED'))::int AS "activeStudents",
+        (SELECT COUNT(*) FROM mine WHERE status = 'PENDING')::int AS "pendingBookings",
+        (SELECT COUNT(*) FROM sessions WHERE status = 'COMPLETED')::int AS "classesTaught",
+        (SELECT COALESCE(AVG(rating), 0) FROM "Review" WHERE "teacherId" = ${teacherId}::uuid)::float AS "averageRating",
+        (SELECT COUNT(*) FROM "Review" WHERE "teacherId" = ${teacherId}::uuid)::int AS "totalReviews",
+        (SELECT COALESCE(SUM("teacherEarnings"), 0) FROM mine
+          WHERE status = 'COMPLETED'
+            AND "createdAt" >= (${range.monthStart}::timestamptz AT TIME ZONE 'UTC')
+            AND "createdAt" <  (${range.monthEnd}::timestamptz AT TIME ZONE 'UTC'))::int AS "monthEarnings",
+        (SELECT COUNT(*) FROM "AvailabilitySlot" WHERE "teacherId" = ${teacherId}::uuid)::int AS "availabilitySlots",
+        (SELECT json_build_object('name', name, 'status', status, 'avatarUrl', "avatarUrl", 'hasBio', COALESCE(bio, '') <> '')
+           FROM "TeacherProfile" WHERE "userId" = ${teacherId}::uuid) AS "profile",
+        (SELECT COALESCE(json_agg(x ORDER BY x."scheduledStart"), '[]'::json) FROM (
+           SELECT id, "bookingId", status, "scheduledStart" AT TIME ZONE 'UTC' AS "scheduledStart", "scheduledEnd" AT TIME ZONE 'UTC' AS "scheduledEnd",
+                  "bookingStatus", "bookingType", "userId", name, "avatarUrl", "proficiencyLevel"
+             FROM sessions
+            WHERE "scheduledStart" >= (${range.weekStart}::timestamptz AT TIME ZONE 'UTC')
+              AND "scheduledStart" <  (${range.weekEnd}::timestamptz AT TIME ZONE 'UTC')
+        ) x) AS "weekSessions",
+        (SELECT COALESCE(json_agg(x ORDER BY x."scheduledStart"), '[]'::json) FROM (
+           SELECT id, "bookingId", status, "scheduledStart" AT TIME ZONE 'UTC' AS "scheduledStart", "scheduledEnd" AT TIME ZONE 'UTC' AS "scheduledEnd",
+                  "bookingStatus", "bookingType", "userId", name, "avatarUrl", "proficiencyLevel"
+             FROM sessions
+            WHERE status IN ('SCHEDULED', 'ONGOING') AND "bookingStatus" <> 'CANCELLED'
+              AND "scheduledEnd" > (NOW() AT TIME ZONE 'UTC') - INTERVAL '2 hours'
+            ORDER BY "scheduledStart" LIMIT 5
+        ) x) AS "upcoming",
+        (SELECT COALESCE(json_agg(x ORDER BY x."createdAt" DESC), '[]'::json) FROM (
+           SELECT m.id, m.status, m.type, m."teacherEarnings" AS amount, m."createdAt" AT TIME ZONE 'UTC' AS "createdAt",
+                  st.name, st."avatarUrl"
+             FROM mine m JOIN "StudentProfile" st ON st."userId" = m."studentId"
+            ORDER BY m."createdAt" DESC LIMIT 5
+        ) x) AS "recentBookings"
+    `;
 
-    const weekStart = new Date(todayStart);
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 7);
+    const toSession = (s: DashboardSessionRow) => {
+      const window = getJoinWindow({ scheduledStart: new Date(s.scheduledStart), scheduledEnd: new Date(s.scheduledEnd) });
+      return {
+        id: s.id,
+        status: s.status,
+        scheduledStart: s.scheduledStart,
+        scheduledEnd: s.scheduledEnd,
+        joinOpensAt: window.opensAt.toISOString(),
+        joinClosesAt: window.closesAt.toISOString(),
+        booking: { id: s.bookingId, status: s.bookingStatus, type: s.bookingType },
+        student: { userId: s.userId, name: s.name, avatarUrl: s.avatarUrl, proficiencyLevel: s.proficiencyLevel },
+      };
+    };
 
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-
-    // Run all queries in parallel
-    const [
-      classesTaughtCount,
-      activeStudentsResult,
-      reviews,
-      upcomingTodayClasses,
-      thisWeekClasses,
-      pendingBookings,
-      profile,
-      recentBookings,
-      monthlyEarnings,
-      unreadNotifications,
-      upcomingInterview,
-    ] = await Promise.all([
-      // Completed classes count
-      db.booking.count({ where: { teacherId, status: "COMPLETED" } }),
-
-      // Active unique students
-      db.booking.groupBy({
-        by: ["studentId"],
-        where: { teacherId, status: { in: ["CONFIRMED", "COMPLETED"] } },
-      }),
-
-      // Reviews aggregate
-      db.review.aggregate({
-        where: { teacherId },
-        _avg: { rating: true },
-        _count: { rating: true },
-      }),
-
-      // Today's upcoming classes
-      db.booking.findMany({
-        where: {
-          teacherId,
-          status: "CONFIRMED",
-          sessions: { some: { scheduledStart: { gte: todayStart, lt: todayEnd }, status: { in: ["SCHEDULED", "ONGOING"] } } },
-        },
-        include: {
-          student: { select: { userId: true, name: true, avatarUrl: true, proficiencyLevel: true } },
-          sessions: {
-            where: { scheduledStart: { gte: todayStart, lt: todayEnd } },
-            orderBy: { scheduledStart: "asc" },
-          },
-        },
-      }),
-
-      // This week's classes (for weekly chart)
-      db.booking.findMany({
-        where: {
-          teacherId,
-          status: { in: ["CONFIRMED", "COMPLETED"] },
-          sessions: { some: { scheduledStart: { gte: weekStart, lt: weekEnd } } },
-        },
-        include: {
-          sessions: {
-            where: { scheduledStart: { gte: weekStart, lt: weekEnd } },
-            select: { scheduledStart: true, status: true },
-          },
-        },
-      }),
-
-      // Pending bookings awaiting teacher action
-      db.booking.count({ where: { teacherId, status: "PENDING" } }),
-
-      // Profile status
-      db.teacherProfile.findUnique({
-        where: { userId: teacherId },
-        select: {
-          status: true,
-          name: true,
-          language: true,
-          languages: true,
-          avatarUrl: true,
-          bio: true,
-          experienceLevel: true,
-        },
-      }),
-
-      // Recent bookings (last 5)
-      db.booking.findMany({
-        where: { teacherId },
-        include: {
-          student: { select: { name: true, avatarUrl: true } },
-          sessions: { orderBy: { scheduledStart: "desc" }, take: 1 },
-        },
-        orderBy: { createdAt: "desc" },
-        take: 5,
-      }),
-
-      // Monthly earnings
-      db.booking.aggregate({
-        where: {
-          teacherId,
-          status: "COMPLETED",
-          createdAt: { gte: monthStart, lte: monthEnd },
-        },
-        _sum: { teacherEarnings: true },
-        _count: { _all: true },
-      }),
-
-      // Unread notifications count
-      db.notification.count({ where: { userId: teacherId, isRead: false } }),
-
-      // Upcoming interview (if any)
-      db.interview.findFirst({
-        where: { teacherId, status: "SCHEDULED", scheduledAt: { gte: now } },
-        orderBy: { scheduledAt: "asc" },
-      }),
-    ]);
-
-    const activeStudentsCount = activeStudentsResult.length;
-
-    // Process today's classes
-    const upcomingClasses = upcomingTodayClasses
-      .map((booking) => {
-        const session = booking.sessions[0];
-        const nowMs = Date.now();
-        const startMs = session ? new Date(session.scheduledStart).getTime() : 0;
-        const diffMin = (startMs - nowMs) / 60000;
-        const isStartingSoon = diffMin >= 0 && diffMin <= 10;
-        const isOngoing = session?.status === "ONGOING";
-
-        return {
-          id: booking.id,
-          sessionId: session?.id,
-          type: booking.type,
-          student: booking.student.name,
-          avatar: booking.student.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(booking.student.name)}`,
-          level: booking.student.proficiencyLevel,
-          date: "Today",
-          time: session
-            ? `${new Date(session.scheduledStart).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} – ${new Date(session.scheduledEnd).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-            : "TBD",
-          status: isOngoing ? "ongoing" : isStartingSoon ? "starts_soon" : "confirmed",
-          scheduledStart: session?.scheduledStart,
-        };
-      })
-      .sort((a, b) => {
-        if (!a.scheduledStart || !b.scheduledStart) return 0;
-        return new Date(a.scheduledStart).getTime() - new Date(b.scheduledStart).getTime();
-      });
-
-    // Process weekly data for chart
-    const weeklyData: { day: string; count: number }[] = [];
-    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(weekStart);
-      d.setDate(d.getDate() + i);
-      const dayStr = dayNames[d.getDay()];
-      const count = thisWeekClasses.reduce((acc, b) => {
-        return acc + b.sessions.filter((s) => new Date(s.scheduledStart).getDay() === d.getDay()).length;
-      }, 0);
-      weeklyData.push({ day: dayStr, count });
-    }
-
-    // Process recent activity
-    const recentActivity = recentBookings.map((b) => ({
-      id: b.id,
-      student: b.student.name,
-      avatar: b.student.avatarUrl,
-      type: b.type,
-      status: b.status,
-      amount: b.teacherEarnings,
-      date: b.createdAt,
-      lastSessionDate: b.sessions[0]?.scheduledStart,
-    }));
+    const next = currentOrNextSession(
+      row.upcoming.map((s) => ({ ...s, scheduledStart: new Date(s.scheduledStart), scheduledEnd: new Date(s.scheduledEnd) }))
+    );
+    const nextRow = next ? row.upcoming.find((s) => s.id === next.id) : undefined;
 
     return {
-      stats: {
-        classesTaught: classesTaughtCount,
-        activeStudents: activeStudentsCount,
-        averageRating: reviews._avg.rating || 0,
-        totalReviews: reviews._count.rating || 0,
-        pendingBookings,
-        monthlyEarnings: monthlyEarnings._sum.teacherEarnings || 0,
-        monthlyClasses: monthlyEarnings._count._all,
-        unreadNotifications,
+      profile: {
+        name: row.profile?.name ?? "Teacher",
+        status: row.profile?.status ?? "PENDING",
+        hasAvatar: !!row.profile?.avatarUrl,
+        hasBio: !!row.profile?.hasBio,
       },
-      upcomingClasses,
-      weeklySchedule: weeklyData,
-      recentActivity,
-      profileStatus: profile?.status || "PENDING",
-      profileName: profile?.name || "Teacher",
-      profileIncomplete: !profile?.bio || !profile?.avatarUrl,
-      upcomingInterview: upcomingInterview
-        ? {
-            date: upcomingInterview.scheduledAt,
-            meetingLink: upcomingInterview.meetingLink,
-          }
-        : null,
+      stats: {
+        activeStudents: row.activeStudents,
+        pendingBookings: row.pendingBookings,
+        classesTaught: row.classesTaught,
+        averageRating: row.averageRating,
+        totalReviews: row.totalReviews,
+        monthEarnings: row.monthEarnings,
+        availabilitySlots: row.availabilitySlots,
+      },
+      weekSessions: row.weekSessions.map(toSession),
+      nextSession: nextRow ? toSession(nextRow) : null,
+      recentBookings: row.recentBookings,
     };
   }
 
   // ── Students ─────────────────────────────────────────────────────────────
 
   static async getStudents(teacherId: string) {
+    const now = new Date();
     const bookings = await db.booking.findMany({
       where: { teacherId, status: { in: ["CONFIRMED", "COMPLETED"] } },
       include: {
@@ -296,13 +233,14 @@ export class TeacherService {
         studentMap.set(sid, {
           id: booking.student.userId,
           name: booking.student.name,
-          avatar: booking.student.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(booking.student.name)}`,
+          avatar: booking.student.avatarUrl,
           level: booking.student.proficiencyLevel,
           totalClasses: 0,
           completedClasses: 0,
           upcomingClasses: 0,
           totalSpent: 0,
           lastClassDate: null as Date | null,
+          nextClassDate: null as Date | null,
           rating: null as number | null,
           reviewComment: null as string | null,
           joinedAt: booking.student.userId,
@@ -311,12 +249,17 @@ export class TeacherService {
       const s = studentMap.get(sid);
       s.totalClasses += booking.sessions.length;
       s.completedClasses += booking.sessions.filter((x) => x.status === "COMPLETED").length;
-      s.upcomingClasses += booking.sessions.filter((x) => x.status === "SCHEDULED").length;
-      s.totalSpent += booking.teacherEarnings;
-      if (booking.sessions[0]?.scheduledStart) {
-        const d = new Date(booking.sessions[0].scheduledStart);
-        if (!s.lastClassDate || d > s.lastClassDate) s.lastClassDate = d;
+      for (const x of booking.sessions) {
+        if (x.status === "CANCELLED") continue;
+        const d = new Date(x.scheduledStart);
+        if (d <= now) {
+          if (!s.lastClassDate || d > s.lastClassDate) s.lastClassDate = d;
+        } else if (x.status === "SCHEDULED") {
+          s.upcomingClasses += 1;
+          if (!s.nextClassDate || d < s.nextClassDate) s.nextClassDate = d;
+        }
       }
+      s.totalSpent += booking.teacherEarnings;
       if (booking.review) {
         s.rating = booking.review.rating;
         s.reviewComment = booking.review.comment;

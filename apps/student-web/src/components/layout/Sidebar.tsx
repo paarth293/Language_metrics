@@ -1,13 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { X, LogOut, ChevronRight } from "lucide-react";
-import { Logo } from "@/components/ui/Logo";
-import { Avatar } from "@/components/ui/Avatar";
+import { ChevronRight, LogOut, X } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { NavItem } from "./AppShell";
+import type { NavItem } from "./AppShell";
 import { useAuth } from "@/lib/auth-client";
 
 interface SidebarProps {
@@ -16,19 +14,25 @@ interface SidebarProps {
   onClose: () => void;
 }
 
+export function isNavActive(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(href + "/");
+}
+
+const initialsOf = (name: string) =>
+  name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join("") || "U";
+
 export function Sidebar({ navItems, isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
 
-  // Mirror the unread count that TopBar tracks, kept in sync via the
-  // same "notifications-updated" custom event so there is exactly one
-  // source of truth (the database, surfaced by the API).
+  // Mirrors the TopBar's unread count via the same "notifications-updated"
+  // event, so the database stays the single source of truth.
   const [notifUnreadCount, setNotifUnreadCount] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     fetch("/api/students/notifications/unread-count", { credentials: "include" })
-      .then((r) => r.ok ? r.json() : null)
+      .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (!cancelled && data && typeof data.unreadCount === "number") {
           setNotifUnreadCount(data.unreadCount);
@@ -50,115 +54,111 @@ export function Sidebar({ navItems, isOpen, onClose }: SidebarProps) {
     };
   }, []);
 
+  // Group in first-seen order, like the admin panel's module groups.
+  const sections: Array<{ name: string; items: NavItem[] }> = [];
+  for (const item of navItems) {
+    const name = item.section ?? "General";
+    const existing = sections.find((s) => s.name === name);
+    if (existing) existing.items.push(item);
+    else sections.push({ name, items: [item] });
+  }
+
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-50 flex w-[272px] flex-col transition-transform duration-300 ease-in-out lg:static lg:translate-x-0",
-        "bg-gradient-to-b from-[#0f0c29] via-[#1a1547] to-[#231d5e]",
+        "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-surface transition-transform duration-300 ease-in-out lg:static lg:translate-x-0",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}
     >
-      <div className="flex h-[72px] items-center justify-between px-6 border-b border-white/[0.08]">
-        <Link href="/" className="flex items-center gap-3" aria-label="Language Metrics home">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
-            <span className="text-white font-bold text-sm">LM</span>
-          </div>
-          <div>
-            <span className="text-white font-display font-bold text-[15px] tracking-tight">Language</span>
-            <span className="text-amber-400 font-display font-bold text-[15px] tracking-tight ml-1">Metrics</span>
-          </div>
+      {/* Brand */}
+      <div className="flex h-16 shrink-0 items-center justify-between border-b border-border px-5">
+        <Link href="/" className="flex items-center gap-2.5" aria-label="Language Metrics — home">
+          <span className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-cream ring-1 ring-border-strong">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/logo-full.png" alt="" className="h-full w-full scale-[1.22] object-cover object-[50%_5%]" />
+          </span>
+          <span>
+            <span className="block text-[12px] font-bold leading-tight text-text">Language Metrics</span>
+            <span className="block text-[10px] leading-tight text-text-subtle">Student</span>
+          </span>
         </Link>
         <button
-          className="lg:hidden text-white/40 hover:text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-white/10"
+          type="button"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface-inset hover:text-text lg:hidden focus-ring"
           onClick={onClose}
-          aria-label="Close navigation"
+          aria-label="Close navigation menu"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4" />
         </button>
       </div>
 
-      <div className="px-6 pt-6 pb-2">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/30">
-          Navigation
-        </span>
-      </div>
-
-      <nav className="flex-1 overflow-y-auto px-3 pb-4">
-        <ul className="space-y-1">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-            const isNotifications = item.href === "/notifications";
-            const badgeCount = isNotifications ? notifUnreadCount : 0;
-
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  onClick={() => onClose()}
-                  className={cn(
-                    "group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 min-h-[44px] text-sm font-medium transition-all duration-200",
-                    isActive
-                      ? "bg-white/[0.12] text-white shadow-lg shadow-black/20"
-                      : "text-white/50 hover:bg-white/[0.06] hover:text-white/80"
-                  )}
-                >
-                  {isActive && (
-                    <span className="absolute inset-0 rounded-xl bg-gradient-to-r from-amber-400/10 to-transparent pointer-events-none" />
-                  )}
-                  {isActive && (
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-gradient-to-b from-amber-400 to-amber-600 rounded-r-full shadow-lg shadow-amber-500/40" />
-                  )}
-                  <div className="relative">
-                    <div className={cn(
-                      "w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200",
-                      isActive
-                        ? "bg-amber-500/20 text-amber-400"
-                        : "bg-white/[0.04] text-white/40 group-hover:bg-white/[0.08] group-hover:text-white/60"
-                    )}>
-                      <item.icon className="h-[16px] w-[16px]" />
-                    </div>
-                    {badgeCount > 0 && (
-                      <span
-                        className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-[#1a1547] transition-all duration-200"
-                        aria-hidden="true"
-                      />
-                    )}
-                  </div>
-                  <span className="flex-1">{item.label}</span>
-                  {isActive && (
-                    <ChevronRight className="h-4 w-4 text-white/30" />
-                  )}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+      {/* Navigation */}
+      <nav aria-label="Main navigation" className="flex-1 overflow-y-auto py-2 hide-scrollbar">
+        {sections.map((section, i) => (
+          <div key={section.name} className={cn("px-3", i > 0 && "mt-1 border-t border-border pt-1")}>
+            <p className="mb-1 px-2 pt-2 text-[9px] font-bold uppercase tracking-[0.18em] text-text-subtle">
+              {section.name}
+            </p>
+            <ul className="space-y-0.5">
+              {section.items.map((item) => {
+                const active = isNavActive(pathname, item.href);
+                const unread = item.href === "/notifications" ? notifUnreadCount : 0;
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={onClose}
+                      aria-current={active ? "page" : undefined}
+                      className={cn(
+                        "relative flex items-center gap-3 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors duration-150 focus-ring",
+                        active ? "bg-action/10 text-text" : "text-text-muted hover:bg-surface-inset hover:text-text"
+                      )}
+                    >
+                      {active && (
+                        <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-action" aria-hidden />
+                      )}
+                      <item.icon className={cn("h-4 w-4 shrink-0", active && "text-gold-strong")} strokeWidth={1.8} />
+                      <span className="flex-1 truncate">{item.label}</span>
+                      {unread > 0 && (
+                        <span className="rounded-full bg-danger px-1.5 text-[10px] font-bold leading-4 text-white">
+                          {unread > 99 ? "99+" : unread}
+                        </span>
+                      )}
+                      {active && unread === 0 && (
+                        <ChevronRight className="h-3.5 w-3.5 text-gold-strong opacity-60" aria-hidden />
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
       </nav>
 
-      <div className="p-3 border-t border-white/[0.08]">
-        <div className="flex items-center gap-3 rounded-xl bg-white/[0.06] backdrop-blur-sm px-3.5 py-3">
-          <div className="relative">
-            <Avatar initials={user?.name?.[0] || "U"} size="sm" online={true} />
-            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[#1a1547]" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold text-white truncate">{user?.name || "Student"}</div>
-            <div className="text-[11px] text-white/40 capitalize">{user?.role?.toLowerCase() || "student"}</div>
+      {/* Signed-in user */}
+      <div className="shrink-0 border-t border-border p-3">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-action/15 text-[11px] font-bold text-text">
+            {initialsOf(user?.name ?? "")}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[12px] font-semibold text-text">{user?.name || "Student"}</p>
+            <p className="truncate text-[10px] text-text-subtle">{user?.email}</p>
           </div>
           <button
-            onClick={logout}
-            className="p-2 text-white/30 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all duration-200"
+            type="button"
             title="Sign out"
+            aria-label="Sign out"
+            onClick={() => void logout()}
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-alert/10 hover:text-alert focus-ring"
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-3.5 w-3.5" />
           </button>
         </div>
-      </div>
-
-      <div className="px-6 py-3 border-t border-white/[0.05]">
-        <div className="text-[11px] text-white/20 flex items-center gap-1.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          Language Metrics
+        <div className="mt-3 flex items-center gap-1.5 text-[10px] text-text-subtle">
+          <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden />
+          Language Metrics © {new Date().getFullYear()}
         </div>
       </div>
     </aside>

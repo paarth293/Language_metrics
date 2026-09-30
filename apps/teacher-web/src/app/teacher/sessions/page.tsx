@@ -99,7 +99,9 @@ export default function TeacherSessions() {
     );
   }
 
-  const allSessions = tab === "upcoming" ? upcoming : past;
+  const startOf = (b: (typeof upcoming)[number]) =>
+    b.nextSession ? Date.parse(b.nextSession.scheduledStart) : Number.POSITIVE_INFINITY;
+  const allSessions = tab === "upcoming" ? [...upcoming].sort((a, b) => startOf(a) - startOf(b)) : past;
   const filtered = allSessions.filter(
     (s) =>
       s.student.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -107,11 +109,11 @@ export default function TeacherSessions() {
   );
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-5xl mx-auto w-full">
+    <div className="flex flex-col gap-6 pb-16 animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-display font-bold text-text">Sessions</h1>
-        <p className="text-text-muted mt-1">
+        <h1 className="lm-page-title">Sessions</h1>
+        <p className="text-base text-text-muted mt-1">
           {upcoming.length} upcoming · {past.length} past sessions
         </p>
       </div>
@@ -180,7 +182,14 @@ export default function TeacherSessions() {
               >
                 <CardContent className="p-0 sm:flex items-center">
                   <div className="p-5 flex-1 flex items-center gap-4">
-                    <Avatar src={booking.student.avatarUrl || undefined} size="lg" online={isLive} />
+                    <Avatar
+                      src={booking.student.avatarUrl || undefined}
+                      alt={booking.student.name}
+                      initials={booking.student.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
+                      size="lg"
+                      online={isLive}
+                      className="shrink-0"
+                    />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-semibold text-text truncate">{booking.student.name}</h3>
@@ -188,10 +197,10 @@ export default function TeacherSessions() {
                           {statusConfig.label}
                         </Badge>
                         <Badge variant={booking.type === "DEMO" ? "warning" : "default"} className="text-[10px]">
-                          {booking.type}
+                          {booking.type.charAt(0) + booking.type.slice(1).toLowerCase()}
                         </Badge>
                       </div>
-                      <div className="text-sm text-text-muted mt-1 flex items-center gap-4">
+                      <div className="text-sm text-text-muted mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3.5 h-3.5" />
                           {session
@@ -220,9 +229,9 @@ export default function TeacherSessions() {
                     </div>
                   </div>
 
-                  <div className="p-5 sm:border-l border-border flex flex-col items-stretch sm:min-w-[180px] gap-2 bg-surface-inset/30">
-                    <div className="text-xs text-text-muted text-center mb-1">
-                      {booking.completedSessions}/{booking.totalSessions} sessions
+                  <div className="flex flex-col items-stretch justify-center gap-2 border-t border-border bg-surface-inset/30 p-5 sm:w-[210px] sm:shrink-0 sm:self-stretch sm:border-l sm:border-t-0">
+                    <div className="text-center text-xs text-text-muted">
+                      {booking.completedSessions} of {booking.totalSessions} completed
                     </div>
 
                     {joinable && session ? (
@@ -236,16 +245,19 @@ export default function TeacherSessions() {
                         </Link>
                       </Button>
                     ) : tab === "upcoming" && session ? (
-                      <Button variant="outline" className="w-full" disabled>
-                        Opens{" "}
-                        {new Date(
-                          session.joinOpensAt ?? Date.parse(session.scheduledStart) - 10 * 60_000
-                        ).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" })}
-                      </Button>
+                      <div className="flex h-11 items-center justify-center gap-1.5 rounded-pill border border-dashed border-border-strong px-3 text-[13px] font-medium text-text-muted">
+                        <Clock className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">
+                          Opens{" "}
+                          {new Date(
+                            session.joinOpensAt ?? Date.parse(session.scheduledStart) - 10 * 60_000
+                          ).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })}
+                        </span>
+                      </div>
                     ) : (
-                      <Button variant="outline" className="w-full" disabled>
-                        {booking.status === "COMPLETED" ? "Completed" : "No Action"}
-                      </Button>
+                      <div className="flex h-11 items-center justify-center rounded-pill bg-surface-inset px-3 text-[13px] font-medium text-text-muted">
+                        {booking.status === "COMPLETED" ? "Completed" : booking.status === "CANCELLED" ? "Cancelled" : "Ended"}
+                      </div>
                     )}
                   </div>
                 </CardContent>

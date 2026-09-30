@@ -15,7 +15,7 @@ export default function TermsPage() {
 
       <div className="text-center">
         <FileText className="w-10 h-10 text-amber-700 mx-auto mb-3" />
-        <h1 className="text-2xl font-bold text-navy-900">Terms of Service</h1>
+        <h1 className="lm-page-title">Terms of Service</h1>
         <p className="text-sm text-gray-500 mt-2">Last updated: January 2025</p>
       </div>
 

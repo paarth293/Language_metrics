@@ -27,6 +27,8 @@ const liveKitConnectSrc = (() => {
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
+  // Dev-only badge; bottom-left sat on top of the sidebar's Log out button.
+  devIndicators: { position: "bottom-right" },
 
   // ── Image Optimization ──────────────────────────────────────────────
   images: {

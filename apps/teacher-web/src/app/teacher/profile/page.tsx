@@ -182,18 +182,18 @@ export default function TeacherProfileSettings() {
 
   if (loading) {
     return (
-      <div className="py-8 max-w-5xl mx-auto w-full">
+      <div className="py-8 w-full">
         <DashboardSkeleton />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 pb-16 animate-in fade-in duration-300 h-full flex flex-col max-w-5xl mx-auto w-full">
+    <div className="space-y-6 pb-16 animate-in fade-in duration-300 h-full flex flex-col w-full">
       {/* ── HEADER ─────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-[32px] sm:text-[36px] font-display font-bold text-text tracking-[-0.02em] leading-tight">
+          <h1 className="lm-page-title">
             Profile & Settings
           </h1>
           <p className="text-base text-text-muted mt-1">
@@ -308,7 +308,8 @@ export default function TeacherProfileSettings() {
                   onChange={(e) => setBio(e.target.value)}
                   placeholder="Tell students about your teaching style, experience, and what makes you unique..."
                   rows={5}
-                  className="w-full rounded-xl border border-border/60 bg-surface px-4 py-3 text-[14px] text-text placeholder:text-text-subtle focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand shadow-sm transition-all resize-none"
+                  maxLength={500}
+                  className="w-full rounded-xl border border-border bg-surface-inset px-4 py-3 text-[14px] text-text placeholder:text-text-subtle focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand transition-all resize-none"
                 />
                 <p className="text-[11px] font-medium text-text-subtle mt-1.5 text-right">{bio.length}/500</p>
               </div>

@@ -136,7 +136,7 @@ export default function MyClassesPage() {
       {/* ── HEADER ─────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-[32px] sm:text-[36px] font-display font-bold text-text tracking-[-0.02em] leading-tight">
+          <h1 className="lm-page-title">
             My Classes
           </h1>
           <p className="text-base text-text-muted mt-1">
@@ -151,7 +151,7 @@ export default function MyClassesPage() {
       </div>
 
       {/* ── TABS ───────────────────────────────────── */}
-      <div className="flex overflow-x-auto no-scrollbar border-b" style={{ borderColor: "rgba(35,29,94,0.08)" }}>
+      <div className="flex overflow-x-auto hide-scrollbar border-b border-border">
         {["upcoming", "past", "cancelled"].map((tab) => (
           <button
             key={tab}
@@ -177,7 +177,7 @@ export default function MyClassesPage() {
             <DashboardSkeleton />
           </div>
         ) : error ? (
-          <div className="text-center py-20 bg-surface rounded-2xl border" style={{ borderColor: "rgba(35,29,94,0.08)" }}>
+          <div className="text-center py-20 bg-surface rounded-2xl border border-border">
             <AlertCircle className="w-12 h-12 text-alert mx-auto mb-4" />
             <p className="text-text font-semibold mb-1">Failed to load classes</p>
             <p className="text-text-muted text-sm">{error}</p>
@@ -186,7 +186,7 @@ export default function MyClassesPage() {
             </Button>
           </div>
         ) : bookings.length === 0 ? (
-          <Card className="hover:shadow-level-2 transition-shadow duration-180 border" style={{ borderColor: "rgba(35,29,94,0.08)" }}>
+          <Card className="hover:shadow-level-2 transition-shadow duration-180 border border-border">
             <CardContent className="py-20 flex flex-col items-center text-center">
               <div
                 className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
@@ -224,7 +224,7 @@ export default function MyClassesPage() {
                       : ""
                   }`}
                   style={{
-                    borderColor: isStartingSoon || isLive ? "var(--color-action)" : "rgba(35,29,94,0.08)"
+                    borderColor: isStartingSoon || isLive ? "var(--color-action)" : "var(--border)"
                   }}
                 >
                   {/* Colored top bar if active */}
@@ -267,7 +267,7 @@ export default function MyClassesPage() {
 
                     {/* Schedule Details */}
                     <div className="px-5 pb-5">
-                      <div className="flex items-center gap-3 p-3 rounded-xl bg-surface-inset/50 border" style={{ borderColor: "rgba(35,29,94,0.06)" }}>
+                      <div className="flex items-center gap-3 p-3 rounded-xl bg-surface-inset/50 border border-border">
                         <Clock className="w-4 h-4 text-text-subtle" />
                         <span className="text-[13px] font-medium text-text">
                           {booking.nextSession
@@ -287,7 +287,7 @@ export default function MyClassesPage() {
                     <div
                       className="mt-auto p-5 border-t flex flex-col sm:flex-row gap-3 items-center justify-between"
                       style={{
-                        borderColor: "rgba(35,29,94,0.06)",
+                        borderColor: "var(--border)",
                         backgroundColor: isStartingSoon ? "rgba(199,152,47,0.03)" : isLive ? "rgba(15,157,107,0.03)" : "rgba(35,29,94,0.01)"
                       }}
                     >
@@ -363,7 +363,7 @@ export default function MyClassesPage() {
                 </div>
               </div>
 
-              <div className="bg-surface-inset rounded-xl p-4 mb-6 border" style={{ borderColor: "rgba(35,29,94,0.06)" }}>
+              <div className="bg-surface-inset rounded-xl p-4 mb-6 border border-border">
                 <p className="text-[13px] text-text leading-relaxed">
                   This class is eligible for a full refund as it's more than 12
                   hours away. The refund will be credited to your wallet.

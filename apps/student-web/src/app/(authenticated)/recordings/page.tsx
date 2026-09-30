@@ -177,7 +177,7 @@ export default function RecordingsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-navy-900">Recordings</h1>
+        <h1 className="lm-page-title">Recordings</h1>
         <p className="text-gray-600 mt-1">
           Watch your recorded class sessions
         </p>

@@ -3,27 +3,27 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/cn"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-pill text-sm font-medium transition-all duration-200 ease-out focus-ring disabled:pointer-events-none disabled:opacity-50 active:scale-[.98]",
+  "lm-button inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-pill text-[13px] font-semibold transition-all duration-150 ease-out focus-ring disabled:pointer-events-none disabled:opacity-50 active:translate-y-px",
   {
     variants: {
       variant: {
         primary:
-          "bg-navy text-cream hover:bg-navy-2 hover:shadow-lg hover:scale-[1.02] dark:bg-gold dark:text-navy dark:hover:bg-gold-soft",
+          "border border-navy bg-navy text-cream hover:bg-navy-2 hover:shadow-md dark:border-gold dark:bg-gold dark:text-navy dark:hover:bg-gold-soft",
         gold:
-          "bg-gold text-white hover:bg-gold-soft hover:shadow-xl hover:scale-[1.02]",
+          "border border-gold bg-gold text-navy hover:bg-gold-soft hover:shadow-md",
         outline:
-          "border-[1.5px] border-border text-navy dark:text-text hover:bg-gold/10 hover:border-gold",
+          "border border-border bg-surface text-text-muted hover:border-border-strong hover:bg-surface-inset hover:text-text",
         "outline-cream":
-          "border-[1.5px] border-cream/35 text-cream hover:bg-cream/10 hover:border-gold-soft",
+          "border border-cream/35 text-cream hover:bg-cream/10 hover:border-gold-soft",
         ghost: "hover:bg-surface-inset text-text-muted hover:text-text",
         danger:
-          "bg-danger text-white hover:bg-danger/90 hover:shadow-md hover:-translate-y-[2px]",
+          "border border-danger bg-danger text-white hover:bg-danger/90 hover:shadow-md",
       },
       size: {
-        default: "h-11 px-5 py-2",
-        sm: "h-9 rounded-pill px-4 text-xs",
-        lg: "h-12 rounded-pill px-8 text-base",
-        icon: "h-11 w-11",
+        default: "h-10 px-4",
+        sm: "h-8 px-3 text-xs",
+        lg: "h-11 px-6 text-sm",
+        icon: "h-9 w-9",
       },
     },
     defaultVariants: {

@@ -73,7 +73,7 @@ export default function WalletPage() {
   return (
     <div className="flex flex-col h-full gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div>
-        <h1 className="font-display text-3xl font-bold text-brand mb-2">My Wallet</h1>
+        <h1 className="lm-page-title mb-2">My Wallet</h1>
         <p className="text-text-muted">Manage your coins and view transaction history.</p>
       </div>
 
