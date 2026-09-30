@@ -17,7 +17,7 @@ import {
   timeToMinutes,
 } from "./schedule-utils";
 
-const panel = "rounded-2xl border border-border bg-surface shadow-level-1";
+const panel = "lm-panel overflow-hidden";
 
 export function DayAgenda({
   day,

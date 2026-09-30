@@ -180,42 +180,38 @@ export default function TeacherSchedule() {
   return (
     <div className="space-y-6 pb-16 animate-in fade-in duration-300">
       {/* ── Header ───────────────────────────────────── */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-8">
         <div>
           <h1 className="lm-page-title">
             Schedule
           </h1>
-          <p className="mt-1 text-[15px] text-text-muted">See who you&apos;re teaching and when, and keep your hours up to date.</p>
+          <p className="mt-1 text-[15px] font-medium text-text-muted">See who you're teaching and when, and keep your hours up to date.</p>
         </div>
-        <Button variant="outline" onClick={() => setDrawerOpen(true)} className="self-start sm:self-auto">
+        <Button onClick={() => setDrawerOpen(true)} className="self-start sm:self-auto shadow-sm">
           <Settings2 className="mr-2 h-4 w-4" /> Working hours
         </Button>
       </div>
 
       {/* ── Week at a glance ─────────────────────────── */}
       {loadedWeek !== weekKey && !loadError ? (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
-          <div className="h-[104px] animate-pulse rounded-2xl bg-surface-inset" />
-          <div className="grid grid-cols-3 gap-3 sm:gap-4 lg:contents">
-            {Array.from({ length: 3 }, (_, i) => (
-              <div key={i} className="h-[88px] animate-pulse rounded-2xl bg-surface-inset sm:h-[104px]" />
-            ))}
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="h-[140px] animate-pulse rounded-2xl bg-surface-inset" />
+          <div className="h-[140px] animate-pulse rounded-2xl bg-surface-inset" />
+          <div className="h-[140px] animate-pulse rounded-2xl bg-surface-inset" />
+          <div className="h-[140px] animate-pulse rounded-2xl bg-surface-inset" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <NextUpTile session={stats.next} now={now} weekIsPast={weekIsPast} />
-          <div className="grid grid-cols-3 gap-3 sm:gap-4 lg:contents">
-            <StatTile icon={CalendarDays} label="Classes" value={String(stats.classes)} sub="this week" />
-            <StatTile icon={Timer} label="Teaching" value={stats.minutes ? formatDuration(stats.minutes) : "0h"} sub="booked" />
-            <StatTile icon={Users} label="Students" value={String(stats.students)} sub={stats.students === 1 ? "learner" : "learners"} />
-          </div>
+          <StatTile icon={CalendarDays} label="Classes" value={String(stats.classes)} sub="this week" />
+          <StatTile icon={Timer} label="Teaching" value={stats.minutes ? formatDuration(stats.minutes) : "0h"} sub="booked" />
+          <StatTile icon={Users} label="Students" value={String(stats.students)} sub={stats.students === 1 ? "learner" : "learners"} />
         </div>
       )}
 
       {/* ── Calendar + sidebar ───────────────────────── */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <section className="overflow-hidden rounded-2xl border border-border bg-surface shadow-level-1 xl:self-start" aria-label="Calendar">
+        <section className="lm-panel p-0 overflow-hidden" aria-label="Calendar">
           {/* Toolbar */}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-4 py-3 sm:px-5">
             <div className="flex items-center gap-1">
@@ -361,24 +357,26 @@ function StatTile({
   value,
   sub,
 }: {
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
   label: string;
   value: string;
   sub: string;
 }) {
   return (
-    <div className="min-w-0 rounded-2xl border border-border bg-surface p-3.5 shadow-level-1 sm:p-5">
-      <div className="flex items-center gap-2 text-[12px] font-semibold text-text-muted">
-        <span className="hidden h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand/10 sm:flex">
-          <Icon className="h-3.5 w-3.5 text-brand" />
+    <article className="lm-panel flex flex-col justify-between p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-[10px] font-bold uppercase tracking-[0.16em] text-text-subtle leading-tight">
+          {label}
+        </h3>
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand/10 text-brand">
+          <Icon size={16} strokeWidth={1.8} />
         </span>
-        <span className="truncate">{label}</span>
       </div>
-      <div className="mt-2 flex items-baseline gap-1.5 sm:mt-3">
-        <span className="font-display text-[22px] font-bold leading-none tracking-[-0.01em] text-text sm:text-[26px]">{value}</span>
-        <span className="hidden text-[12px] text-text-subtle sm:inline">{sub}</span>
+      <div className="flex items-end gap-2">
+        <span className="font-mono text-[32px] font-semibold text-text leading-none">{value}</span>
+        <span className="text-[13px] font-medium text-text-muted mb-1">{sub}</span>
       </div>
-    </div>
+    </article>
   );
 }
 
@@ -388,49 +386,51 @@ function NextUpTile({ session, now, weekIsPast }: { session: ScheduleSession | n
   const started = !!session && now >= Date.parse(session.scheduledStart);
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-navy p-4 text-cream shadow-level-2 dark:border dark:border-gold/20 sm:p-5">
+    <article className="lm-panel bg-navy text-cream overflow-hidden border-none relative flex flex-col justify-between p-6 shadow-md dark:border dark:border-gold/20">
       <div
-        className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-gold/20 blur-2xl"
+        className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-gold/20 blur-3xl"
         aria-hidden
       />
-      <div className="relative flex items-center gap-2 text-[12px] font-semibold text-cream/70">
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cream/10">
-          <Clock className="h-3.5 w-3.5 text-gold" />
+      <div className="relative flex items-center justify-between mb-4">
+        <h3 className="text-[10px] font-bold uppercase tracking-[0.16em] text-cream/70 leading-tight">
+          {tone === "live" ? "In progress" : started ? "Happening now" : "Up next"}
+        </h3>
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-cream/10 text-gold">
+          <Clock size={16} strokeWidth={1.8} />
         </span>
-        {tone === "live" ? "In progress" : started ? "Happening now" : "Up next"}
       </div>
 
       {session && tone ? (
-        <div className="relative mt-3 flex items-end justify-between gap-3">
-          <div className="min-w-0">
-            <p className="truncate font-display text-[20px] font-bold leading-tight">{session.student.name}</p>
-            <p className="mt-1 text-[12px] text-cream/70">
+        <div className="relative flex flex-col gap-4 mt-auto">
+          <div>
+            <p className="font-display text-[22px] font-bold leading-tight truncate">{session.student.name}</p>
+            <p className="mt-1.5 text-[13px] font-medium text-cream/70">
               {started
                 ? `Started ${formatTime(new Date(session.scheduledStart))} · until ${formatTime(new Date(session.scheduledEnd))}`
                 : formatRelativeStart(new Date(session.scheduledStart), now)}
             </p>
           </div>
           {joinable ? (
-            <Button asChild variant="gold" size="sm" className="h-8 shrink-0 px-3 text-[12px]">
+            <Button asChild variant="gold" size="sm" className="w-full text-[13px] h-9">
               <Link href={`/live/${session.id}`}>
-                <Video className="mr-1.5 h-3.5 w-3.5" /> {tone === "live" ? "Rejoin" : "Join"}
+                <Video className="mr-2 h-4 w-4" /> {tone === "live" ? "Rejoin class" : "Join class"}
               </Link>
             </Button>
           ) : (
             tone === "pending" && (
-              <span className="shrink-0 rounded-full bg-cream/10 px-2.5 py-1 text-[11px] font-semibold">Pending</span>
+              <span className="self-start rounded-full bg-cream/10 px-3 py-1 text-[11px] font-semibold text-cream">Pending</span>
             )
           )}
         </div>
       ) : (
-        <div className="relative mt-3">
-          <p className="font-display text-[20px] font-bold leading-tight">{weekIsPast ? "Week complete" : "All clear"}</p>
-          <p className="mt-1 text-[12px] text-cream/70">
+        <div className="relative flex flex-col mt-auto">
+          <p className="font-display text-[22px] font-bold leading-tight">{weekIsPast ? "Week complete" : "All clear"}</p>
+          <p className="mt-1.5 text-[13px] font-medium text-cream/70">
             {weekIsPast ? "Nothing left to teach this week." : "No upcoming classes this week."}
           </p>
         </div>
       )}
-    </div>
+    </article>
   );
 }
 
