@@ -326,7 +326,7 @@ export default function SupportPage() {
           ) : (
             <div className="space-y-3">
               {filteredTickets.map((ticket, index) => {
-                const statusConf = STATUS_CONFIG[ticket.status];
+                const statusConf = STATUS_CONFIG[ticket.status] ?? STATUS_CONFIG.PENDING;
                 const StatusIcon = statusConf.icon;
                 return (
                   <motion.div

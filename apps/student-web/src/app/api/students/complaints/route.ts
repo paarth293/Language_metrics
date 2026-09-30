@@ -4,6 +4,20 @@ import { prisma } from "@/lib/db";
 import { validateComplaint } from "@/lib/validation";
 import { exceedsMaxBodySize, rateLimitRedis } from "@/lib/rate-limit";
 
+// The admin panel works with the ComplaintStatus enum; the student support page
+// only knows PENDING / IN_PROGRESS / RESOLVED / CLOSED, so translate here.
+const STUDENT_STATUS: Record<string, string> = {
+  NEW: "PENDING",
+  INVESTIGATING: "IN_PROGRESS",
+  ACTION_REQUIRED: "IN_PROGRESS",
+  RESOLVED: "RESOLVED",
+  CLOSED: "CLOSED",
+};
+
+function toStudentTicket<T extends { status: string }>(ticket: T) {
+  return { ...ticket, status: STUDENT_STATUS[ticket.status] ?? "PENDING" };
+}
+
 // GET - List all complaints/tickets for the student
 export async function GET(request: NextRequest) {
   const auth = await requireAuth(request, "STUDENT");
@@ -15,7 +29,7 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json({ tickets });
+    return NextResponse.json({ tickets: tickets.map(toStudentTicket) });
   } catch (error) {
     console.error("Failed to fetch complaints:", error);
     return NextResponse.json(
@@ -81,7 +95,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ ticket }, { status: 201 });
+    return NextResponse.json({ ticket: toStudentTicket(ticket) }, { status: 201 });
   } catch (error) {
     console.error("Failed to create complaint:", error);
     return NextResponse.json(
