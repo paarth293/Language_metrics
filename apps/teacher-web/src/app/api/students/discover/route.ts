@@ -4,6 +4,7 @@ import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { withCache } from "@/lib/api-cache";
 import { getLanguageAliases, getLanguageDisplayName } from "@/lib/languages";
+import { convertMinorUnitsSafe } from "@repo/currency";
 
 /** Mirrors the TeacherExperienceLevel enum in schema.prisma. */
 const EXPERIENCE_LEVELS = ["FRESHER", "EXPERIENCED"] as const;

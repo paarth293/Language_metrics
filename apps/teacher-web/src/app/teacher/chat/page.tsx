@@ -17,9 +17,9 @@ import {
 import { Button } from "@/components/ui/Button";
 
 interface ChatThread {
-  teacherId: string;
-  teacherName: string;
-  teacherAvatar: string | null;
+  studentId: string;
+  studentName: string;
+  studentAvatar: string | null;
   lastMessage: string;
   lastMessageTime: string;
   unreadCount: number;
@@ -37,7 +37,7 @@ interface ChatMessage {
 
 export default function ChatPage() {
   const [threads, setThreads] = useState<ChatThread[]>([]);
-  const [selectedTeacher, setSelectedTeacher] = useState<string | null>(null);
+  const [selectedStudent, setselectedStudent] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -55,12 +55,12 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
-    if (selectedTeacher) {
-      fetchMessages(selectedTeacher);
-      const interval = setInterval(() => fetchMessages(selectedTeacher, false), 2000);
+    if (selectedStudent) {
+      fetchMessages(selectedStudent);
+      const interval = setInterval(() => fetchMessages(selectedStudent, false), 2000);
       return () => clearInterval(interval);
     }
-  }, [selectedTeacher]);
+  }, [selectedStudent]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -80,25 +80,13 @@ export default function ChatPage() {
     }
   };
 
-  const fetchMessages = async (teacherId: string, showLoading = true) => {
-    try {
-      if (showLoading) setLoadingMessages(true);
-      const res = await fetch(`/api/students/chat/${teacherId}`);
-      if (!res.ok) throw new Error("Failed to load messages");
-      const data = await res.json();
-      setMessages(data.messages || []);
-    } catch (err: any) {
-      console.error("Failed to load messages:", err);
-    } finally {
-      if (showLoading) setLoadingMessages(false);
-    }
-  };
+  const fetchMessages = async (studentId: string, showLoading = true) => { try { if (showLoading) setLoadingMessages(true); const res = await fetch(`/api/teachers/chat/${studentId}`); if (!res.ok) throw new Error("Failed to load messages"); const data = await res.json(); setMessages(data.messages || []); } catch (err: any) { console.error("Failed to load messages:", err); } finally { if (showLoading) setLoadingMessages(false); } };
 
   const handleSend = async () => {
-    if (!newMessage.trim() || !selectedTeacher || sending) return;
+    if (!newMessage.trim() || !selectedStudent || sending) return;
     setSending(true);
     try {
-      const res = await fetch(`/api/students/chat/${selectedTeacher}`, {
+      const res = await fetch(`/api/students/chat/${selectedStudent}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: newMessage }),
@@ -115,13 +103,13 @@ export default function ChatPage() {
   };
 
   const handleFileUpload = async (file: File) => {
-    if (!selectedTeacher) return;
+    if (!selectedStudent) return;
     const formData = new FormData();
     formData.append("file", file);
     formData.append("content", file.name);
 
     try {
-      const res = await fetch(`/api/students/chat/${selectedTeacher}`, {
+      const res = await fetch(`/api/students/chat/${selectedStudent}`, {
         method: "POST",
         body: formData,
       });
@@ -163,11 +151,11 @@ export default function ChatPage() {
 
   const filteredThreads = threads.filter(
     (t) =>
-      t.teacherName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.language.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const selectedThread = threads.find((t) => t.teacherId === selectedTeacher);
+  const selectedThread = threads.find((t) => t.studentId === selectedStudent);
 
   if (loading) {
     return (
@@ -194,7 +182,7 @@ export default function ChatPage() {
       {/* Thread List */}
       <div
         className={`w-80 border-r border-gray-100 flex flex-col ${
-          selectedTeacher ? "hidden md:flex" : "flex"
+          selectedStudent ? "hidden md:flex" : "flex"
         }`}
       >
         <div className="p-4 border-b border-gray-100">
@@ -203,7 +191,7 @@ export default function ChatPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search teachers..."
+              placeholder="Search students..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
@@ -223,23 +211,23 @@ export default function ChatPage() {
           ) : (
             filteredThreads.map((thread) => (
               <button
-                key={thread.teacherId}
-                onClick={() => setSelectedTeacher(thread.teacherId)}
+                key={thread.studentId}
+                onClick={() => setselectedStudent(thread.studentId)}
                 className={`w-full p-4 text-left hover:bg-gray-50 transition-colors border-b border-gray-50 ${
-                  selectedTeacher === thread.teacherId ? "bg-amber-50" : ""
+                  selectedStudent === thread.studentId ? "bg-amber-50" : ""
                 }`}
               >
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                    {thread.teacherAvatar ? (
+                    {thread.studentAvatar ? (
                       <img
-                        src={thread.teacherAvatar}
+                        src={thread.studentAvatar}
                         alt=""
                         className="w-full h-full rounded-full object-cover"
                       />
                     ) : (
                       <span className="text-amber-700 font-bold text-sm">
-                        {thread.teacherName
+                        {thread.studentName
                           .split(" ")
                           .map((n) => n[0])
                           .join("")}
@@ -249,7 +237,7 @@ export default function ChatPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <span className="font-semibold text-sm text-navy-900 truncate">
-                        {thread.teacherName}
+                        {thread.studentName}
                       </span>
                       <span className="text-xs text-gray-400 flex-shrink-0">
                         {formatTime(thread.lastMessageTime)}
@@ -275,19 +263,19 @@ export default function ChatPage() {
       </div>
 
       {/* Chat Area */}
-      {selectedTeacher ? (
+      {selectedStudent ? (
         <div className="flex-1 flex flex-col">
           {/* Chat Header */}
           <div className="p-4 border-b border-gray-100 flex items-center gap-3">
             <button
-              onClick={() => setSelectedTeacher(null)}
+              onClick={() => setselectedStudent(null)}
               className="md:hidden p-1 hover:bg-gray-100 rounded"
             >
               <X className="w-5 h-5" />
             </button>
             <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center">
               <span className="text-amber-700 font-bold text-sm">
-                {selectedThread?.teacherName
+                {selectedThread?.studentName
                   ?.split(" ")
                   .map((n) => n[0])
                   .join("")}
@@ -295,7 +283,7 @@ export default function ChatPage() {
             </div>
             <div>
               <p className="font-semibold text-navy-900 text-sm">
-                {selectedThread?.teacherName}
+                {selectedThread?.studentName}
               </p>
               <p className="text-xs text-gray-500">
                 {selectedThread?.language}
@@ -318,7 +306,7 @@ export default function ChatPage() {
               </div>
             ) : (
               messages.map((msg) => {
-                const isOwn = msg.senderId !== selectedTeacher;
+                const isOwn = msg.senderId !== selectedStudent;
                 return (
                   <motion.div
                     key={msg.id}
@@ -425,7 +413,7 @@ export default function ChatPage() {
               Select a conversation
             </h3>
             <p className="text-gray-500 mt-1 text-sm">
-              Choose a teacher from the list to start chatting
+              Choose a student from the list to start chatting
             </p>
           </div>
         </div>
@@ -433,3 +421,5 @@ export default function ChatPage() {
     </div>
   );
 }
+
+
