@@ -5,6 +5,8 @@ import { currentOrNextSession, getJoinWindow } from "@repo/live-classes";
 import { validateClassesFilter } from "@/lib/validation";
 import { stripHtml } from "@/lib/sanitize";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/students/classes
  * Returns the student's bookings with session details.
@@ -37,9 +39,15 @@ export async function GET(request: Request) {
     const where: any = { studentId: userId };
 
     if (filter === "upcoming") {
-      where.status = { in: ["PENDING", "CONFIRMED"] };
+      where.OR = [
+        { status: "PENDING" },
+        { status: "CONFIRMED", sessions: { some: { scheduledEnd: { gt: now } } } }
+      ];
     } else if (filter === "past") {
-      where.status = "COMPLETED";
+      where.OR = [
+        { status: "COMPLETED" },
+        { status: "CONFIRMED", sessions: { every: { scheduledEnd: { lte: now } } } }
+      ];
     } else if (filter === "cancelled") {
       where.status = "CANCELLED";
     }

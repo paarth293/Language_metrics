@@ -50,7 +50,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     fetchThreads();
-    const interval = setInterval(fetchThreads, 3000);
+    const interval = setInterval(() => fetchThreads(false), 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -66,17 +66,18 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const fetchThreads = async () => {
+  const fetchThreads = async (showLoading = true) => {
     try {
-      setLoading(true);
-      const res = await fetch("/api/students/chat");
+      if (showLoading) setLoading(true);
+      const res = await fetch("/api/teachers/chat");
       if (!res.ok) throw new Error("Failed to load chats");
       const data = await res.json();
       setThreads(data.threads || []);
+      setError(null);
     } catch (err: any) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
@@ -86,7 +87,7 @@ export default function ChatPage() {
     if (!newMessage.trim() || !selectedStudent || sending) return;
     setSending(true);
     try {
-      const res = await fetch(`/api/students/chat/${selectedStudent}`, {
+      const res = await fetch(`/api/teachers/chat/${selectedStudent}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: newMessage }),
@@ -109,7 +110,7 @@ export default function ChatPage() {
     formData.append("content", file.name);
 
     try {
-      const res = await fetch(`/api/students/chat/${selectedStudent}`, {
+      const res = await fetch(`/api/teachers/chat/${selectedStudent}`, {
         method: "POST",
         body: formData,
       });
@@ -151,8 +152,8 @@ export default function ChatPage() {
 
   const filteredThreads = threads.filter(
     (t) =>
-      t.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.language.toLowerCase().includes(searchQuery.toLowerCase())
+      (t.studentName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (t.language || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const selectedThread = threads.find((t) => t.studentId === selectedStudent);
@@ -170,7 +171,7 @@ export default function ChatPage() {
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <AlertCircle className="w-12 h-12 text-red-500" />
         <p className="text-gray-600">{error}</p>
-        <Button onClick={fetchThreads} variant="outline">
+        <Button onClick={() => fetchThreads()} variant="outline">
           Try Again
         </Button>
       </div>

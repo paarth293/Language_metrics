@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
   // Ensure next is a safe relative path, not an open redirect
   const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/";
 
-  const refreshToken = request.cookies.get("lm_refresh_token")?.value;
+  const refreshToken = request.cookies.get("lm_teacher_refresh_token")?.value;
 
   if (!refreshToken) {
     const loginUrl = new URL("/login", APP_URL);
@@ -46,8 +46,8 @@ export async function GET(request: NextRequest) {
     loginUrl.searchParams.set("next", safeNext);
     loginUrl.searchParams.set("reason", "session_expired");
     const res = NextResponse.redirect(loginUrl);
-    res.cookies.set("lm_access_token", "", { maxAge: 0, path: "/" });
-    res.cookies.set("lm_refresh_token", "", { maxAge: 0, path: "/api/auth" });
+    res.cookies.set("lm_teacher_access_token", "", { maxAge: 0, path: "/" });
+    res.cookies.set("lm_teacher_refresh_token", "", { maxAge: 0, path: "/api/auth" });
     return res;
   }
 
@@ -73,8 +73,8 @@ export async function GET(request: NextRequest) {
     const loginUrl = new URL("/login", APP_URL);
     loginUrl.searchParams.set("reason", "security");
     const res = NextResponse.redirect(loginUrl);
-    res.cookies.set("lm_access_token", "", { maxAge: 0, path: "/" });
-    res.cookies.set("lm_refresh_token", "", { maxAge: 0, path: "/api/auth" });
+    res.cookies.set("lm_teacher_access_token", "", { maxAge: 0, path: "/" });
+    res.cookies.set("lm_teacher_refresh_token", "", { maxAge: 0, path: "/api/auth" });
     return res;
   }
 
@@ -88,8 +88,8 @@ export async function GET(request: NextRequest) {
   if (!user) {
     const loginUrl = new URL("/login", APP_URL);
     const res = NextResponse.redirect(loginUrl);
-    res.cookies.set("lm_access_token", "", { maxAge: 0, path: "/" });
-    res.cookies.set("lm_refresh_token", "", { maxAge: 0, path: "/api/auth" });
+    res.cookies.set("lm_teacher_access_token", "", { maxAge: 0, path: "/" });
+    res.cookies.set("lm_teacher_refresh_token", "", { maxAge: 0, path: "/api/auth" });
     return res;
   }
 
@@ -102,8 +102,8 @@ export async function GET(request: NextRequest) {
   // 5. Redirect to original destination with new cookies
   const destination = new URL(safeNext, APP_URL);
   const res = NextResponse.redirect(destination);
-  res.cookies.set("lm_access_token", newAccessToken, accessCookieOptions);
-  res.cookies.set("lm_refresh_token", newRefreshToken, {
+  res.cookies.set("lm_teacher_access_token", newAccessToken, accessCookieOptions);
+  res.cookies.set("lm_teacher_refresh_token", newRefreshToken, {
     ...refreshCookieOptions,
     path: "/api/auth",
   });

@@ -11,8 +11,8 @@ import type { Role } from "@/types";
 export const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;        // 15 minutes
 export const REFRESH_TOKEN_TTL_SECONDS = 7 * 24 * 3600; // 7 days
 
-export const ACCESS_COOKIE = "lm_access_token";
-export const REFRESH_COOKIE = "lm_refresh_token";
+export const ACCESS_COOKIE = "lm_teacher_access_token";
+export const REFRESH_COOKIE = "lm_teacher_refresh_token";
 
 const ISSUER = "lm-auth";
 const AUDIENCE = "lm-teacher-web";
@@ -108,7 +108,7 @@ export const refreshCookieOptions = {
   httpOnly: true,
   secure: isProd,
   sameSite: "lax" as const,
-  path: "/api/auth",
+  path: "/",
   maxAge: REFRESH_TOKEN_TTL_SECONDS,
 };
 

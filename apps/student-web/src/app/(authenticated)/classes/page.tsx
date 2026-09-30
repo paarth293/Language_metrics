@@ -59,6 +59,7 @@ export default function MyClassesPage() {
       setLoading(true);
       const res = await fetch(`/api/students/classes?filter=${activeTab}`, {
         credentials: "include",
+        cache: "no-store",
       });
       if (!res.ok) throw new Error("Failed to load classes");
       const data = await res.json();

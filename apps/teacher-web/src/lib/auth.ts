@@ -60,7 +60,7 @@ export async function requireAuth(
   try {
     // Read token from httpOnly cookie
     const cookieHeader = request.headers.get("cookie") ?? "";
-    const accessToken = parseCookie(cookieHeader, "lm_access_token");
+    const accessToken = parseCookie(cookieHeader, "lm_teacher_access_token");
 
     if (!accessToken) {
       return {

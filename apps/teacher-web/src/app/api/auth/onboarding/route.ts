@@ -13,7 +13,7 @@ const SUPPORTED_LANGUAGE_CODES = TEACHING_LANGUAGES.map((l) => l.code);
  * marks onboardingComplete = true.
  */
 export async function POST(request: NextRequest) {
-  const accessToken = request.cookies.get("lm_access_token")?.value;
+  const accessToken = request.cookies.get("lm_teacher_access_token")?.value;
   if (!accessToken) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

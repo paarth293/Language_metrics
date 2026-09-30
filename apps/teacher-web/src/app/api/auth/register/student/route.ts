@@ -111,8 +111,8 @@ export async function POST(request: NextRequest) {
     { status: 201 }
   );
 
-  response.cookies.set("lm_access_token", accessToken, accessCookieOptions);
-  response.cookies.set("lm_refresh_token", refreshToken, {
+  response.cookies.set("lm_teacher_access_token", accessToken, accessCookieOptions);
+  response.cookies.set("lm_teacher_refresh_token", refreshToken, {
     ...refreshCookieOptions,
     path: "/api/auth",
   });
