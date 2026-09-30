@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
           // injecting markup here. Currently inert either way — the chat
           // UI renders this as plain JSX text, which React escapes — but
           // stripping it at the API boundary protects any future renderer
-          // change or non-web client. See errors.md.
+          // change or non-web client. See docs/audits/error-log.md.
           lastMessage: lastMessage ? stripHtml(lastMessage.content) || "No messages yet" : "No messages yet",
           lastMessageTime:
             lastMessage?.createdAt.toISOString() ||

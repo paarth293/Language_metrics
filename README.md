@@ -9,18 +9,33 @@ A full-stack language learning platform connecting students with verified langua
 - **Student Web Portal**: [https://language-metrics-student-web.vercel.app/](https://language-metrics-student-web.vercel.app/)
 - **Admin Panel**: [https://language-metrics-admin-panel.vercel.app/](https://language-metrics-admin-panel.vercel.app/)
 
-## Architecture
+## Repository Structure
+
+An npm-workspaces monorepo: deployable applications live in `apps/`, shared
+libraries in `packages/`.
 
 ```
 language-metrics/
 ├── apps/
-│   ├── teacher-web/          # Next.js 16 — Student & Teacher dashboards + public pages
-│   └── admin-panel/          # Next.js 16 — Admin dashboard with RBAC
+│   ├── teacher-web/          # Next.js — public site, teacher dashboard, auth (port 3000)
+│   ├── admin-panel/          # Next.js — admin dashboard with RBAC            (port 3001)
+│   ├── student-web/          # Next.js — student dashboard + mobile API (v1)  (port 3002)
+│   └── student-mobile/       # Expo / React Native student app
 ├── packages/
-│   ├── database/             # Prisma schema + PostgreSQL client
-│   └── auth/                 # Shared auth utilities
-├── security-tests/           # Python security test suite
-└── docs/                     # Specifications & documentation
+│   ├── api-contracts/        # Shared request/response types (web ↔ mobile)
+│   ├── auth/                 # JWT, sessions, OAuth, email templates
+│   ├── currency/             # Currency conversion and formatting
+│   ├── database/             # Prisma schema, migrations, client, coin ledger
+│   │   ├── prisma/           #   schema.prisma, migrations/, seed.mjs
+│   │   ├── scripts/          #   one-off maintenance and seed scripts
+│   │   └── src/              #   package source
+│   ├── live-classes/         # Live-class service layer (access, billing, webhooks)
+│   └── livekit/              # LiveKit client, metering and cost model
+├── tests/
+│   ├── e2e/                  # Playwright end-to-end specs
+│   └── security/             # Python dynamic security suite + SAST report tooling
+├── docs/                     # Architecture, runbook, specs, design, audits
+└── .github/workflows/        # CI: security pipeline, mobile CI, session reconciler
 ```
 
 ## Tech Stack
@@ -59,7 +74,7 @@ cp .env.example .env
 # Edit .env with your database URL, JWT keys, etc.
 
 # Run database migrations
-npx prisma db push --schema=packages/database/prisma/schema.prisma
+npm run db:migrate:deploy
 
 # Start development servers
 npm run dev
@@ -106,15 +121,32 @@ awk '{printf "%s\\n", $0}' jwt-public.pem
 ## Scripts
 
 ```bash
-npm run dev              # Start all dev servers
-npm run dev:teacher      # Start teacher-web only
-npm run dev:admin        # Start admin-panel only
-npm run build            # Production build
-npm run lint             # Run ESLint
-npm run scan:sast        # Static security analysis
-npm run scan:secrets     # Scan for leaked secrets
-npm run test:security    # Run security test suite
+npm run dev                # Start all web dev servers
+npm run dev:teacher        # Start teacher-web only
+npm run dev:admin          # Start admin-panel only
+npm run dev:student        # Start student-web only
+npm run dev:mobile         # Start the Expo mobile app
+npm run build              # Production build
+npm run lint               # Run ESLint
+npm run test:e2e           # Playwright end-to-end tests
+npm run test:livekit       # LiveKit, ledger and live-class unit tests
+npm run test:security      # Run security test suite
+npm run scan:sast          # Static security analysis
+npm run scan:secrets       # Scan for leaked secrets
+npm run db:migrate:deploy  # Apply Prisma migrations
+npm run db:seed            # Seed reference data
 ```
+
+## Documentation
+
+| Document | Purpose |
+|----------|---------|
+| [docs/architecture.md](docs/architecture.md) | System architecture and technical overview |
+| [docs/runbook.md](docs/runbook.md) | Production on-call and operational runbook |
+| [docs/livekit.md](docs/livekit.md) | Live video, metering and billing |
+| [docs/specs/](docs/specs/) | Product and technical specifications |
+| [docs/design/](docs/design/) | Design system, UI guide and frontend spec |
+| [docs/audits/](docs/audits/) | Security/error audit log and sign-off reports |
 
 ## Features
 
@@ -159,21 +191,12 @@ See `packages/database/prisma/schema.prisma` for the full schema.
 
 ## Deployment
 
-### Vercel (Recommended)
+Each Next.js app is deployed as its own Vercel project, with its Root Directory
+set to `apps/<app-name>`.
 
 ```bash
-# Install Vercel CLI
 npm i -g vercel
-
-# Deploy
 vercel
-```
-
-### Docker
-
-```bash
-docker build -t language-metrics .
-docker run -p 3000:3000 language-metrics
 ```
 
 ## License

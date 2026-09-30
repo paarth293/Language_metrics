@@ -149,7 +149,7 @@ export async function GET(request: Request) {
           // web UI. It's still worth stripping at the API boundary so any
           // *other* consumer of this JSON (a future mobile app, an admin
           // export, a future `dangerouslySetInnerHTML` refactor) can't be
-          // handed a stored HTML/script payload. See errors.md.
+          // handed a stored HTML/script payload. See docs/audits/error-log.md.
           name: sanitizeOrFallback(t.name, ""),
           avatar: t.avatarUrl,
           languages: Array.from(

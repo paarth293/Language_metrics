@@ -2,8 +2,8 @@
   "name": "@repo/database",
   "version": "0.1.0",
   "private": true,
-  "main": "./index.ts",
-  "types": "./index.ts",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
   "scripts": {
     "postinstall": "prisma generate || exit 0",
     "generate": "prisma generate",
@@ -20,7 +20,7 @@
     "vitest": "^4.1.11"
   },
   "exports": {
-    ".": "./index.ts",
-    "./coin-ledger": "./coin-ledger.ts"
+    ".": "./src/index.ts",
+    "./coin-ledger": "./src/coin-ledger.ts"
   }
 }

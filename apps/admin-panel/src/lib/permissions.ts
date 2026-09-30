@@ -80,7 +80,7 @@ export function permissionsForRole(
   // Granular per-user overrides win when set; otherwise fall back to the role
   // preset. Super admins ignore this and are granted everything at auth time.
   //
-  // KNOWN GAP (errors.md #N6 — flagged, not silently patched): `explicit`
+  // KNOWN GAP (docs/audits/error-log.md #N6 — flagged, not silently patched): `explicit`
   // maps to AdminUser.permissions, a non-nullable `String[] @default([])`
   // column. That means "no override was ever set" and "an admin explicitly
   // set this user's override to zero extra permissions" are stored

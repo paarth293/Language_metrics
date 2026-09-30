@@ -9,7 +9,7 @@
  * Rotation: atomically deletes old key, creates new one.
  * If old key is gone → potential reuse/theft → return false.
  *
- * KNOWN DUPLICATION (errors.md #N5 — flagged, not merged in this pass):
+ * KNOWN DUPLICATION (docs/audits/error-log.md #N5 — flagged, not merged in this pass):
  * this file is functionally identical to packages/auth/src/redis-session.ts
  * (same key scheme, same functions, same rotation logic). admin-panel keeps
  * its own copy instead of depending on `@repo/auth` — likely because

@@ -1,7 +1,7 @@
 "use server";
 
 /**
- * "Invite Admin" server action (errors.md #F1).
+ * "Invite Admin" server action (docs/audits/error-log.md #F1).
  *
  * Design notes / why it works this way:
  *

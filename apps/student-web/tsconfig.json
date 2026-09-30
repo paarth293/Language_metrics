@@ -27,7 +27,7 @@
         "./src/*"
       ],
       "@repo/database": [
-        "../../packages/database"
+        "../../packages/database/src/index.ts"
       ],
       "@repo/auth": [
         "../../packages/auth"

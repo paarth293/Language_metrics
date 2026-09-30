@@ -15,7 +15,7 @@ export async function proxy(request: NextRequest) {
   // Handle CSRF token setup and passing
   let csrfToken = request.cookies.get("csrf_token")?.value;
   if (!csrfToken) {
-    // Fix (errors.md #N9 note): use the same token generator the rest of
+    // Fix (docs/audits/error-log.md #N9 note): use the same token generator the rest of
     // lib/csrf.ts exposes (32 random bytes, hex-encoded) instead of a
     // separately hand-rolled crypto.randomUUID() call here — both are
     // unguessable, but keeping one generator means there's a single place

@@ -485,7 +485,7 @@ model PlatformSetting {
 
 /// RLS: Admin only read/write.
 /// Read/Write: Admin app reads. Admin app / Backend writes.
-/// Column names are snake_case to match security-tests/test_audit_log.py.
+/// Column names are snake_case to match tests/security/test_audit_log.py.
 model AdminAuditLog {
   id        String   @id @default(uuid()) @db.Uuid
   /// User UUID when known; attempted username on failed login
