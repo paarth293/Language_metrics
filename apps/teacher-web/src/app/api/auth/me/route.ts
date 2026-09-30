@@ -34,7 +34,7 @@ type MeRow = {
  * GET /api/auth/me
  *
  * Returns the authenticated user's full profile data by reading and verifying
- * the lm_access_token httpOnly cookie.
+ * the lm_teacher_access_token httpOnly cookie.
  */
 export async function GET(request: NextRequest) {
   try {

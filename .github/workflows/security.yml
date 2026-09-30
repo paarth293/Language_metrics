@@ -7,7 +7,7 @@
 #   - src/app/login/**
 #   - src/middleware.ts (or proxy.ts after Next.js 16 migration)
 #   - prisma/schema.prisma
-#   - Any file in security-tests/**
+#   - Any file in tests/security/**
 #
 # Steps:
 #   1. Secrets scan (gitleaks)
@@ -27,7 +27,7 @@ on:
       - "apps/admin-panel/src/middleware.ts"
       - "apps/admin-panel/src/proxy.ts"
       - "packages/database/prisma/schema.prisma"
-      - "security-tests/**"
+      - "tests/security/**"
       - ".gitleaks.toml"
       - "semgrep.yml"
   push:
@@ -96,7 +96,7 @@ jobs:
 
       - name: Generate Markdown report
         run: |
-          node security-tests/generate-sast-report.mjs
+          node tests/security/generate-sast-report.mjs
 
       - name: Fail on CRITICAL/HIGH findings
         run: |
@@ -232,7 +232,7 @@ jobs:
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
 
       - name: Install Python test dependencies
-        run: pip install -r security-tests/requirements.txt
+        run: pip install -r tests/security/requirements.txt
 
       - name: Start admin panel dev server
         run: |
@@ -248,7 +248,7 @@ jobs:
           NODE_ENV: test
 
       - name: Run dynamic security tests
-        run: python security-tests/run_all.py --port 3001
+        run: python tests/security/run_all.py --port 3001
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DIRECT_URL: ${{ secrets.DIRECT_URL }}

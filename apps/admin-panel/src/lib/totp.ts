@@ -6,7 +6,7 @@ import bcrypt from "bcryptjs";
  * Encrypt TOTP secrets at rest with AES-256-GCM.
  * Key material comes from TOTP_ENCRYPTION_KEY.
  *
- * Fix (errors.md #N8): this used to fall back to `process.env.JWT_SECRET`,
+ * Fix (docs/audits/error-log.md #N8): this used to fall back to `process.env.JWT_SECRET`,
  * but this app signs sessions with RS256 keypairs (JWT_PRIVATE_KEY /
  * JWT_PUBLIC_KEY — see lib/auth.ts) and never defines a `JWT_SECRET`
  * anywhere. That made the fallback pure dead code that could never actually

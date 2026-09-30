@@ -1,7 +1,7 @@
 /**
  * Language Metrics Mobile — Secure token storage
  *
- * Compliance rule (MOBILE_RESPONSIVE_SIGNOFF.md, "Mobile Token Security"):
+ * Compliance rule (docs/audits/mobile-responsive-signoff.md, "Mobile Token Security"):
  *   - Refresh tokens live in the OS secure enclave (iOS Keychain / Android Keystore)
  *     via `expo-secure-store`.
  *   - Short-lived access tokens live in memory only.

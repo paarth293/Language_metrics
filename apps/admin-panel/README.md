@@ -1,7 +1,7 @@
 # Language Metrics — Admin Panel
 
 Administrative dashboard for the Language Metrics platform, built to the
-`LM_Admin_Panel_Specification.pdf` blueprint.
+`docs/specs/admin-panel-specification.pdf` blueprint.
 
 > **⚠️ Read `SECURITY.md` before deploying.** This panel is production-bound
 > and ships hardened auth, RBAC, rate-limiting, audit logging and security

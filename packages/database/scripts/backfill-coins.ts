@@ -11,7 +11,7 @@
  * Idempotent — rerunning recomputes the same balances. Run it again after the
  * deploy as a check; it should report drift: 0.
  */
-import { auditCoinAccounts, backfillCoinAccounts } from "../coin-ledger";
+import { auditCoinAccounts, backfillCoinAccounts } from "../src/coin-ledger";
 
 async function main() {
   console.log("Normalising CoinTransaction signs and rebuilding CoinAccount…");

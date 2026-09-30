@@ -9,7 +9,7 @@ import { createHash, randomBytes } from "crypto";
  *
  * Documented in SECURITY.md.
  *
- * Fix (errors.md #N9): this file used to also define an env-var-driven
+ * Fix (docs/audits/error-log.md #N9): this file used to also define an env-var-driven
  * ADMIN_PANEL_URL/APP_URL origin allowlist (`isAllowedOrigin`,
  * `assertValidOrigin`, `allowlist()`), but nothing in the codebase ever
  * called them — the actual origin check wired into the login flow is

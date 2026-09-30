@@ -13,7 +13,7 @@
  * validator below is plain TypeScript with no imports, so it works the
  * moment it lands, and it's exactly what the tests in
  * `validation.test.ts` (run with `tsx`, no install needed) actually execute.
- * See errors.md for the full reasoning and the optional migration path to
+ * See docs/audits/error-log.md for the full reasoning and the optional migration path to
  * Zod later.
  *
  * Every validator returns a `ValidationResult<T>`: either `{ ok: true, data }`
@@ -434,7 +434,7 @@ export function validateNotificationUpdate(
 
 // ── Change password ───────────────────────────────────────────────────────
 // Added while reviewing the 7 files the file bridge couldn't reach the first
-// pass (see errors.md, Part 4 follow-up). `change-password/route.ts` was
+// pass (see docs/audits/error-log.md, Part 4 follow-up). `change-password/route.ts` was
 // checking `newPassword.length < 8` inline with no type guard at all, so a
 // non-string `newPassword` (e.g. `{}` or `123`) would throw a 500 at
 // `.length` instead of a clean 400 — this brings it in line with every other
