@@ -69,6 +69,7 @@ model StudentProfile {
   bookings           Booking[]
   reviews            Review[]
   sessionBillings    SessionBilling[]
+  preferredCurrency  String        @default("INR")
   user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -202,6 +203,7 @@ model TeacherRate {
   teacherId String         @db.Uuid
   type      RateType
   amount    Int
+  currency  String         @default("INR")
   teacher   TeacherProfile @relation(fields: [teacherId], references: [userId], onDelete: Cascade)
 
   @@unique([teacherId, type])

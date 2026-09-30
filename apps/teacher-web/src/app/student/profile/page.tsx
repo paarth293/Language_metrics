@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { LANGUAGES, getLevelsForLanguage } from "@/lib/languages";
+import { CURRENCIES } from "@repo/currency";
 
 type ProfileData = {
   profile: {
@@ -34,6 +35,7 @@ type ProfileData = {
     avatarUrl: string | null;
     languageToLearn: string;
     proficiencyLevel: string;
+    preferredCurrency: string;
     status: string;
     onboardingComplete: boolean;
     totalBookings: number;
@@ -53,6 +55,7 @@ export default function StudentProfilePage() {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [languageToLearn, setLanguageToLearn] = useState("");
   const [proficiencyLevel, setProficiencyLevel] = useState("");
+  const [preferredCurrency, setPreferredCurrency] = useState("INR");
 
   // Read-only metadata
   const [email, setEmail] = useState("");
@@ -99,6 +102,7 @@ export default function StudentProfilePage() {
       setAvatarUrl(p.avatarUrl || "");
       setLanguageToLearn(p.languageToLearn);
       setProficiencyLevel(p.proficiencyLevel);
+      setPreferredCurrency(p.preferredCurrency || "INR");
       setStatus(p.status);
       setTotalBookings(p.totalBookings);
       setCompletedBookings(p.completedBookings);
@@ -123,7 +127,7 @@ export default function StudentProfilePage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ name, avatarUrl, languageToLearn, proficiencyLevel }),
+        body: JSON.stringify({ name, avatarUrl, languageToLearn, proficiencyLevel, preferredCurrency }),
       });
       if (!res.ok) throw new Error("Failed to save profile");
       setSuccessMsg("Profile updated successfully!");
@@ -391,6 +395,19 @@ export default function StudentProfilePage() {
                   <option key={lvl.value} value={lvl.value}>{lvl.label}</option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Display Currency</label>
+              <select
+                value={preferredCurrency}
+                onChange={(e) => setPreferredCurrency(e.target.value)}
+                className="mt-1.5 w-full rounded-xl border border-border/60 bg-surface px-4 py-2.5 text-[14px] text-text focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand shadow-sm transition-all"
+              >
+                {CURRENCIES.map((c) => (
+                  <option key={c.code} value={c.code}>{c.symbol} {c.code} — {c.label}</option>
+                ))}
+              </select>
+              <p className="text-[11px] text-text-muted mt-1.5">Teacher rates are shown converted to this currency.</p>
             </div>
           </CardContent>
         </Card>

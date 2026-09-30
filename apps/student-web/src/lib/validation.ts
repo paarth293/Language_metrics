@@ -22,6 +22,13 @@
  * been run) is a mechanical, low-risk change.
  */
 
+// npm install has since been run in every environment this file ships to
+// (see @repo/currency's own package.json/tsconfig for the same workspace
+// convention this repo already uses elsewhere), so this one validator is no
+// longer held to the "no imports" constraint above — it's a plain,
+// dependency-light shared list, not a new package boundary to prove out.
+import { isSupportedCurrency } from "@repo/currency";
+
 export type ValidationResult<T> =
   | { ok: true; data: T }
   | { ok: false; errors: string[] };
@@ -259,6 +266,7 @@ export interface ProfileUpdate {
   avatarUrl?: string | null;
   languageToLearn?: string;
   proficiencyLevel?: string;
+  preferredCurrency?: string;
 }
 
 export function validateProfileUpdate(body: unknown): ValidationResult<ProfileUpdate> {
@@ -304,6 +312,14 @@ export function validateProfileUpdate(body: unknown): ValidationResult<ProfileUp
       errors.push(`proficiencyLevel must be one of: ${PROFICIENCY_LEVELS.join(", ")}.`);
     } else {
       result.proficiencyLevel = body.proficiencyLevel.toUpperCase();
+    }
+  }
+
+  if (body.preferredCurrency !== undefined) {
+    if (typeof body.preferredCurrency !== "string" || !isSupportedCurrency(body.preferredCurrency)) {
+      errors.push("preferredCurrency must be one of the supported currency codes.");
+    } else {
+      result.preferredCurrency = body.preferredCurrency;
     }
   }
 

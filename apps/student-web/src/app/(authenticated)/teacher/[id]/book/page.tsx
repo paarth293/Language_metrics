@@ -11,11 +11,15 @@ import {
   Clock,
   AlertCircle,
 } from "lucide-react";
+import { formatMoney } from "@repo/currency";
 
 interface Rate {
   id: string;
   type: string;
   amount: number;
+  currency: string;
+  displayAmount: number;
+  displayCurrency: string;
 }
 
 interface DemoInfo {
@@ -260,6 +264,9 @@ export default function BookClassPage() {
               </div>
               <div className="text-right">
                 <div className="font-bold text-brand">{rate.amount} coins</div>
+                {rate.currency !== rate.displayCurrency && (
+                  <div className="text-[11px] text-text-muted">≈ {formatMoney(rate.displayAmount, rate.displayCurrency)}</div>
+                )}
               </div>
             </label>
           ))}

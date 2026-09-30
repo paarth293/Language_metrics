@@ -111,6 +111,13 @@ describe("validation", () => {
 
     const r4 = validateProfileUpdate({ avatarUrl: null });
     expect(r4.ok).toBe(true);
+
+    const r5 = validateProfileUpdate({ preferredCurrency: "USD" });
+    expect(r5.ok).toBe(true);
+    if (r5.ok) expect(r5.data.preferredCurrency).toBe("USD");
+
+    const r6 = validateProfileUpdate({ preferredCurrency: "not-a-currency" });
+    expect(r6.ok).toBe(false);
   });
 
   it("validates complaint", () => {

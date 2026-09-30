@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { convertMinorUnits, formatMoney, getCurrencyInfo, getExchangeRate, isSupportedCurrency } from "./index";
+import {
+  CURRENCIES,
+  convertBudgetRangeToAllCurrencies,
+  convertMinorUnits,
+  formatMoney,
+  getCurrencyInfo,
+  getExchangeRate,
+  isSupportedCurrency,
+} from "./index";
 
 describe("isSupportedCurrency / getCurrencyInfo", () => {
   it("recognises curated currencies", () => {
@@ -70,6 +78,37 @@ describe("convertMinorUnits", () => {
       vi.fn(async () => new Response(JSON.stringify({ rates: { JPY: 150 } }), { status: 200 }))
     );
     await expect(convertMinorUnits(800, "USD", "JPY")).resolves.toBe(1200);
+  });
+});
+
+describe("convertBudgetRangeToAllCurrencies", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns one entry per curated currency, with the same-currency one unconverted", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        const to = new URL(url).searchParams.get("symbols")!;
+        // Pretend 1 INR = 0.9 of whatever we're asked to convert to, purely for shape-testing.
+        return new Response(JSON.stringify({ rates: { [to]: 0.9 } }), { status: 200 });
+      })
+    );
+    const result = await convertBudgetRangeToAllCurrencies(200, 500, "INR");
+    expect(result).toHaveLength(CURRENCIES.length);
+    const inr = result.find((r) => r.currency === "INR")!;
+    expect(inr.gte).toBe(20000); // 200.00 INR in paise, untouched
+    expect(inr.lte).toBe(50000);
+    // ZAR is untouched by the other tests in this file, so its cache entry
+    // is guaranteed fresh (this suite shares one module-level rate cache).
+    const zar = result.find((r) => r.currency === "ZAR")!;
+    expect(zar.gte).toBe(Math.round(200 * 0.9 * 100));
+  });
+
+  it("leaves an unset bound as undefined for every currency", async () => {
+    const result = await convertBudgetRangeToAllCurrencies(undefined, undefined, "INR");
+    expect(result.every((r) => r.gte === undefined && r.lte === undefined)).toBe(true);
   });
 });
 

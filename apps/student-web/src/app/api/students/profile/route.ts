@@ -42,6 +42,7 @@ export async function GET(request: Request) {
           avatarUrl: profile.avatarUrl,
           languageToLearn: profile.languageToLearn,
           proficiencyLevel: profile.proficiencyLevel,
+          preferredCurrency: profile.preferredCurrency,
           status: profile.status,
           onboardingComplete: profile.onboardingComplete,
           totalBookings,
