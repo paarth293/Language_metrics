@@ -73,13 +73,11 @@ export function WeekGrid({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weekKey, fromHour]);
 
-  const gridCols = "grid-cols-[56px_repeat(7,minmax(0,1fr))]";
-
   return (
     <div className="overflow-x-auto">
       <div className="min-w-[680px]">
         {/* Day headers */}
-        <div className={cn("grid border-b border-border", gridCols)}>
+        <div className="grid border-b border-border/50" style={{ gridTemplateColumns: "56px repeat(7, minmax(0, 1fr))" }}>
           <div />
           {days.map((d) => {
             const isToday = isSameDay(d, nowDate);
@@ -93,26 +91,26 @@ export function WeekGrid({
                 onClick={() => onSelectDay(d)}
                 aria-pressed={isSelected}
                 className={cn(
-                  "group flex flex-col items-center gap-1 py-3 transition-colors focus-ring rounded-t-xl",
-                  isSelected ? "bg-brand/[0.06]" : "hover:bg-surface-inset/60"
+                  "group flex flex-col items-center gap-1.5 py-4 transition-all focus-ring rounded-t-xl",
+                  isSelected ? "bg-brand/[0.04]" : "hover:bg-surface-inset/40"
                 )}
               >
                 <span
                   className={cn(
-                    "text-[11px] font-semibold uppercase tracking-[0.08em]",
-                    isToday ? "text-brand" : "text-text-subtle"
+                    "text-[10px] font-bold uppercase tracking-[0.16em] transition-colors",
+                    isToday ? "text-brand" : isSelected ? "text-text" : "text-text-subtle"
                   )}
                 >
                   {DAY_SHORT[d.getDay()]}
                 </span>
                 <span
                   className={cn(
-                    "flex h-9 w-9 items-center justify-center rounded-full font-display text-[18px] font-bold leading-none transition-colors",
+                    "flex h-10 w-10 items-center justify-center rounded-full font-display text-[20px] font-bold leading-none transition-all",
                     isToday
-                      ? "bg-brand text-brand-on shadow-sm"
+                      ? "bg-brand text-brand-on shadow-md scale-110"
                       : isSelected
-                        ? "bg-surface text-text ring-1 ring-brand/30"
-                        : "text-text group-hover:bg-surface"
+                        ? "bg-surface text-text ring-1 ring-border shadow-sm"
+                        : "text-text group-hover:bg-surface-inset"
                   )}
                 >
                   {d.getDate()}
@@ -127,7 +125,7 @@ export function WeekGrid({
 
         {/* Time grid */}
         <div ref={scrollRef} className="relative max-h-[620px] overflow-y-auto">
-          <div className={cn("grid", gridCols)} style={{ height: bodyHeight }}>
+          <div className="grid" style={{ gridTemplateColumns: "56px repeat(7, minmax(0, 1fr))", height: bodyHeight }}>
             {/* Hour gutter */}
             <div className="relative">
               {hours.map((h) => (
