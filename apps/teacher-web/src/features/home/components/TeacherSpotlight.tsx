@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Star, ArrowRight, ShieldCheck, Clock } from "lucide-react";
+import { Star, ArrowRight, ShieldCheck, Clock, Info } from "lucide-react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardFooter } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
@@ -19,7 +19,7 @@ const teachers = [
     rating: 4.9,
     reviews: 142,
     ratePerHour: "₹550/hr",
-    avatar: "https://i.pravatar.cc/150?u=elena",
+    initials: "ER",
     availability: "Mon–Fri, 10am–6pm",
     tags: ["Patient", "Great materials"],
   },
@@ -32,7 +32,7 @@ const teachers = [
     rating: 5.0,
     reviews: 89,
     ratePerHour: "₹600/hr",
-    avatar: "https://i.pravatar.cc/150?u=kenji",
+    initials: "KS",
     availability: "Weekdays, 2pm–8pm",
     tags: ["Structured", "Business focus"],
     featured: true,
@@ -46,7 +46,7 @@ const teachers = [
     rating: 4.8,
     reviews: 215,
     ratePerHour: "₹500/hr",
-    avatar: "https://i.pravatar.cc/150?u=sophie",
+    initials: "SL",
     availability: "Flexible — Mornings",
     tags: ["Fun", "Cultural insights"],
   },
@@ -80,13 +80,19 @@ export default function TeacherSpotlight() {
         >
           <div className="flex-1">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-gold/30 bg-gold/5 text-gold text-xs font-semibold uppercase tracking-widest mb-4">
-              Top Rated
+              Sample Profiles
             </div>
             <h2 className="font-display text-3xl md:text-5xl font-bold text-text mb-4 leading-tight">
               Learn from the best
             </h2>
             <p className="text-lg text-text-muted max-w-2xl text-balance">
               Every teacher on Language Metrics is manually verified. Browse by availability, experience, and rate — not by their personal contact details.
+            </p>
+            <p className="mt-4 inline-flex items-start gap-2 rounded-lg border border-dashed border-border-strong bg-surface px-3 py-2 text-sm text-text-muted">
+              <Info className="w-4 h-4 mt-0.5 shrink-0 text-gold" />
+              <span>
+                The profiles below are <span className="font-semibold text-text">fictional examples</span> that show how a teacher card looks. They are not real teachers — find real, verified teachers in Discover.
+              </span>
             </p>
           </div>
           <Button asChild variant="outline" className="group w-full md:w-auto shrink-0 justify-center">
@@ -111,18 +117,16 @@ export default function TeacherSpotlight() {
               whileHover={{ y: -8, transition: { duration: 0.25 } }}
             >
               <Card
-                className={`overflow-hidden flex flex-col group h-full transition-all duration-300 hover:shadow-lg ${teacher.featured ? "ring-1 ring-gold shadow-md relative" : ""}`}
+                className={`relative overflow-hidden flex flex-col group h-full transition-all duration-300 hover:shadow-lg ${teacher.featured ? "ring-1 ring-gold shadow-md" : ""}`}
               >
-                {teacher.featured && (
-                  <div className="absolute top-0 right-0 bg-gold text-white text-[10px] font-bold px-3 py-1 uppercase tracking-wider rounded-bl-lg z-10">
-                    Featured
-                  </div>
-                )}
+                <div className="absolute top-0 right-0 bg-text-muted text-surface text-[10px] font-bold px-3 py-1 uppercase tracking-wider rounded-bl-lg z-10">
+                  Example profile
+                </div>
 
                 <CardContent className="p-6 flex-1">
                   <div className="flex items-start justify-between mb-4">
                     <div className="relative">
-                      <Avatar src={teacher.avatar} size="lg" online={true} />
+                      <Avatar initials={teacher.initials} alt={`${teacher.name} (fictional example)`} size="lg" />
                       <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-surface rounded-full flex items-center justify-center text-xs border border-border">
                         {teacher.flag}
                       </div>
@@ -173,8 +177,8 @@ export default function TeacherSpotlight() {
                     </span>
                   </div>
                   <Button asChild variant="primary" size="sm" className="group/btn">
-                    <Link href={`/teacher/${teacher.id}`} className="flex items-center gap-1.5">
-                      Book ₹29 Demo
+                    <Link href="/student/discover" className="flex items-center gap-1.5">
+                      Find a real teacher
                       <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/btn:translate-x-0.5" />
                     </Link>
                   </Button>
