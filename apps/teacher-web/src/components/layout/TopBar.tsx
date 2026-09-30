@@ -49,6 +49,7 @@ export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnread
 
   useEffect(() => {
     if (initialUnreadCount !== undefined) {
+      // eslint-disable-next-line
       setUnreadCount(initialUnreadCount);
       return;
     }

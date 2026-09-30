@@ -132,6 +132,7 @@ export default function TeacherProfileSettings() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line
     fetchSettings();
   }, []);
 

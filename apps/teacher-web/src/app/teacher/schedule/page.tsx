@@ -185,7 +185,7 @@ export default function TeacherSchedule() {
           <h1 className="lm-page-title">
             Schedule
           </h1>
-          <p className="mt-1 text-[15px] font-medium text-text-muted">See who you're teaching and when, and keep your hours up to date.</p>
+          <p className="mt-1 text-[15px] font-medium text-text-muted">See who you&apos;re teaching and when, and keep your hours up to date.</p>
         </div>
         <Button onClick={() => setDrawerOpen(true)} className="self-start sm:self-auto shadow-sm">
           <Settings2 className="mr-2 h-4 w-4" /> Working hours
