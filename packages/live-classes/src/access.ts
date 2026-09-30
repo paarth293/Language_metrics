@@ -14,6 +14,7 @@
 import { db } from "@repo/database";
 import { getLiveKitConfig, type QualityProfileId } from "@repo/livekit";
 import type { ClassRole } from "@repo/livekit/server";
+import { bookingWasNeverPaid } from "./settlement";
 
 export type JoinDenialCode =
   | "SESSION_NOT_FOUND"
@@ -23,6 +24,7 @@ export type JoinDenialCode =
   | "TOO_EARLY"
   | "TOO_LATE"
   | "BOOKING_NOT_CONFIRMED"
+  | "BOOKING_NOT_PAID"
   | "BUDGET_EXCEEDED";
 
 export interface JoinDenial {
@@ -172,6 +174,14 @@ export async function evaluateJoin(params: EvaluateJoinParams): Promise<JoinDeci
     return deny("BOOKING_NOT_CONFIRMED", "This booking is not confirmed yet.", 409);
   }
 
+  // No billing row and no SPEND at booking time: the student never paid, and
+  // settlement would charge nothing for the class. Nobody but an admin gets a
+  // room for it; the teacher is kept out too, since the student cannot join.
+  const unpaid = !session.billing && (await bookingWasNeverPaid(booking, db));
+  if (unpaid && !isAdmin) {
+    return deny("BOOKING_NOT_PAID", "This booking has not been paid for.", 402);
+  }
+
   const { opensAt: joinOpensAt, closesAt: hardEndsAt } = getJoinWindow(session);
 
   // Admins observe at any time; they are `hidden` participants and the
@@ -194,9 +204,12 @@ export async function evaluateJoin(params: EvaluateJoinParams): Promise<JoinDeci
     1,
     Math.round((session.scheduledEnd.getTime() - session.scheduledStart.getTime()) / 60_000)
   );
-  const heldCoins = session.billing?.heldCoins ?? booking.amountPaid;
+  // Mirrors settlement and the meter: an unpaid booking (only an admin gets
+  // this far with one) holds nothing.
+  const heldCoins = session.billing?.heldCoins ?? (unpaid ? 0 : booking.amountPaid);
   const coinsPerMinute =
-    session.billing?.coinsPerMinute ?? Math.max(1, Math.round(heldCoins / durationMinutes));
+    session.billing?.coinsPerMinute ??
+    Math.max(1, Math.round(booking.amountPaid / durationMinutes));
 
   // TTL never outlives the class. A tab left open overnight cannot silently
   // reconnect and bill us; the token simply stops working.

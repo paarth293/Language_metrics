@@ -27,7 +27,7 @@ import { endClassRoom, ensureClassRoom, mintClassToken } from "@repo/livekit/ser
 
 import { evaluateJoin } from "./access";
 import { checkBudgetGate } from "./usage";
-import { settleClassSession } from "./settlement";
+import { bookingWasNeverPaid, settleClassSession } from "./settlement";
 import { startRecording, stopRecording } from "./recording";
 
 export interface HandlerResponse<T = unknown> {
@@ -233,9 +233,13 @@ export async function handleMeter(
     1,
     Math.round((session.scheduledEnd.getTime() - session.scheduledStart.getTime()) / 60_000)
   );
-  const heldCoins = session.billing?.heldCoins ?? session.booking.amountPaid;
+  // Mirrors settlement: a booking with no billing row whose price was never
+  // taken is settled at zero, so the meter shows zero too.
+  const unpaid = !session.billing && (await bookingWasNeverPaid(session.booking, db));
+  const heldCoins = session.billing?.heldCoins ?? (unpaid ? 0 : session.booking.amountPaid);
   const coinsPerMinute =
-    session.billing?.coinsPerMinute ?? Math.max(1, Math.round(heldCoins / durationMinutes));
+    session.billing?.coinsPerMinute ??
+    Math.max(1, Math.round(session.booking.amountPaid / durationMinutes));
 
   const presences: ParticipantPresence[] = session.participants.map((p) => ({
     userId: p.userId,
@@ -265,9 +269,9 @@ export async function handleMeter(
       billableSeconds: window.billableSeconds,
       billableMinutes: projection.billableMinutes,
       coinsPerMinute,
-      coinsSoFar: projection.chargedCoins,
+      coinsSoFar: unpaid ? 0 : projection.chargedCoins,
       heldCoins,
-      projectedRefund: projection.refundedCoins,
+      projectedRefund: unpaid ? 0 : projection.refundedCoins,
       settled: false,
     },
   };
