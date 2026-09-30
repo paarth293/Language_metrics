@@ -69,17 +69,23 @@ export class TeacherService {
 
   // ── Rates & Availability ─────────────────────────────────────────────────
 
-  static async updateRates(teacherId: string, hourlyRate: number, courseRate: number) {
+  /**
+   * `currency` is the currency `hourlyRate`/`courseRate` are denominated in
+   * (paise of it, same as before — just no longer assumed to be INR paise).
+   * Omitting it leaves each rate's existing currency untouched.
+   */
+  static async updateRates(teacherId: string, hourlyRate: number, courseRate: number, currency?: string) {
+    const currencyData = currency ? { currency } : {};
     await db.$transaction([
       db.teacherRate.upsert({
         where: { teacherId_type: { teacherId, type: "HOURLY" } },
-        update: { amount: hourlyRate },
-        create: { teacherId, type: "HOURLY", amount: hourlyRate },
+        update: { amount: hourlyRate, ...currencyData },
+        create: { teacherId, type: "HOURLY", amount: hourlyRate, ...currencyData },
       }),
       db.teacherRate.upsert({
         where: { teacherId_type: { teacherId, type: "COURSE" } },
-        update: { amount: courseRate },
-        create: { teacherId, type: "COURSE", amount: courseRate },
+        update: { amount: courseRate, ...currencyData },
+        create: { teacherId, type: "COURSE", amount: courseRate, ...currencyData },
       }),
     ]);
   }

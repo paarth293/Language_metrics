@@ -21,6 +21,7 @@
     "@react-email/render": "^2.1.0",
     "@repo/api-contracts": "*",
     "@repo/auth": "*",
+    "@repo/currency": "*",
     "@repo/database": "*",
     "@repo/live-classes": "*",
     "@repo/livekit": "*",

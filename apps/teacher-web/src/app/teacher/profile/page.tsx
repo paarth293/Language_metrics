@@ -21,9 +21,11 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { CURRENCIES, getCurrencyInfo } from "@repo/currency";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const COMMISSION_RATE = 0.3;
+// Matches the 20% actually applied server-side (see api/students/*/book routes).
+const COMMISSION_RATE = 0.2;
 
 const DOC_TYPE_LABELS: Record<string, { label: string; icon: string }> = {
   EDUCATION: { label: "Qualification Certificate", icon: "🎓" },
@@ -51,7 +53,7 @@ type ProfileData = {
     experienceLevel: string;
     status: string;
     demoVideoUrl: string | null;
-    rates: Array<{ id: string; type: string; amount: number }>;
+    rates: Array<{ id: string; type: string; amount: number; currency: string }>;
     availability: Array<{ dayOfWeek: number; startTime: string; endTime: string }>;
     documents: Array<{
       id: string;
@@ -84,6 +86,7 @@ export default function TeacherProfileSettings() {
   // Rates
   const [hourlyRate, setHourlyRate] = useState(0);
   const [courseRate, setCourseRate] = useState(0);
+  const [currency, setCurrency] = useState("INR");
 
   // Availability
   const [availability, setAvailability] = useState<AvailabilitySlot[]>([]);
@@ -116,8 +119,10 @@ export default function TeacherProfileSettings() {
       setDocuments(p.documents || []);
 
       const rates = p.rates || [];
-      setHourlyRate((rates.find((r: { type: string; amount: number }) => r.type === "HOURLY")?.amount || 0) / 100);
-      setCourseRate((rates.find((r: { type: string; amount: number }) => r.type === "COURSE")?.amount || 0) / 100);
+      setHourlyRate((rates.find((r) => r.type === "HOURLY")?.amount || 0) / 100);
+      setCourseRate((rates.find((r) => r.type === "COURSE")?.amount || 0) / 100);
+      // Both rates share one currency in this UI; fall back to whichever rate has one set.
+      setCurrency(rates.find((r) => r.currency)?.currency || "INR");
       setAvailability(p.availability || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -127,6 +132,7 @@ export default function TeacherProfileSettings() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line
     fetchSettings();
   }, []);
 
@@ -151,6 +157,7 @@ export default function TeacherProfileSettings() {
         body: JSON.stringify({
           hourlyRate: Math.round(hourlyRate * 100),
           courseRate: Math.round(courseRate * 100),
+          currency,
           availability,
         }),
       });
@@ -179,6 +186,8 @@ export default function TeacherProfileSettings() {
     updated.splice(index, 1);
     setAvailability(updated);
   };
+
+  const currencySymbol = getCurrencyInfo(currency).symbol;
 
   if (loading) {
     return (
@@ -328,7 +337,26 @@ export default function TeacherProfileSettings() {
             </CardHeader>
             <CardContent className="pt-5 space-y-5">
               <div>
-                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider block mb-1.5">Hourly Rate (₹)</label>
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider block mb-1.5">Currency</label>
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  className="w-full h-11 rounded-xl border border-border bg-surface-inset px-3.5 text-[14px] text-text focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand transition-all"
+                >
+                  {CURRENCIES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.symbol} {c.code} — {c.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-text-muted mt-1.5">
+                  Students see this converted to their own currency at the current exchange rate.
+                </p>
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider block mb-1.5">
+                  Hourly Rate ({currencySymbol})
+                </label>
                 <Input
                   type="number"
                   min={0}
@@ -338,16 +366,18 @@ export default function TeacherProfileSettings() {
                 <div className="mt-2.5 p-3.5 bg-surface-inset rounded-xl border border-border/50 text-[12px] space-y-2">
                   <div className="flex justify-between font-medium">
                     <span className="text-text-muted">Platform fee ({COMMISSION_RATE * 100}%):</span>
-                    <span className="text-alert">-₹{(hourlyRate * COMMISSION_RATE).toFixed(0)}</span>
+                    <span className="text-alert">-{currencySymbol}{(hourlyRate * COMMISSION_RATE).toFixed(0)}</span>
                   </div>
                   <div className="flex justify-between font-bold text-text border-t border-border/60 pt-2">
                     <span>You earn:</span>
-                    <span className="text-trust">₹{(hourlyRate * (1 - COMMISSION_RATE)).toFixed(0)}/hr</span>
+                    <span className="text-trust">{currencySymbol}{(hourlyRate * (1 - COMMISSION_RATE)).toFixed(0)}/hr</span>
                   </div>
                 </div>
               </div>
               <div>
-                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider block mb-1.5">Course Rate (₹)</label>
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider block mb-1.5">
+                  Course Rate ({currencySymbol})
+                </label>
                 <Input
                   type="number"
                   min={0}
@@ -357,11 +387,11 @@ export default function TeacherProfileSettings() {
                 <div className="mt-2.5 p-3.5 bg-surface-inset rounded-xl border border-border/50 text-[12px] space-y-2">
                   <div className="flex justify-between font-medium">
                     <span className="text-text-muted">Platform fee ({COMMISSION_RATE * 100}%):</span>
-                    <span className="text-alert">-₹{(courseRate * COMMISSION_RATE).toFixed(0)}</span>
+                    <span className="text-alert">-{currencySymbol}{(courseRate * COMMISSION_RATE).toFixed(0)}</span>
                   </div>
                   <div className="flex justify-between font-bold text-text border-t border-border/60 pt-2">
                     <span>You earn:</span>
-                    <span className="text-trust">₹{(courseRate * (1 - COMMISSION_RATE)).toFixed(0)}/course</span>
+                    <span className="text-trust">{currencySymbol}{(courseRate * (1 - COMMISSION_RATE)).toFixed(0)}/course</span>
                   </div>
                 </div>
               </div>

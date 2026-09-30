@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { TeacherService } from "@/features/teacher/services/teacher-service";
+import { CURRENCY_CODES } from "@repo/currency";
 import { z } from "zod";
 
 const settingsSchema = z.object({
   hourlyRate: z.number().min(0).optional(),
   courseRate: z.number().min(0).optional(),
+  currency: z.enum(CURRENCY_CODES).optional(),
   availability: z.array(z.object({
     dayOfWeek: z.number().min(0).max(6),
     startTime: z.string(),
@@ -41,11 +43,11 @@ export async function PUT(request: Request) {
       return NextResponse.json({ message: "Invalid data", errors: result.error.format() }, { status: 400 });
     }
     
-    const { hourlyRate, courseRate, availability } = result.data;
-    
+    const { hourlyRate, courseRate, currency, availability } = result.data;
+
     // Update rates if provided
     if (hourlyRate !== undefined && courseRate !== undefined) {
-      await TeacherService.updateRates(auth.user.sub, hourlyRate, courseRate);
+      await TeacherService.updateRates(auth.user.sub, hourlyRate, courseRate, currency);
     }
     
     // Update availability if provided

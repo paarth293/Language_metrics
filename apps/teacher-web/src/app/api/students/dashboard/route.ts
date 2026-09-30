@@ -145,16 +145,16 @@ export async function GET(request: Request) {
     );
     
     // Current streak
-    let todayDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    let yesterdayDate = new Date(now);
+    const todayDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const yesterdayDate = new Date(now);
     yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-    let yesterdayDateStr = `${yesterdayDate.getFullYear()}-${String(yesterdayDate.getMonth() + 1).padStart(2, '0')}-${String(yesterdayDate.getDate()).padStart(2, '0')}`;
+    const yesterdayDateStr = `${yesterdayDate.getFullYear()}-${String(yesterdayDate.getMonth() + 1).padStart(2, '0')}-${String(yesterdayDate.getDate()).padStart(2, '0')}`;
 
     let streak = 0;
     if (completedDays.has(todayDateStr) || completedDays.has(yesterdayDateStr)) {
-        let checkDate = new Date(completedDays.has(todayDateStr) ? now : yesterdayDate);
+        const checkDate = new Date(completedDays.has(todayDateStr) ? now : yesterdayDate);
         while (true) {
-            let checkStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
+            const checkStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
             if (completedDays.has(checkStr)) {
                 streak++;
                 checkDate.setDate(checkDate.getDate() - 1);
@@ -188,9 +188,9 @@ export async function GET(request: Request) {
     // streakDays boolean array (last 7 days, oldest first)
     const streakDays = [];
     for (let i = 6; i >= 0; i--) {
-        let checkD = new Date(now);
+        const checkD = new Date(now);
         checkD.setDate(checkD.getDate() - i);
-        let checkStr = `${checkD.getFullYear()}-${String(checkD.getMonth() + 1).padStart(2, '0')}-${String(checkD.getDate()).padStart(2, '0')}`;
+        const checkStr = `${checkD.getFullYear()}-${String(checkD.getMonth() + 1).padStart(2, '0')}-${String(checkD.getDate()).padStart(2, '0')}`;
         streakDays.push(completedDays.has(checkStr));
     }
 
