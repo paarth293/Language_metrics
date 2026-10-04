@@ -171,9 +171,14 @@ export default function Hero() {
             className="relative bg-surface/80 backdrop-blur-md border border-border-strong rounded-[2rem] p-6 shadow-xl max-w-sm ml-auto transform-gpu"
           >
             <div className="flex items-center gap-4 mb-6">
-              <Avatar src="https://i.pravatar.cc/150?u=a042581f4e29026704d" size="lg" online={true} />
+              <Avatar initials="AD" alt="Fictional example teacher" size="lg" />
               <div>
-                <div className="font-semibold text-lg">Amélie Dupont</div>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-lg">Amélie Dupont</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-surface-inset border border-border text-text-muted">
+                    Example
+                  </span>
+                </div>
                 <div className="flex items-center gap-1 text-sm text-text-muted">
                   <span title="France">🇫🇷</span> French · Experienced Teacher
                 </div>
@@ -194,6 +199,10 @@ export default function Hero() {
             <div className="text-xs text-text-subtle text-center mb-3 flex items-center justify-center gap-1">
               <ShieldCheck className="w-3 h-3 text-success" />
               Class runs on our custom, private video system
+            </div>
+
+            <div className="text-[11px] text-text-subtle text-center mb-3">
+              Illustration only — the teacher shown is a fictional character.
             </div>
 
             <Button variant="primary" className="w-full flex gap-2 items-center justify-center">

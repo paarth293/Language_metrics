@@ -79,6 +79,21 @@ const STATUS_CONFIG: Record<
   },
 };
 
+// Access tokens expire after 15 minutes and the proxy only refreshes them on
+// page navigations, so a form left open that long gets a 401. Refresh once and retry.
+async function fetchWithRefresh(input: string, init?: RequestInit) {
+  const res = await fetch(input, { credentials: "include", ...init });
+  if (res.status !== 401) return res;
+  const refreshed = await fetch("/api/auth/refresh", { method: "POST", credentials: "include" });
+  return refreshed.ok ? fetch(input, { credentials: "include", ...init }) : res;
+}
+
+async function errorMessage(res: Response, fallback: string) {
+  if (res.status === 401) return "Your session has expired. Please log in again.";
+  const data = await res.json().catch(() => null);
+  return data?.error || data?.message || fallback;
+}
+
 export default function SupportPage() {
   const [view, setView] = useState<"list" | "new">("list");
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -95,8 +110,8 @@ export default function SupportPage() {
   const fetchTickets = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/students/complaints");
-      if (!res.ok) throw new Error("Failed to load tickets");
+      const res = await fetchWithRefresh("/api/students/complaints");
+      if (!res.ok) throw new Error(await errorMessage(res, "Failed to load tickets"));
       const data = await res.json();
       setTickets(data.tickets || []);
     } catch (err: unknown) {
@@ -115,13 +130,14 @@ export default function SupportPage() {
     e.preventDefault();
     if (!category || !subject.trim() || !description.trim()) return;
     setSubmitting(true);
+    setError(null);
     try {
-      const res = await fetch("/api/students/complaints", {
+      const res = await fetchWithRefresh("/api/students/complaints", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ category, subject, description }),
       });
-      if (!res.ok) throw new Error("Failed to submit complaint");
+      if (!res.ok) throw new Error(await errorMessage(res, "Failed to submit complaint"));
       setView("list");
       setCategory("");
       setSubject("");
