@@ -97,5 +97,5 @@ export function permissionsForRole(
     const allowed = new Set<string>(ALL_PERMISSIONS);
     return explicit.filter((p) => allowed.has(p)) as Permission[];
   }
-  return ROLE_PRESETS[roleKey] ?? [];
+  return new Map(Object.entries(ROLE_PRESETS)).get(roleKey) ?? [];
 }

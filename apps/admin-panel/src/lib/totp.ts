@@ -98,8 +98,8 @@ export async function consumeBackupCode(
   code: string,
   hashes: string[],
 ): Promise<string[] | null> {
-  for (let i = 0; i < hashes.length; i++) {
-    if (await bcrypt.compare(code, hashes[i]!)) {
+  for (const [i, hash] of hashes.entries()) {
+    if (await bcrypt.compare(code, hash)) {
       return hashes.filter((_, idx) => idx !== i);
     }
   }

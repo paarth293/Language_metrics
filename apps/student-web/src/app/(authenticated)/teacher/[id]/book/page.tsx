@@ -1,16 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  CheckCircle2,
-  Loader2,
-  Wallet,
-  Clock,
-  AlertCircle,
-} from "lucide-react";
+import { ArrowLeft, CheckCircle2, Loader2, Wallet, Clock, AlertCircle } from "lucide-react";
 import { formatMoney } from "@repo/currency";
 
 interface Rate {
@@ -39,7 +32,6 @@ interface TeacherInfo {
 
 export default function BookClassPage() {
   const params = useParams();
-  const router = useRouter();
   const teacherId = params.id as string;
 
   const [teacher, setTeacher] = useState<TeacherInfo | null>(null);

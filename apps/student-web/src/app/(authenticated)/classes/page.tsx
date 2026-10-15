@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   Video,
@@ -50,11 +50,7 @@ export default function MyClassesPage() {
   const [reschedulingSession, setReschedulingSession] = useState<{ id: string, scheduledStart: string } | null>(null);
   const [newStartTime, setNewStartTime] = useState<string>("");
 
-  useEffect(() => {
-    fetchBookings();
-  }, [activeTab]);
-
-  const fetchBookings = async () => {
+  const fetchBookings = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch(`/api/students/classes?filter=${activeTab}`, {
@@ -69,7 +65,14 @@ export default function MyClassesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => void fetchBookings(), 0);
+    return () => clearTimeout(timer);
+  }, [fetchBookings]);
+
+
 
   const handleCancel = async (bookingId: string) => {
     setCancellingId(bookingId);

@@ -34,7 +34,7 @@ export default function StatusBadge({
   showIcon?: boolean;
   className?: string;
 }) {
-  const cfg = CONFIG[status] ?? CONFIG.pending;
+  const cfg = new Map(Object.entries(CONFIG)).get(status) ?? CONFIG.pending;
   const Icon = cfg.icon;
 
   return (

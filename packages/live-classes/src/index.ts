@@ -15,3 +15,4 @@ export * from "./webhook";
 export * from "./usage";
 export * from "./recording";
 export * from "./monitoring";
+export * from "./recording-payments";

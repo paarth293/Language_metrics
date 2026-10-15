@@ -8,7 +8,6 @@
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 
-const OTP_LENGTH = 6;
 const BCRYPT_ROUNDS = 10;
 
 /**

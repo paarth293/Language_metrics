@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   Video,
@@ -53,11 +53,7 @@ export default function MyClassesPage() {
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchBookings();
-  }, [activeTab]);
-
-  const fetchBookings = async () => {
+  const fetchBookings = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch(`/api/students/classes?filter=${activeTab}`, {
@@ -71,7 +67,14 @@ export default function MyClassesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => void fetchBookings(), 0);
+    return () => clearTimeout(timer);
+  }, [fetchBookings]);
+
+
 
   const handleCancel = async (bookingId: string) => {
     setCancellingId(bookingId);
@@ -198,7 +201,7 @@ export default function MyClassesPage() {
                 No {activeTab} classes
               </h3>
               <p className="text-[14px] text-text-muted max-w-[280px] mb-6">
-                You don't have any {activeTab} classes on your schedule yet.
+                You don&apos;t have any {activeTab} classes on your schedule yet.
               </p>
               <Button asChild variant="primary" className="shadow-sm">
                 <Link href="/student/discover">Book Your First Class</Link>
@@ -365,7 +368,7 @@ export default function MyClassesPage() {
 
               <div className="bg-surface-inset rounded-xl p-4 mb-6 border border-border">
                 <p className="text-[13px] text-text leading-relaxed">
-                  This class is eligible for a full refund as it's more than 12
+                  This class is eligible for a full refund as it&apos;s more than 12
                   hours away. The refund will be credited to your wallet.
                 </p>
               </div>

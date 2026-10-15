@@ -3,16 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  Star,
-  Clock,
-  Globe,
-  Award,
-  Video,
-  Calendar,
-  BookOpen,
-} from "lucide-react";
+import { ArrowLeft, Star, Globe, Award, Calendar, BookOpen } from "lucide-react";
 
 interface TeacherData {
   id: string;

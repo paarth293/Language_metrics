@@ -46,7 +46,7 @@ describe("getJoinState", () => {
   });
 
   it("falls back to the default window when the server omits it", () => {
-    const { joinOpensAt: _o, joinClosesAt: _c, ...bare } = session();
+    const bare = { ...session(), joinOpensAt: undefined, joinClosesAt: undefined };
     expect(getJoinState(bare, start + 5 * min)).toBe("open");
     expect(getJoinState(bare, end + 11 * min)).toBe("closed");
   });

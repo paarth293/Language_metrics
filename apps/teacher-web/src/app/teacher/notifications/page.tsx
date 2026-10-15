@@ -137,7 +137,8 @@ export default function TeacherNotifications() {
   }, []);
 
   useEffect(() => {
-    fetchNotifications();
+    const timer = setTimeout(() => void fetchNotifications(), 0);
+    return () => clearTimeout(timer);
   }, [fetchNotifications]);
 
   useEffect(() => {

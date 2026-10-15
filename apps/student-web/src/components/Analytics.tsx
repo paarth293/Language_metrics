@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 
 /**
  * Analytics component — placeholder for production analytics integration.

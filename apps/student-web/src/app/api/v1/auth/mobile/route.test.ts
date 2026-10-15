@@ -1,3 +1,4 @@
+import type { Mock } from "vitest";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import { POST as loginHandler } from "./login/route";
@@ -6,17 +7,8 @@ import { POST as logoutHandler } from "./logout/route";
 import { requireMobileAuth } from "@/lib/auth-mobile";
 import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
-import {
-  signAccessToken,
-  signRefreshToken,
-  verifyRefreshToken,
-  verifyAccessToken,
-} from "@/lib/tokens";
-import {
-  storeRefreshSession,
-  rotateRefreshSession,
-  revokeRefreshSession,
-} from "@/lib/redis-session";
+import { verifyRefreshToken, verifyAccessToken } from "@/lib/tokens";
+import { storeRefreshSession, rotateRefreshSession, revokeRefreshSession } from "@/lib/redis-session";
 
 vi.mock("@/lib/db", () => ({
   db: {
@@ -70,7 +62,7 @@ describe("Mobile Authentication & Versioned API Surface (/api/v1/auth/mobile/*)"
     });
 
     it("returns 401 for non-existent users", async () => {
-      vi.mocked(db.user.findUnique).mockResolvedValueOnce(null);
+      (db.user.findUnique as unknown as Mock).mockResolvedValueOnce(null);
 
       const req = new NextRequest("http://localhost:3000/api/v1/auth/mobile/login", {
         method: "POST",
@@ -84,15 +76,15 @@ describe("Mobile Authentication & Versioned API Surface (/api/v1/auth/mobile/*)"
     });
 
     it("returns 401 for incorrect password", async () => {
-      vi.mocked(db.user.findUnique).mockResolvedValueOnce({
+      (db.user.findUnique as unknown as Mock).mockResolvedValueOnce({
         id: "usr-1",
         email: "student@example.com",
         passwordHash: "hashed_pwd",
         role: "STUDENT",
         emailVerified: true,
         studentProfile: { name: "Test Student", status: "ACTIVE", avatarUrl: null },
-      } as any);
-      vi.mocked(bcrypt.compare).mockResolvedValueOnce(false as never);
+      });
+      (bcrypt.compare as unknown as Mock).mockResolvedValueOnce(false as never);
 
       const req = new NextRequest("http://localhost:3000/api/v1/auth/mobile/login", {
         method: "POST",
@@ -104,15 +96,15 @@ describe("Mobile Authentication & Versioned API Surface (/api/v1/auth/mobile/*)"
     });
 
     it("returns 403 for suspended student accounts", async () => {
-      vi.mocked(db.user.findUnique).mockResolvedValueOnce({
+      (db.user.findUnique as unknown as Mock).mockResolvedValueOnce({
         id: "usr-suspended",
         email: "suspended@example.com",
         passwordHash: "hashed_pwd",
         role: "STUDENT",
         emailVerified: true,
         studentProfile: { name: "Suspended Student", status: "SUSPENDED", avatarUrl: null },
-      } as any);
-      vi.mocked(bcrypt.compare).mockResolvedValueOnce(true as never);
+      });
+      (bcrypt.compare as unknown as Mock).mockResolvedValueOnce(true as never);
 
       const req = new NextRequest("http://localhost:3000/api/v1/auth/mobile/login", {
         method: "POST",
@@ -124,15 +116,15 @@ describe("Mobile Authentication & Versioned API Surface (/api/v1/auth/mobile/*)"
     });
 
     it("issues Bearer token pair and JSON user summary on valid credentials", async () => {
-      vi.mocked(db.user.findUnique).mockResolvedValueOnce({
+      (db.user.findUnique as unknown as Mock).mockResolvedValueOnce({
         id: "usr-100",
         email: "valid.student@example.com",
         passwordHash: "hashed_pwd",
         role: "STUDENT",
         emailVerified: true,
         studentProfile: { name: "Paarth Gupta", status: "ACTIVE", avatarUrl: null },
-      } as any);
-      vi.mocked(bcrypt.compare).mockResolvedValueOnce(true as never);
+      });
+      (bcrypt.compare as unknown as Mock).mockResolvedValueOnce(true as never);
 
       const req = new NextRequest("http://localhost:3000/api/v1/auth/mobile/login", {
         method: "POST",
@@ -154,7 +146,7 @@ describe("Mobile Authentication & Versioned API Surface (/api/v1/auth/mobile/*)"
 
   describe("POST /api/v1/auth/mobile/refresh", () => {
     it("returns 401 when refresh token verification fails", async () => {
-      vi.mocked(verifyRefreshToken).mockResolvedValueOnce(null);
+      (verifyRefreshToken as unknown as Mock).mockResolvedValueOnce(null);
 
       const req = new NextRequest("http://localhost:3000/api/v1/auth/mobile/refresh", {
         method: "POST",
@@ -166,18 +158,18 @@ describe("Mobile Authentication & Versioned API Surface (/api/v1/auth/mobile/*)"
     });
 
     it("returns 401 when Redis session rotation fails (session revoked or reused)", async () => {
-      vi.mocked(verifyRefreshToken).mockResolvedValueOnce({
+      (verifyRefreshToken as unknown as Mock).mockResolvedValueOnce({
         sub: "usr-100",
         sid: "session-old",
-      } as any);
-      vi.mocked(db.user.findUnique).mockResolvedValueOnce({
+      });
+      (db.user.findUnique as unknown as Mock).mockResolvedValueOnce({
         id: "usr-100",
         email: "student@example.com",
         role: "STUDENT",
         emailVerified: true,
         studentProfile: { name: "Student", status: "ACTIVE", avatarUrl: null },
-      } as any);
-      vi.mocked(rotateRefreshSession).mockResolvedValueOnce(false);
+      });
+      (rotateRefreshSession as unknown as Mock).mockResolvedValueOnce(false);
 
       const req = new NextRequest("http://localhost:3000/api/v1/auth/mobile/refresh", {
         method: "POST",
@@ -191,18 +183,18 @@ describe("Mobile Authentication & Versioned API Surface (/api/v1/auth/mobile/*)"
     });
 
     it("atomically rotates session and issues fresh Bearer tokens", async () => {
-      vi.mocked(verifyRefreshToken).mockResolvedValueOnce({
+      (verifyRefreshToken as unknown as Mock).mockResolvedValueOnce({
         sub: "usr-100",
         sid: "session-old",
-      } as any);
-      vi.mocked(db.user.findUnique).mockResolvedValueOnce({
+      });
+      (db.user.findUnique as unknown as Mock).mockResolvedValueOnce({
         id: "usr-100",
         email: "student@example.com",
         role: "STUDENT",
         emailVerified: true,
         studentProfile: { name: "Student", status: "ACTIVE", avatarUrl: null },
-      } as any);
-      vi.mocked(rotateRefreshSession).mockResolvedValueOnce(true);
+      });
+      (rotateRefreshSession as unknown as Mock).mockResolvedValueOnce(true);
 
       const req = new NextRequest("http://localhost:3000/api/v1/auth/mobile/refresh", {
         method: "POST",
@@ -222,10 +214,10 @@ describe("Mobile Authentication & Versioned API Surface (/api/v1/auth/mobile/*)"
 
   describe("POST /api/v1/auth/mobile/logout", () => {
     it("revokes session in Redis and returns 200", async () => {
-      vi.mocked(verifyRefreshToken).mockResolvedValueOnce({
+      (verifyRefreshToken as unknown as Mock).mockResolvedValueOnce({
         sub: "usr-100",
         sid: "session-active",
-      } as any);
+      });
 
       const req = new NextRequest("http://localhost:3000/api/v1/auth/mobile/logout", {
         method: "POST",
@@ -251,7 +243,7 @@ describe("Mobile Authentication & Versioned API Surface (/api/v1/auth/mobile/*)"
     });
 
     it("rejects requests with expired/invalid Bearer token with 401", async () => {
-      vi.mocked(verifyAccessToken).mockResolvedValueOnce(null);
+      (verifyAccessToken as unknown as Mock).mockResolvedValueOnce(null);
       const req = new NextRequest("http://localhost:3000/api/v1/wallet/balance", {
         headers: { Authorization: "Bearer expired_or_invalid_jwt" },
       });
@@ -263,11 +255,11 @@ describe("Mobile Authentication & Versioned API Surface (/api/v1/auth/mobile/*)"
     });
 
     it("rejects accounts with insufficient role permissions with 403", async () => {
-      vi.mocked(verifyAccessToken).mockResolvedValueOnce({
+      (verifyAccessToken as unknown as Mock).mockResolvedValueOnce({
         sub: "usr-teacher-1",
         role: "TEACHER",
         emailVerified: true,
-      } as any);
+      });
       const req = new NextRequest("http://localhost:3000/api/v1/wallet/balance", {
         headers: { Authorization: "Bearer valid_jwt_for_teacher" },
       });
@@ -279,11 +271,11 @@ describe("Mobile Authentication & Versioned API Surface (/api/v1/auth/mobile/*)"
     });
 
     it("allows authenticated student requests with valid Bearer token", async () => {
-      vi.mocked(verifyAccessToken).mockResolvedValueOnce({
+      (verifyAccessToken as unknown as Mock).mockResolvedValueOnce({
         sub: "usr-student-1",
         role: "STUDENT",
         emailVerified: true,
-      } as any);
+      });
       const req = new NextRequest("http://localhost:3000/api/v1/wallet/balance", {
         headers: { Authorization: "Bearer valid_jwt_token" },
       });

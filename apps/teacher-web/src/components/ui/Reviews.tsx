@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Star, Quote } from "lucide-react";
+import { Star } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 
 const testimonials = [

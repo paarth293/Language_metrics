@@ -1,21 +1,7 @@
 import { CalendarRange, Download } from "lucide-react";
 import { requireAdmin } from "@/lib/guards";
 import { getDashboardStats, getRevenueTrend, getLatestPendingTeachers, checkDatabaseHealth } from "@/lib/analytics";
-import {
-  ActionQueue,
-  MetricCard,
-  PlatformPulse,
-  PlatformPulseChart,
-  RecentActivity,
-  SystemHealth,
-  TeacherApprovalTable,
-  actionQueueIcons,
-  type ActivityItem,
-  type DashboardMetric,
-  type HealthMetric,
-  type QueueItem,
-  type TeacherApprovalRow,
-} from "@/components/dashboard";
+import { ActionQueue, MetricCard, PlatformPulse, PlatformPulseChart, RecentActivity, SystemHealth, TeacherApprovalTable, actionQueueIcons, type ActivityItem, type DashboardMetric, type HealthMetric, type QueueItem, type TeacherApprovalRow } from "@/components/dashboard";
 
 
 export const dynamic = "force-dynamic";
@@ -95,8 +81,8 @@ function buildHealth(dbConnected: boolean, preview: boolean): HealthMetric[] {
 }
 
 export default async function DashboardPage() {
-  const admin = await requireAdmin();
-  
+  await requireAdmin();
+
   const [stats, trend, pendingTeachers, dbConnected] = await Promise.all([
     loadDashboardStats(),
     getRevenueTrend(),

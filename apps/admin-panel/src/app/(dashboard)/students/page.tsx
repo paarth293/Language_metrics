@@ -1,3 +1,5 @@
+
+import Image from "next/image";
 import { Users } from "lucide-react";
 import { db } from "@repo/database";
 import { requireAdmin } from "@/lib/guards";
@@ -40,7 +42,7 @@ export default async function StudentsPage(props: {
     }),
     db.studentProfile.count({ where: whereClause })
   ]);
-  
+
   const totalPages = Math.ceil(totalCount / pageSize);
   const hasFilters = Boolean(q);
 
@@ -96,7 +98,7 @@ export default async function StudentsPage(props: {
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--lm-teal-soft)] overflow-hidden">
-                        <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(student.name)}&backgroundColor=transparent`} alt="Avatar" className="w-full h-full object-cover" />
+                        <Image unoptimized width={96} height={96} src={`https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(student.name)}&backgroundColor=transparent`} alt="Avatar" className="w-full h-full object-cover" />
                       </div>
                       <div className="min-w-0">
                         <p className="truncate text-[12px] font-bold text-[var(--lm-ink)]">{student.name}</p>

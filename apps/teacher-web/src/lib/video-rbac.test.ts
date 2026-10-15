@@ -1,3 +1,4 @@
+import type { Mock } from "vitest";
 import { describe, test, expect, vi, beforeEach } from "vitest";
 import { evaluateJoin } from "@repo/live-classes";
 
@@ -23,11 +24,11 @@ vi.mock("@repo/livekit", () => {
 });
 
 import { db } from "@repo/database";
-import { getLiveKitConfig } from "@repo/livekit";
+import "@repo/livekit";
 
 describe("Video Route Security & RBAC (Step E & G)", () => {
   const baseNow = new Date("2026-09-20T10:00:00Z");
-  
+
   const sampleSession = {
     id: "sess-100",
     status: "SCHEDULED",
@@ -42,12 +43,13 @@ describe("Video Route Security & RBAC (Step E & G)", () => {
       student: { userId: "student-bob", name: "Bob" },
       teacher: { userId: "teacher-alice", name: "Alice" }
     },
-    billing: null,
+    // A confirmed paid session has a hold; authorization should test this path.
+    billing: { heldCoins: 100, coinsPerMinute: 2 },
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (db.classSession.findUnique as any).mockResolvedValue(sampleSession);
+    (db.classSession.findUnique as unknown as Mock).mockResolvedValue(sampleSession);
   });
 
   describe("E1: Participant Authorization & Isolation", () => {
@@ -110,8 +112,8 @@ describe("Video Route Security & RBAC (Step E & G)", () => {
     });
 
     test("returns 404 if booking does not exist", async () => {
-      (db.classSession.findUnique as any).mockResolvedValue(null);
-      
+      (db.classSession.findUnique as unknown as Mock).mockResolvedValue(null);
+
       const result = await evaluateJoin({
         userId: "teacher-alice",
         role: "TEACHER",
@@ -154,7 +156,7 @@ describe("Video Route Security & RBAC (Step E & G)", () => {
 
   describe("Step G: Error Scenarios & Teacher Cancellation", () => {
     test("rejects token generation on cancelled bookings", async () => {
-      (db.classSession.findUnique as any).mockResolvedValue({
+      (db.classSession.findUnique as unknown as Mock).mockResolvedValue({
         ...sampleSession,
         status: "CANCELLED",
         booking: {

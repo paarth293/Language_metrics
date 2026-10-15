@@ -31,7 +31,8 @@ export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnread
   const { theme, setTheme } = useTheme();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const isMac = useIsMac();
-  const [unreadCount, setUnreadCount] = useState<number>(initialUnreadCount ?? 0);
+  const [localUnreadCount, setUnreadCount] = useState<number | undefined>();
+  const unreadCount = localUnreadCount ?? initialUnreadCount ?? 0;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -66,12 +67,11 @@ export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnread
   useEffect(() => {
     // If the parent has already resolved the count server-side, use it.
     if (initialUnreadCount !== undefined) {
-      setUnreadCount(initialUnreadCount);
       return;
     }
 
     const controller = new AbortController();
-    checkUnreadCount(controller.signal);
+    const initial = setTimeout(() => void checkUnreadCount(controller.signal), 0);
 
     // Re-check when the notifications page signals a change.
     const handleNotificationsUpdated = (e: Event) => {
@@ -90,6 +90,7 @@ export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnread
     window.addEventListener("focus", handleFocus);
 
     return () => {
+      clearTimeout(initial);
       controller.abort();
       window.removeEventListener("notifications-updated", handleNotificationsUpdated);
       window.removeEventListener("focus", handleFocus);

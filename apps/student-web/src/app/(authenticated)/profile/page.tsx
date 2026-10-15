@@ -1,31 +1,14 @@
 "use client";
 
+import Image from "next/image";
+
 import React, { useState, useEffect } from "react";
-import {
-  Save,
-  Loader2,
-  AlertCircle,
-  CheckCircle2,
-  User,
-  Mail,
-  Globe,
-  BookOpen,
-  Shield,
-  Camera,
-  Key,
-  Bell,
-  BellOff,
-  Trash2,
-  AlertTriangle,
-  Eye,
-  EyeOff,
-  Link,
-} from "lucide-react";
+import { Save, Loader2, AlertCircle, CheckCircle2, User, Globe, BookOpen, Camera, Key, Bell, BellOff, Trash2, AlertTriangle, Eye, EyeOff } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
-import { Avatar } from "@/components/ui/Avatar";
+import "@/components/ui/Avatar";
 import { LANGUAGES, getLevelsForLanguage } from "@/lib/languages";
 import { CURRENCIES } from "@repo/currency";
 
@@ -87,11 +70,6 @@ export default function StudentProfilePage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    fetchProfile();
-    checkPushStatus();
-  }, []);
-
   const fetchProfile = async () => {
     try {
       const res = await fetch("/api/students/profile", {
@@ -124,6 +102,20 @@ export default function StudentProfilePage() {
       setLoading(false);
     }
   };
+
+  const checkPushStatus = async () => {
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "granted") {
+      setPushEnabled(true);
+    }
+  };
+
+  useEffect(() => {
+    const initial = setTimeout(() => { void fetchProfile(); void checkPushStatus(); }, 0);
+    return () => clearTimeout(initial);
+  }, []);
+
+
 
   const handleSave = async () => {
     setSaving(true);
@@ -190,12 +182,7 @@ export default function StudentProfilePage() {
     }
   };
 
-  const checkPushStatus = async () => {
-    if (!("Notification" in window)) return;
-    if (Notification.permission === "granted") {
-      setPushEnabled(true);
-    }
-  };
+
 
   const handleTogglePush = async () => {
     setPushLoading(true);
@@ -314,7 +301,7 @@ export default function StudentProfilePage() {
             <div className="relative group">
               <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-amber-400/20 to-amber-600/20 flex items-center justify-center overflow-hidden">
                 {avatarUrl ? (
-                  <img
+                  <Image unoptimized width={96} height={96}
                     src={avatarUrl}
                     alt={name}
                     className="w-full h-full object-cover"

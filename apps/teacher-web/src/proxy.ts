@@ -175,8 +175,8 @@ export async function proxy(request: NextRequest) {
       audience: AUDIENCE,
     });
 
-    const role = (payload as any).role;
-    const emailVerified = (payload as any).emailVerified;
+    const role = typeof payload.role === "string" ? payload.role : "";
+    const emailVerified = payload.emailVerified;
 
     if (!emailVerified && pathname !== "/verify-email") {
       const verifyUrl = new URL("/verify-email", request.url);

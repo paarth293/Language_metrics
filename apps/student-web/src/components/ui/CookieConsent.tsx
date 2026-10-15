@@ -1,29 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Cookie, X } from "lucide-react";
-
-const COOKIE_KEY = "lm-cookie-consent";
+import { Cookie } from "lucide-react";
+import { useCookieConsent } from "@repo/ui/useCookieConsent";
 
 export function CookieConsent() {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const consent = localStorage.getItem(COOKIE_KEY);
-    if (!consent) {
-      setVisible(true);
-    }
-  }, []);
-
-  const accept = () => {
-    localStorage.setItem(COOKIE_KEY, "accepted");
-    setVisible(false);
-  };
-
-  const decline = () => {
-    localStorage.setItem(COOKIE_KEY, "declined");
-    setVisible(false);
-  };
+  const { visible, choose } = useCookieConsent();
+  const accept = () => choose("accepted");
+  const decline = () => choose("declined");
 
   if (!visible) return null;
 

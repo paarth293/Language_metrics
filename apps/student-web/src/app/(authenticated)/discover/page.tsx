@@ -1,17 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import {
-  Search,
-  Filter,
-  Star,
-  Clock,
-  AlertCircle,
-  Loader2,
-  ChevronDown,
-  X,
-} from "lucide-react";
+import { Search, Filter, Star, Clock, AlertCircle, Loader2, X } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardFooter } from "@/components/ui/Card";
@@ -93,18 +84,7 @@ export default function DiscoverPage() {
   const [availableOnly, setAvailableOnly] = useState(false);
   const [showFilters, setShowFilters] = useState(true);
 
-  useEffect(() => {
-    fetchTeachers();
-  }, [
-    searchQuery,
-    selectedLanguage,
-    selectedBudget,
-    selectedExperience,
-    selectedGender,
-    availableOnly,
-  ]);
-
-  const fetchTeachers = async () => {
+  const fetchTeachers = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
@@ -133,7 +113,14 @@ export default function DiscoverPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchQuery, selectedLanguage, selectedBudget, selectedExperience, selectedGender, availableOnly]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => void fetchTeachers(), 0);
+    return () => clearTimeout(timer);
+  }, [fetchTeachers]);
+
+
 
   const clearAllFilters = () => {
     setSearchQuery("");

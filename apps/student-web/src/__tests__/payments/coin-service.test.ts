@@ -1,3 +1,4 @@
+import type { Mock } from "vitest";
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { getCoinBalance, creditCoins, debitCoins } from '../../lib/coin-service';
 import { credit, debit, getCoinBalance as ledgerBalance } from '@repo/database';
@@ -16,7 +17,7 @@ describe('Coin Service', () => {
   });
 
   it('calculates balance correctly', async () => {
-    (ledgerBalance as any).mockResolvedValue({ balance: 120, heldBalance: 0, lifetimeEarned: 150, lifetimeSpent: 30 });
+    (ledgerBalance as unknown as Mock).mockResolvedValue({ balance: 120, heldBalance: 0, lifetimeEarned: 150, lifetimeSpent: 30 });
 
     const balance = await getCoinBalance(testUserId);
     expect(balance).toBe(120);
@@ -34,9 +35,9 @@ describe('Coin Service', () => {
   });
 
   it('debits coins if balance is sufficient', async () => {
-    (debit as any).mockResolvedValue(undefined);
+    (debit as unknown as Mock).mockResolvedValue(undefined);
     const success = await debitCoins(testUserId, 50, 'test debit');
-    
+
     expect(success).toBe(true);
     expect(debit).toHaveBeenCalledWith({
       userId: testUserId,
@@ -49,9 +50,9 @@ describe('Coin Service', () => {
   it('fails to debit coins if balance is insufficient', async () => {
     const err = new Error('Insufficient balance');
     err.name = 'InsufficientCoinsError';
-    (debit as any).mockRejectedValueOnce(err);
+    (debit as unknown as Mock).mockRejectedValueOnce(err);
     const success = await debitCoins(testUserId, 50, 'test debit');
-    
+
     expect(success).toBe(false);
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Globe, ArrowRight, ArrowLeft, Check, Loader2 } from "lucide-react";
@@ -11,17 +11,11 @@ export default function OnboardingPage() {
   const router = useRouter();
   const { user, refreshUser } = useAuth();
   const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(true);
+  const loading = !user;
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [language, setLanguage] = useState("");
   const [proficiencyLevel, setProficiencyLevel] = useState("");
-
-  useEffect(() => {
-    if (user) {
-      setLoading(false);
-    }
-  }, [user, router]);
 
   const handleSubmit = async () => {
     setError("");

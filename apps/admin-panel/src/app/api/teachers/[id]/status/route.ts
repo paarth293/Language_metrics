@@ -54,7 +54,7 @@ export async function POST(
     userAgent: h.get("user-agent") ?? null,
   };
 
-  await auditLog(ctx, ACTIONS[action]!, id, { teacherId: id });
+  await auditLog(ctx, new Map(Object.entries(ACTIONS)).get(action)!, id, { teacherId: id });
   await recordSecurityEvent(
     action === "ban" ? "ACCOUNT_BANNED" : action === "suspend" ? "ACCOUNT_SUSPENDED" : "ACCOUNT_REACTIVATED",
     action === "ban" ? "CRITICAL" : "WARN",

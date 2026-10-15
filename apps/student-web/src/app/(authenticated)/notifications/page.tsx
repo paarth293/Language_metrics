@@ -152,7 +152,8 @@ export default function StudentNotifications() {
   }, []);
 
   useEffect(() => {
-    fetchNotifications();
+    const timer = setTimeout(() => void fetchNotifications(), 0);
+    return () => clearTimeout(timer);
   }, [fetchNotifications]);
 
   // Keep the bell badge in sync whenever the local unreadCount changes.
@@ -231,10 +232,11 @@ export default function StudentNotifications() {
 
   const grouped = filtered.reduce((acc, notification) => {
     const group = getDateGroup(notification.createdAt);
-    if (!acc[group]) acc[group] = [];
-    acc[group].push(notification);
+    const items = acc.get(group) ?? [];
+    items.push(notification);
+    acc.set(group, items);
     return acc;
-  }, {} as Record<string, Notification[]>);
+  }, new Map<string, Notification[]>());
 
   // ── Loading state ──────────────────────────────────────────────────────────
 
@@ -357,7 +359,7 @@ export default function StudentNotifications() {
           </Card>
         ) : (
           <div className="space-y-6">
-            {Object.entries(grouped).map(([group, items]) => (
+            {Array.from(grouped.entries()).map(([group, items]) => (
               <div key={group} className="space-y-2">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-text-subtle px-1 mb-3">
                   {group}

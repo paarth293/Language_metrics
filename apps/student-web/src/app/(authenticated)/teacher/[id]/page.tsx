@@ -3,16 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  Star,
-  Clock,
-  Globe,
-  Award,
-  Video,
-  Calendar,
-  BookOpen,
-} from "lucide-react";
+import { ArrowLeft, Star, Globe, Award, Calendar, BookOpen } from "lucide-react";
 import { formatMoney } from "@repo/currency";
 
 interface TeacherData {
@@ -194,11 +185,11 @@ export default function TeacherProfilePage() {
             {Object.keys(groupedAvailability).length > 0 ? (
               <div className="space-y-3">
                 {[1, 2, 3, 4, 5, 6, 0].map((day) => {
-                  const slots = groupedAvailability[day];
+                  const slots = new Map(Object.entries(groupedAvailability)).get(String(day));
                   if (!slots) return null;
                   return (
                     <div key={day}>
-                      <div className="text-xs font-medium text-text-muted mb-1">{DAYS[day]}</div>
+                      <div className="text-xs font-medium text-text-muted mb-1">{DAYS.at(day)}</div>
                       <div className="flex flex-wrap gap-1.5">
                         {slots.map((slot) => (
                           <span

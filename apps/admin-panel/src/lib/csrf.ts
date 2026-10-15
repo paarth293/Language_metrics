@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { createHash, randomBytes } from "crypto";
 
 /**
@@ -40,9 +41,7 @@ export function csrfTokensMatch(
   const a = createHash("sha256").update(cookieToken).digest();
   const b = createHash("sha256").update(formToken).digest();
   // timingSafeEqual on hashes avoids length leaks on the raw tokens
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a[i]! ^ b[i]!;
-  return diff === 0;
+  return timingSafeEqual(a, b);
 }
 
 export const CSRF_COOKIE = "csrf_token";
