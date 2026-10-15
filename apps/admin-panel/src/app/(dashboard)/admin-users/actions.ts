@@ -90,7 +90,9 @@ function generateTemporaryPassword(): string {
 
   for (let i = chars.length - 1; i > 0; i--) {
     const j = randomInt(i + 1);
-    [chars[i], chars[j]] = [chars[j]!, chars[i]!];
+    const previous = chars.at(i)!;
+    chars.splice(i, 1, chars.at(j)!);
+    chars.splice(j, 1, previous);
   }
   return chars.join("");
 }

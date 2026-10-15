@@ -1,3 +1,4 @@
+import type { Mock } from "vitest";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import { GET as getClassesHandler } from "./classes/route";
@@ -73,7 +74,7 @@ vi.mock("@repo/livekit", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@repo/livekit")>();
   return {
     ...actual,
-    ensureClassRoom: vi.fn().mockImplementation(async (params: any) => ({ name: `class-${params.classSessionId}`, sid: "RM_123" })),
+    ensureClassRoom: vi.fn().mockImplementation(async (params: { classSessionId: string; userId: string; displayName: string }) => ({ name: `class-${params.classSessionId}`, sid: "RM_123" })),
   };
 });
 
@@ -81,8 +82,8 @@ vi.mock("@repo/livekit/server", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@repo/livekit/server")>();
   return {
     ...actual,
-    ensureClassRoom: vi.fn().mockImplementation(async (params: any) => ({ name: `class-${params.classSessionId}`, sid: "RM_123" })),
-    mintClassToken: vi.fn().mockImplementation(async (params: any) => ({
+    ensureClassRoom: vi.fn().mockImplementation(async (params: { classSessionId: string; userId: string; displayName: string }) => ({ name: `class-${params.classSessionId}`, sid: "RM_123" })),
+    mintClassToken: vi.fn().mockImplementation(async (params: { classSessionId: string; userId: string; displayName: string }) => ({
       token: "mock_livekit_token",
       wsUrl: "wss://livekit.test.com",
       serverUrl: "wss://livekit.test.com",
@@ -136,14 +137,14 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
     });
 
     it("returns formatted bookings for authenticated student", async () => {
-      (verifyAccessToken as any).mockResolvedValue({
+      (verifyAccessToken as unknown as Mock).mockResolvedValue({
         sub: studentId,
         role: "STUDENT",
         emailVerified: true,
       });
 
       const now = new Date();
-      (db.booking.findMany as any).mockResolvedValue([
+      (db.booking.findMany as unknown as Mock).mockResolvedValue([
         {
           id: "booking-1",
           teacherId,
@@ -161,7 +162,7 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
           ],
         },
       ]);
-      (db.booking.count as any).mockResolvedValue(1);
+      (db.booking.count as unknown as Mock).mockResolvedValue(1);
 
       const req = new NextRequest("http://localhost/api/v1/classes?filter=upcoming", {
         headers: { Authorization: "Bearer valid_token" },
@@ -178,7 +179,7 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
 
   describe("POST /api/v1/bookings", () => {
     it("enforces validation on request body", async () => {
-      (verifyAccessToken as any).mockResolvedValue({
+      (verifyAccessToken as unknown as Mock).mockResolvedValue({
         sub: studentId,
         role: "STUDENT",
         emailVerified: true,
@@ -198,7 +199,7 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
     });
 
     it("creates booking successfully and deducts coins", async () => {
-      (verifyAccessToken as any).mockResolvedValue({
+      (verifyAccessToken as unknown as Mock).mockResolvedValue({
         sub: studentId,
         role: "STUDENT",
         emailVerified: true,
@@ -223,7 +224,7 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
 
       const txExecuteRaw = vi.fn().mockResolvedValue(1);
       const txBillingUpsert = vi.fn().mockResolvedValue({});
-      (db.$transaction as any).mockImplementation(async (cb: any) => {
+      (db.$transaction as unknown as Mock).mockImplementation(async (cb: (client: Record<string, unknown>) => Promise<unknown>) => {
         return cb({
           teacherProfile: {
             findUnique: vi.fn().mockResolvedValue({
@@ -287,14 +288,14 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
 
   describe("POST /api/v1/classes/[id]/token", () => {
     it("returns scoped LiveKit WebRTC token for valid student", async () => {
-      (verifyAccessToken as any).mockResolvedValue({
+      (verifyAccessToken as unknown as Mock).mockResolvedValue({
         sub: studentId,
         role: "STUDENT",
         emailVerified: true,
       });
 
       const now = new Date();
-      (db.classSession.findUnique as any).mockResolvedValue({
+      (db.classSession.findUnique as unknown as Mock).mockResolvedValue({
         id: "session-123",
         status: "SCHEDULED",
         scheduledStart: new Date(now.getTime() - 5 * 60 * 1000),
@@ -314,7 +315,7 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
         },
       });
 
-      (db.classSession.update as any).mockResolvedValue({});
+      (db.classSession.update as unknown as Mock).mockResolvedValue({});
 
       const req = new NextRequest("http://localhost/api/v1/classes/session-123/token", {
         method: "POST",
@@ -333,14 +334,14 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
     });
 
     it("rejects access if student is not owner of session", async () => {
-      (verifyAccessToken as any).mockResolvedValue({
+      (verifyAccessToken as unknown as Mock).mockResolvedValue({
         sub: "other-student-id",
         role: "STUDENT",
         emailVerified: true,
       });
 
       const now = new Date();
-      (db.classSession.findUnique as any).mockResolvedValue({
+      (db.classSession.findUnique as unknown as Mock).mockResolvedValue({
         id: "session-123",
         status: "SCHEDULED",
         scheduledStart: new Date(now.getTime() - 5 * 60 * 1000),
@@ -373,15 +374,15 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
     });
 
     it("falls back to the booking's next session when given a booking id", async () => {
-      (verifyAccessToken as any).mockResolvedValue({
+      (verifyAccessToken as unknown as Mock).mockResolvedValue({
         sub: studentId,
         role: "STUDENT",
         emailVerified: true,
       });
 
       const now = new Date();
-      (db.classSession.findUnique as any).mockResolvedValue(null);
-      (db.classSession.findFirst as any).mockResolvedValue({
+      (db.classSession.findUnique as unknown as Mock).mockResolvedValue(null);
+      (db.classSession.findFirst as unknown as Mock).mockResolvedValue({
         id: "session-456",
         status: "SCHEDULED",
         scheduledStart: new Date(now.getTime() - 5 * 60 * 1000),
@@ -400,7 +401,7 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
           teacher: { userId: teacherId, name: "Maria Rodriguez", rates: [{ amount: 600, type: "HOURLY" }] },
         },
       });
-      (db.classSession.update as any).mockResolvedValue({});
+      (db.classSession.update as unknown as Mock).mockResolvedValue({});
 
       const req = new NextRequest("http://localhost/api/v1/classes/booking-1/token", {
         method: "POST",
@@ -417,14 +418,14 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
     });
 
     it("refuses to issue a token for a completed class", async () => {
-      (verifyAccessToken as any).mockResolvedValue({
+      (verifyAccessToken as unknown as Mock).mockResolvedValue({
         sub: studentId,
         role: "STUDENT",
         emailVerified: true,
       });
 
       const now = new Date();
-      (db.classSession.findUnique as any).mockResolvedValue({
+      (db.classSession.findUnique as unknown as Mock).mockResolvedValue({
         id: "session-789",
         status: "COMPLETED",
         scheduledStart: new Date(now.getTime() - 5 * 60 * 1000),
@@ -452,20 +453,20 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
 
   describe("GET /api/v1/me", () => {
     it("returns student profile and balance", async () => {
-      (verifyAccessToken as any).mockResolvedValue({
+      (verifyAccessToken as unknown as Mock).mockResolvedValue({
         sub: studentId,
         role: "STUDENT",
         emailVerified: true,
       });
 
-      (db.user.findUnique as any).mockResolvedValue({
+      (db.user.findUnique as unknown as Mock).mockResolvedValue({
         id: studentId,
         email: "student@languagemetrics.com",
         role: "STUDENT",
         createdAt: new Date("2026-01-01"),
       });
 
-      (db.studentProfile.findUnique as any).mockResolvedValue({
+      (db.studentProfile.findUnique as unknown as Mock).mockResolvedValue({
         name: "Paarth Gupta",
         avatarUrl: null,
         languageToLearn: "Spanish",
@@ -473,7 +474,7 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
         status: "ACTIVE",
       });
 
-      (db.coinTransaction.findMany as any).mockResolvedValue([
+      (db.coinTransaction.findMany as unknown as Mock).mockResolvedValue([
         { amount: 1000 },
         { amount: -200 },
       ]);
@@ -493,7 +494,7 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
 
   describe("GET /api/v1/teachers", () => {
     it("returns teacher discovery list matching filters", async () => {
-      (db.teacherProfile.findMany as any).mockResolvedValue([
+      (db.teacherProfile.findMany as unknown as Mock).mockResolvedValue([
         {
           userId: teacherId,
           name: "Jean Dupont",
@@ -504,7 +505,7 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
           reviews: [{ rating: 5 }, { rating: 5 }],
         },
       ]);
-      (db.teacherProfile.count as any).mockResolvedValue(1);
+      (db.teacherProfile.count as unknown as Mock).mockResolvedValue(1);
 
       const req = new NextRequest("http://localhost/api/v1/teachers?language=French&limit=10");
       const res = await getTeachersHandler(req);
@@ -519,13 +520,13 @@ describe("Mobile Versioned API Endpoints (/api/v1/*)", () => {
 
   describe("GET /api/v1/wallet/balance", () => {
     it("returns calculated coin balance", async () => {
-      (verifyAccessToken as any).mockResolvedValue({
+      (verifyAccessToken as unknown as Mock).mockResolvedValue({
         sub: studentId,
         role: "STUDENT",
         emailVerified: true,
       });
 
-      (db.coinTransaction.findMany as any).mockResolvedValue([
+      (db.coinTransaction.findMany as unknown as Mock).mockResolvedValue([
         { amount: 500 },
         { amount: 250 },
       ]);

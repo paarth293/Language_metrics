@@ -61,10 +61,7 @@ export async function withCache(
   if (response.ok) {
     try {
       const body = await response.text();
-      const headers: Record<string, string> = {};
-      response.headers.forEach((v, k) => {
-        headers[k] = v;
-      });
+      const headers = Object.fromEntries(response.headers.entries());
 
       cache.set(key, {
         data: { body, status: response.status, headers },

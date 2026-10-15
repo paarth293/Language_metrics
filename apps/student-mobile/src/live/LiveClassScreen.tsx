@@ -184,8 +184,10 @@ function ClassStage({
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant();
   const [meter, setMeter] = useState<{ billableMinutes: number; coinsSoFar: number } | null>(null);
 
-  const remote = useMemo(() => tracks.find((t: any) => !t.participant.isLocal), [tracks]);
-  const local = useMemo(() => tracks.find((t: any) => t.participant.isLocal), [tracks]);
+  const remote = useMemo(() =>
+    tracks.find((track) => !track.participant.isLocal && track.source === Track.Source.ScreenShare)
+      ?? tracks.find((track) => !track.participant.isLocal && track.source === Track.Source.Camera), [tracks]);
+  const local = useMemo(() => tracks.find((track) => track.participant.isLocal && track.source === Track.Source.Camera), [tracks]);
 
   useEffect(() => {
     let alive = true;
@@ -211,7 +213,7 @@ function ClassStage({
     <View style={{ flex: 1 }}>
       <View style={styles.stage}>
         {remote ? (
-          <VideoTrack trackRef={remote} style={StyleSheet.absoluteFill} objectFit="cover" />
+          <VideoTrack trackRef={remote} style={StyleSheet.absoluteFill} objectFit="contain" />
         ) : (
           <View style={styles.center}>
             <ActivityIndicator color="#fff" />
@@ -226,7 +228,7 @@ function ClassStage({
 
         {local && isCameraEnabled && (
           <View style={[styles.pip, { width: pipW, height: pipW * 0.75 }]}>
-            <VideoTrack trackRef={local} style={StyleSheet.absoluteFill} objectFit="cover" mirror />
+            <VideoTrack trackRef={local} style={StyleSheet.absoluteFill} objectFit="contain" mirror />
           </View>
         )}
 

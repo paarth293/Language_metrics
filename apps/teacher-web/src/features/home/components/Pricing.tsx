@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
-import { Check, HelpCircle, ChevronDown, Sparkles, Zap, BookOpen } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import React from "react";
+import { Check, Sparkles, Zap, BookOpen } from "lucide-react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
 
@@ -80,7 +80,6 @@ const cardVariants = {
 };
 
 export default function Pricing() {
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   return (
     <section id="pricing" className="py-20 bg-bg">

@@ -15,7 +15,7 @@ export function verifyRazorpaySignature(
     .update(orderId + '|' + paymentId)
     .digest('hex');
 
-  return generatedSignature === signature;
+  return signaturesMatch(generatedSignature, signature);
 }
 
 export function verifyWebhookSignature(payload: string, signature: string): boolean {
@@ -29,5 +29,10 @@ export function verifyWebhookSignature(payload: string, signature: string): bool
     .update(payload)
     .digest('hex');
 
-  return expectedSignature === signature;
+  return signaturesMatch(expectedSignature, signature);
+}
+
+function signaturesMatch(expected: string, received: string): boolean {
+  if (typeof received !== 'string' || !/^[a-f0-9]{64}$/i.test(received)) return false;
+  return crypto.timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(received, 'hex'));
 }

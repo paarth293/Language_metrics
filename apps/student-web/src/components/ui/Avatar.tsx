@@ -1,3 +1,5 @@
+
+import Image from "next/image";
 import * as React from "react"
 import { cn } from "@/lib/cn"
 
@@ -23,11 +25,10 @@ const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
     return (
       <div ref={ref} className={cn("relative inline-block", className)} {...props}>
         <div
-          className={`relative flex shrink-0 overflow-hidden rounded-full items-center justify-center ring-1 ring-border ${showImage ? "bg-surface-inset" : "bg-brand/10 font-bold text-brand"} ${sizeClasses[size]}`}
+          className={`relative flex shrink-0 overflow-hidden rounded-full items-center justify-center ring-1 ring-border ${showImage ? "bg-surface-inset" : "bg-brand/10 font-bold text-brand"} ${new Map(Object.entries(sizeClasses)).get(size)}`}
         >
           {showImage ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image unoptimized width={96} height={96}
               src={src}
               alt={alt || "Avatar"}
               onError={() => setFailedSrc(src)}

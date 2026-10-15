@@ -1,20 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  loginSchema,
-  registerStudentSchema,
-  registerTeacherSchema,
-  resetPasswordSchema,
-  teacherStep1Schema,
-  teacherStep2Schema,
-  teacherStep3Schema,
-  teacherStep4Schema,
-  PASSWORD_RULES,
-  MIN_AGE,
-  ageInYears,
-  parseDateOfBirth,
-  dateOfBirthSchema,
-  latestBirthDate,
-} from "./auth";
+import { loginSchema, registerStudentSchema, registerTeacherSchema, resetPasswordSchema, teacherStep1Schema, teacherStep2Schema, teacherStep3Schema, teacherStep4Schema, PASSWORD_RULES, MIN_AGE, ageInYears, parseDateOfBirth, dateOfBirthSchema, latestBirthDate } from "./auth";
 
 describe("loginSchema", () => {
   it("should accept valid login input", () => {
@@ -206,7 +191,7 @@ describe("registerTeacherSchema", () => {
   });
 
   it("should reject experienced teacher registration missing experience document", () => {
-    const { experienceDocUrl, ...withoutExpDoc } = validTeacher;
+    const withoutExpDoc = { ...validTeacher, experienceDocUrl: undefined };
     const result = registerTeacherSchema.safeParse(withoutExpDoc);
     expect(result.success).toBe(false);
   });

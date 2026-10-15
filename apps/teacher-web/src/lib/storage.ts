@@ -17,7 +17,6 @@
  *   SUPABASE_URL         — Supabase project URL
  *   SUPABASE_SERVICE_KEY — Supabase service role key
  */
-
 import { promises as fs } from "fs";
 import path from "path";
 
@@ -39,7 +38,24 @@ export interface UploadOptions {
   maxSizeBytes?: number;  // default 10MB
 }
 
-const DEFAULT_MAX_SIZE = 10 * 1024 * 1024; // 10MB
+const DEFAULT_MAX_SIZE = 10 * 1024 * 1024;
+
+/** Storage keys are relative, bounded to the upload root, and safe to put in URLs. */
+function validateStorageKey(key: string): void {
+  if (!key || !/^[a-zA-Z0-9._/-]+$/.test(key) || key.split("/").some((part) => !part || part === "." || part === "..")) {
+    throw new Error("Invalid storage key");
+  }
+}
+
+function localFilePath(key: string): string {
+  validateStorageKey(key);
+  const root = path.resolve(UPLOAD_DIR);
+  const filePath = path.resolve(root, key);
+  const relative = path.relative(root, filePath);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error("Invalid storage key");
+  return filePath;
+}
+ // 10MB
 
 /**
  * Upload a file to the configured storage provider.
@@ -51,6 +67,7 @@ export async function uploadFile(
   options: UploadOptions
 ): Promise<UploadResult> {
   const { folder, allowedTypes, maxSizeBytes = DEFAULT_MAX_SIZE } = options;
+  validateStorageKey(folder);
 
   // Validate
   if (file.length > maxSizeBytes) {
@@ -79,6 +96,7 @@ export async function uploadFile(
  * Delete a file from storage.
  */
 export async function deleteFile(key: string): Promise<void> {
+  validateStorageKey(key);
   switch (PROVIDER) {
     case "s3":
       return deleteFromS3(key);
@@ -93,6 +111,7 @@ export async function deleteFile(key: string): Promise<void> {
  * Get a signed/temporary URL for private files.
  */
 export async function getFileUrl(key: string, expiresIn?: number): Promise<string> {
+  validateStorageKey(key);
   if (PUBLIC_URL) {
     return `${PUBLIC_URL}/${key}`;
   }
@@ -111,8 +130,8 @@ async function uploadToS3(file: Buffer, key: string, contentType: string): Promi
   // Lazy load S3 client only at runtime
   let S3Client, PutObjectCommand;
   try {
-    ({ S3Client, PutObjectCommand } = await Function('return import("@aws-sdk/client-s3")')() as any);
-  } catch (e) {
+    ({ S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3"));
+  } catch  {
     throw new Error("AWS S3 SDK not installed. Install @aws-sdk/client-s3 to use S3 storage.");
   }
 
@@ -144,8 +163,8 @@ async function deleteFromS3(key: string): Promise<void> {
   if (PROVIDER !== "s3") return;
   let S3Client, DeleteObjectCommand;
   try {
-    ({ S3Client, DeleteObjectCommand } = await Function('return import("@aws-sdk/client-s3")')() as any);
-  } catch (e) {
+    ({ S3Client, DeleteObjectCommand } = await import("@aws-sdk/client-s3"));
+  } catch  {
     console.warn("AWS S3 SDK not installed, delete skipped.");
     return;
   }
@@ -164,9 +183,9 @@ async function getS3SignedUrl(key: string, expiresIn = 3600): Promise<string> {
   if (PROVIDER !== "s3") throw new Error("S3 provider not configured");
   let S3Client, GetObjectCommand, getSignedUrl;
   try {
-    ({ S3Client, GetObjectCommand } = await Function('return import("@aws-sdk/client-s3")')() as any);
-    ({ getSignedUrl } = await Function('return import("@aws-sdk/s3-request-presigner")')() as any);
-  } catch (e) {
+    ({ S3Client, GetObjectCommand } = await import("@aws-sdk/client-s3"));
+    ({ getSignedUrl } = await import("@aws-sdk/s3-request-presigner"));
+  } catch  {
     throw new Error("AWS S3 SDK not installed. Install @aws-sdk/client-s3 and @aws-sdk/s3-request-presigner.");
   }
   const client = new S3Client({
@@ -186,8 +205,8 @@ async function uploadToSupabase(file: Buffer, key: string, contentType: string):
   if (PROVIDER !== "supabase") throw new Error("Supabase provider not configured");
   let createClient;
   try {
-    ({ createClient } = await Function('return import("@supabase/supabase-js")')() as any);
-  } catch (e) {
+    ({ createClient } = await import("@supabase/supabase-js"));
+  } catch  {
     throw new Error("Supabase SDK not installed. Install @supabase/supabase-js.");
   }
   const supabase = createClient(
@@ -209,8 +228,8 @@ async function deleteFromSupabase(key: string): Promise<void> {
   if (PROVIDER !== "supabase") return;
   let createClient;
   try {
-    ({ createClient } = await Function('return import("@supabase/supabase-js")')() as any);
-  } catch (e) {
+    ({ createClient } = await import("@supabase/supabase-js"));
+  } catch  {
     console.warn("Supabase SDK not installed, delete skipped.");
     return;
   }
@@ -224,7 +243,7 @@ async function deleteFromSupabase(key: string): Promise<void> {
 // ─── Local Filesystem Implementation ─────────────────────────────────────
 
 async function uploadToLocal(file: Buffer, key: string, contentType: string): Promise<UploadResult> {
-  const filePath = path.join(UPLOAD_DIR, key);
+  const filePath = localFilePath(key);
   await fs.mkdir(path.dirname(filePath), { recursive: true });
   await fs.writeFile(filePath, file);
 
@@ -237,8 +256,10 @@ async function uploadToLocal(file: Buffer, key: string, contentType: string): Pr
 }
 
 async function deleteFromLocal(key: string): Promise<void> {
-  const filePath = path.join(UPLOAD_DIR, key);
-  await fs.unlink(filePath).catch(() => {}); // ignore if not found
+  const filePath = localFilePath(key);
+  await fs.unlink(filePath).catch((error: unknown) => {
+    if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
+  });
 }
 
 /**

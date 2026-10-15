@@ -1,24 +1,11 @@
 "use client";
 
+import Image from "next/image";
+import { loadRazorpayScript, type RazorpayPaymentResponse } from "@repo/ui/razorpay";
+
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import {
-  Video,
-  Lock,
-  Unlock,
-  Play,
-  Download,
-  Calendar,
-  Clock,
-  Search,
-  Filter,
-  CreditCard,
-  CheckCircle,
-  AlertCircle,
-  Loader2,
-  ChevronDown,
-} from "lucide-react";
+import { Video, Lock, Play, Calendar, Search, CreditCard, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 
@@ -39,17 +26,12 @@ interface Recording {
 type FilterType = "all" | "unlocked" | "locked";
 
 export default function RecordingsPage() {
-  const router = useRouter();
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterType>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [unlockingId, setUnlockingId] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchRecordings();
-  }, []);
 
   const fetchRecordings = async () => {
     try {
@@ -60,7 +42,7 @@ export default function RecordingsPage() {
       setRecordings(data.recordings || []);
     } catch (err: unknown) {
       if (err instanceof Error) {
-        setError(err.message || "Failed to load recordings");
+        setError(err instanceof Error ? err.message : "Failed to load recordings");
       } else {
         setError(String(err) || "Failed to load recordings");
       }
@@ -69,9 +51,18 @@ export default function RecordingsPage() {
     }
   };
 
+  useEffect(() => {
+    const initial = setTimeout(() => void fetchRecordings(), 0);
+    return () => clearTimeout(initial);
+  }, []);
+
+
+
   const handleUnlock = async (recordingId: string) => {
+    if (unlockingId) return;
     setUnlockingId(recordingId);
     try {
+      if (!(await loadRazorpayScript())) throw new Error("Payment form could not load. Please try again.");
       // Create Razorpay order
       const orderRes = await fetch("/api/students/payments/razorpay/order", {
         method: "POST",
@@ -94,7 +85,8 @@ export default function RecordingsPage() {
         name: "Language Metrics",
         description: "Unlock Recording",
         order_id: orderId,
-        handler: async (response: any) => {
+        handler: async (response: RazorpayPaymentResponse) => {
+          try {
           // Verify payment
           const verifyRes = await fetch(
             "/api/students/payments/razorpay/verify",
@@ -115,16 +107,21 @@ export default function RecordingsPage() {
           } else {
             throw new Error("Payment verification failed");
           }
+          } catch (error) {
+            alert(error instanceof Error ? error.message : "Payment verification failed. Please try again.");
+          } finally {
+            setUnlockingId(null);
+          }
         },
+        modal: { ondismiss: () => setUnlockingId(null) },
         prefill: { name: "" },
         theme: { color: "#B8860B" },
       };
 
-      const razorpay = new (window as any).Razorpay(options);
+      const razorpay = new window.Razorpay(options);
       razorpay.open();
-    } catch (err: any) {
-      alert(err.message || "Payment failed. Please try again.");
-    } finally {
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Payment failed. Please try again.");
       setUnlockingId(null);
     }
   };
@@ -244,7 +241,7 @@ export default function RecordingsPage() {
             {/* Thumbnail */}
             <div className="relative aspect-video bg-gray-100">
               {recording.thumbnailUrl ? (
-                <img
+                <Image unoptimized width={640} height={360}
                   src={recording.thumbnailUrl}
                   alt={recording.title}
                   className="w-full h-full object-cover"

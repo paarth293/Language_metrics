@@ -1,3 +1,4 @@
+import type { Prisma } from "@repo/database";
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -36,7 +37,7 @@ export async function GET(request: Request) {
     const now = new Date();
 
     // Build where clause based on filter
-    const where: any = { studentId: userId };
+    const where: Prisma.BookingWhereInput = { studentId: userId };
 
     if (filter === "upcoming") {
       where.OR = [

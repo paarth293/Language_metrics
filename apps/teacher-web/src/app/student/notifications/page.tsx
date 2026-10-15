@@ -82,7 +82,8 @@ export default function StudentNotifications() {
   }, []);
 
   useEffect(() => {
-    fetchNotifications();
+    const timer = setTimeout(() => void fetchNotifications(), 0);
+    return () => clearTimeout(timer);
   }, [fetchNotifications]);
 
   const markAsRead = async (id: string) => {

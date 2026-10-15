@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Build unique teacher threads
-    const teacherMap = new Map<string, any>();
+    const teacherMap = new Map<string, { teacherId: string; teacherName: string; teacherAvatar: string | null; language: string; lastMessage: string; lastMessageTime: string; unreadCount: number }>();
 
     for (const booking of bookings) {
       const teacherId = booking.teacher.userId;
@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
 
     // Sort by last message time
     threads.sort(
-      (a: any, b: any) =>
+      (a, b) =>
         new Date(b.lastMessageTime).getTime() -
         new Date(a.lastMessageTime).getTime()
     );

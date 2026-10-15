@@ -24,6 +24,9 @@ language-metrics/
 ├── packages/
 │   ├── api-contracts/        # Shared request/response types (web ↔ mobile)
 │   ├── auth/                 # JWT, sessions, OAuth, email templates
+│   ├── classroom/            # Shared web classroom and device lifecycle
+│   ├── ui/                   # Shared web UI primitives and password input
+│   ├── languages/            # Language and proficiency reference data
 │   ├── currency/             # Currency conversion and formatting
 │   ├── database/             # Prisma schema, migrations, client, coin ledger
 │   │   ├── prisma/           #   schema.prisma, migrations/, seed.mjs
@@ -35,6 +38,8 @@ language-metrics/
 │   ├── e2e/                  # Playwright end-to-end specs
 │   └── security/             # Python dynamic security suite + SAST report tooling
 ├── docs/                     # Architecture, runbook, specs, design, audits
+├── tooling/                  # Shared compiler and lint configuration
+├── scripts/                  # Repository maintenance and structure checks
 └── .github/workflows/        # CI: security pipeline, mobile CI, session reconciler
 ```
 
@@ -127,6 +132,9 @@ npm run dev:admin          # Start admin-panel only
 npm run dev:student        # Start student-web only
 npm run dev:mobile         # Start the Expo mobile app
 npm run build              # Production build
+npm run check:structure    # Validate workspace boundaries and shared styling
+npm run typecheck          # Type-check applications and packages
+npm test                   # Run all workspace unit tests
 npm run lint               # Run ESLint
 npm run test:e2e           # Playwright end-to-end tests
 npm run test:livekit       # LiveKit, ledger and live-class unit tests
@@ -141,6 +149,7 @@ npm run db:seed            # Seed reference data
 
 | Document | Purpose |
 |----------|---------|
+| [docs/repository-structure.md](docs/repository-structure.md) | Folder ownership, shared packages, and contribution rules |
 | [docs/architecture.md](docs/architecture.md) | System architecture and technical overview |
 | [docs/runbook.md](docs/runbook.md) | Production on-call and operational runbook |
 | [docs/livekit.md](docs/livekit.md) | Live video, metering and billing |

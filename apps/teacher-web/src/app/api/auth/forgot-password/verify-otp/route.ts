@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { hashOtp } from "@/lib/otp";
+import "@/lib/otp";
 import { signResetSessionToken } from "@/lib/tokens";
 import { getRedisClient } from "@/lib/redis-client";
 import { rateLimitRedis, exceedsMaxBodySize } from "@/lib/rate-limit";

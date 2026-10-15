@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -74,8 +76,7 @@ export function Sidebar({ navItems, isOpen, onClose }: SidebarProps) {
       <div className="flex h-16 shrink-0 items-center justify-between border-b border-border px-5">
         <Link href="/" className="flex items-center gap-2.5" aria-label="Language Metrics — home">
           <span className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-cream ring-1 ring-border-strong">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/logo-full.png" alt="" className="h-full w-full scale-[1.22] object-cover object-[50%_5%]" />
+            <Image unoptimized width={96} height={96} src="/brand/logo-full.png" alt="" className="h-full w-full scale-[1.22] object-cover object-[50%_5%]" />
           </span>
           <span>
             <span className="block text-[12px] font-bold leading-tight text-text">Language Metrics</span>

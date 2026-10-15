@@ -134,19 +134,7 @@ const nextConfig: NextConfig = {
       // (Turbopack) reuses the same chunk names across edits; caching them
       // for a year made the browser run stale code against fresh server
       // HTML and throw hydration mismatches after every change.
-      ...(isProd
-        ? [
-            {
-              source: "/_next/static/(.*)",
-              headers: [
-                {
-                  key: "Cache-Control",
-                  value: "public, max-age=31536000, immutable",
-                },
-              ],
-            },
-          ]
-        : [
+      ...(!isProd ? [
             // Browsers that loaded the app while dev chunks were still sent
             // as "immutable" never revalidate them, so they keep running old
             // code (hydration mismatches, "module factory is not available").
@@ -156,7 +144,7 @@ const nextConfig: NextConfig = {
               source: "/((?!_next|api).*)",
               headers: [{ key: "Clear-Site-Data", value: '"cache"' }],
             },
-          ]),
+          ] : []),
       // Brand images — cache for 7 days
       {
         source: "/brand/(.*)",

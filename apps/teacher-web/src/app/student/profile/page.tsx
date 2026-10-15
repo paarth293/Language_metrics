@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import React, { useState, useEffect } from "react";
 import {
   Save,
@@ -84,11 +86,6 @@ export default function StudentProfilePage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    fetchProfile();
-    checkPushStatus();
-  }, []);
-
   const fetchProfile = async () => {
     try {
       const res = await fetch("/api/students/profile", { credentials: "include" });
@@ -117,6 +114,18 @@ export default function StudentProfilePage() {
       setLoading(false);
     }
   };
+
+  const checkPushStatus = async () => {
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "granted") setPushEnabled(true);
+  };
+
+  useEffect(() => {
+    const initial = setTimeout(() => { void fetchProfile(); void checkPushStatus(); }, 0);
+    return () => clearTimeout(initial);
+  }, []);
+
+
 
   const handleSave = async () => {
     setSaving(true);
@@ -175,10 +184,7 @@ export default function StudentProfilePage() {
     }
   };
 
-  const checkPushStatus = async () => {
-    if (!("Notification" in window)) return;
-    if (Notification.permission === "granted") setPushEnabled(true);
-  };
+
 
   const handleTogglePush = async () => {
     setPushLoading(true);
@@ -271,12 +277,12 @@ export default function StudentProfilePage() {
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#231d5e] to-[#5046c8] p-[1px] shadow-level-2">
         <div className="rounded-[15px] bg-gradient-to-br from-[#1a1547] to-[#0f0c29] p-6 relative overflow-hidden">
           <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-white/5 blur-[50px] pointer-events-none" />
-          
+
           <div className="flex items-start gap-6 relative z-10">
             <div className="relative group">
               <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-brand to-brand-hover flex items-center justify-center overflow-hidden shadow-sm border border-white/10">
                 {avatarUrl ? (
-                  <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+                  <Image unoptimized width={96} height={96} src={avatarUrl} alt={name} className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-3xl font-display font-bold text-white">{name[0]?.toUpperCase()}</span>
                 )}
@@ -285,7 +291,7 @@ export default function StudentProfilePage() {
                 <Camera className="w-6 h-6 text-white" />
               </div>
             </div>
-            
+
             <div className="flex-1">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
                 <div>
@@ -545,7 +551,7 @@ export default function StudentProfilePage() {
             </CardContent>
           </Card>
         </div>
-        
+
         {/* ── ACCOUNT DELETION ─────────────────────── */}
         <Card className="lg:col-span-2 border-alert/30 bg-alert/5 shadow-sm">
           <CardHeader className="pb-3 border-b border-alert/10">

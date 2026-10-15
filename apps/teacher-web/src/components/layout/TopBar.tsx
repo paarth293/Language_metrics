@@ -45,12 +45,11 @@ export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnread
   const notificationsHref = user?.role === "STUDENT" ? "/student/notifications" : "/teacher/notifications";
   const profileHref = user?.role === "STUDENT" ? "/student/profile" : "/teacher/profile";
 
-  const [unreadCount, setUnreadCount] = useState<number>(initialUnreadCount ?? 0);
+  const [localUnreadCount, setUnreadCount] = useState<number | undefined>();
+  const unreadCount = localUnreadCount ?? initialUnreadCount ?? 0;
 
   useEffect(() => {
     if (initialUnreadCount !== undefined) {
-      // eslint-disable-next-line
-      setUnreadCount(initialUnreadCount);
       return;
     }
 

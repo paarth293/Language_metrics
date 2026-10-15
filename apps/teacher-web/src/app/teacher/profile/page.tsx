@@ -1,21 +1,9 @@
 "use client";
 
+import Image from "next/image";
+
 import React, { useState, useEffect } from "react";
-import {
-  Save,
-  Clock,
-  DollarSign,
-  Loader2,
-  AlertCircle,
-  Plus,
-  Trash2,
-  CheckCircle2,
-  FileText,
-  Video,
-  Shield,
-  Camera,
-  Edit3,
-} from "lucide-react";
+import { Save, Clock, DollarSign, Loader2, AlertCircle, Plus, Trash2, CheckCircle2, FileText, Video, Shield, Camera, Edit3 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -94,7 +82,7 @@ export default function TeacherProfileSettings() {
   // Profile metadata (read-only)
   const [profileName, setProfileName] = useState("");
   const [profileStatus, setProfileStatus] = useState("");
-  const [profileLanguage, setProfileLanguage] = useState("");
+  const [, setProfileLanguage] = useState("");
   const [profileLanguages, setProfileLanguages] = useState<string[]>([]);
   const [profileExperience, setProfileExperience] = useState("");
   const [profileEmail, setProfileEmail] = useState("");
@@ -148,7 +136,7 @@ export default function TeacherProfileSettings() {
         body: JSON.stringify({ bio, avatarUrl, demoVideoUrl }),
       });
       if (!res.ok) throw new Error("Failed to save profile");
-      
+
       // also save settings so there's one save action for user simplicity here
       await fetch("/api/teachers/settings", {
         method: "PUT",
@@ -232,12 +220,12 @@ export default function TeacherProfileSettings() {
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#231d5e] to-[#5046c8] p-[1px] shadow-level-2">
         <div className="rounded-[15px] bg-gradient-to-br from-[#1a1547] to-[#0f0c29] p-6 relative overflow-hidden">
           <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-white/5 blur-[50px] pointer-events-none" />
-          
+
           <div className="flex items-start gap-6 relative z-10">
             <div className="relative group shrink-0">
               <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-brand to-brand-hover flex items-center justify-center overflow-hidden shadow-sm border border-white/10">
                 {avatarUrl ? (
-                  <img src={avatarUrl} alt={profileName} className="w-full h-full object-cover" />
+                  <Image unoptimized width={96} height={96} src={avatarUrl} alt={profileName} className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-3xl font-display font-bold text-white">{profileName[0]?.toUpperCase()}</span>
                 )}
@@ -246,7 +234,7 @@ export default function TeacherProfileSettings() {
                 <Camera className="w-6 h-6 text-white" />
               </div>
             </div>
-            
+
             <div className="flex-1">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-y-4 gap-x-6">
                 <div className="col-span-2">
@@ -257,7 +245,7 @@ export default function TeacherProfileSettings() {
                   <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Email</label>
                   <div className="text-[14px] text-white/90 font-medium mt-1">{profileEmail}</div>
                 </div>
-                
+
                 <div>
                   <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Status</label>
                   <div className="mt-1">
@@ -428,7 +416,7 @@ export default function TeacherProfileSettings() {
 
         {/* ── RIGHT COLUMN ───────────────────────────── */}
         <div className="lg:col-span-2 space-y-6">
-          
+
           {/* Availability */}
           <Card className="border border-border/50 shadow-sm h-fit">
             <CardHeader className="pb-4 border-b border-border/40">
@@ -460,7 +448,7 @@ export default function TeacherProfileSettings() {
                           <Plus className="w-3.5 h-3.5 mr-1" /> Add Slot
                         </Button>
                       </div>
-                      
+
                       {daySlots.length === 0 ? (
                         <p className="text-[13px] text-text-subtle font-medium italic">Unavailable on {dayName}s</p>
                       ) : (

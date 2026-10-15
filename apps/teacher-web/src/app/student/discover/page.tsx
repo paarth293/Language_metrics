@@ -1,23 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import {
-  Search,
-  Filter,
-  Star,
-  Clock,
-  AlertCircle,
-  Loader2,
-  X,
-  GraduationCap,
-  ArrowRight,
-} from "lucide-react";
+import { Search, Filter, Star, Clock, AlertCircle, X } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardFooter } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
-import { Badge } from "@/components/ui/Badge";
+import "@/components/ui/Badge";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { getCurrencyInfo } from "@repo/currency";
 
@@ -83,11 +73,7 @@ export default function DiscoverPage() {
   const [availableOnly, setAvailableOnly] = useState(false);
   const [showFilters, setShowFilters] = useState(true);
 
-  useEffect(() => {
-    fetchTeachers();
-  }, [searchQuery, selectedLanguage, selectedBudget, selectedExperience, selectedGender, availableOnly]);
-
-  const fetchTeachers = async () => {
+  const fetchTeachers = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
@@ -114,7 +100,14 @@ export default function DiscoverPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchQuery, selectedLanguage, selectedBudget, selectedExperience, selectedGender, availableOnly]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => void fetchTeachers(), 0);
+    return () => clearTimeout(timer);
+  }, [fetchTeachers]);
+
+
 
   const clearAllFilters = () => {
     setSearchQuery("");
@@ -174,7 +167,7 @@ export default function DiscoverPage() {
           <aside className="w-full lg:w-[280px] shrink-0 space-y-4 animate-in slide-in-from-left-4 duration-300">
             <Card className="border border-border/50 shadow-sm sticky top-6">
               <CardContent className="p-5 space-y-6">
-                
+
                 {/* Language */}
                 <div>
                   <h3 className="font-semibold text-text text-[13px] uppercase tracking-wider mb-3">Language</h3>
@@ -329,7 +322,7 @@ export default function DiscoverPage() {
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
               {teachers.map((teacher, index) => {
                 const initials = getInitials(teacher.name);
-                
+
                 return (
                   <Card key={teacher.id} className="overflow-hidden flex flex-col border border-border/50 hover:shadow-level-2 hover:border-brand/30 transition-all duration-300">
                     <CardContent className="p-5 flex-1 flex flex-col">
@@ -348,7 +341,7 @@ export default function DiscoverPage() {
                             )}
                           </div>
                         )}
-                        
+
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2 mb-1">
                             <h3 className="text-[16px] font-bold text-text truncate font-display">
@@ -359,7 +352,7 @@ export default function DiscoverPage() {
                               <span className="text-[12px] font-bold text-gold-strong">{teacher.rating > 0 ? teacher.rating.toFixed(1) : "New"}</span>
                             </div>
                           </div>
-                          
+
                           <div className="flex items-center flex-wrap gap-2 text-[12px] font-semibold mb-2">
                             <span className="text-brand">{teacher.languages.filter(Boolean).join(" • ")}</span>
                             {teacher.experienceLevel && (
@@ -369,7 +362,7 @@ export default function DiscoverPage() {
                               </>
                             )}
                           </div>
-                          
+
                           <div className="flex items-center gap-3 text-[12px] text-text-subtle">
                             {teacher.reviews > 0 && <span>{teacher.reviews} reviews</span>}
                             {teacher.totalHours > 0 && <span>{teacher.totalHours}h taught</span>}
@@ -389,7 +382,7 @@ export default function DiscoverPage() {
                         <div className="flex items-center gap-2 text-[11px] font-bold text-trust uppercase tracking-wider mb-3">
                           <Clock className="w-3.5 h-3.5" /> Next avail: {teacher.nextAvailable}
                         </div>
-                        
+
                         <div className="grid grid-cols-2 gap-2 mb-4">
                           <div className="bg-surface border border-border/60 rounded-xl p-3 text-center">
                             <div className="text-[11px] font-semibold text-text-subtle uppercase tracking-wider mb-1">Hourly</div>

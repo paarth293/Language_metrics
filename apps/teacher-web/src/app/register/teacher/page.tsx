@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { OAuthErrorAlert } from "@/components/auth/OAuthErrorAlert";
 import { Input } from "@/components/ui/Input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { FileUpload } from "@/components/ui/FileUpload";
 import { Button } from "@/components/ui/Button";
 import {
@@ -443,7 +444,7 @@ export default function TeacherRegisterPage() {
               </div>
               <div className="space-y-1">
                 <label htmlFor="teacher-password" className="text-sm font-medium text-text">Password</label>
-                <Input id="teacher-password" type="password" placeholder="Create a password (min 8 chars, uppercase, number)" value={password}
+                <PasswordInput id="teacher-password" autoComplete="new-password" placeholder="Create a password (min 8 chars, uppercase, number)" value={password}
                   onChange={(e) => { setPassword(e.target.value); clearStep1("password"); }}
                   aria-invalid={!!step1Errors.password} aria-describedby={step1Errors.password ? "teacher-password-error" : undefined}
                   className={step1Errors.password ? "border-alert focus:ring-alert/30" : ""} />

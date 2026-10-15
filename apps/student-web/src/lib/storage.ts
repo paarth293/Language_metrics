@@ -39,7 +39,24 @@ export interface UploadOptions {
   maxSizeBytes?: number;  // default 10MB
 }
 
-const DEFAULT_MAX_SIZE = 10 * 1024 * 1024; // 10MB
+const DEFAULT_MAX_SIZE = 10 * 1024 * 1024;
+
+/** Storage keys are relative, bounded to the upload root, and safe to put in URLs. */
+function validateStorageKey(key: string): void {
+  if (!key || !/^[a-zA-Z0-9._/-]+$/.test(key) || key.split("/").some((part) => !part || part === "." || part === "..")) {
+    throw new Error("Invalid storage key");
+  }
+}
+
+function localFilePath(key: string): string {
+  validateStorageKey(key);
+  const root = path.resolve(UPLOAD_DIR);
+  const filePath = path.resolve(root, key);
+  const relative = path.relative(root, filePath);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error("Invalid storage key");
+  return filePath;
+}
+ // 10MB
 
 /**
  * Upload a file to the configured storage provider.
@@ -51,6 +68,7 @@ export async function uploadFile(
   options: UploadOptions
 ): Promise<UploadResult> {
   const { folder, allowedTypes, maxSizeBytes = DEFAULT_MAX_SIZE } = options;
+  validateStorageKey(folder);
 
   // Validate
   if (file.length > maxSizeBytes) {
@@ -79,6 +97,7 @@ export async function uploadFile(
  * Delete a file from storage.
  */
 export async function deleteFile(key: string): Promise<void> {
+  validateStorageKey(key);
   switch (PROVIDER) {
     case "s3":
       return deleteFromS3(key);
@@ -93,6 +112,7 @@ export async function deleteFile(key: string): Promise<void> {
  * Get a signed/temporary URL for private files.
  */
 export async function getFileUrl(key: string, expiresIn?: number): Promise<string> {
+  validateStorageKey(key);
   if (PUBLIC_URL) {
     return `${PUBLIC_URL}/${key}`;
   }
@@ -198,8 +218,10 @@ async function deleteFromSupabase(key: string): Promise<void> {
 // ─── Local Filesystem Implementation ─────────────────────────────────────
 
 async function uploadToLocal(file: Buffer, key: string, contentType: string): Promise<UploadResult> {
-  const filePath = path.join(UPLOAD_DIR, key);
+  const filePath = localFilePath(key);
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- localFilePath validates the key and confines it to UPLOAD_DIR.
   await fs.mkdir(path.dirname(filePath), { recursive: true });
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- localFilePath validates the key and confines it to UPLOAD_DIR.
   await fs.writeFile(filePath, file);
 
   return {
@@ -211,8 +233,11 @@ async function uploadToLocal(file: Buffer, key: string, contentType: string): Pr
 }
 
 async function deleteFromLocal(key: string): Promise<void> {
-  const filePath = path.join(UPLOAD_DIR, key);
-  await fs.unlink(filePath).catch(() => {}); // ignore if not found
+  const filePath = localFilePath(key);
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- localFilePath validates the key and confines it to UPLOAD_DIR.
+  await fs.unlink(filePath).catch((error: unknown) => {
+    if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
+  });
 }
 
 /**
