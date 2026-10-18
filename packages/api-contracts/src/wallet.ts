@@ -67,15 +67,31 @@ export const COIN_PACKAGES: readonly CoinPackage[] = [
   { id: "tier3", coins: 1000, priceInr: 1000, name: "Pro Pack" },
 ];
 
+/** Bounds for a custom top-up in whole rupees. ₹1 is Cashfree's minimum order. */
+export const MIN_CUSTOM_TOPUP_INR = 1;
+export const MAX_CUSTOM_TOPUP_INR = 100_000;
+
+/** Whether `value` is an allowed custom top-up: whole rupees within the bounds. */
+export function isValidCustomTopUp(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= MIN_CUSTOM_TOPUP_INR && value <= MAX_CUSTOM_TOPUP_INR;
+}
+
 /**
- * Resolve a create-order request body to a pack. `packageId` wins; a bare
- * `amount` must equal a pack price. Anything tampered with (another price,
- * another currency, an unknown pack) resolves to null.
+ * Resolve a create-order request body to what is being bought. Either a pack
+ * (`packageId`, or a bare `amount` equal to a pack price) or a custom amount
+ * (`customAmountInr`, whole rupees, bought at 1 coin = ₹1). Anything tampered
+ * with or ambiguous (another price, another currency, an unknown pack, a pack
+ * and a custom amount together) resolves to null.
  */
 export function resolveCoinPackage(body: unknown): CoinPackage | null {
   if (!body || typeof body !== "object") return null;
-  const { packageId, amount, currency = "INR" } = body as Record<string, unknown>;
+  const { packageId, amount, customAmountInr, currency = "INR" } = body as Record<string, unknown>;
   if (currency !== "INR") return null;
+  if (customAmountInr !== undefined) {
+    if (packageId !== undefined || amount !== undefined || !isValidCustomTopUp(customAmountInr)) return null;
+    const coins = customAmountInr / COIN_VALUE_INR;
+    return { id: "custom", coins, priceInr: customAmountInr, name: "Custom amount" };
+  }
   const pack = packageId !== undefined
     ? COIN_PACKAGES.find((entry) => entry.id === packageId)
     : COIN_PACKAGES.find((entry) => entry.priceInr === amount);
