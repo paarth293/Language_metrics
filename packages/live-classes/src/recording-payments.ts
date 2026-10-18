@@ -34,7 +34,7 @@ export async function createRecordingPaymentOrder(userId: string, recordingId: u
   // A second tab or a retry must not open a second chargeable order: hand
   // back the open one while Cashfree still accepts payment for it.
   const open = await db.paymentOrder.findFirst({
-    where: { userId, status: "CREATED", receipt: { startsWith: receiptPrefix(recordingId) } },
+    where: { userId, status: { in: ["CREATED", "FAILED"] }, receipt: { startsWith: receiptPrefix(recordingId) } },
     orderBy: { createdAt: "desc" },
   });
   if (open) {
@@ -47,7 +47,7 @@ export async function createRecordingPaymentOrder(userId: string, recordingId: u
       if (payment) await settleRecordingPayment(payment, userId);
       throw new RecordingPaymentError("Recording is already unlocked", 409);
     }
-    await db.paymentOrder.updateMany({ where: { id: open.id, status: "CREATED" }, data: { status: "EXPIRED" } });
+    await db.paymentOrder.updateMany({ where: { id: open.id, status: { in: ["CREATED", "FAILED"] } }, data: { status: "EXPIRED" } });
   }
 
   const receipt = `${receiptPrefix(recordingId)}${randomBytes(4).toString("hex")}`;
