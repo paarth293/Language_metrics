@@ -15,6 +15,9 @@ let fakeDb: FakeDb = createFakeDb();
 let fakeCashfree: FakeCashfree = createFakeCashfree();
 let currentUser: string | null = "student-a";
 let currentAdmin: { id: string; permissions: string[] } | null = null;
+const alerts: Array<{ url: string; body: Record<string, unknown> }> = [];
+let alertStatus = 200;
+export const ALERT_URL = "https://alerts.example.test/hook";
 const auditEntries: Array<{ adminId: string; action: string; subjectId: string; details?: Record<string, unknown> }> = [];
 
 export const harness = {
@@ -54,6 +57,10 @@ export const harness = {
   }),
   signInAdmin(admin: { id: string; permissions: string[] } | null) { currentAdmin = admin; },
   get auditEntries() { return auditEntries; },
+  /** Payloads POSTed to PAYMENT_ALERT_WEBHOOK_URL. */
+  get alerts() { return alerts; },
+  /** Make the alert endpoint answer with this status (0 = network error). */
+  alertEndpointReturns(status: number) { alertStatus = status; },
 
   reset() {
     fakeDb = createFakeDb();
@@ -61,11 +68,20 @@ export const harness = {
     currentUser = "student-a";
     currentAdmin = null;
     auditEntries.length = 0;
+    alerts.length = 0;
+    alertStatus = 200;
     vi.stubEnv("CASHFREE_CLIENT_ID", "test-client-id");
     vi.stubEnv("CASHFREE_CLIENT_SECRET", TEST_SECRET);
     vi.stubEnv("CASHFREE_ENV", "sandbox");
     vi.stubEnv("CRON_SECRET", "test-cron-secret");
-    vi.stubGlobal("fetch", (input: string | URL, init?: RequestInit) => fakeCashfree.fetch(input, init));
+    vi.stubGlobal("fetch", async (input: string | URL, init?: RequestInit) => {
+      if (String(input).startsWith(ALERT_URL)) {
+        if (alertStatus === 0) throw new TypeError("fetch failed");
+        alerts.push({ url: String(input), body: JSON.parse(String(init?.body)) });
+        return new Response(null, { status: alertStatus });
+      }
+      return fakeCashfree.fetch(input, init);
+    });
   },
 
   teardown() {
