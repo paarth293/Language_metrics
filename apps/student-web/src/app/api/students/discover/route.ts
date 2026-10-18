@@ -70,10 +70,15 @@ export async function GET(request: Request) {
       // without a second COUNT query (see lib/discover-query.ts#paginate).
       const teachers = await db.teacherProfile.findMany({
         where,
-        include: {
-          user: {
-            select: { email: true },
-          },
+        // Keep discovery independent of unrelated profile columns.
+        select: {
+          userId: true,
+          name: true,
+          avatarUrl: true,
+          language: true,
+          languages: true,
+          bio: true,
+          experienceLevel: true,
           rates: {
             select: { type: true, amount: true, currency: true },
           },
