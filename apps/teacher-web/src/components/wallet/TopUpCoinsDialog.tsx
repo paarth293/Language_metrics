@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { CheckCircle2, Clock, Coins, Loader2, ShieldCheck, X } from "lucide-react";
-import { COIN_PACKAGES, type CoinPackage } from "@repo/api-contracts";
+import { CheckCircle2, Clock, Coins, Loader2, Pencil, ShieldCheck, X } from "lucide-react";
+import { COIN_PACKAGES, MAX_CUSTOM_TOPUP_INR, MIN_CUSTOM_TOPUP_INR, isValidCustomTopUp } from "@repo/api-contracts";
 import { openCashfreeCheckout, type CashfreeMode } from "@repo/ui/cashfree";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
@@ -47,7 +47,11 @@ async function postJson(url: string, body: unknown) {
 }
 
 export function TopUpCoinsDialog({ open, onClose, onPaid }: TopUpCoinsDialogProps) {
-  const [selected, setSelected] = useState<CoinPackage>(COIN_PACKAGES[1] ?? COIN_PACKAGES[0]!);
+  /** A pack id, or "custom" for a typed amount. */
+  const [choice, setChoice] = useState<string>(COIN_PACKAGES[1]?.id ?? "tier1");
+  const [customText, setCustomText] = useState("");
+  /** Coins of the purchase in flight, for the "added" message and rechecks. */
+  const [inFlightCoins, setInFlightCoins] = useState(0);
   const [phase, setPhase] = useState<Phase>({ kind: "choose" });
   const dialogRef = useRef<HTMLDivElement>(null);
   /** Bumped on close, so an in-flight recheck loop stops touching state. */
@@ -99,10 +103,19 @@ export function TopUpCoinsDialog({ open, onClose, onPaid }: TopUpCoinsDialogProp
     }
   }, [onPaid]);
 
+  // What "Pay" would buy right now, or null while a custom amount is invalid.
+  const customAmount = /^\d+$/.test(customText) ? Number(customText) : NaN;
+  const pack = COIN_PACKAGES.find((p) => p.id === choice);
+  const purchase = choice === "custom"
+    ? (isValidCustomTopUp(customAmount) ? { body: { customAmountInr: customAmount }, coins: customAmount, priceInr: customAmount } : null)
+    : pack ? { body: { packageId: pack.id }, coins: pack.coins, priceInr: pack.priceInr } : null;
+
   const pay = async () => {
+    if (!purchase) return;
+    setInFlightCoins(purchase.coins);
     setPhase({ kind: "checkout" });
     try {
-      const { ok, data } = await postJson("/api/payments/create-order", { packageId: selected.id });
+      const { ok, data } = await postJson("/api/payments/create-order", purchase.body);
       const { orderId, paymentSessionId, mode } = data as { orderId?: string; paymentSessionId?: string; mode?: CashfreeMode };
       if (!ok || !orderId || !paymentSessionId || !mode) {
         setPhase({ kind: "error", message: data.error || "Payments are unavailable right now. Please try again later." });
@@ -114,7 +127,7 @@ export function TopUpCoinsDialog({ open, onClose, onPaid }: TopUpCoinsDialogProp
         setPhase({ kind: "choose", notice: result.error.message || "Payment was not completed. No money was taken." });
         return;
       }
-      await confirm(orderId, selected.coins);
+      await confirm(orderId, purchase.coins);
     } catch (error) {
       setPhase({ kind: "error", message: error instanceof Error ? error.message : "Payment failed. Please try again." });
     }
@@ -175,16 +188,16 @@ export function TopUpCoinsDialog({ open, onClose, onPaid }: TopUpCoinsDialogProp
               </p>
               <div className="mt-6 flex gap-2">
                 <Button variant="outline" className="flex-1" onClick={requestClose}>Close</Button>
-                <Button className="flex-1" onClick={() => void confirm(phase.orderId, selected.coins)}>Check again</Button>
+                <Button className="flex-1" onClick={() => void confirm(phase.orderId, inFlightCoins)}>Check again</Button>
               </div>
             </div>
           ) : (
             <>
               <fieldset disabled={busy}>
-                <legend className="sr-only">Choose a coin pack</legend>
+                <legend className="sr-only">Choose a coin pack or a custom amount</legend>
                 <div className="grid gap-2.5">
                   {COIN_PACKAGES.map((pack) => {
-                    const active = pack.id === selected.id;
+                    const active = pack.id === choice;
                     return (
                       <label
                         key={pack.id}
@@ -198,7 +211,7 @@ export function TopUpCoinsDialog({ open, onClose, onPaid }: TopUpCoinsDialogProp
                           name="coin-pack"
                           value={pack.id}
                           checked={active}
-                          onChange={() => setSelected(pack)}
+                          onChange={() => setChoice(pack.id)}
                           className="sr-only"
                         />
                         <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg", active ? "bg-brand/10 text-brand" : "bg-surface-inset text-text-muted")}>
@@ -212,7 +225,65 @@ export function TopUpCoinsDialog({ open, onClose, onPaid }: TopUpCoinsDialogProp
                       </label>
                     );
                   })}
+
+                  <label
+                    className={cn(
+                      "flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors focus-within:ring-2 focus-within:ring-brand/40",
+                      choice === "custom" ? "border-brand bg-brand/5" : "border-border hover:border-border-strong hover:bg-surface-inset"
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="coin-pack"
+                      value="custom"
+                      checked={choice === "custom"}
+                      onChange={() => setChoice("custom")}
+                      className="sr-only"
+                    />
+                    <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg", choice === "custom" ? "bg-brand/10 text-brand" : "bg-surface-inset text-text-muted")}>
+                      <Pencil className="h-5 w-5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[14px] font-bold text-text">Custom amount</span>
+                      <span className="block text-[12px] text-text-muted">Any amount, 1 coin per ₹1</span>
+                    </span>
+                    <span className="font-display text-[16px] font-bold tabular-nums text-text">
+                      {choice === "custom" && isValidCustomTopUp(customAmount) ? `₹${customAmount.toLocaleString("en-IN")}` : "₹ …"}
+                    </span>
+                  </label>
                 </div>
+
+                {choice === "custom" && (
+                  <div className="mt-3">
+                    <label htmlFor="topup-custom-amount" className="mb-1.5 block text-[12px] font-semibold text-text">
+                      Amount in rupees
+                    </label>
+                    <div className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/30">
+                      <span className="text-[16px] font-bold text-text-muted" aria-hidden>₹</span>
+                      <input
+                        id="topup-custom-amount"
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="off"
+                        autoFocus
+                        placeholder="Enter amount"
+                        value={customText}
+                        onChange={(e) => setCustomText(e.target.value.replace(/\D/g, "").replace(/^0+/, "").slice(0, String(MAX_CUSTOM_TOPUP_INR).length))}
+                        aria-describedby="topup-custom-hint"
+                        aria-invalid={customText !== "" && !isValidCustomTopUp(customAmount)}
+                        className="h-11 w-full bg-transparent text-[16px] font-bold tabular-nums text-text outline-none placeholder:font-normal placeholder:text-text-subtle"
+                      />
+                    </div>
+                    <p
+                      id="topup-custom-hint"
+                      className={cn("mt-1.5 text-[12px]", customText !== "" && !isValidCustomTopUp(customAmount) ? "font-medium text-alert" : "text-text-muted")}
+                    >
+                      {customText !== "" && isValidCustomTopUp(customAmount)
+                        ? `You get ${customAmount.toLocaleString("en-IN")} coins.`
+                        : `Enter a whole amount from ₹${MIN_CUSTOM_TOPUP_INR.toLocaleString("en-IN")} to ₹${MAX_CUSTOM_TOPUP_INR.toLocaleString("en-IN")}.`}
+                    </p>
+                  </div>
+                )}
               </fieldset>
 
               {phase.kind === "choose" && phase.notice && (
@@ -222,11 +293,11 @@ export function TopUpCoinsDialog({ open, onClose, onPaid }: TopUpCoinsDialogProp
                 <p role="alert" className="mt-4 rounded-lg border border-alert/30 bg-alert/10 px-3 py-2 text-[12px] font-medium text-alert">{phase.message}</p>
               )}
 
-              <Button variant="gold" size="lg" className="mt-5 w-full font-bold" onClick={() => void pay()} disabled={busy}>
+              <Button variant="gold" size="lg" className="mt-5 w-full font-bold" onClick={() => void pay()} disabled={busy || !purchase}>
                 {busy ? (
                   <><Loader2 className="h-4 w-4 animate-spin" /> {phase.kind === "verifying" ? "Confirming payment…" : "Waiting for payment…"}</>
                 ) : (
-                  <>Pay ₹{selected.priceInr.toLocaleString("en-IN")}</>
+                  <>{purchase ? `Pay ₹${purchase.priceInr.toLocaleString("en-IN")}` : "Enter an amount"}</>
                 )}
               </Button>
               <p className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-text-subtle">
