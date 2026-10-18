@@ -9,6 +9,7 @@
 import { db } from "@repo/database";
 import { parseCashfreeWebhook } from "./cashfree";
 import { flagPaymentForReview, isPermanentPaymentError, reportPaymentIncident } from "./payment-incidents";
+import { transitionOrder } from "./payment-order-status";
 import { settleGatewayPayment } from "./payment-reconciliation";
 
 export async function handleCashfreeWebhook(payload: unknown): Promise<{ flagged?: boolean }> {
@@ -30,16 +31,13 @@ export async function handleCashfreeWebhook(payload: unknown): Promise<{ flagged
 
     case "payment_failed": {
       // The order stays payable: a retry on the same order can still succeed.
-      await db.paymentOrder.updateMany({ where: { orderId: event.payment.order_id, status: "CREATED" }, data: { status: "FAILED" } });
+      await transitionOrder(db, { orderId: event.payment.order_id }, "FAILED", {}, ["CREATED"]);
       return {};
     }
 
     case "refund": {
       if (event.status === "SUCCESS") {
-        await db.paymentOrder.updateMany({
-          where: { orderId: event.orderId, status: { in: ["PAID", "DUPLICATE", "NEEDS_REVIEW", "REFUND_PENDING"] } },
-          data: { status: "REFUNDED" },
-        });
+        await transitionOrder(db, { orderId: event.orderId }, "REFUNDED");
         await reportPaymentIncident({
           kind: "refund_processed", orderId: event.orderId, refundId: event.refundId, amountInr: event.amountInr,
           reason: "Cashfree refunded this order; reverse the coins or recording unlock if that was not already done.",
