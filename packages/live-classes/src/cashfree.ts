@@ -121,14 +121,57 @@ export function verifyCashfreeWebhook(rawBody: string, signature: string, timest
   return received.length === expected.length && timingSafeEqual(expected, received);
 }
 
+export type CashfreeWebhookEvent =
+  | { kind: "payment_success"; payment: GatewayPayment }
+  | { kind: "payment_failed"; type: string; payment: GatewayPayment }
+  | { kind: "refund"; orderId: string; refundId: string; amountInr: number | null; status: string }
+  | { kind: "dispute"; type: string; orderId: string | null; disputeId: string; disputeType: string | null; amountInr: number | null; status: string | null; respondBy: string | null }
+  | { kind: "ignored"; type: string };
+
+const PAYMENT_FAILURE_TYPES = new Set(["PAYMENT_FAILED_WEBHOOK", "PAYMENT_USER_DROPPED_WEBHOOK"]);
+const DISPUTE_TYPES = new Set(["DISPUTE_CREATED", "DISPUTE_UPDATED", "DISPUTE_CLOSED"]);
+
+const text = (value: unknown) => (typeof value === "string" && value ? value : null);
+const amount = (value: unknown) => (typeof value === "number" ? value : null);
+
+/**
+ * Classify a verified webhook body (API version 2023-08-01). Event shapes per
+ * Cashfree's payment, refund and dispute webhook docs. A recognised event with
+ * a malformed body throws, because a signed event we cannot read is a bug.
+ */
+export function parseCashfreeWebhook(payload: unknown): CashfreeWebhookEvent {
+  const body = (payload && typeof payload === "object" ? payload : {}) as { type?: unknown; data?: Record<string, any> };
+  const type = typeof body.type === "string" ? body.type : "";
+  const data = body.data ?? {};
+  const invalid = () => new CashfreeError("Invalid payment details", 400);
+
+  if (type === "PAYMENT_SUCCESS_WEBHOOK" || PAYMENT_FAILURE_TYPES.has(type)) {
+    const orderId = text(data.order?.order_id);
+    const payment = orderId ? toGatewayPayment(data.payment, orderId) : null;
+    if (!payment) throw invalid();
+    return type === "PAYMENT_SUCCESS_WEBHOOK" ? { kind: "payment_success", payment } : { kind: "payment_failed", type, payment };
+  }
+  if (type === "REFUND_STATUS_WEBHOOK") {
+    const orderId = text(data.refund?.order_id);
+    const refundId = text(data.refund?.refund_id);
+    const status = text(data.refund?.refund_status);
+    if (!orderId || !refundId || !status) throw invalid();
+    return { kind: "refund", orderId, refundId, amountInr: amount(data.refund?.refund_amount), status };
+  }
+  if (DISPUTE_TYPES.has(type)) {
+    const disputeId = data.dispute?.dispute_id;
+    if (typeof disputeId !== "string" && typeof disputeId !== "number") throw invalid();
+    return {
+      kind: "dispute", type, orderId: text(data.order_details?.order_id), disputeId: String(disputeId),
+      disputeType: text(data.dispute?.dispute_type), amountInr: amount(data.dispute?.dispute_amount),
+      status: text(data.dispute?.dispute_status), respondBy: text(data.dispute?.respond_by),
+    };
+  }
+  return { kind: "ignored", type };
+}
+
 /** Extract the successful payment from a verified webhook body, if it carries one. */
 export function paymentFromWebhook(payload: unknown): GatewayPayment | null {
-  if (!payload || typeof payload !== "object") return null;
-  const body = payload as { type?: unknown; data?: { order?: { order_id?: unknown }; payment?: unknown } };
-  if (body.type !== "PAYMENT_SUCCESS_WEBHOOK") return null;
-  const orderId = body.data?.order?.order_id;
-  if (typeof orderId !== "string" || !orderId) throw new CashfreeError("Invalid payment details", 400);
-  const payment = toGatewayPayment(body.data?.payment, orderId);
-  if (!payment) throw new CashfreeError("Invalid payment details", 400);
-  return payment;
+  const event = parseCashfreeWebhook(payload);
+  return event.kind === "payment_success" ? event.payment : null;
 }
