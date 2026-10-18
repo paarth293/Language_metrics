@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { db } from "@repo/database";
-import { CashfreeError, createCashfreeOrder, fetchSuccessfulPayment, type GatewayPayment } from "./cashfree";
+import { CashfreeError, cashfreeMode, createCashfreeOrder, fetchCashfreeOrder, fetchSuccessfulPayment, type GatewayPayment } from "./cashfree";
 
 const RECORDING_PRICE_INR = 299;
 
@@ -9,6 +9,10 @@ export class RecordingPaymentError extends Error {
 }
 
 export type RecordingPayment = GatewayPayment;
+
+function receiptPrefix(recordingId: string) {
+  return `rec_${Buffer.from(recordingId.replaceAll("-", ""), "hex").toString("base64url")}_`;
+}
 
 function recordingIdFromReceipt(receipt: string | null) {
   const encoded = /^rec_([A-Za-z0-9_-]{22})_[a-f0-9]{8}$/.exec(receipt ?? "")?.[1];
@@ -26,7 +30,27 @@ export async function createRecordingPaymentOrder(userId: string, recordingId: u
   const session = await db.classSession.findFirst({ where: { id: recordingId, booking: { studentId: userId }, recordingUrl: { not: null } } });
   if (!session) throw new RecordingPaymentError("Recording not found", 404);
   if (session.isRecordingPaid) throw new RecordingPaymentError("Recording is already unlocked", 409);
-  const receipt = `rec_${Buffer.from(recordingId.replaceAll("-", ""), "hex").toString("base64url")}_${randomBytes(4).toString("hex")}`;
+
+  // A second tab or a retry must not open a second chargeable order: hand
+  // back the open one while Cashfree still accepts payment for it.
+  const open = await db.paymentOrder.findFirst({
+    where: { userId, status: "CREATED", receipt: { startsWith: receiptPrefix(recordingId) } },
+    orderBy: { createdAt: "desc" },
+  });
+  if (open) {
+    const existing = await withProviderErrors(() => fetchCashfreeOrder(open.orderId));
+    if (existing.status === "ACTIVE" && existing.paymentSessionId) {
+      return { orderId: open.orderId, paymentSessionId: existing.paymentSessionId, mode: cashfreeMode(), amount: open.amount, currency: "INR" };
+    }
+    if (existing.status === "PAID") {
+      const payment = await withProviderErrors(() => fetchSuccessfulPayment(open.orderId));
+      if (payment) await settleRecordingPayment(payment, userId);
+      throw new RecordingPaymentError("Recording is already unlocked", 409);
+    }
+    await db.paymentOrder.updateMany({ where: { id: open.id, status: "CREATED" }, data: { status: "EXPIRED" } });
+  }
+
+  const receipt = `${receiptPrefix(recordingId)}${randomBytes(4).toString("hex")}`;
   // The receipt doubles as the Cashfree order id, so webhooks can be routed by prefix.
   const order = await withProviderErrors(() => createCashfreeOrder({ orderId: receipt, amountInr: RECORDING_PRICE_INR, customerId: userId }));
   await db.paymentOrder.create({ data: { userId, orderId: order.orderId, amount: RECORDING_PRICE_INR, currency: "INR", receipt, status: "CREATED" } });
@@ -48,13 +72,20 @@ export async function settleRecordingPayment(payment: RecordingPayment, userId?:
     if (payment.amount !== order.amount * 100 || payment.currency !== order.currency) throw new RecordingPaymentError("Payment does not match order", 400);
     const session = await tx.classSession.findFirst({ where: { id: sessionId, booking: { studentId: order.userId } } });
     if (!session) throw new RecordingPaymentError("Recording not found", 404);
-    if (order.status === "PAID") {
+    if (order.status === "PAID" || order.status === "DUPLICATE") {
       if (order.paymentId !== payment.id) throw new RecordingPaymentError("Order already paid", 409);
       return;
     }
-    const claimed = await tx.paymentOrder.updateMany({ where: { id: order.id, status: { not: "PAID" } }, data: { status: "PAID", paymentId: payment.id } });
+    const claimed = await tx.paymentOrder.updateMany({ where: { id: order.id, status: { notIn: ["PAID", "DUPLICATE"] } }, data: { status: "PAID", paymentId: payment.id } });
     if (!claimed.count) return;
-    await tx.classSession.update({ where: { id: session.id }, data: { isRecordingPaid: true } });
+    // Conditional, so two paid orders for one recording cannot both unlock it:
+    // the loser keeps the money on record as DUPLICATE, owed back to the student.
+    const unlocked = await tx.classSession.updateMany({ where: { id: session.id, isRecordingPaid: false }, data: { isRecordingPaid: true } });
+    if (!unlocked.count) {
+      await tx.paymentOrder.update({ where: { id: order.id }, data: { status: "DUPLICATE" } });
+      console.error("[recording-payments] duplicate payment for an unlocked recording; refund due", { orderId: order.orderId, paymentId: payment.id });
+      return;
+    }
     await tx.payment.create({ data: { userId: order.userId, bookingId: session.bookingId, type: "RECORDING_FEE", amount: payment.amount, status: "SUCCESS", gatewayOrderId: order.orderId, gatewayPaymentId: payment.id } });
   });
 }
