@@ -140,9 +140,20 @@ jobs:
       - name: npm audit (high/critical only)
         run: npm audit --audit-level=high --json > npm-audit.json || true
 
+      # A pinned release binary, checked against a hash recorded here. The old
+      # install.sh on the osv-scanner main branch is gone (404), and piping a
+      # moving script into `sudo sh` ran whatever that branch held that day.
+      # To upgrade: take the new version's line for osv-scanner_linux_amd64
+      # from its osv-scanner_SHA256SUMS release asset.
       - name: Install OSV-Scanner
+        env:
+          OSV_VERSION: v2.6.0
+          OSV_SHA256: ca69b3d3cd08f889a49dc0a383122f71cc528b83803671df5fd874d97485b108
         run: |
-          curl -sSfL https://raw.githubusercontent.com/google/osv-scanner/main/install.sh | sudo sh -s -- -b /usr/local/bin
+          curl -sSfL -o osv-scanner "https://github.com/google/osv-scanner/releases/download/${OSV_VERSION}/osv-scanner_linux_amd64"
+          echo "${OSV_SHA256}  osv-scanner" | sha256sum --check --strict
+          sudo install -m 0755 osv-scanner /usr/local/bin/osv-scanner
+          osv-scanner --version
 
       - name: OSV-Scanner
         run: |
