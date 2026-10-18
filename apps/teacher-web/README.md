@@ -27,7 +27,7 @@
 | **ORM** | [Prisma](https://prisma.io/) (shared via `@repo/database`) |
 | **Database** | PostgreSQL |
 | **Auth** | JWT access token + httpOnly refresh cookie |
-| **Payments** | Razorpay (coin wallet) |
+| **Payments** | Cashfree (coin wallet) |
 | **Language** | TypeScript (strict) |
 
 ---
