@@ -1,8 +1,9 @@
+import { randomUUID } from "node:crypto";
 import { credit, db } from "@repo/database";
-import type { GatewayPayment } from "./cashfree";
+import { createCashfreeOrder, fetchSuccessfulPayment, type GatewayPayment } from "./cashfree";
 import { sourcesOf, transitionOrder, type PaymentOrderStatus } from "./payment-order-status";
 
-// Must match COIN_VALUE_INR in apps/student-web/src/types/coins.ts (1 coin = ₹1).
+// Must match COIN_VALUE_INR in packages/api-contracts/src/wallet.ts (1 coin = ₹1).
 const COIN_VALUE_INR = 1;
 
 export class PaymentError extends Error {
@@ -57,4 +58,32 @@ export async function settlePayment(payment: GatewayPayment, userId?: string) {
       description: "Coin purchase via Cashfree", idempotencyKey: `cashfree:${order.orderId}`,
     }, tx);
   });
+}
+
+/**
+ * Open a Cashfree order for a coin pack. The caller resolves the pack from
+ * the shared list (resolveCoinPackage), so the price never comes from the
+ * browser. The receipt snapshots the coin quantity and doubles as the
+ * Cashfree order id.
+ */
+export async function createCoinPaymentOrder(userId: string, pack: { coins: number; priceInr: number }) {
+  const receipt = `coins_${pack.coins}_${randomUUID().replaceAll("-", "").slice(0, 24)}`;
+  const order = await createCashfreeOrder({ orderId: receipt, amountInr: pack.priceInr, customerId: userId });
+  await db.paymentOrder.create({
+    data: { orderId: order.orderId, amount: pack.priceInr, currency: "INR", status: "CREATED", receipt, userId },
+  });
+  return { orderId: order.orderId, paymentSessionId: order.paymentSessionId, mode: order.mode };
+}
+
+/**
+ * Confirm a coin order with Cashfree and credit it. The browser only names
+ * the order; whether it was paid, and for how much, comes from Cashfree.
+ */
+export async function verifyCoinPayment(userId: string, orderId: unknown) {
+  if (typeof orderId !== "string" || !orderId) throw new PaymentError("Missing payment details", 400);
+  const order = await db.paymentOrder.findUnique({ where: { orderId } });
+  if (!order || order.userId !== userId) throw new PaymentError("Order not found", 404);
+  const payment = await fetchSuccessfulPayment(order.orderId);
+  if (!payment) throw new PaymentError("Payment is awaiting confirmation. Your wallet will update once confirmed.", 409);
+  await settlePayment(payment, userId);
 }
