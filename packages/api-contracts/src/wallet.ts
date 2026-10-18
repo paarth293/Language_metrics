@@ -46,3 +46,39 @@ export const WalletHistoryResponseSchema = z.object({
   transactions: z.array(CoinTransactionSchema),
 });
 export type WalletHistoryResponse = z.infer<typeof WalletHistoryResponseSchema>;
+
+/** 1 coin = ₹1, so every pack costs exactly its coin count in rupees. */
+export const COIN_VALUE_INR = 1;
+
+export interface CoinPackage {
+  id: string;
+  coins: number;
+  priceInr: number;
+  name: string;
+}
+
+/**
+ * The coin packs every app sells. Servers price orders from this list, never
+ * from the browser, so it is shared rather than copied per app.
+ */
+export const COIN_PACKAGES: readonly CoinPackage[] = [
+  { id: "tier1", coins: 100, priceInr: 100, name: "Basic Pack" },
+  { id: "tier2", coins: 500, priceInr: 500, name: "Popular Pack" },
+  { id: "tier3", coins: 1000, priceInr: 1000, name: "Pro Pack" },
+];
+
+/**
+ * Resolve a create-order request body to a pack. `packageId` wins; a bare
+ * `amount` must equal a pack price. Anything tampered with (another price,
+ * another currency, an unknown pack) resolves to null.
+ */
+export function resolveCoinPackage(body: unknown): CoinPackage | null {
+  if (!body || typeof body !== "object") return null;
+  const { packageId, amount, currency = "INR" } = body as Record<string, unknown>;
+  if (currency !== "INR") return null;
+  const pack = packageId !== undefined
+    ? COIN_PACKAGES.find((entry) => entry.id === packageId)
+    : COIN_PACKAGES.find((entry) => entry.priceInr === amount);
+  if (!pack || (amount !== undefined && amount !== pack.priceInr)) return null;
+  return pack;
+}
