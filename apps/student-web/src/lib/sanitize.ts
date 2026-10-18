@@ -12,7 +12,7 @@
  * "sanitize-html"` would silently break the build the moment anyone tried to
  * compile this app, until they separately ran `npm install sanitize-html
  * @types/sanitize-html`. This module needs zero new dependencies, so the fix
- * works the instant it lands — see errors.md for the full explanation and
+ * works the instant it lands — see docs/audits/error-log.md for the full explanation and
  * the (optional) upgrade path to `sanitize-html` once `npm install` has been
  * run at least once.
  *

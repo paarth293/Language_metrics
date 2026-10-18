@@ -1,16 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  validateLoginBody,
-  validateDiscoverQuery,
-  validateClassesFilter,
-  validateProfileUpdate,
-  validateComplaint,
-  validateDeviceToken,
-  validateNotificationUpdate,
-  validateChangePassword,
-  validateBookClass,
-  validateChatMessage,
-} from "./validation";
+import { validateLoginBody, validateDiscoverQuery, validateClassesFilter, validateProfileUpdate, validateComplaint, validateDeviceToken, validateNotificationUpdate, validateChangePassword, validateBookClass, validateChatMessage } from "./validation";
 
 describe("validation", () => {
   it("validates login body", () => {
@@ -111,6 +100,13 @@ describe("validation", () => {
 
     const r4 = validateProfileUpdate({ avatarUrl: null });
     expect(r4.ok).toBe(true);
+
+    const r5 = validateProfileUpdate({ preferredCurrency: "USD" });
+    expect(r5.ok).toBe(true);
+    if (r5.ok) expect(r5.data.preferredCurrency).toBe("USD");
+
+    const r6 = validateProfileUpdate({ preferredCurrency: "not-a-currency" });
+    expect(r6.ok).toBe(false);
   });
 
   it("validates complaint", () => {
@@ -140,7 +136,7 @@ describe("validation", () => {
     const r1 = validateNotificationUpdate({});
     expect(r1.ok).toBe(true);
 
-    const r2 = validateNotificationUpdate({ notificationId: "abc-123" });
+    expect(validateNotificationUpdate({ notificationId: "abc-123" }).ok).toBe(true);
     expect(r1.ok).toBe(true);
 
     const r3 = validateNotificationUpdate({ notificationId: 12345 });

@@ -3,6 +3,8 @@ import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { currentOrNextSession, getJoinWindow } from "@repo/live-classes";
 
+export const dynamic = "force-dynamic";
+
 const MAX_RANGE_MS = 62 * 24 * 60 * 60 * 1000;
 
 type RangeSessionRow = {

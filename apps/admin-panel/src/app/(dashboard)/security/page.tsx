@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function SecurityPage() {
   await requireAdmin();
-  const [events, attempts, admins] = await Promise.all([
+  const [events, attempts] = await Promise.all([
     db.securityEvent.findMany({ orderBy: { createdAt: "desc" }, take: 100 }),
     db.loginAttempt.findMany({ orderBy: { createdAt: "desc" }, take: 100 }),
     db.adminUser.findMany({ orderBy: { createdAt: "desc" } }),

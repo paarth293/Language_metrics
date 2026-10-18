@@ -8,15 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { FileUpload } from "@/components/ui/FileUpload";
 import { Button } from "@/components/ui/Button";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  GraduationCap,
-  BookOpen,
-  ArrowRight,
-  ArrowLeft,
-  Check,
-  Globe,
-  BarChart3,
-} from "lucide-react";
+import { GraduationCap, BookOpen, ArrowRight, ArrowLeft, Check, Globe } from "lucide-react";
 import { TEACHING_LANGUAGES } from "@/lib/languages";
 import { MIN_AGE, dateOfBirthSchema, latestBirthDate } from "@/features/auth/validators/auth";
 import { getLevelsForLanguage, type LanguageLevel } from "@/lib/languages";
@@ -71,7 +63,7 @@ export default function OnboardingPage() {
         setAdditionalLanguages((prev) => [language, ...prev.filter((c) => c !== language)]);
       }, 0);
     }
-  }, [language, additionalLanguages]);  
+  }, [language, additionalLanguages]);
 
   // Document upload fields (teacher only)
   const [qualificationDocUrl, setQualificationDocUrl] = useState("");
@@ -347,7 +339,7 @@ export default function OnboardingPage() {
                     <p className="text-xs text-text-muted">Select a language first to see available levels.</p>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {getLevelsForLanguage(languageToLearn).map((lvl: LanguageLevel, idx: number) => (
+                      {getLevelsForLanguage(languageToLearn).map((lvl: LanguageLevel) => (
                         <button
                           key={lvl.value}
                           type="button"

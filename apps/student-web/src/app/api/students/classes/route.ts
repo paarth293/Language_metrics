@@ -1,9 +1,12 @@
+import type { Prisma } from "@repo/database";
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { currentOrNextSession, getJoinWindow } from "@repo/live-classes";
 import { validateClassesFilter } from "@/lib/validation";
 import { stripHtml } from "@/lib/sanitize";
+
+export const dynamic = "force-dynamic";
 
 /**
  * GET /api/students/classes
@@ -34,12 +37,18 @@ export async function GET(request: Request) {
     const now = new Date();
 
     // Build where clause based on filter
-    const where: any = { studentId: userId };
+    const where: Prisma.BookingWhereInput = { studentId: userId };
 
     if (filter === "upcoming") {
-      where.status = { in: ["PENDING", "CONFIRMED"] };
+      where.OR = [
+        { status: "PENDING" },
+        { status: "CONFIRMED", sessions: { some: { scheduledEnd: { gt: now } } } }
+      ];
     } else if (filter === "past") {
-      where.status = "COMPLETED";
+      where.OR = [
+        { status: "COMPLETED" },
+        { status: "CONFIRMED", sessions: { every: { scheduledEnd: { lte: now } } } }
+      ];
     } else if (filter === "cancelled") {
       where.status = "CANCELLED";
     }

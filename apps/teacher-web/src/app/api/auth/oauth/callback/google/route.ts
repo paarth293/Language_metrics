@@ -233,8 +233,8 @@ export async function GET(request: NextRequest) {
   }
 
   const redirectResponse = NextResponse.redirect(new URL(destination, APP_URL));
-  redirectResponse.cookies.set("lm_access_token", accessToken, accessCookieOptions);
-  redirectResponse.cookies.set("lm_refresh_token", refreshToken, {
+  redirectResponse.cookies.set("lm_teacher_access_token", accessToken, accessCookieOptions);
+  redirectResponse.cookies.set("lm_teacher_refresh_token", refreshToken, {
     ...refreshCookieOptions,
     path: "/api/auth",
   });

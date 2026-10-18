@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Client half of the "Invite Admin" flow (errors.md #F1). Kept as its own
+ * Client half of the "Invite Admin" flow (docs/audits/error-log.md #F1). Kept as its own
  * component (rather than inlined into page.tsx, which is a Server
  * Component) since it needs local state for the open/closed panel and the
  * one-time temporary-password reveal.

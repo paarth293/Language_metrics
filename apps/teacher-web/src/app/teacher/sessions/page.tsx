@@ -2,19 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import {
-  BookOpen,
-  Video,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
-  Loader2,
-  Search,
-  Calendar,
-  Play,
-  Download,
-} from "lucide-react";
+import { BookOpen, Video, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, Search, Calendar } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";

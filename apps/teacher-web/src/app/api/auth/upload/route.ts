@@ -6,7 +6,7 @@ import { uploadFile } from "@/lib/storage";
 
 export async function POST(request: NextRequest) {
   // If an access token is provided, verify it; otherwise allow temp registration upload
-  const accessToken = request.cookies.get("lm_access_token")?.value;
+  const accessToken = request.cookies.get("lm_teacher_access_token")?.value;
   if (accessToken) {
     const payload = await verifyAccessToken(accessToken);
     if (!payload?.sub) {

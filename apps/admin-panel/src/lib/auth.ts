@@ -141,7 +141,7 @@ export const refreshCookieOptions = {
   httpOnly: true,
   secure: isProd,
   sameSite: "strict" as const,
-  path: "/api/auth",
+  path: "/",
   maxAge: REFRESH_TOKEN_TTL_SECONDS,
 };
 

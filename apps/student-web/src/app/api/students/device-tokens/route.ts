@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     // BUG FIX: this upsert was commented out, so this endpoint has never
     // actually saved a device token — it always returned { success: true }
     // and silently discarded the token. Push notifications for students
-    // could never have worked; see errors.md for the full impact.
+    // could never have worked; see docs/audits/error-log.md for the full impact.
     await prisma.deviceToken.upsert({
       where: { token: deviceToken },
       update: { platform, userId },

@@ -112,6 +112,34 @@ export async function convertMinorUnitsSafe(
   }
 }
 
+/**
+ * A price filter (e.g. "show teachers between ₹200 and ₹500") is entered in
+ * the viewer's currency, but each teacher's rate is stored in whichever
+ * currency *they* chose — a raw DB comparison would silently break the
+ * moment two teachers price in different currencies. This converts the
+ * filter's bounds into every supported currency's minor units up front, so
+ * the caller can build one `OR` clause across `(currency, amount)` pairs and
+ * filter correctly at the database level regardless of each teacher's
+ * currency.
+ */
+export async function convertBudgetRangeToAllCurrencies(
+  minMajor: number | undefined,
+  maxMajor: number | undefined,
+  fromCurrency: string
+): Promise<Array<{ currency: string; gte?: number; lte?: number }>> {
+  return Promise.all(
+    CURRENCIES.map(async (target) => {
+      const decimals = target.decimals;
+      const toMinor = async (major: number | undefined) => {
+        if (major === undefined) return undefined;
+        const fromMinor = Math.round(major * 10 ** getCurrencyInfo(fromCurrency).decimals);
+        return convertMinorUnits(fromMinor, fromCurrency, target.code).catch(() => Math.round(major * 10 ** decimals));
+      };
+      return { currency: target.code, gte: await toMinor(minMajor), lte: await toMinor(maxMajor) };
+    })
+  );
+}
+
 /** Formats an integer minor-unit amount as a localized currency string, e.g. `formatMoney(50000, "INR")` → "₹500". */
 export function formatMoney(amountMinor: number, code: string, locale = "en-IN"): string {
   const info = getCurrencyInfo(code);

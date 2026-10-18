@@ -2,16 +2,7 @@
 
 import React, { Suspense, useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import {
-  Users,
-  Search,
-  Star,
-  Calendar,
-  AlertCircle,
-  Filter,
-  CheckCircle2,
-  TrendingUp,
-} from "lucide-react";
+import { Users, Search, Star, Calendar, AlertCircle, CheckCircle2, TrendingUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
@@ -226,8 +217,8 @@ function TeacherStudents() {
                 {students.length === 0 ? "No students yet" : "No matches found"}
               </h3>
               <p className="text-[14px] text-text-muted max-w-[280px] mb-6">
-                {students.length === 0 
-                  ? "When students book classes with you, they will appear here." 
+                {students.length === 0
+                  ? "When students book classes with you, they will appear here."
                   : "Try adjusting your search terms or filters to see more results."}
               </p>
               {students.length > 0 && (

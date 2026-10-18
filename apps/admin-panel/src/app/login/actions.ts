@@ -61,7 +61,7 @@ export async function loginAction(
 export async function logoutAction(): Promise<void> {
   const session = await readSession();
   if (session) {
-    // Fix (errors.md #C4 residual): getClientIp() was already defined in
+    // Fix (docs/audits/error-log.md #C4 residual): getClientIp() was already defined in
     // this file and used by loginAction, but logoutAction never called it —
     // every LOGOUT audit row was missing the IP that every other audited
     // action (login, teacher approval, payout status changes, ...)

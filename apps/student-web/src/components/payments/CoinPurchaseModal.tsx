@@ -34,9 +34,9 @@ export function CoinPurchaseModal({ isOpen, onClose, onSuccess }: CoinPurchaseMo
           <h2 className="text-xl font-bold">Purchase Coins</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-black">&times;</button>
         </div>
-        
+
         <p className="mb-4 text-sm text-gray-600">Current Balance: {balance !== null ? balance : '...'} coins</p>
-        
+
         <div className="space-y-4">
           {COIN_PACKAGES.map((pkg: CoinPackage) => (
             <div key={pkg.id} className="border p-4 rounded flex justify-between items-center">
@@ -45,11 +45,10 @@ export function CoinPurchaseModal({ isOpen, onClose, onSuccess }: CoinPurchaseMo
                 <p className="text-sm text-gray-500">{pkg.coins} Coins</p>
               </div>
               <div className="flex items-center gap-4">
-                <span className="font-bold">?{pkg.priceInr}</span>
-                <RazorpayCheckout 
-                  amount={pkg.priceInr} 
-                  packageId={pkg.id} 
-                  coinsToCredit={pkg.coins}
+                <span className="font-bold">₹{pkg.priceInr}</span>
+                <RazorpayCheckout
+                  amount={pkg.priceInr}
+                  packageId={pkg.id}
                   onSuccess={() => {
                     alert('Payment successful!');
                     onSuccess();

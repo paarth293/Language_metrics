@@ -1,19 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
+
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
-import {
-  MessageCircle,
-  Send,
-  Paperclip,
-  Clock,
-  AlertCircle,
-  Loader2,
-  Search,
-  FileText,
-  X,
-  Timer,
-} from "lucide-react";
+import { MessageCircle, Send, Paperclip, AlertCircle, Loader2, Search, FileText, X, Timer } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 interface ChatThread {
@@ -37,7 +28,7 @@ interface ChatMessage {
 
 export default function ChatPage() {
   const [threads, setThreads] = useState<ChatThread[]>([]);
-  const [selectedStudent, setselectedStudent] = useState<string | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -48,54 +39,90 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    fetchThreads();
-    const interval = setInterval(fetchThreads, 3000);
-    return () => clearInterval(interval);
+  const threadRequest = useRef({ version: 0 });
+  const threadInFlight = useRef(false);
+  const messageRequest = useRef({ version: 0 });
+  const messageInFlight = useRef(false);
+  const selectedStudentRef = useRef<string | null>(null);
+  const selectStudent = (studentId: string | null) => {
+    selectedStudentRef.current = studentId;
+    messageRequest.current.version++;
+    setSelectedStudent(studentId);
+  };
+
+  const fetchThreads = useCallback(async (showLoading = true) => {
+    if (!showLoading && threadInFlight.current) return;
+    threadInFlight.current = true;
+    const request = ++threadRequest.current.version;
+    try {
+      if (showLoading) setLoading(true);
+      const res = await fetch("/api/teachers/chat");
+      if (!res.ok) throw new Error("Failed to load chats");
+      const data = await res.json();
+      if (request !== threadRequest.current.version) return;
+      setThreads(data.threads || []);
+      setError(null);
+    } catch (err: unknown) {
+      if (request === threadRequest.current.version) setError(err instanceof Error ? err.message : "Failed to load chats");
+    } finally {
+      if (request === threadRequest.current.version) { threadInFlight.current = false; setLoading(false); }
+    }
+  }, []);
+
+  const fetchMessages = useCallback(async (studentId: string, showLoading = true) => {
+    if (!showLoading && messageInFlight.current) return;
+    messageInFlight.current = true;
+    const request = ++messageRequest.current.version;
+    try {
+      if (showLoading) { setLoadingMessages(true); setMessages([]); }
+      const res = await fetch(`/api/teachers/chat/${studentId}`);
+      if (!res.ok) throw new Error("Failed to load messages");
+      const data = await res.json();
+      if (request === messageRequest.current.version) setMessages(data.messages || []);
+    } catch (err: unknown) {
+      if (request === messageRequest.current.version) console.error("Failed to load messages:", err);
+    } finally {
+      if (request === messageRequest.current.version) { messageInFlight.current = false; setLoadingMessages(false); }
+    }
   }, []);
 
   useEffect(() => {
-    if (selectedStudent) {
-      fetchMessages(selectedStudent);
-      const interval = setInterval(() => fetchMessages(selectedStudent, false), 2000);
-      return () => clearInterval(interval);
-    }
-  }, [selectedStudent]);
+    const requestState = threadRequest.current;
+    const initial = setTimeout(() => void fetchThreads(), 0);
+    const interval = setInterval(() => void fetchThreads(false), 3000);
+    return () => { clearTimeout(initial); clearInterval(interval); requestState.version++; };
+  }, [fetchThreads]);
+
+  useEffect(() => {
+    if (!selectedStudent) return;
+    const requestState = messageRequest.current;
+    const initial = setTimeout(() => void fetchMessages(selectedStudent), 0);
+    const interval = setInterval(() => void fetchMessages(selectedStudent, false), 2000);
+    return () => { clearTimeout(initial); clearInterval(interval); requestState.version++; };
+  }, [selectedStudent, fetchMessages]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const fetchThreads = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch("/api/students/chat");
-      if (!res.ok) throw new Error("Failed to load chats");
-      const data = await res.json();
-      setThreads(data.threads || []);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchMessages = async (studentId: string, showLoading = true) => { try { if (showLoading) setLoadingMessages(true); const res = await fetch(`/api/teachers/chat/${studentId}`); if (!res.ok) throw new Error("Failed to load messages"); const data = await res.json(); setMessages(data.messages || []); } catch (err: any) { console.error("Failed to load messages:", err); } finally { if (showLoading) setLoadingMessages(false); } };
-
   const handleSend = async () => {
     if (!newMessage.trim() || !selectedStudent || sending) return;
     setSending(true);
     try {
-      const res = await fetch(`/api/students/chat/${selectedStudent}`, {
+      const res = await fetch(`/api/teachers/chat/${selectedStudent}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: newMessage }),
       });
       if (!res.ok) throw new Error("Failed to send message");
       const data = await res.json();
-      setMessages((prev) => [...prev, data.message]);
-      setNewMessage("");
-    } catch (err: any) {
+      if (selectedStudentRef.current === selectedStudent) {
+        messageRequest.current.version++;
+        messageInFlight.current = false;
+        setMessages((prev) => prev.some((message) => message.id === data.message.id) ? prev : [...prev, data.message]);
+        setNewMessage("");
+      }
+    } catch (err: unknown) {
       console.error("Send failed:", err);
     } finally {
       setSending(false);
@@ -109,14 +136,18 @@ export default function ChatPage() {
     formData.append("content", file.name);
 
     try {
-      const res = await fetch(`/api/students/chat/${selectedStudent}`, {
+      const res = await fetch(`/api/teachers/chat/${selectedStudent}`, {
         method: "POST",
         body: formData,
       });
       if (!res.ok) throw new Error("Failed to upload file");
       const data = await res.json();
-      setMessages((prev) => [...prev, data.message]);
-    } catch (err: any) {
+      if (selectedStudentRef.current === selectedStudent) {
+        messageRequest.current.version++;
+        messageInFlight.current = false;
+        setMessages((prev) => prev.some((message) => message.id === data.message.id) ? prev : [...prev, data.message]);
+      }
+    } catch (err: unknown) {
       console.error("Upload failed:", err);
     }
   };
@@ -151,8 +182,8 @@ export default function ChatPage() {
 
   const filteredThreads = threads.filter(
     (t) =>
-      t.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.language.toLowerCase().includes(searchQuery.toLowerCase())
+      (t.studentName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (t.language || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const selectedThread = threads.find((t) => t.studentId === selectedStudent);
@@ -170,7 +201,7 @@ export default function ChatPage() {
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <AlertCircle className="w-12 h-12 text-red-500" />
         <p className="text-gray-600">{error}</p>
-        <Button onClick={fetchThreads} variant="outline">
+        <Button onClick={() => fetchThreads()} variant="outline">
           Try Again
         </Button>
       </div>
@@ -212,7 +243,7 @@ export default function ChatPage() {
             filteredThreads.map((thread) => (
               <button
                 key={thread.studentId}
-                onClick={() => setselectedStudent(thread.studentId)}
+                onClick={() => selectStudent(thread.studentId)}
                 className={`w-full p-4 text-left hover:bg-gray-50 transition-colors border-b border-gray-50 ${
                   selectedStudent === thread.studentId ? "bg-amber-50" : ""
                 }`}
@@ -220,7 +251,7 @@ export default function ChatPage() {
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
                     {thread.studentAvatar ? (
-                      <img
+                      <Image unoptimized width={96} height={96}
                         src={thread.studentAvatar}
                         alt=""
                         className="w-full h-full rounded-full object-cover"
@@ -268,7 +299,7 @@ export default function ChatPage() {
           {/* Chat Header */}
           <div className="p-4 border-b border-gray-100 flex items-center gap-3">
             <button
-              onClick={() => setselectedStudent(null)}
+              onClick={() => selectStudent(null)}
               className="md:hidden p-1 hover:bg-gray-100 rounded"
             >
               <X className="w-5 h-5" />

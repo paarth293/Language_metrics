@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { destroySession, readSession } from "@/lib/session";
 import { auditLog } from "@/lib/audit";
 
-// Fix (errors.md #C4 residual / #N-logout-parity): the Server Action logout
+// Fix (docs/audits/error-log.md #C4 residual / #N-logout-parity): the Server Action logout
 // path (app/login/actions.ts -> logoutAction) audits the LOGOUT event before
 // destroying the session; this REST route is the second, independent way to
 // log out (used by any client-side fetch()-based "sign out" button, or

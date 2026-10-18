@@ -10,8 +10,8 @@
  * retry of the same grant a no-op; by default a fresh key is generated.
  */
 import { randomUUID } from "node:crypto";
-import { db } from "../index";
-import { credit, getCoinBalance } from "../coin-ledger";
+import { db } from "../src/index";
+import { credit, getCoinBalance } from "../src/coin-ledger";
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(`--${name}`);

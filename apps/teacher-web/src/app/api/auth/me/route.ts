@@ -34,11 +34,11 @@ type MeRow = {
  * GET /api/auth/me
  *
  * Returns the authenticated user's full profile data by reading and verifying
- * the lm_access_token httpOnly cookie.
+ * the lm_teacher_access_token httpOnly cookie.
  */
 export async function GET(request: NextRequest) {
   try {
-    const accessToken = request.cookies.get("lm_access_token")?.value;
+    const accessToken = request.cookies.get("lm_teacher_access_token")?.value;
 
     if (!accessToken) {
       return NextResponse.json({ user: null }, { status: 200 });
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     const payload = await verifyAccessToken(accessToken);
     if (!payload?.sub) {
       const res = NextResponse.json({ user: null }, { status: 200 });
-      res.cookies.set("lm_access_token", "", { maxAge: 0, path: "/" });
+      res.cookies.set("lm_teacher_access_token", "", { maxAge: 0, path: "/" });
       return res;
     }
 

@@ -13,6 +13,18 @@ import { DiscoverScreen } from "./DiscoverScreen";
 import { ProfileScreen } from "./ProfileScreen";
 import { WalletScreen } from "./WalletScreen";
 
+type LiveClassScreenType = typeof import("../live/LiveClassScreen").LiveClassScreen;
+
+/**
+ * Loaded on first join rather than imported at the top: LiveClassScreen pulls
+ * in @livekit/react-native, whose native module is missing on web and in Expo
+ * Go. A static import would crash those at launch.
+ */
+function loadLiveClassScreen(): LiveClassScreenType {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  return (require("../live/LiveClassScreen") as typeof import("../live/LiveClassScreen")).LiveClassScreen;
+}
+
 export type Tab = "discover" | "classes" | "wallet" | "profile";
 
 const TABS: ReadonlyArray<{ key: Tab; label: string; icon: string }> = [
@@ -29,6 +41,23 @@ export function MainScreen() {
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Tab>("discover");
   const [bookingTeacher, setBookingTeacher] = useState<TeacherCard | null>(null);
+  const [liveSessionId, setLiveSessionId] = useState<string | null>(null);
+
+  // A live class takes over the whole screen; leaving returns to Classes.
+  if (liveSessionId) {
+    const LiveClassScreen = loadLiveClassScreen();
+    return (
+      <View style={[styles.root, { paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: "#0f0c29" }]}>
+        <LiveClassScreen
+          classSessionId={liveSessionId}
+          onExit={() => {
+            setLiveSessionId(null);
+            setTab("classes");
+          }}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.root, { backgroundColor: colors.bg }]}>
@@ -63,7 +92,7 @@ export function MainScreen() {
       {/* Active tab (mounting a tab refetches its data, like navigating on web) */}
       <View style={styles.body}>
         {tab === "discover" && <DiscoverScreen onBook={setBookingTeacher} />}
-        {tab === "classes" && <ClassesScreen onBrowseTeachers={() => setTab("discover")} />}
+        {tab === "classes" && <ClassesScreen onBrowseTeachers={() => setTab("discover")} onJoinLive={setLiveSessionId} />}
         {tab === "wallet" && <WalletScreen />}
         {tab === "profile" && <ProfileScreen />}
       </View>

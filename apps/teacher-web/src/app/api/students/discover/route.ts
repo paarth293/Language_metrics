@@ -4,7 +4,7 @@ import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { withCache } from "@/lib/api-cache";
 import { getLanguageAliases, getLanguageDisplayName } from "@/lib/languages";
-import { convertMinorUnitsSafe } from "@repo/currency";
+import { convertBudgetRangeToAllCurrencies, convertMinorUnitsSafe, getCurrencyInfo } from "@repo/currency";
 
 /** Mirrors the TeacherExperienceLevel enum in schema.prisma. */
 const EXPERIENCE_LEVELS = ["FRESHER", "EXPERIENCED"] as const;
@@ -31,9 +31,18 @@ export async function GET(request: Request) {
   const auth = await requireAuth(request, "STUDENT");
   if (auth.error) return auth.error;
 
-  // Cache key based on query params
+  // Every rate is shown converted into the viewing student's own currency,
+  // so the cache key must vary by it too — otherwise the first student's
+  // conversion would be served, unconverted assumptions and all, to the
+  // next student who prefers a different currency.
+  const student = await db.studentProfile.findUnique({
+    where: { userId: auth.user.sub },
+    select: { preferredCurrency: true },
+  });
+  const studentCurrency = student?.preferredCurrency || "INR";
+
   const url = new URL(request.url);
-  const cacheKey = `discover:${url.searchParams.toString()}`;
+  const cacheKey = `discover:${url.searchParams.toString()}:cur=${studentCurrency}`;
 
   return withCache(cacheKey, 60_000, async () => {
   try {
@@ -88,13 +97,17 @@ export async function GET(request: Request) {
     }
 
     if (minRate !== null || maxRate !== null) {
-      const gte = Math.max(0, parseInt(minRate || "0") || 0) * 100;
-      const lte = maxRate !== null ? (parseInt(maxRate) || 0) * 100 : undefined;
-      const priceOr: WhereInput[] = [
-        { rates: { some: { type: "HOURLY", amount: { gte, ...(lte !== undefined && { lte }) } } } },
-      ];
+      // Budget bounds arrive in the student's own currency, but each teacher's
+      // rate is stored in whichever currency *they* chose — so the bounds are
+      // converted into every supported currency first, and matched per-currency.
+      const minMajor = minRate !== null ? Math.max(0, parseInt(minRate) || 0) : undefined;
+      const maxMajor = maxRate !== null ? parseInt(maxRate) || 0 : undefined;
+      const perCurrency = await convertBudgetRangeToAllCurrencies(minMajor, maxMajor, studentCurrency);
+      const priceOr: WhereInput[] = perCurrency.map(({ currency, gte, lte }) => ({
+        rates: { some: { type: "HOURLY", currency, amount: { ...(gte !== undefined && { gte }), ...(lte !== undefined && { lte }) } } },
+      }));
       // A teacher with no HOURLY rate is priced at 0, as in student-web.
-      if (gte === 0) priceOr.push({ rates: { none: { type: "HOURLY" } } });
+      if (minMajor === undefined || minMajor === 0) priceOr.push({ rates: { none: { type: "HOURLY" } } });
       and.push({ OR: priceOr });
     }
 
@@ -109,7 +122,7 @@ export async function GET(request: Request) {
           select: { email: true },
         },
         rates: {
-          select: { type: true, amount: true },
+          select: { type: true, amount: true, currency: true },
         },
         availability: {
           select: { dayOfWeek: true, startTime: true, endTime: true },
@@ -123,14 +136,19 @@ export async function GET(request: Request) {
     });
 
     // Calculate ratings and format response
-    const formattedTeachers = teachers.map((t) => {
+    const formattedTeachers = await Promise.all(teachers.map(async (t) => {
       const avgRating =
         t.reviews.length > 0
           ? t.reviews.reduce((acc, r) => acc + r.rating, 0) / t.reviews.length
           : 0;
 
-      // Rates are stored in paise; the discover UI shows and filters in rupees.
-      const hourlyRate = (t.rates.find((r) => r.type === "HOURLY")?.amount || 0) / 100;
+      // Stored in the teacher's own currency, minor units; converted to
+      // whatever the viewing student prefers before it's ever shown.
+      const rawRate = t.rates.find((r) => r.type === "HOURLY");
+      const { amount: convertedMinor, currency: shownCurrency } = rawRate
+        ? await convertMinorUnitsSafe(rawRate.amount, rawRate.currency, studentCurrency)
+        : { amount: 0, currency: studentCurrency };
+      const hourlyRate = convertedMinor / 10 ** getCurrencyInfo(shownCurrency).decimals;
       const demoRate = DEMO_CLASS_COINS;
 
       // Find next available slot
@@ -175,6 +193,7 @@ export async function GET(request: Request) {
         rating: Math.round(avgRating * 10) / 10,
         reviews: t.reviews.length,
         hourlyRate,
+        currency: shownCurrency,
         demoRate,
         // Only the teacher's own words. The old fallback invented
         // "Experienced <code> teacher", mislabelling freshers.
@@ -183,9 +202,9 @@ export async function GET(request: Request) {
         experienceLevel: t.experienceLevel,
         availability: t.availability.length > 0,
       };
-    });
+    }));
 
-    return NextResponse.json({ teachers: formattedTeachers }, { status: 200 });
+    return NextResponse.json({ teachers: formattedTeachers, currency: studentCurrency }, { status: 200 });
   } catch (err) {
     console.error("GET /api/students/discover error:", err);
     return NextResponse.json({ message: "Internal server error." }, { status: 500 });

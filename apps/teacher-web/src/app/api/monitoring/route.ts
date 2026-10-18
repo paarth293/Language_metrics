@@ -82,7 +82,7 @@ export async function GET(request: Request) {
       metrics,
       latencyMs: totalTime,
     });
-  } catch (err) {
+  } catch  {
     const totalTime = Date.now() - startTime;
     return NextResponse.json({
       status: "degraded",

@@ -1,3 +1,4 @@
+import type { ComplaintCategory } from "@repo/database";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -15,7 +16,7 @@ const STUDENT_STATUS: Record<string, string> = {
 };
 
 function toStudentTicket<T extends { status: string }>(ticket: T) {
-  return { ...ticket, status: STUDENT_STATUS[ticket.status] ?? "PENDING" };
+  return { ...ticket, status: new Map(Object.entries(STUDENT_STATUS)).get(ticket.status) ?? "PENDING" };
 }
 
 // GET - List all complaints/tickets for the student
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest) {
     const userId = auth.user.sub;
 
     // Map category to ComplaintCategory enum
-    const categoryMap: Record<string, string> = {
+    const categoryMap: Record<string, ComplaintCategory> = {
       PAYMENT_ISSUE: "PAYMENT",
       CLASS_QUALITY: "OTHER",
       TEACHER_BEHAVIOR: "TEACHER_BEHAVIOUR",
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest) {
       data: {
         studentId: userId,
         ticketNumber: `TKT-${Date.now().toString(36).toUpperCase()}`,
-        category: (categoryMap[category] || "OTHER") as any,
+        category: (new Map(Object.entries(categoryMap)).get(category) || "OTHER"),
         subject,
         description,
         status: "NEW",

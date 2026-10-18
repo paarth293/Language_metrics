@@ -2,19 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import {
-  AlertTriangle,
-  Send,
-  Clock,
-  CheckCircle,
-  XCircle,
-  Loader2,
-  AlertCircle,
-  Filter,
-  MessageSquare,
-  Plus,
-  ChevronLeft,
-} from "lucide-react";
+import { AlertTriangle, Send, Clock, CheckCircle, XCircle, Loader2, AlertCircle, MessageSquare, Plus, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 
@@ -121,9 +109,10 @@ export default function SupportPage() {
     }
   };
 
-   
+
   useEffect(() => {
-    fetchTickets();
+    const timer = setTimeout(() => void fetchTickets(), 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

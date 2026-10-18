@@ -3,6 +3,8 @@
 /* dark: follows the in-app theme toggle (data-theme), not the OS setting. */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 @source "..";
+@source "../../../../packages/ui/src";
+@source "../../../../packages/classroom/src";
 
 /* ============================================================
    LANGUAGE METRICS — DESIGN TOKEN SYSTEM v2

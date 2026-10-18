@@ -1,32 +1,16 @@
 "use client";
 
+import Image from "next/image";
+
 import React, { useState, useEffect } from "react";
-import {
-  Save,
-  Loader2,
-  AlertCircle,
-  CheckCircle2,
-  User,
-  Mail,
-  Globe,
-  BookOpen,
-  Shield,
-  Camera,
-  Key,
-  Bell,
-  BellOff,
-  Trash2,
-  AlertTriangle,
-  Eye,
-  EyeOff,
-  Link,
-} from "lucide-react";
+import { Save, Loader2, AlertCircle, CheckCircle2, User, Globe, BookOpen, Camera, Key, Bell, BellOff, Trash2, AlertTriangle, Eye, EyeOff } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
-import { Avatar } from "@/components/ui/Avatar";
+import "@/components/ui/Avatar";
 import { LANGUAGES, getLevelsForLanguage } from "@/lib/languages";
+import { CURRENCIES } from "@repo/currency";
 
 type ProfileData = {
   profile: {
@@ -37,6 +21,7 @@ type ProfileData = {
     avatarUrl: string | null;
     languageToLearn: string;
     proficiencyLevel: string;
+    preferredCurrency: string;
     status: string;
     onboardingComplete: boolean;
     totalBookings: number;
@@ -56,6 +41,7 @@ export default function StudentProfilePage() {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [languageToLearn, setLanguageToLearn] = useState("");
   const [proficiencyLevel, setProficiencyLevel] = useState("");
+  const [preferredCurrency, setPreferredCurrency] = useState("INR");
 
   // Read-only metadata
   const [email, setEmail] = useState("");
@@ -84,11 +70,6 @@ export default function StudentProfilePage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    fetchProfile();
-    checkPushStatus();
-  }, []);
-
   const fetchProfile = async () => {
     try {
       const res = await fetch("/api/students/profile", {
@@ -104,6 +85,7 @@ export default function StudentProfilePage() {
       setAvatarUrl(p.avatarUrl || "");
       setLanguageToLearn(p.languageToLearn);
       setProficiencyLevel(p.proficiencyLevel);
+      setPreferredCurrency(p.preferredCurrency || "INR");
       setStatus(p.status);
       setTotalBookings(p.totalBookings);
       setCompletedBookings(p.completedBookings);
@@ -121,6 +103,20 @@ export default function StudentProfilePage() {
     }
   };
 
+  const checkPushStatus = async () => {
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "granted") {
+      setPushEnabled(true);
+    }
+  };
+
+  useEffect(() => {
+    const initial = setTimeout(() => { void fetchProfile(); void checkPushStatus(); }, 0);
+    return () => clearTimeout(initial);
+  }, []);
+
+
+
   const handleSave = async () => {
     setSaving(true);
     setError(null);
@@ -135,6 +131,7 @@ export default function StudentProfilePage() {
           avatarUrl,
           languageToLearn,
           proficiencyLevel,
+          preferredCurrency,
         }),
       });
       if (!res.ok) throw new Error("Failed to save profile");
@@ -185,12 +182,7 @@ export default function StudentProfilePage() {
     }
   };
 
-  const checkPushStatus = async () => {
-    if (!("Notification" in window)) return;
-    if (Notification.permission === "granted") {
-      setPushEnabled(true);
-    }
-  };
+
 
   const handleTogglePush = async () => {
     setPushLoading(true);
@@ -309,7 +301,7 @@ export default function StudentProfilePage() {
             <div className="relative group">
               <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-amber-400/20 to-amber-600/20 flex items-center justify-center overflow-hidden">
                 {avatarUrl ? (
-                  <img
+                  <Image unoptimized width={96} height={96}
                     src={avatarUrl}
                     alt={name}
                     className="w-full h-full object-cover"
@@ -458,6 +450,23 @@ export default function StudentProfilePage() {
                   </option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-text-muted uppercase tracking-wider">
+                Display Currency
+              </label>
+              <select
+                value={preferredCurrency}
+                onChange={(e) => setPreferredCurrency(e.target.value)}
+                className="mt-1.5 w-full rounded-xl border border-border bg-surface-inset px-4 py-2.5 text-sm text-text focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all"
+              >
+                {CURRENCIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.symbol} {c.code} — {c.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-text-muted mt-1.5">Teacher rates are shown converted to this currency.</p>
             </div>
           </CardContent>
         </Card>

@@ -227,7 +227,7 @@ export function AvailabilityEditor({ open, availability, onClose, onSaved }: Pro
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ availability: payload }),
+        body: JSON.stringify({ availability: payload, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       onSaved(payload);

@@ -11,7 +11,7 @@ export default defineConfig({
   workers: 1,
   reporter: 'html',
   use: {
-    baseURL: process.env.STUDENT_WEB_URL || 'https://language-metrics-student-web.vercel.app',
+    baseURL: process.env.STUDENT_WEB_URL || 'http://localhost:3002',
     trace: 'on-first-retry',
     video: 'on-first-retry',
   },

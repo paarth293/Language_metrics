@@ -42,7 +42,7 @@ export function PlatformPulseChart({ data, preview = false, totalRevenue }: Plat
   const previousPath = useMemo(() => chartPath(data.map((point) => point.previous), maxValue), [data, maxValue]);
   const innerWidth = WIDTH - PADDING.left - PADDING.right;
   const innerHeight = HEIGHT - PADDING.top - PADDING.bottom;
-  const activePoint = data[activeIndex] ?? data[data.length - 1];
+  const activePoint = data.at(activeIndex) ?? data[data.length - 1];
 
   return (
     <section className="lm-panel min-w-0 p-6" aria-labelledby="platform-pulse-title">

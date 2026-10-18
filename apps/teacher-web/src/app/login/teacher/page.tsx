@@ -7,6 +7,7 @@ import { BookOpen, ArrowLeft } from "lucide-react";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { OAuthErrorAlert } from "@/components/auth/OAuthErrorAlert";
 import { Input } from "@/components/ui/Input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Button } from "@/components/ui/Button";
 import { loginSchema } from "@/features/auth/validators/auth";
 import { useAuth } from "@/lib/auth-client";
@@ -130,13 +131,14 @@ export default function TeacherLoginPage() {
 
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-text">Password</label>
+            <label htmlFor="login-password" className="text-sm font-medium text-text">Password</label>
             <Link href="/forgot-password" className="inline-flex min-h-11 items-center -my-3 text-sm font-medium text-gold-strong hover:underline transition-colors">
               Forgot password?
             </Link>
           </div>
-          <Input
-            type="password"
+          <PasswordInput
+            id="login-password"
+            autoComplete="current-password"
             placeholder="••••••••"
             value={password}
             onChange={(e) => { setPassword(e.target.value); setFieldErrors((prev) => ({ ...prev, password: undefined })); }}

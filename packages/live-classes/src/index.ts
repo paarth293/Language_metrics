@@ -7,6 +7,7 @@
  */
 
 export * from "./access";
+export * from "./booking";
 export * from "./demo";
 export * from "./handlers";
 export * from "./settlement";
@@ -14,3 +15,4 @@ export * from "./webhook";
 export * from "./usage";
 export * from "./recording";
 export * from "./monitoring";
+export * from "./recording-payments";

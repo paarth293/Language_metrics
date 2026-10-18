@@ -3,16 +3,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  Star,
-  Clock,
-  Globe,
-  Award,
-  Video,
-  Calendar,
-  BookOpen,
-} from "lucide-react";
+import { ArrowLeft, Star, Globe, Award, Calendar, BookOpen } from "lucide-react";
+import { formatMoney } from "@repo/currency";
 
 interface TeacherData {
   id: string;
@@ -29,6 +21,9 @@ interface Rate {
   id: string;
   type: string;
   amount: number;
+  currency: string;
+  displayAmount: number;
+  displayCurrency: string;
 }
 
 interface Review {
@@ -147,8 +142,10 @@ export default function TeacherProfilePage() {
           <div className="flex flex-col gap-2">
             {rates.length > 0 && (
               <div className="text-right">
-                <div className="text-2xl font-bold text-gold">{rates[0].amount}</div>
-                <div className="text-xs text-white/60">coins ({rates[0].type.toLowerCase()})</div>
+                <div className="text-2xl font-bold text-gold">
+                  {formatMoney(rates[0].displayAmount, rates[0].displayCurrency)}
+                </div>
+                <div className="text-xs text-white/60">per {rates[0].type.toLowerCase()} class</div>
               </div>
             )}
           </div>
@@ -171,7 +168,9 @@ export default function TeacherProfilePage() {
                     className="flex items-center justify-between p-3 rounded-xl bg-surface-inset"
                   >
                     <span className="text-sm text-text capitalize">{rate.type.toLowerCase()} rate</span>
-                    <span className="font-bold text-brand">{rate.amount} coins</span>
+                    <span className="font-bold text-brand">
+                      {formatMoney(rate.displayAmount, rate.displayCurrency)}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -186,11 +185,11 @@ export default function TeacherProfilePage() {
             {Object.keys(groupedAvailability).length > 0 ? (
               <div className="space-y-3">
                 {[1, 2, 3, 4, 5, 6, 0].map((day) => {
-                  const slots = groupedAvailability[day];
+                  const slots = new Map(Object.entries(groupedAvailability)).get(String(day));
                   if (!slots) return null;
                   return (
                     <div key={day}>
-                      <div className="text-xs font-medium text-text-muted mb-1">{DAYS[day]}</div>
+                      <div className="text-xs font-medium text-text-muted mb-1">{DAYS.at(day)}</div>
                       <div className="flex flex-wrap gap-1.5">
                         {slots.map((slot) => (
                           <span

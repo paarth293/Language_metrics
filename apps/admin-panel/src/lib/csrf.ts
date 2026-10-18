@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { createHash, randomBytes } from "crypto";
 
 /**
@@ -9,7 +10,7 @@ import { createHash, randomBytes } from "crypto";
  *
  * Documented in SECURITY.md.
  *
- * Fix (errors.md #N9): this file used to also define an env-var-driven
+ * Fix (docs/audits/error-log.md #N9): this file used to also define an env-var-driven
  * ADMIN_PANEL_URL/APP_URL origin allowlist (`isAllowedOrigin`,
  * `assertValidOrigin`, `allowlist()`), but nothing in the codebase ever
  * called them — the actual origin check wired into the login flow is
@@ -40,9 +41,7 @@ export function csrfTokensMatch(
   const a = createHash("sha256").update(cookieToken).digest();
   const b = createHash("sha256").update(formToken).digest();
   // timingSafeEqual on hashes avoids length leaks on the raw tokens
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a[i]! ^ b[i]!;
-  return diff === 0;
+  return timingSafeEqual(a, b);
 }
 
 export const CSRF_COOKIE = "csrf_token";

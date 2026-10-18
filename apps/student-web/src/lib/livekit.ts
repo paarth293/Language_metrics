@@ -37,7 +37,7 @@ export async function generateLiveKitToken(): Promise<never> {
   throw new Error(
     "generateLiveKitToken() has been removed. Use POST /api/live/token from a client, " +
       "or mintClassToken() from @repo/livekit/server on the server. " +
-      "See docs/LIVEKIT.md."
+      "See docs/livekit.md."
   );
 }
 

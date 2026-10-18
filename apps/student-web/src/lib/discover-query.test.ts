@@ -15,13 +15,13 @@ describe("discover-query", () => {
   });
 
   it("where: search+language both present as separate AND entries", () => {
-    const where = buildDiscoverWhere(baseQuery({ search: "kids", language: "Spanish" })) as any;
+    const where = buildDiscoverWhere(baseQuery({ search: "kids", language: "Spanish" })) as { AND: Array<{ OR: unknown[] }>; gender?: unknown };
     expect(Array.isArray(where.AND)).toBe(true);
     expect(where.AND.length).toBe(2);
-    const hasSearchClause = where.AND.some((c: any) =>
+    const hasSearchClause = where.AND.some((c: unknown) =>
       JSON.stringify(c).includes("kids")
     );
-    const hasLanguageClause = where.AND.some((c: any) =>
+    const hasLanguageClause = where.AND.some((c: unknown) =>
       JSON.stringify(c).includes("Spanish")
     );
     expect(hasSearchClause).toBe(true);
@@ -29,7 +29,7 @@ describe("discover-query", () => {
   });
 
   it("where: narrowed price range adds one AND entry", () => {
-    const where = buildDiscoverWhere(baseQuery({ minPrice: 100, maxPrice: 500 })) as any;
+    const where = buildDiscoverWhere(baseQuery({ minPrice: 100, maxPrice: 500 })) as { AND: Array<{ OR: unknown[] }>; gender?: unknown };
     expect(Array.isArray(where.AND)).toBe(true);
     expect(where.AND.length).toBe(1);
     const priceClause = where.AND[0];
@@ -38,32 +38,54 @@ describe("discover-query", () => {
   });
 
   it("where: minPrice>0 excludes the no-rate fallback branch", () => {
-    const where = buildDiscoverWhere(baseQuery({ minPrice: 100, maxPrice: 500 })) as any;
+    const where = buildDiscoverWhere(baseQuery({ minPrice: 100, maxPrice: 500 })) as { AND: Array<{ OR: unknown[] }>; gender?: unknown };
     const priceOr = where.AND[0].OR;
     expect(priceOr.length).toBe(1);
   });
 
   it("where: minPrice=0 includes the no-rate fallback branch", () => {
-    const where = buildDiscoverWhere(baseQuery({ minPrice: 0, maxPrice: 500 })) as any;
+    const where = buildDiscoverWhere(baseQuery({ minPrice: 0, maxPrice: 500 })) as { AND: Array<{ OR: unknown[] }>; gender?: unknown };
     const priceOr = where.AND[0].OR;
     expect(priceOr.length).toBe(2);
   });
 
+  it("where: perCurrencyBounds builds one clause per currency, each scoped to that currency", () => {
+    const where = buildDiscoverWhere(baseQuery({ minPrice: 200, maxPrice: 500 }), [
+      { currency: "INR", gte: 20000, lte: 50000 },
+      { currency: "USD", gte: 240, lte: 600 },
+    ]) as { AND: Array<{ OR: unknown[] }>; gender?: unknown };
+    const priceOr = where.AND[0].OR;
+    // 2 currency-scoped clauses + the no-rate fallback (minPrice > 0 here, so none expected)
+    expect(priceOr.length).toBe(2);
+    expect(priceOr).toContainEqual({ rates: { some: { type: "HOURLY", currency: "INR", amount: { gte: 20000, lte: 50000 } } } });
+    expect(priceOr).toContainEqual({ rates: { some: { type: "HOURLY", currency: "USD", amount: { gte: 240, lte: 600 } } } });
+  });
+
+  it("where: perCurrencyBounds + minPrice<=0 still adds the no-rate fallback once", () => {
+    const where = buildDiscoverWhere(baseQuery({ minPrice: 0, maxPrice: 500 }), [
+      { currency: "INR", gte: 0, lte: 50000 },
+      { currency: "USD", gte: 0, lte: 600 },
+    ]) as { AND: Array<{ OR: unknown[] }>; gender?: unknown };
+    const priceOr = where.AND[0].OR;
+    expect(priceOr.length).toBe(3);
+    expect(priceOr).toContainEqual({ rates: { none: { type: "HOURLY" } } });
+  });
+
   it("where: language filter matches both the name and the ISO code", () => {
     // Onboarding stores ISO codes ("en") while the filter UI sends names.
-    const clauses = JSON.stringify((buildDiscoverWhere(baseQuery({ language: "English" })) as any).AND);
+    const clauses = JSON.stringify((buildDiscoverWhere(baseQuery({ language: "English" })) as { AND: Array<{ OR: unknown[] }>; gender?: unknown }).AND);
     expect(clauses).toContain('"en"');
     expect(clauses).toContain('"English"');
   });
 
   it("where: 'Chinese' resolves to Mandarin Chinese's code", () => {
-    const where = buildDiscoverWhere(baseQuery({ language: "Chinese" })) as any;
+    const where = buildDiscoverWhere(baseQuery({ language: "Chinese" })) as { AND: Array<{ OR: unknown[] }>; gender?: unknown };
     expect(JSON.stringify(where.AND)).toContain('"zh"');
   });
 
   it("where: gender match is case-insensitive", () => {
     // Stored as "male" or "Male"; the UI sends "MALE".
-    const where = buildDiscoverWhere(baseQuery({ gender: "MALE" })) as any;
+    const where = buildDiscoverWhere(baseQuery({ gender: "MALE" })) as { AND: Array<{ OR: unknown[] }>; gender?: unknown };
     expect(where.gender).toEqual({ equals: "MALE", mode: "insensitive" });
   });
 

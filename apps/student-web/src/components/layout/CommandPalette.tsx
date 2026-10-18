@@ -86,7 +86,7 @@ export function CommandPalette({ open, onClose, navItems, canSearchStudents }: P
       .filter((item) => {
         if (!q) return true;
         const key = item.href.split("/").pop() ?? "";
-        return `${item.label} ${PAGE_KEYWORDS[key] ?? ""}`.toLowerCase().includes(q);
+        return `${item.label} ${new Map(Object.entries(PAGE_KEYWORDS)).get(key) ?? ""}`.toLowerCase().includes(q);
       })
       .map((item) => ({ kind: "page", id: item.href, label: item.label, hint: "Page", href: item.href, icon: item.icon }));
   }, [navItems, q]);
@@ -124,7 +124,7 @@ export function CommandPalette({ open, onClose, navItems, canSearchStudents }: P
       listRef.current?.querySelector(`[data-index="${next}"]`)?.scrollIntoView({ block: "nearest" });
     } else if (e.key === "Enter") {
       e.preventDefault();
-      const r = results[activeIndex];
+      const r = results.at(activeIndex);
       if (r) go(r);
     } else if (e.key === "Escape") {
       e.preventDefault();

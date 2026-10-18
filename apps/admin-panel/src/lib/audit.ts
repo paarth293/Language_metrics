@@ -10,7 +10,7 @@ export interface AuditContext {
 }
 
 /**
- * KNOWN SCHEMA MISMATCH (errors.md #N7 — flagged, not silently patched here
+ * KNOWN SCHEMA MISMATCH (docs/audits/error-log.md #N7 — flagged, not silently patched here
  * because fixing it properly needs a Prisma migration this environment
  * can't run/verify):
  *

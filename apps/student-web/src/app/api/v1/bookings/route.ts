@@ -7,20 +7,20 @@ import {
   type BookingDetail,
 } from "@repo/api-contracts";
 import { exceedsMaxBodySize, rateLimitRedis } from "@/lib/rate-limit";
-import { getCoinBalance } from "@repo/database";
-import { holdCoinsForSession } from "@repo/live-classes";
-
-class InsufficientCoinsError extends Error {
-  constructor(public required: number, public available: number) {
-    super(`Insufficient coins. You need ${required} coins but have ${available}.`);
-  }
-}
+import { InsufficientCoinsError, getCoinBalance } from "@repo/database";
+import {
+  BookingError,
+  assertTeacherFree,
+  holdCoinsForSession,
+  lockTeacherCalendar,
+} from "@repo/live-classes";
 
 /**
  * POST /api/v1/bookings
  *
  * Mobile endpoint to book a 1-on-1 session with a teacher using coin balance.
- * Uses Prisma $transaction with Serializable isolation to prevent double-spending.
+ * The teacher's calendar lock serialises bookings per teacher, and the coin
+ * hold commits in the same transaction as the booking.
  */
 export async function POST(request: NextRequest) {
   const auth = await requireMobileAuth(request);
@@ -104,8 +104,10 @@ export async function POST(request: NextRequest) {
           throw new InsufficientCoinsError(totalCost, balance.balance);
         }
 
-        // 4. Coins are NOT spent here. They are held after this transaction
-        //    commits, and charged only for minutes actually taught.
+        // 4. The teacher must be free. Checked under the calendar lock so two
+        //    concurrent requests cannot both see an empty slot.
+        await lockTeacherCalendar(tx, teacherId);
+        await assertTeacherFree(tx, teacherId, start, end);
 
         // 5. Calculate platform commission
         const commissionPct = 20;
@@ -140,37 +142,24 @@ export async function POST(request: NextRequest) {
           },
         });
 
+        // 8. Reserve the coins. Coins are not spent here — they are charged
+        //    only for minutes actually taught. Held inside this transaction so
+        //    a booking never exists without its billing row.
+        await holdCoinsForSession(
+          {
+            classSessionId: session.id,
+            studentId,
+            teacherId,
+            heldCoins: totalCost,
+            durationMinutes,
+          },
+          tx
+        );
+
         return { newBooking, session, totalCost };
       },
-      {
-        isolationLevel: "Serializable",
-        timeout: 15000,
-      }
+      { timeout: 15000 }
     );
-
-    // Reserve the coins. One conditional UPDATE, keyed by session id, so a
-    // retried request cannot hold twice.
-    try {
-      await holdCoinsForSession({
-        classSessionId: booking.session.id,
-        studentId,
-        teacherId,
-        heldCoins: booking.totalCost,
-        durationMinutes,
-      });
-    } catch (err) {
-      // Roll the booking back rather than leaving an unfunded class on the
-      // teacher's calendar.
-      await db.booking.update({
-        where: { id: booking.newBooking.id },
-        data: { status: "CANCELLED" },
-      });
-      await db.classSession.updateMany({
-        where: { bookingId: booking.newBooking.id },
-        data: { status: "CANCELLED" },
-      });
-      throw err;
-    }
 
     const responsePayload: BookingDetail = {
       id: booking.newBooking.id,
@@ -196,6 +185,9 @@ export async function POST(request: NextRequest) {
         { message: error.message, required: error.required, available: error.available },
         { status: 400 }
       );
+    }
+    if (error instanceof BookingError) {
+      return NextResponse.json({ message: error.message }, { status: error.httpStatus });
     }
     if (error instanceof Error && error.message === "TEACHER_NOT_AVAILABLE") {
       return NextResponse.json({ message: "Teacher not found or not available." }, { status: 404 });

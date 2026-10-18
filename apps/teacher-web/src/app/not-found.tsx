@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Home, Search, ArrowLeft, BookOpen, MessageCircle } from "lucide-react";
+import { Home, Search, BookOpen } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Page Not Found — Language Metrics",

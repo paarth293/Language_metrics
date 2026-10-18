@@ -118,8 +118,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(data.user);
           // Redirect based on role
           if (data.user.role === "STUDENT") router.push("/dashboard");
-          else if (data.user.role === "TEACHER") window.location.href = "/login";
-          else if (data.user.role === "ADMIN") window.location.href = "/login";
+          else if (data.user.role === "TEACHER") router.replace("/login");
+          else if (data.user.role === "ADMIN") router.replace("/login");
         }
 
         return { success: true };

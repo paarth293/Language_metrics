@@ -24,7 +24,7 @@ export const payoutStatusSchema = z.object({
 
 /**
  * Admin invite (create a new admin user) — POST via admin-users/actions.ts.
- * Added alongside the "Invite Admin" flow (errors.md #F1): the roleKey enum
+ * Added alongside the "Invite Admin" flow (docs/audits/error-log.md #F1): the roleKey enum
  * here must stay in sync with permissions.ts's ROLE_PRESETS keys.
  */
 export const inviteAdminSchema = z.object({
