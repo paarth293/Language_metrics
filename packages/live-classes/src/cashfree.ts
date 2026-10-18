@@ -112,6 +112,43 @@ export async function fetchCashfreeOrder(orderId: string): Promise<{ status: Cas
   };
 }
 
+export type CashfreeRefundStatus = "PENDING" | "SUCCESS" | "CANCELLED" | "ONHOLD";
+
+export async function fetchCashfreeRefund(orderId: string, refundId: string): Promise<{ status: CashfreeRefundStatus }> {
+  const { baseUrl, headers } = cashfreeConfig();
+  const request = { headers, cache: "no-store" as const };
+  const response = await fetch(`${baseUrl}/orders/${encodeURIComponent(orderId)}/refunds/${encodeURIComponent(refundId)}`, request);
+  if (!response.ok) throw new CashfreeError("Refund status is unavailable. Please try again.", 502);
+  const refund = (await response.json()) as Partial<Record<"refund_id" | "refund_status", unknown>> | null;
+  if (!refund || refund.refund_id !== refundId || typeof refund.refund_status !== "string") {
+    throw new CashfreeError("Payment provider returned an invalid response", 502);
+  }
+  return { status: refund.refund_status as CashfreeRefundStatus };
+}
+
+/**
+ * Ask Cashfree to refund part or all of an order. `refundId` is ours and
+ * deterministic, so repeating the call cannot refund twice: Cashfree rejects a
+ * reused refund_id and we read back the refund it already has.
+ */
+export async function createCashfreeRefund(input: { orderId: string; refundId: string; amountInr: number; note: string }): Promise<{ status: CashfreeRefundStatus }> {
+  const { baseUrl, headers } = cashfreeConfig();
+  const response = await fetch(`${baseUrl}/orders/${encodeURIComponent(input.orderId)}/refunds`, {
+    method: "POST", headers,
+    body: JSON.stringify({ refund_id: input.refundId, refund_amount: input.amountInr, refund_note: input.note.slice(0, 100) }),
+  });
+  if (response.status === 409) return fetchCashfreeRefund(input.orderId, input.refundId);
+  if (!response.ok) {
+    console.error("Cashfree refund error:", await response.json().catch(() => null));
+    throw new CashfreeError("Cashfree did not accept the refund", 502);
+  }
+  const refund = (await response.json()) as Partial<Record<"refund_id" | "refund_status", unknown>> | null;
+  if (!refund || refund.refund_id !== input.refundId || typeof refund.refund_status !== "string") {
+    throw new CashfreeError("Payment provider returned an invalid response", 502);
+  }
+  return { status: refund.refund_status as CashfreeRefundStatus };
+}
+
 /** Cashfree signs webhooks as base64(HMAC-SHA256(timestamp + rawBody, client secret)). */
 export function verifyCashfreeWebhook(rawBody: string, signature: string, timestamp: string): boolean {
   const secret = process.env.CASHFREE_CLIENT_SECRET;
