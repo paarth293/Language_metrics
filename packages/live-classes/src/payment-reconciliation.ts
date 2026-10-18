@@ -3,7 +3,8 @@
  *
  * Checkout confirms a payment only while the student's tab is open, and the
  * webhook can be missed, misconfigured or rejected. Either way Cashfree has
- * the money and we have an order stuck at CREATED. This sweep asks Cashfree
+ * the money and we have an order stuck at CREATED (or FAILED, after an
+ * earlier attempt failed). This sweep asks Cashfree
  * about every unconfirmed order in a window and settles it through the same
  * idempotent functions checkout and the webhook use, so a payment confirmed
  * by all three is still fulfilled once.
@@ -42,7 +43,8 @@ export async function reconcilePaymentOrders(now: Date = new Date()): Promise<Pa
   const summary: PaymentReconciliationSummary = { checked: 0, settled: [], flagged: [], expired: [], stuck: [], failed: [] };
   const orders = await db.paymentOrder.findMany({
     where: {
-      status: "CREATED",
+      // FAILED orders stay payable, so a later success can be missed too.
+      status: { in: ["CREATED", "FAILED"] },
       createdAt: { lte: new Date(now.getTime() - MIN_AGE_MS), gte: new Date(now.getTime() - MAX_AGE_MS) },
     },
     orderBy: { createdAt: "asc" },
@@ -67,7 +69,7 @@ export async function reconcilePaymentOrders(now: Date = new Date()): Promise<Pa
       const { status } = await fetchCashfreeOrder(order.orderId);
       if (status === "EXPIRED" || status === "TERMINATED") {
         // Conditional so a payment settled meanwhile is never overwritten.
-        const expired = await db.paymentOrder.updateMany({ where: { id: order.id, status: "CREATED" }, data: { status: "EXPIRED" } });
+        const expired = await db.paymentOrder.updateMany({ where: { id: order.id, status: { in: ["CREATED", "FAILED"] } }, data: { status: "EXPIRED" } });
         if (expired.count) summary.expired.push(order.orderId);
         continue;
       }
