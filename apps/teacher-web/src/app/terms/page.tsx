@@ -40,7 +40,7 @@ export default function TermsPage() {
 
           <h2 className="font-display text-[20px] font-bold text-text mb-4">4. Payments & Refunds</h2>
           <p className="text-text-muted leading-relaxed mb-6">
-            Coins are purchased through Razorpay and are non-refundable once used. If a teacher cancels a session, the student receives a full refund of coins. Cancellations within 24 hours of a session may not be refunded. See our <Link href="/faq" className="text-brand hover:underline">FAQ</Link> for details.
+            Coins are purchased through Cashfree and are non-refundable once used. If a teacher cancels a session, the student receives a full refund of coins. Cancellations within 24 hours of a session may not be refunded. See our <Link href="/faq" className="text-brand hover:underline">FAQ</Link> for details.
           </p>
 
           <h2 className="font-display text-[20px] font-bold text-text mb-4">5. Intellectual Property</h2>
