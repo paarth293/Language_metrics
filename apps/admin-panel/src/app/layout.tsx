@@ -1,13 +1,18 @@
 import type { Metadata } from "next";
-import { Fraunces, Manrope, JetBrains_Mono } from "next/font/google";
+import { Manrope, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import "./globals.css";
 
-const fraunces = Fraunces({
-  subsets: ["latin"],
+// Self-hosted: Google serves Fraunces to next/font as extensionless
+// /l/font?kit= URLs, which Turbopack rejects (vercel/next.js#99114). These
+// are the same variable files Google serves modern browsers (v38, latin).
+const fraunces = localFont({
+  src: [
+    { path: "./fonts/fraunces-latin.woff2", weight: "300 900", style: "normal" },
+    { path: "./fonts/fraunces-latin-italic.woff2", weight: "300 900", style: "italic" },
+  ],
   variable: "--font-fraunces",
-  weight: ["300", "400", "500", "600", "700", "800", "900"],
-  style: ["normal", "italic"],
   display: "swap",
 });
 
