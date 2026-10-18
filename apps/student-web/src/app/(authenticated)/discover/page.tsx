@@ -87,6 +87,7 @@ export default function DiscoverPage() {
   const fetchTeachers = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const params = new URLSearchParams();
       if (searchQuery) params.set("search", searchQuery);
       if (selectedLanguage) params.set("language", selectedLanguage);
