@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { AlertTriangle, Send, Clock, CheckCircle, XCircle, Loader2, AlertCircle, MessageSquare, Plus, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { fetchWithRefresh } from "@/lib/fetch-with-refresh";
 
 type TicketStatus = "PENDING" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
 
@@ -66,15 +67,6 @@ const STATUS_CONFIG: Record<
     icon: XCircle,
   },
 };
-
-// Access tokens expire after 15 minutes and the proxy only refreshes them on
-// page navigations, so a form left open that long gets a 401. Refresh once and retry.
-async function fetchWithRefresh(input: string, init?: RequestInit) {
-  const res = await fetch(input, { credentials: "include", ...init });
-  if (res.status !== 401) return res;
-  const refreshed = await fetch("/api/auth/refresh", { method: "POST", credentials: "include" });
-  return refreshed.ok ? fetch(input, { credentials: "include", ...init }) : res;
-}
 
 async function errorMessage(res: Response, fallback: string) {
   if (res.status === 401) return "Your session has expired. Please log in again.";
