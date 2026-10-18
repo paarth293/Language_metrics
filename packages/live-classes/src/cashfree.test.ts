@@ -18,8 +18,24 @@ describe("cashfree orders", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("uses the sandbox unless production is configured", async () => {
+  it("refuses to guess the gateway when CASHFREE_ENV is missing or unknown", async () => {
+    for (const value of ["", "prod", "Production"]) {
+      vi.stubEnv("CASHFREE_ENV", value);
+      await expect(createCashfreeOrder({ orderId: "coins_1", amountInr: 100, customerId: "student" })).rejects.toThrow("unavailable");
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("refuses production mode with a test-mode client id", async () => {
+    vi.stubEnv("CASHFREE_ENV", "production");
+    vi.stubEnv("CASHFREE_CLIENT_ID", "TEST1234567890");
+    await expect(createCashfreeOrder({ orderId: "coins_1", amountInr: 100, customerId: "student" })).rejects.toThrow("unavailable");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("calls the gateway CASHFREE_ENV names", async () => {
     fetchMock.mockResolvedValue({ ok: true, json: async () => ({ order_id: "coins_1", order_amount: 100, order_currency: "INR", payment_session_id: "s" }) });
+    vi.stubEnv("CASHFREE_ENV", "sandbox");
     await createCashfreeOrder({ orderId: "coins_1", amountInr: 100, customerId: "student" });
     expect(fetchMock.mock.calls[0]?.[0]).toBe("https://sandbox.cashfree.com/pg/orders");
     vi.stubEnv("CASHFREE_ENV", "production");
@@ -28,6 +44,7 @@ describe("cashfree orders", () => {
   });
 
   it("rejects an order whose amount the provider changed", async () => {
+    vi.stubEnv("CASHFREE_ENV", "sandbox");
     fetchMock.mockResolvedValue({ ok: true, json: async () => ({ order_id: "coins_1", order_amount: 1, order_currency: "INR", payment_session_id: "s" }) });
     await expect(createCashfreeOrder({ orderId: "coins_1", amountInr: 100, customerId: "student" })).rejects.toThrow("invalid order");
   });
