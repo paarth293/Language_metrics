@@ -2,10 +2,9 @@ import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { POST } from "./route";
 
-const mocks = vi.hoisted(() => ({ settle: vi.fn(), settleRecording: vi.fn() }));
-vi.mock("@/lib/payment-settlement", () => ({ PaymentError: class extends Error {}, settlePayment: mocks.settle }));
+const mocks = vi.hoisted(() => ({ settle: vi.fn() }));
 vi.mock("@repo/live-classes", async (importActual) => ({
-  ...(await importActual<typeof import("@repo/live-classes")>()), settleRecordingPayment: mocks.settleRecording,
+  ...(await importActual<typeof import("@repo/live-classes")>()), settleGatewayPayment: mocks.settle,
 }));
 
 beforeEach(() => { vi.resetAllMocks(); vi.stubEnv("CASHFREE_CLIENT_SECRET", "test-secret"); });
@@ -27,9 +26,7 @@ it("rejects webhooks not signed with the client secret", async () => {
   expect(mocks.settle).not.toHaveBeenCalled();
 });
 
-it("credits coin orders and unlocks recording orders by order prefix", async () => {
+it("settles the signed payment, normalised to paise", async () => {
   expect((await POST(signed(event("coins_100_abc")))).status).toBe(200);
-  expect(mocks.settle).toHaveBeenCalledWith(expect.objectContaining({ order_id: "coins_100_abc", amount: 10000 }));
-  expect((await POST(signed(event("rec_abc")))).status).toBe(200);
-  expect(mocks.settleRecording).toHaveBeenCalledWith(expect.objectContaining({ order_id: "rec_abc" }));
+  expect(mocks.settle).toHaveBeenCalledWith(expect.objectContaining({ order_id: "coins_100_abc", amount: 10000, status: "SUCCESS" }));
 });
