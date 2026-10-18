@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { db } from "@repo/database";
+import { sourcesOf, transitionOrder, type PaymentOrderStatus } from "./payment-order-status";
 import { CashfreeError, cashfreeMode, createCashfreeOrder, fetchCashfreeOrder, fetchSuccessfulPayment, type GatewayPayment } from "./cashfree";
 
 const RECORDING_PRICE_INR = 299;
@@ -34,7 +35,7 @@ export async function createRecordingPaymentOrder(userId: string, recordingId: u
   // A second tab or a retry must not open a second chargeable order: hand
   // back the open one while Cashfree still accepts payment for it.
   const open = await db.paymentOrder.findFirst({
-    where: { userId, status: { in: ["CREATED", "FAILED"] }, receipt: { startsWith: receiptPrefix(recordingId) } },
+    where: { userId, status: { in: sourcesOf("EXPIRED") }, receipt: { startsWith: receiptPrefix(recordingId) } },
     orderBy: { createdAt: "desc" },
   });
   if (open) {
@@ -47,7 +48,7 @@ export async function createRecordingPaymentOrder(userId: string, recordingId: u
       if (payment) await settleRecordingPayment(payment, userId);
       throw new RecordingPaymentError("Recording is already unlocked", 409);
     }
-    await db.paymentOrder.updateMany({ where: { id: open.id, status: { in: ["CREATED", "FAILED"] } }, data: { status: "EXPIRED" } });
+    await transitionOrder(db, { id: open.id }, "EXPIRED");
   }
 
   const receipt = `${receiptPrefix(recordingId)}${randomBytes(4).toString("hex")}`;
@@ -76,13 +77,16 @@ export async function settleRecordingPayment(payment: RecordingPayment, userId?:
       if (order.paymentId !== payment.id) throw new RecordingPaymentError("Order already paid", 409);
       return;
     }
-    const claimed = await tx.paymentOrder.updateMany({ where: { id: order.id, status: { notIn: ["PAID", "DUPLICATE"] } }, data: { status: "PAID", paymentId: payment.id } });
-    if (!claimed.count) return;
+    if (!sourcesOf("PAID").includes(order.status as PaymentOrderStatus)) {
+      throw new RecordingPaymentError(`Order is ${order.status.toLowerCase().replace("_", " ")} and cannot be fulfilled.`, 409);
+    }
+    const claimed = await transitionOrder(tx, { id: order.id }, "PAID", { paymentId: payment.id });
+    if (!claimed) return;
     // Conditional, so two paid orders for one recording cannot both unlock it:
     // the loser keeps the money on record as DUPLICATE, owed back to the student.
     const unlocked = await tx.classSession.updateMany({ where: { id: session.id, isRecordingPaid: false }, data: { isRecordingPaid: true } });
     if (!unlocked.count) {
-      await tx.paymentOrder.update({ where: { id: order.id }, data: { status: "DUPLICATE" } });
+      await transitionOrder(tx, { id: order.id }, "DUPLICATE", {}, ["PAID"]);
       console.error("[recording-payments] duplicate payment for an unlocked recording; refund due", { orderId: order.orderId, paymentId: payment.id });
       return;
     }
