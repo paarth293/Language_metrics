@@ -18,7 +18,7 @@ const faqs = [
       },
       {
         q: "How do I add coins to my wallet?",
-        a: "Go to your Wallet page and click 'Top Up Coins'. You can purchase coins via Razorpay using UPI, credit/debit cards, or net banking. 1 Coin = ₹1.",
+        a: "Go to your Wallet page and click 'Top Up Coins'. You can purchase coins via Cashfree using UPI, credit/debit cards, or net banking. 1 Coin = ₹1.",
       },
     ],
   },
@@ -65,7 +65,7 @@ const faqs = [
     items: [
       {
         q: "What payment methods are accepted?",
-        a: "We accept UPI, credit/debit cards, and net banking through Razorpay. All payments are secure and encrypted.",
+        a: "We accept UPI, credit/debit cards, and net banking through Cashfree. All payments are secure and encrypted.",
       },
       {
         q: "Do coins expire?",
