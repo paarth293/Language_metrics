@@ -12,7 +12,7 @@ import type { GatewayPayment } from "./cashfree";
 import { transitionOrder } from "./payment-order-status";
 
 export interface PaymentIncident {
-  kind: "unsettleable_payment" | "duplicate_payment" | "stuck_orders" | "reconciliation_failed" | "refund_processed" | "refund_failed" | "dispute";
+  kind: "unsettleable_payment" | "duplicate_payment" | "stuck_orders" | "reconciliation_failed" | "refund_processed" | "refund_failed" | "refund_reversal_failed" | "dispute";
   orderId?: string;
   paymentId?: string;
   reason: string;
