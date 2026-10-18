@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { loadRazorpayScript, type RazorpayPaymentResponse } from "@repo/ui/razorpay";
+import { openCashfreeCheckout, type CashfreeMode } from "@repo/ui/cashfree";
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
@@ -62,66 +62,29 @@ export default function RecordingsPage() {
     if (unlockingId) return;
     setUnlockingId(recordingId);
     try {
-      if (!(await loadRazorpayScript())) throw new Error("Payment form could not load. Please try again.");
-      // Create Razorpay order
-      const orderRes = await fetch("/api/students/payments/razorpay/order", {
+      const orderRes = await fetch("/api/students/payments/cashfree/order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: recordings.find((r) => r.id === recordingId)?.unlockPrice || 0,
-          type: "RECORDING_FEE",
-          recordingId,
-        }),
+        body: JSON.stringify({ recordingId }),
       });
 
       if (!orderRes.ok) throw new Error("Failed to create payment order");
-      const { orderId, amount, currency, keyId } = await orderRes.json();
+      const { orderId, paymentSessionId, mode }: { orderId: string; paymentSessionId: string; mode: CashfreeMode } = await orderRes.json();
 
-      // Open Razorpay
-      const options = {
-        key: keyId,
-        amount,
-        currency,
-        name: "Language Metrics",
-        description: "Unlock Recording",
-        order_id: orderId,
-        handler: async (response: RazorpayPaymentResponse) => {
-          try {
-          // Verify payment
-          const verifyRes = await fetch(
-            "/api/students/payments/razorpay/verify",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-              }),
-            }
-          );
+      const result = await openCashfreeCheckout(paymentSessionId, mode);
+      if (result.error) throw new Error(result.error.message || "Payment was not completed.");
 
-          if (verifyRes.ok) {
-            // Refresh recordings
-            fetchRecordings();
-          } else {
-            throw new Error("Payment verification failed");
-          }
-          } catch (error) {
-            alert(error instanceof Error ? error.message : "Payment verification failed. Please try again.");
-          } finally {
-            setUnlockingId(null);
-          }
-        },
-        modal: { ondismiss: () => setUnlockingId(null) },
-        prefill: { name: "" },
-        theme: { color: "#B8860B" },
-      };
-
-      const razorpay = new window.Razorpay(options);
-      razorpay.open();
+      // The server confirms the payment with Cashfree before unlocking.
+      const verifyRes = await fetch("/api/students/payments/cashfree/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId }),
+      });
+      if (!verifyRes.ok) throw new Error("Payment verification failed");
+      fetchRecordings();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Payment failed. Please try again.");
+    } finally {
       setUnlockingId(null);
     }
   };
