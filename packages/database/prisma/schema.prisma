@@ -933,6 +933,8 @@ model PaymentOrder {
   orderId   String   @unique
   amount    Int
   currency  String   @default("INR")
+  /// One of PAYMENT_ORDER_STATUSES (packages/live-classes/src/payment-order-status.ts);
+  /// enforced by the RazorpayOrder_status_check constraint.
   status    String   @default("CREATED")
   receipt   String?
   paymentId String?  @unique
