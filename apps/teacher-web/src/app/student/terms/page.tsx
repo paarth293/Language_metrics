@@ -60,7 +60,7 @@ export default function TermsPage() {
             4. Payments & Refunds
           </h2>
           <p>
-            All payments are processed through Razorpay. Coins purchased on the
+            All payments are processed through Cashfree. Coins purchased on the
             Platform are non-transferable and non-refundable except as required by
             applicable law. Demo classes are non-refundable. Hourly and course bookings
             may be cancelled free of charge up to 12 hours before the scheduled start
