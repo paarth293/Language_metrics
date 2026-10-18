@@ -92,7 +92,7 @@ export default async function SettingsPage() {
             <p className="text-sm text-gray-400 mb-4">Integrations to be configured in Phase 2.</p>
             <div className="space-y-3">
               <div className="flex items-center justify-between p-3 bg-gray-800 rounded border border-gray-700">
-                <span className="text-sm text-white">Razorpay</span>
+                <span className="text-sm text-white">Cashfree</span>
                 <span className="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">Pending</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-gray-800 rounded border border-gray-700">
