@@ -248,7 +248,7 @@ Route group: `src/app/(public)/`. Keep the section order but rebuild each for th
 
 ### 7.1 Global marketing chrome
 - **Navbar:** transparent over hero → frosted glass (`backdrop-blur`, `bg-surface/80`) on scroll. Links: For Students, For Teachers, How It Works, Pricing. Right: theme toggle, Sign in, **Get Started** (gold CTA). Auth-aware (Dashboard + Sign out when logged in). Mobile: full-screen sheet.
-- **Footer:** multi-column (Product, For Teachers, Company, Legal), language marquee strip, socials, theme-aware, newsletter input, trust/compliance line (DPDP, secure payments via Razorpay).
+- **Footer:** multi-column (Product, For Teachers, Company, Legal), language marquee strip, socials, theme-aware, newsletter input, trust/compliance line (DPDP, secure payments via Cashfree).
 
 ### 7.2 Hero
 - Full-viewport, **aurora mesh gradient + grain + floating script words** (parallax on scroll). Left-weighted or centered composition.
@@ -312,13 +312,13 @@ App shell (Sidebar: Discover, My Classes, Wallet, Messages, Profile). This is th
 A guided **multi-step modal / dedicated route** with a **Stepper**:
 1. **Select slot** — calendar + time list, tz shown explicitly, duration, price in coins. Slot is held (5-min TTL) — show a **countdown** "slot reserved for 4:59."
 2. **Review** — teacher, date/time (local + teacher tz), duration, coins to be debited, cancellation policy summary.
-3. **Pay** — coin balance shown; if sufficient → "Confirm & pay N coins"; if insufficient → inline **top-up** (Razorpay coin packages) without leaving the flow.
+3. **Pay** — coin balance shown; if sufficient → "Confirm & pay N coins"; if insufficient → inline **top-up** (Cashfree coin packages) without leaving the flow.
 4. **Confirmation** — success animation, add-to-calendar (.ics/Google), "Join opens 10 min before," link to My Classes.
 - **Failure/edge states:** slot expired (re-select), payment failed (retry), double-book prevented (server 409 → friendly "just got taken" message).
 
 ### 9.4 Coin wallet [DEMO-CRITICAL]
 - **Balance hero card** — big tabular coin number + gold coin glyph, "Buy coins" CTA, `--glow-gold` accent.
-- **Coin packages** — cards (₹→coins + bonus tiers), Razorpay Checkout launch (test mode for demo).
+- **Coin packages** — cards (₹1 = 1 coin), Cashfree Checkout launch (test mode for demo).
 - **Transaction ledger** — DataTable: type (Purchase / Debit-Booking / Refund / Admin-Grant) with colored badges, amount (+/− colored), reference, date, running balance. Filter + export. This mirrors the immutable `CoinTransaction` ledger.
 - **Receipts** — per-purchase receipt view/download.
 
@@ -454,7 +454,7 @@ Targets: **Lighthouse ≥ 95** (perf/best-practices/SEO/a11y) on marketing; **LC
 - **Assets:** grain/noise as tiny tiled asset or CSS, not large PNGs; SVG icons; tree-shake `lucide-react` (named imports).
 - **CSS:** Tailwind v4 JIT; purge unused; token-driven so no duplicate style blocks; remove the three duplicated sidebar implementations (AppShell).
 - **Monitoring:** wire Web Vitals reporting; Sentry (frontend) for errors; bundle-analyzer in CI budget.
-- **Third-party:** load Razorpay Checkout script on-demand (only in wallet/booking-pay); LiveKit only on session routes.
+- **Third-party:** load Cashfree Checkout script on-demand (only in wallet/booking-pay); LiveKit only on session routes.
 
 ---
 
@@ -466,7 +466,7 @@ Keep the stack lean; add only what earns its weight:
 - **Calendar/slots:** build on `date-fns` + a lightweight calendar, timezone-aware (UTC store, local render).
 - **Data fetching (optional):** `@tanstack/react-query` or `swr` for caching search/dashboards.
 - **Live video:** `@livekit/components-react` + `livekit-client` (session routes only).
-- **Payments:** Razorpay Checkout (dynamic script).
+- **Payments:** Cashfree Checkout (dynamic script).
 - **Utilities already present:** `clsx`, `tailwind-merge`, `framer-motion`, `lucide-react`, `zod`.
 - **Toasts:** `sonner` (or small custom) — theme-aware.
 
@@ -508,7 +508,7 @@ A scripted "golden path" that proves the whole product, runnable on seeded data:
 1. **Landing** — load in light, toggle to **dark** live (instant "wow"), scroll through hero → stats → how-it-works → features → teacher spotlight → pricing.
 2. **Sign up as student** — quick, polished form + success animation.
 3. **Discover** — filter by language, see teacher cards, open a **teacher profile**.
-4. **Book a demo class** — stepper, slot hold countdown, **buy coins** (Razorpay test), pay, confirmation + add-to-calendar.
+4. **Book a demo class** — stepper, slot hold countdown, **buy coins** (Cashfree sandbox), pay, confirmation + add-to-calendar.
 5. **My Classes** — next-class card with countdown → **Join** → **live call** (lobby + in-call with a second seeded participant) → leave → rate.
 6. **Teacher portal** — availability calendar, bookings, earnings dashboard.
 7. **Admin portal** — analytics dashboard (charts), verification queue approve/reject, coin ledger + manual grant (audit log entry appears).
