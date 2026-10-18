@@ -67,7 +67,10 @@ export async function settlePayment(payment: GatewayPayment, userId?: string) {
  * Cashfree order id.
  */
 export async function createCoinPaymentOrder(userId: string, pack: { coins: number; priceInr: number }) {
-  const receipt = `coins_${pack.coins}_${randomUUID().replaceAll("-", "").slice(0, 24)}`;
+  // At most 35 characters, so the derived refund id (rf_<orderId>) stays
+  // within Cashfree's 40-character limit for any coin quantity.
+  const prefix = `coins_${pack.coins}_`;
+  const receipt = `${prefix}${randomUUID().replaceAll("-", "").slice(0, 35 - prefix.length)}`;
   const order = await createCashfreeOrder({ orderId: receipt, amountInr: pack.priceInr, customerId: userId });
   await db.paymentOrder.create({
     data: { orderId: order.orderId, amount: pack.priceInr, currency: "INR", status: "CREATED", receipt, userId },
