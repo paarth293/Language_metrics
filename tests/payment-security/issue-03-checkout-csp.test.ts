@@ -10,6 +10,8 @@ const REQUIRED = {
   "script-src": ["https://sdk.cashfree.com"],
   "connect-src": ["https://api.cashfree.com", "https://sandbox.cashfree.com"],
   "frame-src": ["https://sdk.cashfree.com", "https://api.cashfree.com", "https://sandbox.cashfree.com", "https://payments.cashfree.com", "https://payments-test.cashfree.com"],
+  // The modal checkout POSTs a hidden form into its iframe; without these the popup stays blank.
+  "form-action": ["'self'", "https://api.cashfree.com", "https://sandbox.cashfree.com"],
 };
 
 async function cspOf(configPath: string) {
@@ -35,6 +37,7 @@ describe("issue #3: checkout pages allow the Cashfree SDK under CSP", () => {
     expect(csp!["object-src"]).toEqual(["'none'"]);
     expect(csp!["script-src"]).not.toContain("*");
     expect(csp!["frame-src"]).not.toContain("*");
+    expect(csp!["form-action"]).not.toContain("*");
   });
 
   it("student-web, which sends no CSP, does not block the SDK", async () => {
