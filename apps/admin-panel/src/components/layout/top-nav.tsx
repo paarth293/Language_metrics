@@ -2,7 +2,7 @@
 
 import { Bell, LogOut, Menu, Moon, Search, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useSyncExternalStore, useState, useEffect } from "react";
+import { useSyncExternalStore } from "react";
 import type { SessionUser } from "@/lib/rbac";
 
 const emptySubscribe = () => () => undefined;
@@ -16,13 +16,7 @@ interface TopNavProps {
 export function TopNav({ admin, onMenuClick, unreadCount: initialUnreadCount }: TopNavProps) {
   const { theme, setTheme } = useTheme();
   const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
-  const [unreadCount, setUnreadCount] = useState<number>(initialUnreadCount ?? 0);
-
-  useEffect(() => {
-    if (initialUnreadCount !== undefined) {
-      setUnreadCount(initialUnreadCount);
-    }
-  }, [initialUnreadCount]);
+  const unreadCount = initialUnreadCount ?? 0;
 
   const initials = admin.name
     .split(" ")

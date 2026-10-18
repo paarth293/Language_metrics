@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   Video,
@@ -50,15 +50,12 @@ export default function MyClassesPage() {
   const [reschedulingSession, setReschedulingSession] = useState<{ id: string, scheduledStart: string } | null>(null);
   const [newStartTime, setNewStartTime] = useState<string>("");
 
-  useEffect(() => {
-    fetchBookings();
-  }, [activeTab]);
-
-  const fetchBookings = async () => {
+  const fetchBookings = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch(`/api/students/classes?filter=${activeTab}`, {
         credentials: "include",
+        cache: "no-store",
       });
       if (!res.ok) throw new Error("Failed to load classes");
       const data = await res.json();
@@ -68,7 +65,14 @@ export default function MyClassesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => void fetchBookings(), 0);
+    return () => clearTimeout(timer);
+  }, [fetchBookings]);
+
+
 
   const handleCancel = async (bookingId: string) => {
     setCancellingId(bookingId);
@@ -171,7 +175,7 @@ export default function MyClassesPage() {
       {/* Welcome Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl font-bold text-brand mb-2">
+          <h1 className="lm-page-title mb-2">
             My Classes
           </h1>
           <p className="text-text-muted">
@@ -265,6 +269,8 @@ export default function MyClassesPage() {
                       <div className="relative">
                         <Avatar
                           src={booking.avatar || undefined}
+                          alt={booking.teacher}
+                          initials={booking.teacher.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
                           size="lg"
                           online={isLive || isStartingSoon}
                         />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -61,11 +61,6 @@ export function Sidebar({ admin, isOpen, onClose }: SidebarProps) {
       {/* Navigation */}
       <nav aria-label="Admin navigation" className="flex-1 overflow-y-auto py-2">
         {modules.map((module, i) => {
-          const Icon = module.icon;
-          const isModuleActive = module.match.some((m) =>
-            m === "/" ? pathname === "/" : pathname.startsWith(m)
-          );
-
           return (
             <div key={module.key} className={clsx("px-3", i > 0 && "mt-1 border-t border-[var(--border)] pt-1")}>
               {/* Module group label */}

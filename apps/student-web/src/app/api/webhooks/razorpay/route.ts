@@ -1,61 +1,28 @@
-import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { verifyWebhookSignature } from '@/lib/razorpay-verify';
-import { checkAndSetIdempotency } from '@/lib/idempotency';
-import { creditCoins } from '@/lib/coin-service';
+import { db } from "@repo/database";
+import { settleRecordingPayment, RecordingPaymentError } from "@repo/live-classes";
+import { NextResponse } from "next/server";
+import { verifyWebhookSignature } from "@/lib/razorpay-verify";
+import { PaymentError, settlePayment } from "@/lib/payment-settlement";
 
 export async function POST(req: Request) {
   try {
-    const signature = req.headers.get('x-razorpay-signature');
-    if (!signature) {
-      return NextResponse.json({ error: 'Missing signature' }, { status: 400 });
+    const signature = req.headers.get("x-razorpay-signature");
+    if (!signature) return NextResponse.json({ error: "Missing signature" }, { status: 400 });
+    const raw = await req.text();
+    if (!verifyWebhookSignature(raw, signature)) return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+    const payload = JSON.parse(raw);
+    if (payload.event === "payment.captured" || payload.event === "order.paid") {
+      const payment = payload.payload?.payment?.entity;
+      if (!payment || typeof payment.order_id !== "string") return NextResponse.json({ error: "Invalid payment details" }, { status: 400 });
+      const order = await db.razorpayOrder.findUnique({ where: { orderId: payment.order_id } });
+      if (order?.receipt?.startsWith("rec_")) await settleRecordingPayment(payment);
+      else await settlePayment(payment);
     }
-
-    const payloadString = await req.text();
-    
-    try {
-      if (!verifyWebhookSignature(payloadString, signature)) {
-        return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
-      }
-    } catch (err) {
-      return NextResponse.json({ error: 'Signature verification failed' }, { status: 500 });
-    }
-
-    const payload = JSON.parse(payloadString);
-    const eventId = payload.headers && payload.headers['x-razorpay-event-id'] ? payload.headers['x-razorpay-event-id'] : payload.event_id || payload.payment?.entity?.id || String(Date.now());
-    
-    // Check idempotency
-    const isNew = await checkAndSetIdempotency(`webhook_rp_${eventId}`);
-    if (!isNew) {
-      return NextResponse.json({ success: true, message: 'Already processed' });
-    }
-
-    if (payload.event === 'payment.captured' || payload.event === 'order.paid') {
-      const paymentEntity = payload.payload.payment.entity;
-      const orderId = paymentEntity.order_id;
-      
-      const order = await db.razorpayOrder.findUnique({
-        where: { orderId }
-      });
-
-      if (order && order.status !== 'PAID') {
-        // Update order status
-        await db.razorpayOrder.update({
-          where: { id: order.id },
-          data: { status: 'PAID', paymentId: paymentEntity.id }
-        });
-
-        // Add coins (amount in INR = 1:1 roughly for now, or fetch from package)
-        // Let's assume the amount saved in order is the INR amount, we can determine coins from that
-        // Assuming package gives coins = amount * ratio, here we'll just credit order amount * 10 
-        // Real implementation would look up the package
-        await creditCoins(order.userId, order.amount, 'Coin purchase via Razorpay');
-      }
-    }
-
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Webhook error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    if (error instanceof PaymentError || error instanceof RecordingPaymentError) return NextResponse.json({ error: error.message }, { status: error.status });
+    if (error instanceof SyntaxError) return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    console.error("Webhook error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

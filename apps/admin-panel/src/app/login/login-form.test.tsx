@@ -53,7 +53,7 @@ describe("LoginForm Component", () => {
     expect(screen.getByText("Invalid credentials")).toBeInTheDocument();
   });
 
-  // Fix (errors.md #N3): this test previously asserted the OLD, insecure
+  // Fix (docs/audits/error-log.md #N3): this test previously asserted the OLD, insecure
   // design — that the real email/password inputs unmount and get replaced
   // by `<input type="hidden">` fields whose values come back through the
   // server action's return state. login-form.tsx was deliberately changed

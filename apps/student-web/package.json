@@ -6,7 +6,7 @@
     "dev": "next dev -p 3002",
     "build": "next build",
     "start": "next start -p 3002",
-    "lint": "eslint",
+    "lint": "eslint --max-warnings 0",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
@@ -16,6 +16,7 @@
     "@aws-sdk/s3-request-presigner": "^3.1120.0",
     "@livekit/components-react": "^2.9.3",
     "@repo/api-contracts": "*",
+    "@repo/currency": "*",
     "@repo/database": "*",
     "@repo/live-classes": "*",
     "@repo/livekit": "*",
@@ -33,7 +34,10 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "tailwind-merge": "^3.6.0",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "@repo/ui": "*",
+    "@repo/classroom": "*",
+    "@repo/languages": "*"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

@@ -44,7 +44,7 @@ describe("requireAuth", () => {
 
   it("should return 401 INVALID_TOKEN when token verification fails", async () => {
     mockVerifyAccessToken.mockResolvedValue(null);
-    const req = makeRequest("lm_access_token=invalid-token");
+    const req = makeRequest("lm_teacher_access_token=invalid-token");
     const result = await requireAuth(req);
 
     expect(result.error).toBeDefined();
@@ -55,7 +55,7 @@ describe("requireAuth", () => {
 
   it("should return 401 INVALID_TOKEN when token has no sub", async () => {
     mockVerifyAccessToken.mockResolvedValue({ role: "STUDENT", emailVerified: true });
-    const req = makeRequest("lm_access_token=some-token");
+    const req = makeRequest("lm_teacher_access_token=some-token");
     const result = await requireAuth(req);
 
     expect(result.error).toBeDefined();
@@ -69,7 +69,7 @@ describe("requireAuth", () => {
       role: "STUDENT",
       emailVerified: false,
     });
-    const req = makeRequest("lm_access_token=valid-token");
+    const req = makeRequest("lm_teacher_access_token=valid-token");
     const result = await requireAuth(req);
 
     expect(result.error).toBeDefined();
@@ -84,7 +84,7 @@ describe("requireAuth", () => {
       role: "STUDENT",
       emailVerified: true,
     });
-    const req = makeRequest("lm_access_token=valid-token");
+    const req = makeRequest("lm_teacher_access_token=valid-token");
     const result = await requireAuth(req, "TEACHER");
 
     expect(result.error).toBeDefined();
@@ -100,7 +100,7 @@ describe("requireAuth", () => {
       emailVerified: true,
     };
     mockVerifyAccessToken.mockResolvedValue(payload);
-    const req = makeRequest("lm_access_token=valid-token");
+    const req = makeRequest("lm_teacher_access_token=valid-token");
     const result = await requireAuth(req, "TEACHER");
 
     expect(result.error).toBeUndefined();
@@ -116,7 +116,7 @@ describe("requireAuth", () => {
       emailVerified: true,
     };
     mockVerifyAccessToken.mockResolvedValue(payload);
-    const req = makeRequest("lm_access_token=valid-token");
+    const req = makeRequest("lm_teacher_access_token=valid-token");
     const result = await requireAuth(req);
 
     expect(result.error).toBeUndefined();
@@ -131,7 +131,7 @@ describe("requireAuth", () => {
       role: "TEACHER",
       emailVerified: true,
     });
-    const req = makeRequest("lm_access_token=valid-token");
+    const req = makeRequest("lm_teacher_access_token=valid-token");
     const result = await requireAuth(req, "STUDENT", "TEACHER");
 
     expect(result.error).toBeUndefined();
@@ -146,7 +146,7 @@ describe("requireAuth", () => {
       emailVerified: true,
     });
     // URL-encoded token value
-    const req = makeRequest("lm_access_token=some%20encoded%20token");
+    const req = makeRequest("lm_teacher_access_token=some%20encoded%20token");
     const result = await requireAuth(req);
 
     expect(result.error).toBeUndefined();
@@ -160,7 +160,7 @@ describe("requireAuth", () => {
       emailVerified: true,
     });
     const req = makeRequest(
-      "other_cookie=value; lm_access_token=target-token; another=value2"
+      "other_cookie=value; lm_teacher_access_token=target-token; another=value2"
     );
     const result = await requireAuth(req);
 
@@ -170,7 +170,7 @@ describe("requireAuth", () => {
 
   it("should return 500 INTERNAL_ERROR when verification throws", async () => {
     mockVerifyAccessToken.mockRejectedValue(new Error("unexpected"));
-    const req = makeRequest("lm_access_token=valid-token");
+    const req = makeRequest("lm_teacher_access_token=valid-token");
     const result = await requireAuth(req);
 
     expect(result.error).toBeDefined();

@@ -1,20 +1,10 @@
 "use client";
 
+import type { LucideIcon } from "lucide-react";
+
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import {
-  AlertTriangle,
-  Send,
-  Clock,
-  CheckCircle,
-  XCircle,
-  Loader2,
-  AlertCircle,
-  Filter,
-  MessageSquare,
-  Plus,
-  ChevronLeft,
-} from "lucide-react";
+import { AlertTriangle, Send, Clock, CheckCircle, XCircle, Loader2, AlertCircle, MessageSquare, Plus, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 
@@ -55,7 +45,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const STATUS_CONFIG: Record<
   TicketStatus,
-  { color: string; bg: string; icon: any }
+  { color: string; bg: string; icon: LucideIcon }
 > = {
   PENDING: {
     color: "text-yellow-700",
@@ -92,10 +82,6 @@ export default function SupportPage() {
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
 
-  useEffect(() => {
-    fetchTickets();
-  }, []);
-
   const fetchTickets = async () => {
     try {
       setLoading(true);
@@ -103,12 +89,19 @@ export default function SupportPage() {
       if (!res.ok) throw new Error("Failed to load tickets");
       const data = await res.json();
       setTickets(data.tickets || []);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const timer = setTimeout(() => void fetchTickets(), 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,8 +119,8 @@ export default function SupportPage() {
       setSubject("");
       setDescription("");
       fetchTickets();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -167,7 +160,7 @@ export default function SupportPage() {
               <ChevronLeft className="w-4 h-4" /> Back to tickets
             </button>
           )}
-          <h1 className="text-2xl font-bold text-navy-900">
+          <h1 className="lm-page-title">
             {view === "list" ? "My Support Tickets" : "Raise a Complaint"}
           </h1>
           <p className="text-gray-600 mt-1">
@@ -217,7 +210,7 @@ export default function SupportPage() {
                 <option value="">Select a category</option>
                 {CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
-                    {CATEGORY_LABELS[cat]}
+                    {new Map(Object.entries(CATEGORY_LABELS)).get(cat)}
                   </option>
                 ))}
               </select>
@@ -326,7 +319,7 @@ export default function SupportPage() {
           ) : (
             <div className="space-y-3">
               {filteredTickets.map((ticket, index) => {
-                const statusConf = STATUS_CONFIG[ticket.status];
+                const statusConf = STATUS_CONFIG[ticket.status] ?? STATUS_CONFIG.PENDING;
                 const StatusIcon = statusConf.icon;
                 return (
                   <motion.div

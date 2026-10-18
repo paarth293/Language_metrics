@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import React, { useState, useEffect } from "react";
 import {
   Save,
@@ -24,6 +26,7 @@ import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { LANGUAGES, getLevelsForLanguage } from "@/lib/languages";
+import { CURRENCIES } from "@repo/currency";
 
 type ProfileData = {
   profile: {
@@ -34,6 +37,7 @@ type ProfileData = {
     avatarUrl: string | null;
     languageToLearn: string;
     proficiencyLevel: string;
+    preferredCurrency: string;
     status: string;
     onboardingComplete: boolean;
     totalBookings: number;
@@ -53,6 +57,7 @@ export default function StudentProfilePage() {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [languageToLearn, setLanguageToLearn] = useState("");
   const [proficiencyLevel, setProficiencyLevel] = useState("");
+  const [preferredCurrency, setPreferredCurrency] = useState("INR");
 
   // Read-only metadata
   const [email, setEmail] = useState("");
@@ -81,11 +86,6 @@ export default function StudentProfilePage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    fetchProfile();
-    checkPushStatus();
-  }, []);
-
   const fetchProfile = async () => {
     try {
       const res = await fetch("/api/students/profile", { credentials: "include" });
@@ -99,6 +99,7 @@ export default function StudentProfilePage() {
       setAvatarUrl(p.avatarUrl || "");
       setLanguageToLearn(p.languageToLearn);
       setProficiencyLevel(p.proficiencyLevel);
+      setPreferredCurrency(p.preferredCurrency || "INR");
       setStatus(p.status);
       setTotalBookings(p.totalBookings);
       setCompletedBookings(p.completedBookings);
@@ -114,6 +115,18 @@ export default function StudentProfilePage() {
     }
   };
 
+  const checkPushStatus = async () => {
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "granted") setPushEnabled(true);
+  };
+
+  useEffect(() => {
+    const initial = setTimeout(() => { void fetchProfile(); void checkPushStatus(); }, 0);
+    return () => clearTimeout(initial);
+  }, []);
+
+
+
   const handleSave = async () => {
     setSaving(true);
     setError(null);
@@ -123,7 +136,7 @@ export default function StudentProfilePage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ name, avatarUrl, languageToLearn, proficiencyLevel }),
+        body: JSON.stringify({ name, avatarUrl, languageToLearn, proficiencyLevel, preferredCurrency }),
       });
       if (!res.ok) throw new Error("Failed to save profile");
       setSuccessMsg("Profile updated successfully!");
@@ -171,10 +184,7 @@ export default function StudentProfilePage() {
     }
   };
 
-  const checkPushStatus = async () => {
-    if (!("Notification" in window)) return;
-    if (Notification.permission === "granted") setPushEnabled(true);
-  };
+
 
   const handleTogglePush = async () => {
     setPushLoading(true);
@@ -227,18 +237,18 @@ export default function StudentProfilePage() {
 
   if (loading) {
     return (
-      <div className="py-8 max-w-4xl mx-auto w-full">
+      <div className="py-8 max-w-4xl w-full">
         <DashboardSkeleton />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 pb-16 animate-in fade-in duration-300 h-full flex flex-col max-w-4xl mx-auto w-full">
+    <div className="space-y-6 pb-16 animate-in fade-in duration-300 h-full flex flex-col max-w-4xl w-full">
       {/* ── HEADER ─────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-[32px] sm:text-[36px] font-display font-bold text-text tracking-[-0.02em] leading-tight">
+          <h1 className="lm-page-title">
             My Profile
           </h1>
           <p className="text-base text-text-muted mt-1">
@@ -267,12 +277,12 @@ export default function StudentProfilePage() {
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#231d5e] to-[#5046c8] p-[1px] shadow-level-2">
         <div className="rounded-[15px] bg-gradient-to-br from-[#1a1547] to-[#0f0c29] p-6 relative overflow-hidden">
           <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-white/5 blur-[50px] pointer-events-none" />
-          
+
           <div className="flex items-start gap-6 relative z-10">
             <div className="relative group">
               <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-brand to-brand-hover flex items-center justify-center overflow-hidden shadow-sm border border-white/10">
                 {avatarUrl ? (
-                  <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+                  <Image unoptimized width={96} height={96} src={avatarUrl} alt={name} className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-3xl font-display font-bold text-white">{name[0]?.toUpperCase()}</span>
                 )}
@@ -281,7 +291,7 @@ export default function StudentProfilePage() {
                 <Camera className="w-6 h-6 text-white" />
               </div>
             </div>
-            
+
             <div className="flex-1">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
                 <div>
@@ -391,6 +401,19 @@ export default function StudentProfilePage() {
                   <option key={lvl.value} value={lvl.value}>{lvl.label}</option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Display Currency</label>
+              <select
+                value={preferredCurrency}
+                onChange={(e) => setPreferredCurrency(e.target.value)}
+                className="mt-1.5 w-full rounded-xl border border-border/60 bg-surface px-4 py-2.5 text-[14px] text-text focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand shadow-sm transition-all"
+              >
+                {CURRENCIES.map((c) => (
+                  <option key={c.code} value={c.code}>{c.symbol} {c.code} — {c.label}</option>
+                ))}
+              </select>
+              <p className="text-[11px] text-text-muted mt-1.5">Teacher rates are shown converted to this currency.</p>
             </div>
           </CardContent>
         </Card>
@@ -528,7 +551,7 @@ export default function StudentProfilePage() {
             </CardContent>
           </Card>
         </div>
-        
+
         {/* ── ACCOUNT DELETION ─────────────────────── */}
         <Card className="lg:col-span-2 border-alert/30 bg-alert/5 shadow-sm">
           <CardHeader className="pb-3 border-b border-alert/10">

@@ -2,14 +2,14 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { GraduationCap, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { GraduationCap, ArrowRight } from "lucide-react";
+import { PasswordInput } from "@repo/ui/PasswordInput";
 import { useAuth } from "@/lib/auth-client";
 
 export default function StudentLoginPage() {
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,28 +60,20 @@ export default function StudentLoginPage() {
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-sm font-medium text-text">Password</label>
+                <label htmlFor="login-password" className="text-sm font-medium text-text">Password</label>
                 <Link href="/forgot-password" className="text-xs font-medium text-gold hover:text-gold/80 transition-colors">
                   Forgot password?
                 </Link>
               </div>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
+                <PasswordInput
+                  id="login-password"
+                  autoComplete="current-password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full rounded-xl border border-border bg-surface-inset px-4 py-3 pr-12 text-sm text-text placeholder:text-text-subtle focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all"
+                  className="h-auto w-full rounded-xl border border-border bg-surface-inset px-4 py-3 pr-12 text-sm text-text placeholder:text-text-subtle focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-subtle hover:text-text transition-colors"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
             </div>
 
             <button

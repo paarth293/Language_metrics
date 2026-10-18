@@ -17,7 +17,7 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
   const ThemeIcon = theme === "light" ? Moon : Sun;
 
   return (
-    <div className="flex min-h-screen bg-bg">
+    <div className="aa-contrast flex min-h-screen bg-bg">
       {/* Left side: Form */}
       <div className="flex w-full flex-col lg:w-1/2">
         {/* Header */}

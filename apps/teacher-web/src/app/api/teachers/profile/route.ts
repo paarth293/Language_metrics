@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { TeacherService } from "@/features/teacher/services/teacher-service";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/teachers/profile
  * Returns the full teacher profile including documents.

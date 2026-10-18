@@ -8,10 +8,11 @@
     "build": "next build",
     "prisma:generate": "prisma generate --schema=../../packages/database/prisma/schema.prisma",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint --max-warnings 0",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:seed": "node --env-file=.env prisma/seed.mjs"
+    "db:seed": "node --env-file=.env prisma/seed.mjs",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.600.0",
@@ -21,6 +22,7 @@
     "@react-email/render": "^2.1.0",
     "@repo/api-contracts": "*",
     "@repo/auth": "*",
+    "@repo/currency": "*",
     "@repo/database": "*",
     "@repo/live-classes": "*",
     "@repo/livekit": "*",
@@ -43,7 +45,10 @@
     "recharts": "^3.10.1",
     "resend": "^6.22.1",
     "tailwind-merge": "^3.6.0",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "@repo/ui": "*",
+    "@repo/classroom": "*",
+    "@repo/languages": "*"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

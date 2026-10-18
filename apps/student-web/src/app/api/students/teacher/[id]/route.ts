@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { DEMO_CLASS_COINS, DEMO_CLASS_MINUTES, hasUsedDemo } from "@repo/live-classes";
 import { sanitizeOrFallback } from "@/lib/sanitize";
+import { convertMinorUnitsSafe } from "@repo/currency";
 
 /**
  * GET /api/students/teacher/[id]
@@ -18,15 +19,21 @@ export async function GET(
   try {
     const { id } = await params;
 
-    // Fetch teacher profile with all relations
-    const teacher = await db.teacherProfile.findUnique({
-      where: { userId: id },
-      include: {
-        rates: true,
-        availability: true,
-        reviews: true,
-      },
-    });
+    const [teacher, student] = await Promise.all([
+      db.teacherProfile.findUnique({
+        where: { userId: id },
+        include: {
+          rates: true,
+          availability: true,
+          reviews: true,
+        },
+      }),
+      db.studentProfile.findUnique({
+        where: { userId: auth.user.sub },
+        select: { preferredCurrency: true },
+      }),
+    ]);
+    const studentCurrency = student?.preferredCurrency || "INR";
 
     if (!teacher) {
       return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
@@ -72,11 +79,24 @@ export async function GET(
         languages: teacher.languages,
         demoVideoUrl: teacher.demoVideoUrl,
       },
-      rates: teacher.rates.map((r) => ({
-        id: r.id,
-        type: r.type,
-        amount: r.amount,
-      })),
+      // `amount`/`currency` are the teacher's own — unchanged, since the
+      // booking flow charges in these (see api/students/teacher/[id]/book).
+      // `displayAmount`/`displayCurrency` are purely informational: the same
+      // rate converted into the viewing student's own currency, for a
+      // "≈ $X" line next to the actual coin cost. Never used for charging.
+      rates: await Promise.all(
+        teacher.rates.map(async (r) => {
+          const display = await convertMinorUnitsSafe(r.amount, r.currency, studentCurrency);
+          return {
+            id: r.id,
+            type: r.type,
+            amount: r.amount,
+            currency: r.currency,
+            displayAmount: display.amount,
+            displayCurrency: display.currency,
+          };
+        })
+      ),
       reviews: teacher.reviews.map((r) => ({
         id: r.id,
         rating: r.rating,
@@ -99,6 +119,7 @@ export async function GET(
         totalReviews: teacher.reviews.length,
         averageRating: Math.round(avgRating * 10) / 10,
       },
+      studentCurrency,
       demo: { coins: DEMO_CLASS_COINS, minutes: DEMO_CLASS_MINUTES, available: !demoUsed },
     });
   } catch (error) {

@@ -2,13 +2,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { AuthService } from "@/features/auth/services/auth-service";
 import { loginSchema } from "@/features/auth/validators/auth";
-import { rateLimit, rateLimitRedis, exceedsMaxBodySize } from "@/lib/rate-limit";
-import {
-  signAccessToken,
-  signRefreshToken,
-  accessCookieOptions,
-  refreshCookieOptions,
-} from "@/lib/tokens";
+import { rateLimitRedis, exceedsMaxBodySize } from "@/lib/rate-limit";
+import { signAccessToken, signRefreshToken, accessCookieOptions, refreshCookieOptions } from "@/lib/tokens";
 import { storeRefreshSession } from "@/lib/redis-session";
 
 /**
@@ -86,8 +81,8 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
 
-    response.cookies.set("lm_access_token", accessToken, accessCookieOptions);
-    response.cookies.set("lm_refresh_token", refreshToken, {
+    response.cookies.set("lm_teacher_access_token", accessToken, accessCookieOptions);
+    response.cookies.set("lm_teacher_refresh_token", refreshToken, {
       ...refreshCookieOptions,
       // Allow the refresh token cookie to reach /api/auth routes
       path: "/api/auth",

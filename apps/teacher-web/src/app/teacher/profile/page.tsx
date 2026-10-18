@@ -1,29 +1,19 @@
 "use client";
 
+import Image from "next/image";
+
 import React, { useState, useEffect } from "react";
-import {
-  Save,
-  Clock,
-  DollarSign,
-  Loader2,
-  AlertCircle,
-  Plus,
-  Trash2,
-  CheckCircle2,
-  FileText,
-  Video,
-  Shield,
-  Camera,
-  Edit3,
-} from "lucide-react";
+import { Save, Clock, DollarSign, Loader2, AlertCircle, Plus, Trash2, CheckCircle2, FileText, Video, Shield, Camera, Edit3 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { CURRENCIES, getCurrencyInfo } from "@repo/currency";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const COMMISSION_RATE = 0.3;
+// Matches the 20% actually applied server-side (see api/students/*/book routes).
+const COMMISSION_RATE = 0.2;
 
 const DOC_TYPE_LABELS: Record<string, { label: string; icon: string }> = {
   EDUCATION: { label: "Qualification Certificate", icon: "🎓" },
@@ -51,7 +41,7 @@ type ProfileData = {
     experienceLevel: string;
     status: string;
     demoVideoUrl: string | null;
-    rates: Array<{ id: string; type: string; amount: number }>;
+    rates: Array<{ id: string; type: string; amount: number; currency: string }>;
     availability: Array<{ dayOfWeek: number; startTime: string; endTime: string }>;
     documents: Array<{
       id: string;
@@ -84,6 +74,7 @@ export default function TeacherProfileSettings() {
   // Rates
   const [hourlyRate, setHourlyRate] = useState(0);
   const [courseRate, setCourseRate] = useState(0);
+  const [currency, setCurrency] = useState("INR");
 
   // Availability
   const [availability, setAvailability] = useState<AvailabilitySlot[]>([]);
@@ -91,7 +82,7 @@ export default function TeacherProfileSettings() {
   // Profile metadata (read-only)
   const [profileName, setProfileName] = useState("");
   const [profileStatus, setProfileStatus] = useState("");
-  const [profileLanguage, setProfileLanguage] = useState("");
+  const [, setProfileLanguage] = useState("");
   const [profileLanguages, setProfileLanguages] = useState<string[]>([]);
   const [profileExperience, setProfileExperience] = useState("");
   const [profileEmail, setProfileEmail] = useState("");
@@ -116,8 +107,10 @@ export default function TeacherProfileSettings() {
       setDocuments(p.documents || []);
 
       const rates = p.rates || [];
-      setHourlyRate((rates.find((r: { type: string; amount: number }) => r.type === "HOURLY")?.amount || 0) / 100);
-      setCourseRate((rates.find((r: { type: string; amount: number }) => r.type === "COURSE")?.amount || 0) / 100);
+      setHourlyRate((rates.find((r) => r.type === "HOURLY")?.amount || 0) / 100);
+      setCourseRate((rates.find((r) => r.type === "COURSE")?.amount || 0) / 100);
+      // Both rates share one currency in this UI; fall back to whichever rate has one set.
+      setCurrency(rates.find((r) => r.currency)?.currency || "INR");
       setAvailability(p.availability || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -127,6 +120,7 @@ export default function TeacherProfileSettings() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line
     fetchSettings();
   }, []);
 
@@ -142,7 +136,7 @@ export default function TeacherProfileSettings() {
         body: JSON.stringify({ bio, avatarUrl, demoVideoUrl }),
       });
       if (!res.ok) throw new Error("Failed to save profile");
-      
+
       // also save settings so there's one save action for user simplicity here
       await fetch("/api/teachers/settings", {
         method: "PUT",
@@ -151,7 +145,9 @@ export default function TeacherProfileSettings() {
         body: JSON.stringify({
           hourlyRate: Math.round(hourlyRate * 100),
           courseRate: Math.round(courseRate * 100),
+          currency,
           availability,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         }),
       });
 
@@ -180,20 +176,22 @@ export default function TeacherProfileSettings() {
     setAvailability(updated);
   };
 
+  const currencySymbol = getCurrencyInfo(currency).symbol;
+
   if (loading) {
     return (
-      <div className="py-8 max-w-5xl mx-auto w-full">
+      <div className="py-8 w-full">
         <DashboardSkeleton />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 pb-16 animate-in fade-in duration-300 h-full flex flex-col max-w-5xl mx-auto w-full">
+    <div className="space-y-6 pb-16 animate-in fade-in duration-300 h-full flex flex-col w-full">
       {/* ── HEADER ─────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-[32px] sm:text-[36px] font-display font-bold text-text tracking-[-0.02em] leading-tight">
+          <h1 className="lm-page-title">
             Profile & Settings
           </h1>
           <p className="text-base text-text-muted mt-1">
@@ -222,12 +220,12 @@ export default function TeacherProfileSettings() {
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#231d5e] to-[#5046c8] p-[1px] shadow-level-2">
         <div className="rounded-[15px] bg-gradient-to-br from-[#1a1547] to-[#0f0c29] p-6 relative overflow-hidden">
           <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-white/5 blur-[50px] pointer-events-none" />
-          
+
           <div className="flex items-start gap-6 relative z-10">
             <div className="relative group shrink-0">
               <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-brand to-brand-hover flex items-center justify-center overflow-hidden shadow-sm border border-white/10">
                 {avatarUrl ? (
-                  <img src={avatarUrl} alt={profileName} className="w-full h-full object-cover" />
+                  <Image unoptimized width={96} height={96} src={avatarUrl} alt={profileName} className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-3xl font-display font-bold text-white">{profileName[0]?.toUpperCase()}</span>
                 )}
@@ -236,7 +234,7 @@ export default function TeacherProfileSettings() {
                 <Camera className="w-6 h-6 text-white" />
               </div>
             </div>
-            
+
             <div className="flex-1">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-y-4 gap-x-6">
                 <div className="col-span-2">
@@ -247,7 +245,7 @@ export default function TeacherProfileSettings() {
                   <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Email</label>
                   <div className="text-[14px] text-white/90 font-medium mt-1">{profileEmail}</div>
                 </div>
-                
+
                 <div>
                   <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Status</label>
                   <div className="mt-1">
@@ -308,7 +306,8 @@ export default function TeacherProfileSettings() {
                   onChange={(e) => setBio(e.target.value)}
                   placeholder="Tell students about your teaching style, experience, and what makes you unique..."
                   rows={5}
-                  className="w-full rounded-xl border border-border/60 bg-surface px-4 py-3 text-[14px] text-text placeholder:text-text-subtle focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand shadow-sm transition-all resize-none"
+                  maxLength={500}
+                  className="w-full rounded-xl border border-border bg-surface-inset px-4 py-3 text-[14px] text-text placeholder:text-text-subtle focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand transition-all resize-none"
                 />
                 <p className="text-[11px] font-medium text-text-subtle mt-1.5 text-right">{bio.length}/500</p>
               </div>
@@ -327,7 +326,26 @@ export default function TeacherProfileSettings() {
             </CardHeader>
             <CardContent className="pt-5 space-y-5">
               <div>
-                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider block mb-1.5">Hourly Rate (₹)</label>
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider block mb-1.5">Currency</label>
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  className="w-full h-11 rounded-xl border border-border bg-surface-inset px-3.5 text-[14px] text-text focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand transition-all"
+                >
+                  {CURRENCIES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.symbol} {c.code} — {c.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-text-muted mt-1.5">
+                  Students see this converted to their own currency at the current exchange rate.
+                </p>
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider block mb-1.5">
+                  Hourly Rate ({currencySymbol})
+                </label>
                 <Input
                   type="number"
                   min={0}
@@ -337,16 +355,18 @@ export default function TeacherProfileSettings() {
                 <div className="mt-2.5 p-3.5 bg-surface-inset rounded-xl border border-border/50 text-[12px] space-y-2">
                   <div className="flex justify-between font-medium">
                     <span className="text-text-muted">Platform fee ({COMMISSION_RATE * 100}%):</span>
-                    <span className="text-alert">-₹{(hourlyRate * COMMISSION_RATE).toFixed(0)}</span>
+                    <span className="text-alert">-{currencySymbol}{(hourlyRate * COMMISSION_RATE).toFixed(0)}</span>
                   </div>
                   <div className="flex justify-between font-bold text-text border-t border-border/60 pt-2">
                     <span>You earn:</span>
-                    <span className="text-trust">₹{(hourlyRate * (1 - COMMISSION_RATE)).toFixed(0)}/hr</span>
+                    <span className="text-trust">{currencySymbol}{(hourlyRate * (1 - COMMISSION_RATE)).toFixed(0)}/hr</span>
                   </div>
                 </div>
               </div>
               <div>
-                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider block mb-1.5">Course Rate (₹)</label>
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider block mb-1.5">
+                  Course Rate ({currencySymbol})
+                </label>
                 <Input
                   type="number"
                   min={0}
@@ -356,11 +376,11 @@ export default function TeacherProfileSettings() {
                 <div className="mt-2.5 p-3.5 bg-surface-inset rounded-xl border border-border/50 text-[12px] space-y-2">
                   <div className="flex justify-between font-medium">
                     <span className="text-text-muted">Platform fee ({COMMISSION_RATE * 100}%):</span>
-                    <span className="text-alert">-₹{(courseRate * COMMISSION_RATE).toFixed(0)}</span>
+                    <span className="text-alert">-{currencySymbol}{(courseRate * COMMISSION_RATE).toFixed(0)}</span>
                   </div>
                   <div className="flex justify-between font-bold text-text border-t border-border/60 pt-2">
                     <span>You earn:</span>
-                    <span className="text-trust">₹{(courseRate * (1 - COMMISSION_RATE)).toFixed(0)}/course</span>
+                    <span className="text-trust">{currencySymbol}{(courseRate * (1 - COMMISSION_RATE)).toFixed(0)}/course</span>
                   </div>
                 </div>
               </div>
@@ -396,7 +416,7 @@ export default function TeacherProfileSettings() {
 
         {/* ── RIGHT COLUMN ───────────────────────────── */}
         <div className="lg:col-span-2 space-y-6">
-          
+
           {/* Availability */}
           <Card className="border border-border/50 shadow-sm h-fit">
             <CardHeader className="pb-4 border-b border-border/40">
@@ -428,7 +448,7 @@ export default function TeacherProfileSettings() {
                           <Plus className="w-3.5 h-3.5 mr-1" /> Add Slot
                         </Button>
                       </div>
-                      
+
                       {daySlots.length === 0 ? (
                         <p className="text-[13px] text-text-subtle font-medium italic">Unavailable on {dayName}s</p>
                       ) : (

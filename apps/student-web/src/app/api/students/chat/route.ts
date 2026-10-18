@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Build unique teacher threads
-    const teacherMap = new Map<string, any>();
+    const teacherMap = new Map<string, { teacherId: string; teacherName: string; teacherAvatar: string | null; language: string; lastMessage: string; lastMessageTime: string; unreadCount: number }>();
 
     for (const booking of bookings) {
       const teacherId = booking.teacher.userId;
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
           // injecting markup here. Currently inert either way — the chat
           // UI renders this as plain JSX text, which React escapes — but
           // stripping it at the API boundary protects any future renderer
-          // change or non-web client. See errors.md.
+          // change or non-web client. See docs/audits/error-log.md.
           lastMessage: lastMessage ? stripHtml(lastMessage.content) || "No messages yet" : "No messages yet",
           lastMessageTime:
             lastMessage?.createdAt.toISOString() ||
@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
 
     // Sort by last message time
     threads.sort(
-      (a: any, b: any) =>
+      (a, b) =>
         new Date(b.lastMessageTime).getTime() -
         new Date(a.lastMessageTime).getTime()
     );

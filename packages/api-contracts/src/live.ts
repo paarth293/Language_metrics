@@ -48,6 +48,7 @@ export const LiveKitTokenErrorSchema = z.object({
     "TOO_EARLY",
     "TOO_LATE",
     "BOOKING_NOT_CONFIRMED",
+    "BOOKING_NOT_PAID",
     "BUDGET_EXCEEDED",
     "NOT_CONFIGURED",
   ]),

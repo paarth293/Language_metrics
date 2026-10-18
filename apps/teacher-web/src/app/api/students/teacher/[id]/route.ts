@@ -3,6 +3,8 @@ import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { DEMO_CLASS_COINS, DEMO_CLASS_MINUTES, hasUsedDemo } from "@repo/live-classes";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/students/teacher/[id]
  * Returns a specific teacher's public profile for students.

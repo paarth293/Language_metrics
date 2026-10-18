@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
-const STUDENT_PORTAL = process.env.STUDENT_WEB_URL || "https://language-metrics-student-web.vercel.app";
-const TEACHER_PORTAL = process.env.TEACHER_WEB_URL || "https://language-metrics-teacher-web.vercel.app";
+const STUDENT_PORTAL = process.env.STUDENT_WEB_URL || "http://localhost:3002";
+const TEACHER_PORTAL = process.env.TEACHER_WEB_URL || "http://localhost:3000";
 
 test.describe("Milestone 3 End-to-End: Booking to Live Class", () => {
 

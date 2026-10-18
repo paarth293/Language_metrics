@@ -1,54 +1,51 @@
 "use client";
 
-import React from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  Video,
-  Star,
-  Users,
-  BookOpen,
-  Calendar,
-  Clock,
-  TrendingUp,
   AlertCircle,
-  ChevronRight,
-  Wallet,
-  Sparkles,
-  Flame,
-  Target,
-  Play,
+  ArrowRight,
   ArrowUpRight,
+  BookOpen,
+  CalendarCheck2,
+  CalendarDays,
+  Clock,
+  GraduationCap,
+  Search,
+  Timer,
+  UserRoundPen,
+  Users,
+  Video,
+  Wallet,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { cn } from "@/lib/cn";
 import { Button } from "@/components/ui/Button";
-import { Avatar } from "@/components/ui/Avatar";
-import { Badge } from "@/components/ui/Badge";
+import { canJoin, getJoinState, useNow } from "@/lib/class-join";
+
+type UpcomingClass = {
+  id: string;
+  sessionId?: string;
+  teacher: string;
+  avatar: string | null;
+  language: string;
+  type: string;
+  scheduledStart?: string;
+  scheduledEnd?: string;
+  sessionStatus?: string;
+  joinOpensAt?: string;
+  joinClosesAt?: string;
+};
 
 type DashboardData = {
-  profile: {
-    name: string;
-    languageToLearn: string;
-    proficiencyLevel: string;
-    avatarUrl: string | null;
-  };
+  profile: { name: string; languageToLearn: string; proficiencyLevel: string; avatarUrl: string | null };
   stats: {
     totalClasses: number;
     totalHours: number;
     uniqueTeachers: number;
     coinBalance: number;
     monthlyClasses: number;
-    streak: number;
   };
-  upcomingClasses: Array<{
-    id: string;
-    sessionId?: string;
-    teacher: string;
-    avatar: string | null;
-    language: string;
-    type: string;
-    scheduledStart?: string;
-    scheduledEnd?: string;
-  }>;
+  upcomingClasses: UpcomingClass[];
   recentActivity: Array<{
     id: string;
     teacher: string;
@@ -60,383 +57,433 @@ type DashboardData = {
   }>;
 };
 
-function formatCurrency(amount: number): string {
-  return `₹${(amount / 100).toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+const initials = (n: string) =>
+  n.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("") || "?";
+const time = (d: Date) => d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
+
+/** "In 12 min", "Today", "Tomorrow", "Thu 1 Oct" — the clock time is shown separately. */
+function startsIn(start: Date, now: number) {
+  const mins = Math.round((start.getTime() - now) / 60_000);
+  if (mins > 0 && mins < 60) return `In ${mins} min`;
+  if (sameDay(start, new Date(now))) return "Today";
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  if (sameDay(start, tomorrow)) return "Tomorrow";
+  return start.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
 }
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+function greeting(hour: number) {
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
 }
 
-function getTimeUntil(scheduledStart?: string): string {
-  if (!scheduledStart) return "";
-  const diff = new Date(scheduledStart).getTime() - Date.now();
-  if (diff < 0) return "Now";
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `in ${mins}m`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `in ${hours}h`;
-  return `in ${Math.floor(hours / 24)}d`;
+function joinStateOf(c: UpcomingClass, now: number) {
+  if (!c.scheduledStart || !c.scheduledEnd) return "upcoming" as const;
+  return getJoinState(
+    {
+      status: c.sessionStatus ?? "SCHEDULED",
+      scheduledStart: c.scheduledStart,
+      scheduledEnd: c.scheduledEnd,
+      joinOpensAt: c.joinOpensAt,
+      joinClosesAt: c.joinClosesAt,
+    },
+    now
+  );
 }
+
+function Panel({
+  kicker,
+  title,
+  action,
+  children,
+  className,
+}: {
+  kicker: string;
+  title?: React.ReactNode;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={cn("flex flex-col rounded-xl border border-border bg-surface p-5 shadow-level-1", className)}>
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-text-subtle">{kicker}</p>
+          {title && <h2 className="mt-1.5 text-[15px] font-bold tracking-[-0.015em] text-text">{title}</h2>}
+        </div>
+        {action}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function Metric({
+  label,
+  value,
+  helper,
+  icon: Icon,
+  tone = "bg-surface-inset text-text-muted",
+  highlight,
+}: {
+  label: string;
+  value: React.ReactNode;
+  helper: string;
+  icon: React.ElementType;
+  tone?: string;
+  highlight?: boolean;
+}) {
+  return (
+    <article
+      className={cn(
+        "flex min-h-[112px] flex-col justify-between rounded-xl border p-5 shadow-level-1",
+        highlight ? "border-gold/30 bg-navy text-cream dark:border-gold/20" : "border-border bg-surface"
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <p className={cn("text-[10px] font-bold uppercase leading-tight tracking-[0.16em]", highlight ? "text-gold-soft" : "text-text-subtle")}>
+          {label}
+        </p>
+        <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", highlight ? "bg-cream/10 text-gold" : tone)}>
+          <Icon size={16} strokeWidth={1.8} aria-hidden="true" />
+        </span>
+      </div>
+      <div className="mt-4 min-w-0">
+        <p className={cn("font-mono text-[24px] font-semibold leading-none tracking-[-0.04em]", highlight ? "text-cream" : "text-text")}>
+          {value}
+        </p>
+        <p className={cn("mt-1.5 truncate text-[10px]", highlight ? "text-cream/55" : "text-text-subtle")}>{helper}</p>
+      </div>
+    </article>
+  );
+}
+
+const panelLink = "inline-flex shrink-0 items-center gap-1 text-[12px] font-semibold text-brand hover:underline";
 
 export default function StudentDashboard() {
-  const [data, setData] = React.useState<DashboardData | null>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
+  const now = useNow();
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [error, setError] = useState(false);
 
-  React.useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const res = await fetch("/api/students/dashboard", { credentials: "include" });
-        if (!res.ok) throw new Error("Failed to load dashboard data");
-        const json = await res.json();
-        setData(json);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchDashboard();
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch("/api/students/dashboard", { credentials: "include" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setData(await res.json());
+      setError(false);
+    } catch (err) {
+      console.error("Error loading dashboard:", err);
+      setError(true);
+    }
   }, []);
 
-  if (loading) {
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    load();
+    // Keeps "Up next" and Join buttons current as classes start.
+    const t = setInterval(load, 60_000);
+    return () => clearInterval(t);
+  }, [load]);
+
+  if (error && !data) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative">
-            <div className="w-12 h-12 rounded-full border-[3px] border-brand/20 border-t-brand animate-spin" />
-            <div className="absolute inset-0 w-12 h-12 rounded-full border-[3px] border-transparent border-t-gold animate-spin" style={{ animationDirection: "reverse", animationDuration: "1.5s" }} />
-          </div>
-          <span className="text-sm text-text-muted font-medium">Loading your dashboard...</span>
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <div className="w-full max-w-sm rounded-xl border border-border bg-surface p-8 text-center shadow-level-1">
+          <AlertCircle className="mx-auto mb-3 h-8 w-8 text-alert" />
+          <h2 className="text-[15px] font-bold text-text">We couldn&apos;t load your dashboard</h2>
+          <p className="mb-5 mt-1 text-[13px] text-text-muted">Check your connection and try again.</p>
+          <Button variant="primary" onClick={load}>
+            Try again
+          </Button>
         </div>
       </div>
     );
   }
 
-  if (error || !data) {
+  if (!data) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <Card className="max-w-md w-full">
-          <CardContent className="p-8 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-danger/10 flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="w-8 h-8 text-danger" />
-            </div>
-            <h2 className="text-xl font-display font-bold text-text mb-2">Unable to load dashboard</h2>
-            <p className="text-text-muted mb-6">{error || "Something went wrong."}</p>
-            <Button onClick={() => window.location.reload()} variant="primary">
-              Try Again
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="space-y-4" aria-busy="true" aria-label="Loading dashboard">
+        <div className="h-16 w-72 animate-pulse rounded-lg bg-surface-inset" />
+        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+          {Array.from({ length: 4 }, (_, i) => (
+            <div key={i} className="h-[112px] animate-pulse rounded-xl bg-surface-inset" />
+          ))}
+        </div>
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.65fr)_minmax(250px,0.85fr)]">
+          <div className="h-72 animate-pulse rounded-xl bg-surface-inset" />
+          <div className="h-72 animate-pulse rounded-xl bg-surface-inset" />
+        </div>
       </div>
     );
   }
 
   const { profile, stats, upcomingClasses, recentActivity } = data;
-
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const today = new Date(now);
+  const firstName = profile.name.split(/\s+/)[0] || "there";
+  const next = upcomingClasses[0];
+  const nextState = next ? joinStateOf(next, now) : null;
+  const nextStart = next?.scheduledStart ? new Date(next.scheduledStart) : null;
+  const nextEnd = next?.scheduledEnd ? new Date(next.scheduledEnd) : null;
+  const nextStarted = !!nextStart && now >= nextStart.getTime();
 
   return (
-    <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* ── Welcome Header ─────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-4 pb-10">
+      {/* ── Header ─────────────────────────────────────── */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-display font-bold text-text">
-            {greeting}, <span className="bg-gradient-to-r from-brand to-brand-hover bg-clip-text text-transparent">{profile.name.split(" ")[0]}</span>
+          <h1 className="lm-page-title">
+            {greeting(today.getHours())}, {firstName}
           </h1>
-          <p className="text-text-muted mt-1.5">
-            Ready to continue your <strong>{profile.languageToLearn}</strong> journey?
+          <p className="mt-1.5 text-[11px] text-text-subtle">
+            {today.toLocaleDateString("en-GB", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
+            {profile.languageToLearn && (
+              <>
+                <span className="mx-1.5">·</span>Learning {profile.languageToLearn}
+              </>
+            )}
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button asChild variant="outline" size="sm">
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline">
             <Link href="/classes">
-              <Calendar className="w-4 h-4 mr-1.5" /> My Classes
+              <CalendarDays className="h-4 w-4" /> My classes
             </Link>
           </Button>
-          <Button asChild variant="primary" size="sm">
+          <Button asChild variant="primary">
             <Link href="/discover">
-              <BookOpen className="w-4 h-4 mr-1.5" /> Find Teacher
+              <Search className="h-4 w-4" /> Find a teacher
             </Link>
           </Button>
         </div>
       </div>
 
-      {/* ── Stats Grid ─────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Coin Balance — Featured Card */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0f0c29] via-[#1a1547] to-[#231d5e] p-[1px] col-span-2 lg:col-span-1">
-          <div className="relative rounded-[15px] p-5 h-full bg-gradient-to-br from-[#1a1547] to-[#0f0c29] overflow-hidden">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-amber-400/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
-            <div className="relative">
-              <div className="flex items-center gap-2 text-white/60 text-sm font-medium mb-3">
-                <div className="w-7 h-7 rounded-lg bg-amber-400/15 flex items-center justify-center">
-                  <Wallet className="w-3.5 h-3.5 text-amber-400" />
-                </div>
-                Coin Balance
-              </div>
-              <div className="text-3xl font-bold text-white font-display">
-                🪙 {stats.coinBalance.toLocaleString()}
-              </div>
-              <div className="flex items-center gap-1.5 mt-2">
-                <span className="text-xs text-white/50">1 Coin = ₹1</span>
-              </div>
+      {/* ── Up next ────────────────────────────────────── */}
+      {next && nextState && nextStart && nextEnd && (
+        <section
+          aria-label="Next class"
+          className="relative flex flex-col gap-4 overflow-hidden rounded-xl bg-navy px-5 py-4 text-cream shadow-level-2 dark:border dark:border-gold/20 sm:flex-row sm:items-center"
+        >
+          <div className="pointer-events-none absolute -right-12 -top-16 h-44 w-44 rounded-full bg-gold/15 blur-3xl" aria-hidden />
+          <div className="relative flex min-w-0 flex-1 items-center gap-3.5">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cream/10 text-[12px] font-bold text-gold">
+              {initials(next.teacher)}
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-gold-soft">
+                {nextState === "live" ? "In progress" : nextStarted ? "Happening now" : "Up next"}
+              </p>
+              <p className="mt-0.5 truncate text-[15px] font-bold">
+                {next.teacher}
+                <span className="ml-2 rounded bg-cream/10 px-1.5 py-px text-[10px] font-bold text-cream/80">{next.language}</span>
+              </p>
+              <p className="mt-0.5 text-[12px] text-cream/65">
+                {nextStarted
+                  ? `Started ${time(nextStart)} · until ${time(nextEnd)}`
+                  : `${startsIn(nextStart, now)} · ${time(nextStart)} – ${time(nextEnd)}`}
+              </p>
             </div>
           </div>
-        </div>
-
-        {/* Total Classes */}
-        <Card className="group hover:border-brand/20">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-10 h-10 rounded-xl bg-brand/10 flex items-center justify-center group-hover:bg-brand/15 transition-colors">
-                <BookOpen className="w-5 h-5 text-brand" />
-              </div>
-              <span className="text-[11px] text-text-subtle font-medium uppercase tracking-wider">Total</span>
-            </div>
-            <div className="text-3xl font-bold text-text font-display">{stats.totalClasses}</div>
-            <div className="text-xs text-text-muted mt-1">Classes completed</div>
-          </CardContent>
-        </Card>
-
-        {/* Learning Streak */}
-        <Card className="group hover:border-amber-200/50">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center group-hover:bg-amber-50 transition-colors">
-                <Flame className="w-5 h-5 text-amber-500" />
-              </div>
-              <span className="text-[11px] text-text-subtle font-medium uppercase tracking-wider">Streak</span>
-            </div>
-            <div className="text-3xl font-bold text-text font-display">{stats.streak}</div>
-            <div className="text-xs text-text-muted mt-1">Day learning streak 🔥</div>
-          </CardContent>
-        </Card>
-
-        {/* Monthly Progress */}
-        <Card className="group hover:border-trust/20">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-10 h-10 rounded-xl bg-trust/10 flex items-center justify-center group-hover:bg-trust/15 transition-colors">
-                <Target className="w-5 h-5 text-trust" />
-              </div>
-              <span className="text-[11px] text-text-subtle font-medium uppercase tracking-wider">This Month</span>
-            </div>
-            <div className="text-3xl font-bold text-text font-display">{stats.monthlyClasses}</div>
-            <div className="text-xs text-text-muted mt-1">Classes this month</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ── Main Content Grid ──────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* ── Upcoming Classes (2 cols) ──────────────────────────────── */}
-        <div className="lg:col-span-2">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-display font-semibold text-text flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-brand/10 flex items-center justify-center">
-                <Calendar className="w-4 h-4 text-brand" />
-              </div>
-              Upcoming Classes
-            </h2>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/classes">
-                View All <ChevronRight className="w-4 h-4 ml-1" />
-              </Link>
-            </Button>
+          <div className="relative shrink-0">
+            {canJoin(nextState) ? (
+              <Button asChild variant="gold">
+                <Link href={`/live/${next.sessionId || next.id}`}>
+                  <Video className="h-4 w-4" /> {nextState === "live" ? "Rejoin class" : "Join class"}
+                </Link>
+              </Button>
+            ) : (
+              <span className="flex items-center gap-1.5 rounded-lg border border-cream/15 px-3 py-2 text-[12px] text-cream/75">
+                <Clock className="h-3.5 w-3.5" />
+                Join opens {time(new Date(next.joinOpensAt ?? next.scheduledStart!))}
+              </span>
+            )}
           </div>
+        </section>
+      )}
 
+      {/* ── Metrics ────────────────────────────────────── */}
+      <section aria-label="Your learning at a glance" className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <Metric
+          highlight
+          icon={Wallet}
+          label="Coin balance"
+          value={stats.coinBalance.toLocaleString("en-IN")}
+          helper="1 coin = ₹1"
+        />
+        <Metric
+          icon={BookOpen}
+          label="Classes completed"
+          value={stats.totalClasses}
+          helper={stats.monthlyClasses ? `${stats.monthlyClasses} this month` : "None this month yet"}
+          tone="bg-trust/10 text-trust"
+        />
+        <Metric
+          icon={Timer}
+          label="Hours learned"
+          value={stats.totalHours % 1 ? stats.totalHours.toFixed(1) : stats.totalHours}
+          helper="Time in completed classes"
+          tone="bg-action/15 text-gold-strong"
+        />
+        <Metric
+          icon={Users}
+          label="Teachers"
+          value={stats.uniqueTeachers}
+          helper={stats.uniqueTeachers === 1 ? "You've learned with 1 teacher" : `You've learned with ${stats.uniqueTeachers}`}
+          tone="bg-brand/10 text-brand"
+        />
+      </section>
+
+      {/* ── Upcoming + learning ────────────────────────── */}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.65fr)_minmax(250px,0.85fr)]">
+        <Panel
+          kicker="Upcoming classes"
+          title={`${upcomingClasses.length} scheduled`}
+          action={
+            <Link href="/classes" className={panelLink}>
+              All classes <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          }
+        >
           {upcomingClasses.length === 0 ? (
-            <Card>
-              <CardContent className="p-12 text-center flex flex-col items-center">
-                <div className="w-20 h-20 rounded-3xl bg-surface-inset flex items-center justify-center mb-4">
-                  <Calendar className="w-9 h-9 text-text-subtle" />
-                </div>
-                <p className="text-text-muted font-semibold mb-1">No upcoming classes</p>
-                <p className="text-sm text-text-subtle mb-4">Book a class to start your learning journey.</p>
-                <Button asChild variant="primary" size="sm">
-                  <Link href="/discover">Find a Teacher</Link>
-                </Button>
-              </CardContent>
-            </Card>
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border-strong px-4 py-10 text-center">
+              <CalendarCheck2 className="h-5 w-5 text-text-subtle" />
+              <p className="text-[13px] font-semibold text-text">No upcoming classes</p>
+              <p className="text-[12px] text-text-muted">Book a class to keep your {profile.languageToLearn || "learning"} going.</p>
+              <Button asChild variant="primary" size="sm" className="mt-2">
+                <Link href="/discover">Find a teacher</Link>
+              </Button>
+            </div>
           ) : (
-            <div className="space-y-3">
-              {upcomingClasses.map((cls) => {
-                const timeUntil = getTimeUntil(cls.scheduledStart);
+            <ul className="divide-y divide-border">
+              {upcomingClasses.map((c) => {
+                const start = c.scheduledStart ? new Date(c.scheduledStart) : null;
+                const end = c.scheduledEnd ? new Date(c.scheduledEnd) : null;
+                const state = joinStateOf(c, now);
                 return (
-                  <Card key={cls.id} className="overflow-hidden transition-all duration-300">
-                    <CardContent className="p-0 sm:flex items-center">
-                      <div className="p-5 flex-1 flex items-center gap-4">
-                        <div className="relative">
-                          <Avatar src={cls.avatar || undefined} size="lg" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-semibold text-text truncate">{cls.teacher}</h3>
-                            <Badge variant={cls.type === "DEMO" ? "warning" : "default"} className="text-[10px] uppercase py-0">
-                              {cls.type === "DEMO" ? "Demo" : "Regular"}
-                            </Badge>
-                            <Badge variant="info" className="text-[10px] uppercase py-0">{cls.language}</Badge>
-                          </div>
-                          <div className="text-sm text-text-muted mt-1 flex items-center gap-3">
-                            <span className="flex items-center gap-1.5">
-                              <Clock className="w-3.5 h-3.5" />
-                              {cls.scheduledStart
-                                ? new Date(cls.scheduledStart).toLocaleString("en-US", {
-                                    weekday: "short",
-                                    month: "short",
-                                    day: "numeric",
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })
-                                : "TBD"}
-                            </span>
-                            {timeUntil && (
-                              <span className="text-xs font-medium text-brand">{timeUntil}</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="p-5 sm:border-l border-border flex flex-col items-stretch min-w-[160px] gap-2 bg-surface-inset/30">
-                        <Button asChild variant="primary" className="w-full">
-                          <Link href={`/live/${cls.sessionId || cls.id}`}>
-                            <Video className="w-4 h-4 mr-1.5" /> Join Class
-                          </Link>
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <li key={c.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                    <div className="w-[64px] shrink-0 text-right tabular-nums">
+                      <p className="text-[13px] font-bold text-text">{start ? time(start) : "TBD"}</p>
+                      <p className="text-[11px] text-text-subtle">{start ? startsIn(start, now) : ""}</p>
+                    </div>
+                    <span className={cn("w-1 self-stretch rounded-full", canJoin(state) ? "bg-action" : "bg-brand/40")} aria-hidden />
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand/10 text-[11px] font-bold text-brand">
+                      {initials(c.teacher)}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[14px] font-semibold text-text">{c.teacher}</p>
+                      <p className="flex items-center gap-1.5 text-[11px] text-text-subtle">
+                        <span className="rounded bg-surface-inset px-1.5 py-px text-[10px] font-bold text-text-secondary">{c.language}</span>
+                        {c.type === "DEMO" ? "Demo class" : "Class"}
+                        {start && end && (
+                          <span className="hidden sm:inline">
+                            · {time(start)} – {time(end)}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    {canJoin(state) ? (
+                      <Button asChild variant="primary" size="sm">
+                        <Link href={`/live/${c.sessionId || c.id}`}>
+                          <Video className="h-3.5 w-3.5" /> {state === "live" ? "Rejoin" : "Join"}
+                        </Link>
+                      </Button>
+                    ) : (
+                      <span className="hidden shrink-0 rounded-full bg-surface-inset px-2.5 py-1 text-[11px] font-semibold text-text-muted sm:inline">
+                        {state === "soon" ? "Starting soon" : "Scheduled"}
+                      </span>
+                    )}
+                  </li>
                 );
               })}
-            </div>
+            </ul>
           )}
-        </div>
+        </Panel>
 
-        {/* ── Right Sidebar ────────────────────────────────────────────── */}
-        <div className="space-y-6">
-          {/* Learning Progress */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-brand/10 flex items-center justify-center">
-                  <TrendingUp className="w-3.5 h-3.5 text-brand" />
-                </div>
-                Learning Progress
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-xs mb-1.5">
-                    <span className="text-text-muted">Total Hours</span>
-                    <span className="font-semibold text-text">{stats.totalHours}h</span>
-                  </div>
-                  <div className="h-2 bg-surface-inset rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-brand to-brand-hover rounded-full" style={{ width: `${Math.min(stats.totalHours * 10, 100)}%` }} />
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-xs mb-1.5">
-                    <span className="text-text-muted">Unique Teachers</span>
-                    <span className="font-semibold text-text">{stats.uniqueTeachers}</span>
-                  </div>
-                  <div className="h-2 bg-surface-inset rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-trust to-trust-hover rounded-full" style={{ width: `${Math.min(stats.uniqueTeachers * 20, 100)}%` }} />
-                  </div>
-                </div>
-                <div className="pt-3 border-t border-border">
-                  <div className="text-xs text-text-muted mb-2">Learning Level</div>
-                  <Badge variant="info" className="text-sm">{profile.proficiencyLevel}</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Recent Activity */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                </div>
-                Recent Activity
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {recentActivity.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="w-14 h-14 rounded-2xl bg-surface-inset flex items-center justify-center mx-auto mb-3">
-                    <Sparkles className="w-6 h-6 text-text-subtle" />
-                  </div>
-                  <p className="text-sm text-text-muted font-medium">No activity yet</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {recentActivity.slice(0, 5).map((a) => (
-                    <div key={a.id} className="flex items-center gap-3 group">
-                      <Avatar src={a.avatar || undefined} size="sm" />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-text truncate group-hover:text-brand transition-colors">
-                          {a.teacher}
-                        </div>
-                        <div className="text-[11px] text-text-subtle">
-                          {a.type === "DEMO" ? "Demo" : "Booked"} · {a.language} · {timeAgo(a.date)}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions */}
-          <Card>
-            <CardContent className="p-4 space-y-2">
-              <Link href="/discover" className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface-inset transition-colors group">
-                <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center group-hover:bg-brand/15 transition-colors">
-                  <BookOpen className="w-4 h-4 text-brand" />
-                </div>
-                <div className="flex-1">
-                  <div className="text-sm font-medium text-text">Find a Teacher</div>
-                  <div className="text-[11px] text-text-subtle">Browse available teachers</div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-text-subtle" />
-              </Link>
-              <Link href="/wallet" className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface-inset transition-colors group">
-                <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center group-hover:bg-amber-50 transition-colors">
-                  <Wallet className="w-4 h-4 text-amber-500" />
-                </div>
-                <div className="flex-1">
-                  <div className="text-sm font-medium text-text">Top up Coins</div>
-                  <div className="text-[11px] text-text-subtle">Add coins to your wallet</div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-text-subtle" />
-              </Link>
-              <Link href="/profile" className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface-inset transition-colors group">
-                <div className="w-9 h-9 rounded-lg bg-trust/10 flex items-center justify-center group-hover:bg-trust/15 transition-colors">
-                  <Users className="w-4 h-4 text-trust" />
-                </div>
-                <div className="flex-1">
-                  <div className="text-sm font-medium text-text">Edit Profile</div>
-                  <div className="text-[11px] text-text-subtle">Update your preferences</div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-text-subtle" />
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
+        <Panel kicker="Your learning" title={profile.languageToLearn || "Getting started"}>
+          <dl className="space-y-3">
+            <div className="flex items-center justify-between">
+              <dt className="flex items-center gap-2 text-[12px] text-text-muted">
+                <GraduationCap className="h-4 w-4 text-text-subtle" /> Level
+              </dt>
+              <dd className="rounded-md bg-brand/10 px-2 py-0.5 text-[12px] font-bold text-brand">{profile.proficiencyLevel || "—"}</dd>
+            </div>
+            <div className="flex items-center justify-between">
+              <dt className="flex items-center gap-2 text-[12px] text-text-muted">
+                <CalendarDays className="h-4 w-4 text-text-subtle" /> This month
+              </dt>
+              <dd className="text-[13px] font-semibold text-text">
+                <span className="font-mono">{stats.monthlyClasses}</span> class{stats.monthlyClasses === 1 ? "" : "es"}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between">
+              <dt className="flex items-center gap-2 text-[12px] text-text-muted">
+                <Timer className="h-4 w-4 text-text-subtle" /> Total time
+              </dt>
+              <dd className="font-mono text-[13px] font-semibold text-text">{stats.totalHours}h</dd>
+            </div>
+          </dl>
+          <ul className="mt-5 space-y-1 border-t border-border pt-4">
+            {[
+              { icon: Search, label: "Find a teacher", detail: "Browse and book a class", href: "/discover", tone: "bg-brand/10 text-brand" },
+              { icon: Wallet, label: "Top up coins", detail: `${stats.coinBalance.toLocaleString("en-IN")} coins available`, href: "/wallet", tone: "bg-action/15 text-gold-strong" },
+              { icon: UserRoundPen, label: "Edit profile", detail: "Language, level and photo", href: "/profile", tone: "bg-trust/10 text-trust" },
+            ].map((item) => (
+              <li key={item.href}>
+                <Link href={item.href} className="group flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-surface-inset">
+                  <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", item.tone)}>
+                    <item.icon className="h-4 w-4" strokeWidth={1.8} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[13px] font-semibold text-text">{item.label}</span>
+                    <span className="block truncate text-[11px] text-text-subtle">{item.detail}</span>
+                  </span>
+                  <ArrowUpRight className="h-3.5 w-3.5 text-text-subtle opacity-0 transition-opacity group-hover:opacity-100" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Panel>
       </div>
+
+      {/* ── Recent activity ────────────────────────────── */}
+      <Panel
+        kicker="Recent activity"
+        title="Completed classes"
+        action={
+          <Link href="/recordings" className={panelLink}>
+            Recordings <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        }
+      >
+        {recentActivity.length === 0 ? (
+          <p className="rounded-lg bg-surface-inset/60 px-4 py-6 text-center text-[13px] text-text-muted">
+            Classes you finish will show up here.
+          </p>
+        ) : (
+          <ul className="divide-y divide-border">
+            {recentActivity.map((a) => (
+              <li key={a.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand/10 text-[11px] font-bold text-brand">
+                  {initials(a.teacher)}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[13px] font-semibold text-text">{a.teacher}</p>
+                  <p className="text-[11px] text-text-subtle">
+                    {a.type === "DEMO" ? "Demo class" : "Class"} · {a.language} ·{" "}
+                    {new Date(a.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                  </p>
+                </div>
+                <span className="font-mono text-[12px] font-semibold text-text">₹{Math.round(a.amount / 100).toLocaleString("en-IN")}</span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-trust/10 px-2 py-1 text-[10px] font-bold text-trust">
+                  <span className="h-1.5 w-1.5 rounded-full bg-current opacity-75" aria-hidden />
+                  Completed
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
     </div>
   );
 }

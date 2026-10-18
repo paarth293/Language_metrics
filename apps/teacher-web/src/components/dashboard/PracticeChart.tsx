@@ -18,7 +18,7 @@ interface PracticeChartProps {
   hoursLastWeek: number;
 }
 
-const CustomTooltip = ({ active, payload }: any) => {
+const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: ReadonlyArray<{ payload: PracticeChartProps["data"][number] }> }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     const dateStr = new Date(data.weekStart).toLocaleDateString("en-US", { day: "numeric", month: "short" });
@@ -40,7 +40,7 @@ export function PracticeChart({ data = [], hoursThisWeek, hoursLastWeek }: Pract
 
   const delta = hoursThisWeek - hoursLastWeek;
   const isPositive = delta > 0;
-  
+
   // Calculate how many weeks have data
   const weeksWithData = data.filter(d => d.hours > 0 || d.classes > 0).length;
   const isBrandNew = weeksWithData === 0;
@@ -109,23 +109,23 @@ export function PracticeChart({ data = [], hoursThisWeek, hoursLastWeek }: Pract
               </defs>
               <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--color-border)" />
               <XAxis dataKey="weekStart" hide />
-              <YAxis 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{ fill: 'var(--color-text-subtle)', fontSize: 12 }} 
-                tickCount={4} 
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: 'var(--color-text-subtle)', fontSize: 12 }}
+                tickCount={4}
               />
-              <Tooltip 
-                content={<CustomTooltip />} 
-                cursor={{ stroke: 'var(--color-border-strong)', strokeWidth: 1, strokeDasharray: "4 4" }} 
+              <Tooltip
+                content={<CustomTooltip />}
+                cursor={{ stroke: 'var(--color-border-strong)', strokeWidth: 1, strokeDasharray: "4 4" }}
               />
-              <Area 
-                type="monotone" 
-                dataKey="hours" 
-                stroke="var(--color-brand)" 
+              <Area
+                type="monotone"
+                dataKey="hours"
+                stroke="var(--color-brand)"
                 strokeWidth={2}
-                fillOpacity={1} 
-                fill="url(#colorHours)" 
+                fillOpacity={1}
+                fill="url(#colorHours)"
                 activeDot={{ r: 4, strokeWidth: 2, stroke: 'var(--color-surface)', fill: 'var(--color-brand)' }}
                 animationDuration={600}
               />
@@ -158,15 +158,15 @@ export function PracticeChart({ data = [], hoursThisWeek, hoursLastWeek }: Pract
               {viewAsTable ? "View chart" : "View table"}
             </button>
             <div className={`px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 ${
-              isPositive 
-                ? 'bg-trust-subtle text-trust' 
+              isPositive
+                ? 'bg-trust-subtle text-trust'
                 : 'bg-surface-inset text-text-muted'
             }`}>
               {delta > 0 ? '+' : ''}{delta}h {delta > 0 ? '↑' : (delta < 0 ? '↓' : '')}
             </div>
           </div>
         </div>
-        
+
         {renderContent()}
       </CardContent>
     </Card>

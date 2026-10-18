@@ -1,10 +1,11 @@
 "use client";
 
+import type { Payout } from "@repo/database";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createPayout } from "@/app/(dashboard)/teachers/[id]/actions";
 
-export function TeacherPayoutCard({ teacherId, payouts }: { teacherId: string, payouts: any[] }) {
+export function TeacherPayoutCard({ teacherId, payouts }: { teacherId: string, payouts: Pick<Payout, "id" | "transactionRef" | "amount" | "createdAt" | "status">[] }) {
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,7 +20,7 @@ export function TeacherPayoutCard({ teacherId, payouts }: { teacherId: string, p
       setAmount("");
       setNote("");
       router.refresh();
-    } catch (err) {
+    } catch {
       alert("Failed to allocate payout");
     } finally {
       setLoading(false);
@@ -34,14 +35,14 @@ export function TeacherPayoutCard({ teacherId, payouts }: { teacherId: string, p
   return (
     <div style={cardStyle} className="rounded-lg p-6 mt-6">
       <h2 className="text-lg font-semibold text-white mb-4">Payouts & Bonuses</h2>
-      
+
       <form onSubmit={handleAllocate} className="mb-6 space-y-3 pb-6 border-b border-gray-700">
         <div>
           <label className="block text-xs text-gray-500 mb-1">Amount (₹)</label>
-          <input 
-            type="number" 
-            value={amount} 
-            onChange={e => setAmount(e.target.value)} 
+          <input
+            type="number"
+            value={amount}
+            onChange={e => setAmount(e.target.value)}
             className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white text-sm"
             placeholder="e.g. 500"
             required
@@ -50,17 +51,17 @@ export function TeacherPayoutCard({ teacherId, payouts }: { teacherId: string, p
         </div>
         <div>
           <label className="block text-xs text-gray-500 mb-1">Note / Reference</label>
-          <input 
-            type="text" 
-            value={note} 
-            onChange={e => setNote(e.target.value)} 
+          <input
+            type="text"
+            value={note}
+            onChange={e => setNote(e.target.value)}
             className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white text-sm"
             placeholder="e.g. Performance Bonus"
             required
           />
         </div>
-        <button 
-          type="submit" 
+        <button
+          type="submit"
           disabled={loading}
           className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2 px-4 rounded text-sm disabled:opacity-50"
         >

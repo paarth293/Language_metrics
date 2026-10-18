@@ -1,3 +1,5 @@
+
+import Image from "next/image";
 import * as React from "react"
 import { cn } from "@/lib/cn"
 
@@ -11,6 +13,8 @@ interface AvatarProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
   ({ className, src, alt, initials, size = "md", online, ...props }, ref) => {
+    const [failedSrc, setFailedSrc] = React.useState<string | null>(null)
+    const showImage = !!src && failedSrc !== src
     const sizeClasses = {
       sm: "h-8 w-8 text-xs",
       md: "h-10 w-10 text-sm",
@@ -21,16 +25,13 @@ const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
     return (
       <div ref={ref} className={cn("relative inline-block", className)} {...props}>
         <div
-          className={cn(
-            "relative flex shrink-0 overflow-hidden rounded-full bg-surface-inset items-center justify-center font-medium text-text-muted ring-1 ring-border",
-            sizeClasses[size]
-          )}
+          className={`relative flex shrink-0 overflow-hidden rounded-full items-center justify-center ring-1 ring-border ${showImage ? "bg-surface-inset" : "bg-brand/10 font-bold text-brand"} ${sizeClasses[size]}`}
         >
-          {src ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+          {showImage ? (
+            <Image unoptimized width={96} height={96}
               src={src}
               alt={alt || "Avatar"}
+              onError={() => setFailedSrc(src)}
               className="aspect-square h-full w-full object-cover"
             />
           ) : (

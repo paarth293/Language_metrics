@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { ChevronDown, Star, ShieldCheck, Video, Lock } from "lucide-react";
+import { Star, ShieldCheck, Video, Lock } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 
@@ -40,7 +40,7 @@ export default function Hero() {
   };
 
   return (
-    <section 
+    <section
       className="relative min-h-[100dvh] flex flex-col overflow-hidden pt-20 pb-16 bg-bg text-text"
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
@@ -60,7 +60,7 @@ export default function Hero() {
         <span className="absolute top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 font-script text-5xl text-accent animate-float-drift" style={{ animationDelay: "1s" }}>你好</span>
         <span className="absolute bottom-[35%] left-[20%] font-script text-4xl text-text-muted animate-float-drift" style={{ animationDelay: "2s" }}>Hola</span>
         <span className="absolute bottom-[30%] right-[12%] font-script text-5xl text-navy dark:text-gold-soft animate-float-drift" style={{ animationDelay: "1.5s" }}>Namaste</span>
-        
+
         {/* Additional greetings scattered carefully */}
         <span className="absolute top-[10%] right-[40%] font-script text-3xl text-success animate-float-drift" style={{ animationDelay: "0.5s" }}>Ciao</span>
         <span className="absolute top-[50%] left-[50%] -translate-x-1/2 translate-y-12 font-script text-5xl text-info animate-float-drift" style={{ animationDelay: "2.5s" }}>안녕하세요</span>
@@ -154,14 +154,14 @@ export default function Hero() {
           <div className="absolute inset-0 bg-gradient-to-tr from-gold/20 to-transparent rounded-[2rem] blur-xl transform rotate-3" />
           <motion.div
             initial={{ opacity: 0, scale: 0.9, rotate: -5 }}
-            animate={{ 
-              opacity: 1, 
-              scale: 1, 
-              rotate: mousePos.x * 4, 
-              x: mousePos.x * -15, 
-              y: mousePos.y * -15 
+            animate={{
+              opacity: 1,
+              scale: 1,
+              rotate: mousePos.x * 4,
+              x: mousePos.x * -15,
+              y: mousePos.y * -15
             }}
-            transition={{ 
+            transition={{
               opacity: { duration: 0.8, delay: 0.5, ease: [0.2, 0.8, 0.2, 1] },
               scale: { duration: 0.8, delay: 0.5, ease: [0.2, 0.8, 0.2, 1] },
               rotate: { type: "spring", stiffness: 100, damping: 30 },
@@ -171,9 +171,14 @@ export default function Hero() {
             className="relative bg-surface/80 backdrop-blur-md border border-border-strong rounded-[2rem] p-6 shadow-xl max-w-sm ml-auto transform-gpu"
           >
             <div className="flex items-center gap-4 mb-6">
-              <Avatar src="https://i.pravatar.cc/150?u=a042581f4e29026704d" size="lg" online={true} />
+              <Avatar initials="AD" alt="Fictional example teacher" size="lg" />
               <div>
-                <div className="font-semibold text-lg">Amélie Dupont</div>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-lg">Amélie Dupont</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-surface-inset border border-border text-text-muted">
+                    Example
+                  </span>
+                </div>
                 <div className="flex items-center gap-1 text-sm text-text-muted">
                   <span title="France">🇫🇷</span> French · Experienced Teacher
                 </div>
@@ -194,6 +199,10 @@ export default function Hero() {
             <div className="text-xs text-text-subtle text-center mb-3 flex items-center justify-center gap-1">
               <ShieldCheck className="w-3 h-3 text-success" />
               Class runs on our custom, private video system
+            </div>
+
+            <div className="text-[11px] text-text-subtle text-center mb-3">
+              Illustration only — the teacher shown is a fictional character.
             </div>
 
             <Button variant="primary" className="w-full flex gap-2 items-center justify-center">

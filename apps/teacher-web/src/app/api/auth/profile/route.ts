@@ -14,7 +14,7 @@ const SUPPORTED_LANGUAGES = [
  * PATCH /api/auth/profile — Update the user's profile
  */
 export async function GET(request: NextRequest) {
-  const accessToken = request.cookies.get("lm_access_token")?.value;
+  const accessToken = request.cookies.get("lm_teacher_access_token")?.value;
   if (!accessToken) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const accessToken = request.cookies.get("lm_access_token")?.value;
+  const accessToken = request.cookies.get("lm_teacher_access_token")?.value;
   if (!accessToken) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

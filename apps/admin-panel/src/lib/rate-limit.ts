@@ -40,7 +40,7 @@ interface Bucket {
 
 const buckets = new Map<string, Bucket>();
 
-// Fix (errors.md #C6 / #M3): the in-memory Map above only ever grew — a
+// Fix (docs/audits/error-log.md #C6 / #M3): the in-memory Map above only ever grew — a
 // bucket was created per unique key (per IP, per email) and never removed
 // once its window expired, so a long-running dev/staging process (or any
 // production instance that silently fell back to this path — see the
@@ -70,7 +70,7 @@ function ensureSweepScheduled(): void {
 let warnedMissingRedisInProd = false;
 
 function rateLimitInMemory(key: string, opts: RateLimitOptions): RateLimitResult {
-  // Fix (errors.md #C1 residual): this fallback resets on every cold start
+  // Fix (docs/audits/error-log.md #C1 residual): this fallback resets on every cold start
   // and is per-instance, so it gives effectively no real protection on a
   // multi-instance/serverless deployment. If we ever reach this path while
   // NODE_ENV=production, that means REDIS_URL was left unset in a deployed

@@ -1,18 +1,10 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  HelpCircle,
-  ChevronDown,
-  Search,
-  BookOpen,
-  CreditCard,
-  Video,
-  User,
-  MessageCircle,
-  Shield,
-} from "lucide-react";
+import { HelpCircle, ChevronDown, Search, BookOpen, CreditCard, Video, User, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 const faqCategories = [
@@ -133,6 +125,7 @@ const faqCategories = [
 ];
 
 export default function FAQPage() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedQ, setExpandedQ] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -163,7 +156,7 @@ export default function FAQPage() {
       {/* Header */}
       <div className="text-center">
         <HelpCircle className="w-12 h-12 text-amber-700 mx-auto mb-3" />
-        <h1 className="text-2xl font-bold text-navy-900">Help & FAQ</h1>
+        <h1 className="lm-page-title">Help & FAQ</h1>
         <p className="text-gray-600 mt-2">
           Find answers to common questions about Language Metrics
         </p>
@@ -278,7 +271,7 @@ export default function FAQPage() {
           Our support team is here to help
         </p>
         <Button
-          onClick={() => window.location.assign("/support")}
+          onClick={() => router.push("/support")}
           className="bg-amber-700 hover:bg-amber-800 text-white"
         >
           <MessageCircle className="w-4 h-4 mr-2" />

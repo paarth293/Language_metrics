@@ -1,6 +1,6 @@
 # Language Metrics — Student Mobile (Expo SDK 57)
 
-Student-only app (Decision 5 in `docs/MOBILE_RESPONSIVE_SIGNOFF.md`). It talks to the
+Student-only app (Decision 5 in `docs/audits/mobile-responsive-signoff.md`). It talks to the
 versioned mobile API in `apps/student-web` (`/api/v1/*`), validates every
 request and response against `packages/api-contracts`, and uses the same light/dark
 design tokens as the web portals.

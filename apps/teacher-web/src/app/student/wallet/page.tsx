@@ -21,12 +21,9 @@ export default function WalletPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(null);
     fetch("/api/students/wallet", { credentials: "include" })
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load wallet data");
@@ -45,7 +42,7 @@ export default function WalletPage() {
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [refreshKey]);
+  }, []);
 
   if (loading) {
     return (
@@ -79,7 +76,7 @@ export default function WalletPage() {
       {/* ── HEADER ─────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-[32px] sm:text-[36px] font-display font-bold text-text tracking-[-0.02em] leading-tight">
+          <h1 className="lm-page-title">
             My Wallet
           </h1>
           <p className="text-base text-text-muted mt-1">
@@ -95,7 +92,7 @@ export default function WalletPage() {
           <Card className="bg-gradient-to-br from-[#231d5e] to-[#5046c8] text-white overflow-hidden relative border-none shadow-level-2">
             <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-white/10 blur-[60px] pointer-events-none" />
             <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-gold/20 blur-[50px] pointer-events-none" />
-            
+
             <CardHeader className="pb-2 pt-6">
               <CardTitle className="text-white/80 text-[12px] font-bold uppercase tracking-widest flex items-center gap-2">
                 <Coins className="w-4 h-4 opacity-80" /> Current Balance
@@ -141,7 +138,7 @@ export default function WalletPage() {
                   </div>
                   <h3 className="text-[18px] font-bold text-text mb-2">No transactions yet</h3>
                   <p className="text-[14px] text-text-muted max-w-[280px]">
-                    You haven't made any purchases or bookings. Top up to get started!
+                    You haven&apos;t made any purchases or bookings. Top up to get started!
                   </p>
                 </div>
               ) : (
@@ -154,7 +151,7 @@ export default function WalletPage() {
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${isPositive ? "bg-trust/10 text-trust" : "bg-text/5 text-text-muted"}`}>
                           {isPositive ? <ArrowDownRight className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
                         </div>
-                        
+
                         {/* Details */}
                         <div className="flex-1 min-w-0">
                           <div className="font-bold text-[14px] text-text mb-0.5 truncate">

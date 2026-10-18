@@ -152,7 +152,8 @@ export default function StudentNotifications() {
   }, []);
 
   useEffect(() => {
-    fetchNotifications();
+    const timer = setTimeout(() => void fetchNotifications(), 0);
+    return () => clearTimeout(timer);
   }, [fetchNotifications]);
 
   // Keep the bell badge in sync whenever the local unreadCount changes.
@@ -231,10 +232,11 @@ export default function StudentNotifications() {
 
   const grouped = filtered.reduce((acc, notification) => {
     const group = getDateGroup(notification.createdAt);
-    if (!acc[group]) acc[group] = [];
-    acc[group].push(notification);
+    const items = acc.get(group) ?? [];
+    items.push(notification);
+    acc.set(group, items);
     return acc;
-  }, {} as Record<string, Notification[]>);
+  }, new Map<string, Notification[]>());
 
   // ── Loading state ──────────────────────────────────────────────────────────
 
@@ -286,12 +288,12 @@ export default function StudentNotifications() {
       {/* Toast notifications */}
       <ToastList toasts={toasts} onDismiss={dismissToast} />
 
-      <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-3xl mx-auto w-full">
+      <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-3xl w-full">
 
         {/* ── Page header ── */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-3xl font-display font-bold text-text">Notifications</h1>
+            <h1 className="lm-page-title">Notifications</h1>
             <p className="text-text-muted mt-1">
               {unreadCount > 0
                 ? `You have ${unreadCount} unread notification${unreadCount !== 1 ? "s" : ""}`
@@ -357,7 +359,7 @@ export default function StudentNotifications() {
           </Card>
         ) : (
           <div className="space-y-6">
-            {Object.entries(grouped).map(([group, items]) => (
+            {Array.from(grouped.entries()).map(([group, items]) => (
               <div key={group} className="space-y-2">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-text-subtle px-1 mb-3">
                   {group}

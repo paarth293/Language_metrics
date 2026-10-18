@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 
 import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
-import { signAccessToken, signRefreshToken, accessCookieOptions, refreshCookieOptions } from "@/lib/tokens";
+import { signAccessToken, signRefreshToken, accessCookieOptions, refreshCookieOptions, ACCESS_COOKIE, REFRESH_COOKIE } from "@/lib/tokens";
 import { storeRefreshSession } from "@/lib/redis-session";
 import { rateLimitRedis, exceedsMaxBodySize } from "@/lib/rate-limit";
 import { validateLoginBody } from "@/lib/validation";
@@ -104,8 +104,8 @@ export async function POST(request: NextRequest) {
     );
 
     // Use standardized cookie options from tokens.ts
-    response.cookies.set("lm_access_token", accessToken, accessCookieOptions);
-    response.cookies.set("lm_refresh_token", refreshToken, refreshCookieOptions);
+    response.cookies.set(ACCESS_COOKIE, accessToken, accessCookieOptions);
+    response.cookies.set(REFRESH_COOKIE, refreshToken, refreshCookieOptions);
 
     return response;
   } catch (err) {

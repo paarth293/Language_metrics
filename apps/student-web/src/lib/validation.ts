@@ -13,7 +13,7 @@
  * validator below is plain TypeScript with no imports, so it works the
  * moment it lands, and it's exactly what the tests in
  * `validation.test.ts` (run with `tsx`, no install needed) actually execute.
- * See errors.md for the full reasoning and the optional migration path to
+ * See docs/audits/error-log.md for the full reasoning and the optional migration path to
  * Zod later.
  *
  * Every validator returns a `ValidationResult<T>`: either `{ ok: true, data }`
@@ -21,6 +21,13 @@
  * branch on, so swapping to real Zod schemas later (once `npm install` has
  * been run) is a mechanical, low-risk change.
  */
+
+// npm install has since been run in every environment this file ships to
+// (see @repo/currency's own package.json/tsconfig for the same workspace
+// convention this repo already uses elsewhere), so this one validator is no
+// longer held to the "no imports" constraint above — it's a plain,
+// dependency-light shared list, not a new package boundary to prove out.
+import { isSupportedCurrency } from "@repo/currency";
 
 export type ValidationResult<T> =
   | { ok: true; data: T }
@@ -259,6 +266,7 @@ export interface ProfileUpdate {
   avatarUrl?: string | null;
   languageToLearn?: string;
   proficiencyLevel?: string;
+  preferredCurrency?: string;
 }
 
 export function validateProfileUpdate(body: unknown): ValidationResult<ProfileUpdate> {
@@ -304,6 +312,14 @@ export function validateProfileUpdate(body: unknown): ValidationResult<ProfileUp
       errors.push(`proficiencyLevel must be one of: ${PROFICIENCY_LEVELS.join(", ")}.`);
     } else {
       result.proficiencyLevel = body.proficiencyLevel.toUpperCase();
+    }
+  }
+
+  if (body.preferredCurrency !== undefined) {
+    if (typeof body.preferredCurrency !== "string" || !isSupportedCurrency(body.preferredCurrency)) {
+      errors.push("preferredCurrency must be one of the supported currency codes.");
+    } else {
+      result.preferredCurrency = body.preferredCurrency;
     }
   }
 
@@ -418,7 +434,7 @@ export function validateNotificationUpdate(
 
 // ── Change password ───────────────────────────────────────────────────────
 // Added while reviewing the 7 files the file bridge couldn't reach the first
-// pass (see errors.md, Part 4 follow-up). `change-password/route.ts` was
+// pass (see docs/audits/error-log.md, Part 4 follow-up). `change-password/route.ts` was
 // checking `newPassword.length < 8` inline with no type guard at all, so a
 // non-string `newPassword` (e.g. `{}` or `123`) would throw a 500 at
 // `.length` instead of a clean 400 — this brings it in line with every other

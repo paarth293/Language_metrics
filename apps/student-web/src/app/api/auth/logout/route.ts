@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { verifyRefreshToken } from "@/lib/tokens";
+import { verifyRefreshToken, ACCESS_COOKIE, REFRESH_COOKIE } from "@/lib/tokens";
 import { revokeRefreshSession } from "@/lib/redis-session";
 import { rateLimitRedis } from "@/lib/rate-limit";
 
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Too many requests. Please try again later." }, { status: 429 });
   }
 
-  const refreshToken = request.cookies.get("lm_refresh_token")?.value;
+  const refreshToken = request.cookies.get(REFRESH_COOKIE)?.value;
 
   if (refreshToken) {
     const payload = await verifyRefreshToken(refreshToken);
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
   }
 
   const response = NextResponse.json({ success: true }, { status: 200 });
-  response.cookies.set("lm_access_token", "", { maxAge: 0, path: "/" });
-  response.cookies.set("lm_refresh_token", "", { maxAge: 0, path: "/api/auth" });
+  response.cookies.set(ACCESS_COOKIE, "", { maxAge: 0, path: "/" });
+  response.cookies.set(REFRESH_COOKIE, "", { maxAge: 0, path: "/api/auth" });
   return response;
 }

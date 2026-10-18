@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { OAuthErrorAlert } from "@/components/auth/OAuthErrorAlert";
 import { Input } from "@/components/ui/Input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Button } from "@/components/ui/Button";
 import { registerStudentSchema, PASSWORD_RULES, MIN_AGE, latestBirthDate } from "@/features/auth/validators/auth";
 import { useAuth } from "@/lib/auth-client";
@@ -420,9 +421,9 @@ export default function StudentRegisterPage() {
           {/* Password */}
           <div className="space-y-1">
             <label htmlFor="student-password" className="text-sm font-medium text-text">Password</label>
-            <Input
+            <PasswordInput
               id="student-password"
-              type="password"
+              autoComplete="new-password"
               placeholder="Create a strong password"
               value={password}
               onChange={(e) => { setPassword(e.target.value); clearError("password"); }}

@@ -1,21 +1,18 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  CheckCircle2,
-  Loader2,
-  Wallet,
-  Clock,
-  AlertCircle,
-} from "lucide-react";
+import { ArrowLeft, CheckCircle2, Loader2, Wallet, Clock, AlertCircle } from "lucide-react";
+import { formatMoney } from "@repo/currency";
 
 interface Rate {
   id: string;
   type: string;
   amount: number;
+  currency: string;
+  displayAmount: number;
+  displayCurrency: string;
 }
 
 interface DemoInfo {
@@ -35,7 +32,6 @@ interface TeacherInfo {
 
 export default function BookClassPage() {
   const params = useParams();
-  const router = useRouter();
   const teacherId = params.id as string;
 
   const [teacher, setTeacher] = useState<TeacherInfo | null>(null);
@@ -260,6 +256,9 @@ export default function BookClassPage() {
               </div>
               <div className="text-right">
                 <div className="font-bold text-brand">{rate.amount} coins</div>
+                {rate.currency !== rate.displayCurrency && (
+                  <div className="text-[11px] text-text-muted">≈ {formatMoney(rate.displayAmount, rate.displayCurrency)}</div>
+                )}
               </div>
             </label>
           ))}

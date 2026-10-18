@@ -128,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // admin-panel is a separate app (different origin/port) — a full
             // navigation is required here. Next's router.push/replace is for
             // in-app client-side routing only and won't leave this app.
-            window.location.href = `${adminUrl}/dashboard`;
+            window.location.assign(new URL("/", adminUrl).href);
           }
         }
 

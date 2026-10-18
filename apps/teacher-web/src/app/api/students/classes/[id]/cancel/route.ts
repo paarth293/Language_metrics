@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { BookingNotCancellableError, cancelBookingAndReturnCoins } from "@repo/live-classes";
 
 // POST - Cancel a booking
 export async function POST(
@@ -54,32 +55,19 @@ export async function POST(
       }
     }
 
-    await prisma.booking.update({
-      where: { id: bookingId },
-      data: { status: "CANCELLED" },
-    });
-
-    await prisma.classSession.updateMany({
-      where: { bookingId, status: "SCHEDULED" },
-      data: { status: "CANCELLED" },
-    });
-
-    if (booking.amountPaid > 0) {
-      await prisma.coinTransaction.create({
-        data: {
-          userId,
-          type: "REFUND",
-          amount: booking.amountPaid,
-          description: `Refund for cancelled booking #${booking.id.slice(0, 8)}`,
-        },
-      });
-    }
+    await cancelBookingAndReturnCoins(
+      bookingId,
+      `Cancelled booking #${booking.id.slice(0, 8)}`
+    );
 
     return NextResponse.json({
       success: true,
-      message: "Booking cancelled successfully. Refund credited to your wallet.",
+      message: "Booking cancelled. Your coins are available again.",
     });
   } catch (error) {
+    if (error instanceof BookingNotCancellableError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     console.error("Failed to cancel booking:", error);
     return NextResponse.json({ error: "Failed to cancel booking" }, { status: 500 });
   }

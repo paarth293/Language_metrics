@@ -18,10 +18,12 @@ describe("storage", () => {
     expect(result.key.endsWith(".png")).toBe(true);
 
     const diskPath = path.join(process.cwd(), "public", "uploads", result.key);
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- diskPath is a generated test fixture beneath public/uploads.
     const onDisk = existsSync(diskPath);
     expect(onDisk).toBe(true);
     if (onDisk) {
-      const written = readFileSync(diskPath);
+      // eslint-disable-next-line security/detect-non-literal-fs-filename -- diskPath is a generated test fixture beneath public/uploads.
+    const written = readFileSync(diskPath);
       expect(written.equals(content)).toBe(true);
     }
 
@@ -41,6 +43,7 @@ describe("storage", () => {
     ).rejects.toThrow();
 
     await deleteFile(result.key);
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- diskPath is a generated test fixture beneath public/uploads.
     expect(existsSync(diskPath)).toBe(false);
 
     rmSync(path.join(process.cwd(), "public", "uploads", "chat-attachments"), { recursive: true, force: true });

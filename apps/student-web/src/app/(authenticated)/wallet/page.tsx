@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Plus, ArrowUpRight, ArrowDownRight, ShieldCheck, AlertCircle, Loader2 } from "lucide-react";
+import { Plus, ArrowUpRight, ArrowDownRight, ShieldCheck, AlertCircle } from "lucide-react";
+import { CoinPurchaseModal } from "@/components/payments/CoinPurchaseModal";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 
@@ -14,14 +15,11 @@ type Transaction = {
 };
 
 export default function WalletPage() {
+  const [purchaseOpen, setPurchaseOpen] = useState(false);
   const [balance, setBalance] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchWallet();
-  }, []);
 
   const fetchWallet = async () => {
     try {
@@ -36,6 +34,13 @@ export default function WalletPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const timer = setTimeout(() => void fetchWallet(), 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+
 
   if (loading) {
     return (
@@ -72,8 +77,9 @@ export default function WalletPage() {
 
   return (
     <div className="flex flex-col h-full gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <CoinPurchaseModal isOpen={purchaseOpen} onClose={() => setPurchaseOpen(false)} onSuccess={() => void fetchWallet()} />
       <div>
-        <h1 className="font-display text-3xl font-bold text-brand mb-2">My Wallet</h1>
+        <h1 className="lm-page-title mb-2">My Wallet</h1>
         <p className="text-text-muted">Manage your coins and view transaction history.</p>
       </div>
 
@@ -90,7 +96,7 @@ export default function WalletPage() {
                 <span className="text-2xl" aria-hidden="true">🪙</span>
                 <span className="font-display text-5xl font-bold tabular-nums tracking-tight">{balance.toLocaleString()}</span>
               </div>
-              <Button variant="gold" className="w-full flex gap-2 min-h-[44px]">
+              <Button onClick={() => setPurchaseOpen(true)} variant="gold" className="w-full flex gap-2 min-h-[44px]">
                 <Plus className="w-4 h-4" /> Top up Coins
               </Button>
             </CardContent>

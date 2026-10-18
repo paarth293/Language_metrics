@@ -1,5 +1,4 @@
 import React from "react";
-import { Badge } from "@/components/ui/Badge";
 
 interface DashboardGreetingProps {
   name: string;
@@ -8,35 +7,26 @@ interface DashboardGreetingProps {
   badge?: string;
 }
 
-/** Shared "Good morning, <name>" header for the student and teacher dashboards. */
+/** "Good morning, <name>" header in the admin panel's compact style. */
 export function DashboardGreeting({ name, subtitle, badge }: DashboardGreetingProps) {
   const firstName = name.split(" ")[0];
-  const hour = new Date().getHours();
+  const now = new Date();
+  const hour = now.getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
-  // Date pill: "FRI, 18 SEPTEMBER"
-  const dateStr = new Date().toLocaleDateString("en-US", {
-    weekday: "short",
-    day: "numeric",
-    month: "long",
-  }).toUpperCase();
-
   return (
-    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-      <div>
-        <h1 className="text-[28px] sm:text-[44px] leading-[1.05] font-display font-bold text-text tracking-[-0.02em]">
-          {greeting}, {firstName}
-        </h1>
-        <div className="flex items-center gap-3 mt-2">
-          <p className="text-base text-text-muted">{subtitle}</p>
-          {badge && (
-            <Badge variant="info" className="text-xs uppercase py-0.5">{badge}</Badge>
-          )}
-        </div>
-      </div>
-      <div className="inline-flex self-start shrink-0 px-3 py-1.5 rounded-full bg-surface-inset text-text-muted text-xs font-semibold tracking-[0.14em] uppercase">
-        {dateStr}
-      </div>
+    <div>
+      <h1 className="lm-page-title">
+        {greeting}, {firstName}
+      </h1>
+      <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-text-subtle">
+        <span>{now.toLocaleDateString("en-GB", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}</span>
+        <span aria-hidden="true">·</span>
+        <span>{subtitle}</span>
+        {badge && (
+          <span className="rounded bg-brand/10 px-1.5 py-px text-[10px] font-bold text-brand">{badge}</span>
+        )}
+      </p>
     </div>
   );
 }

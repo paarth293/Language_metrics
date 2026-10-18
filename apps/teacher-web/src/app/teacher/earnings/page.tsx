@@ -124,7 +124,7 @@ export default function TeacherEarnings() {
       {/* ── HEADER ─────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-[32px] sm:text-[36px] font-display font-bold text-text tracking-[-0.02em] leading-tight">
+          <h1 className="lm-page-title">
             Earnings & Wallet
           </h1>
           <p className="text-base text-text-muted mt-1">
@@ -134,7 +134,7 @@ export default function TeacherEarnings() {
       </div>
 
       {/* ── TABS ───────────────────────────────────── */}
-      <div className="flex overflow-x-auto no-scrollbar border-b" style={{ borderColor: "rgba(35,29,94,0.08)" }}>
+      <div className="flex overflow-x-auto hide-scrollbar border-b border-border">
         <button
           onClick={() => setActiveTab("earnings")}
           className={`px-5 py-3.5 font-semibold text-[14px] transition-all relative flex items-center gap-2 ${

@@ -59,7 +59,7 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "node_modules/**",
-    "security-tests/**",
+    "tests/security/**",
   ]),
 ]);
 

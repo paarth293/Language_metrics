@@ -207,7 +207,7 @@ export default function CostChart({ daily, rates, egressByDay = {} }: CostChartP
                   {/* Hit target wider than the mark. */}
                   <rect x={x - GAP} y={0} width={barW + GAP * 2} height={H} fill="transparent" />
                   {(["connection", "bandwidth", "recording"] as SeriesKey[]).map((key, si) => {
-                    const value = r[key];
+                    const value = Number(new Map(Object.entries(r)).get(key));
                     if (value <= 0) return null;
                     const h = Math.max(1, (value / max) * (H - 8));
                     cursor -= h;
@@ -249,7 +249,7 @@ export default function CostChart({ daily, rates, egressByDay = {} }: CostChartP
             })}
           </svg>
 
-          {hover !== null && rows[hover] && (
+          {hover !== null && rows.at(hover) && (
             <div
               className="absolute top-0 pointer-events-none rounded-lg px-3 py-2 text-xs shadow-lg"
               style={{
@@ -260,9 +260,9 @@ export default function CostChart({ daily, rates, egressByDay = {} }: CostChartP
                 minWidth: 170,
               }}
             >
-              <p className="font-semibold mb-1">{rows[hover]!.day}</p>
+              <p className="font-semibold mb-1">{rows.at(hover)!.day}</p>
               <p style={{ color: "var(--text-muted)" }}>
-                {rows[hover]!.classSessions} classes · {usd(rows[hover]!.total)} total
+                {rows.at(hover)!.classSessions} classes · {usd(rows.at(hover)!.total)} total
               </p>
               <ul className="mt-1.5 space-y-0.5 list-none p-0 m-0">
                 {SERIES.map((s, i) => (
@@ -276,7 +276,7 @@ export default function CostChart({ daily, rates, egressByDay = {} }: CostChartP
                       {s.label}
                     </span>
                     <span className="tabular-nums">
-                      {usd(rows[hover]![s.key as SeriesKey])}
+                      {usd(Number(new Map(Object.entries(rows.at(hover)!)).get(s.key as SeriesKey)))}
                     </span>
                   </li>
                 ))}

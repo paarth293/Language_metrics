@@ -3,6 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
+  // Dev-only badge; bottom-left sat on top of the sidebar's sign-out row.
+  devIndicators: { position: "bottom-right" },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "i.pravatar.cc" },

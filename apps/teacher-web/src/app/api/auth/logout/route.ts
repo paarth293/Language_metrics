@@ -10,7 +10,7 @@ import { revokeRefreshSession } from "@/lib/redis-session";
  * Clears both access and refresh cookies.
  */
 export async function POST(request: NextRequest) {
-  const refreshToken = request.cookies.get("lm_refresh_token")?.value;
+  const refreshToken = request.cookies.get("lm_teacher_refresh_token")?.value;
 
   // Best-effort revocation — even if token is invalid/missing, clear cookies
   if (refreshToken) {
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   }
 
   const response = NextResponse.json({ success: true }, { status: 200 });
-  response.cookies.set("lm_access_token", "", { maxAge: 0, path: "/" });
-  response.cookies.set("lm_refresh_token", "", { maxAge: 0, path: "/api/auth" });
+  response.cookies.set("lm_teacher_access_token", "", { maxAge: 0, path: "/" });
+  response.cookies.set("lm_teacher_refresh_token", "", { maxAge: 0, path: "/api/auth" });
   return response;
 }

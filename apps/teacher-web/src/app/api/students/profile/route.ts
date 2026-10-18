@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isSupportedCurrency } from "@repo/currency";
 
 // Interface for profile update fields
 interface StudentProfileUpdate {
@@ -6,6 +7,7 @@ interface StudentProfileUpdate {
   avatarUrl?: string | null;
   languageToLearn?: string;
   proficiencyLevel?: string;
+  preferredCurrency?: string;
 }
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -48,6 +50,7 @@ export async function GET(request: Request) {
           avatarUrl: profile.avatarUrl,
           languageToLearn: profile.languageToLearn,
           proficiencyLevel: profile.proficiencyLevel,
+          preferredCurrency: profile.preferredCurrency,
           status: profile.status,
           onboardingComplete: profile.onboardingComplete,
           totalBookings,
@@ -73,7 +76,7 @@ export async function PUT(request: Request) {
 
   try {
     const body = await request.json();
-    const { name, avatarUrl, languageToLearn, proficiencyLevel } = body;
+    const { name, avatarUrl, languageToLearn, proficiencyLevel, preferredCurrency } = body;
 
     const updateData: Partial<StudentProfileUpdate> = {};
     if (name !== undefined) updateData.name = name;
@@ -81,6 +84,12 @@ export async function PUT(request: Request) {
     if (languageToLearn !== undefined) updateData.languageToLearn = languageToLearn;
     if (proficiencyLevel !== undefined) {
       updateData.proficiencyLevel = proficiencyLevel.toUpperCase();
+    }
+    if (preferredCurrency !== undefined) {
+      if (typeof preferredCurrency !== "string" || !isSupportedCurrency(preferredCurrency)) {
+        return NextResponse.json({ message: "Unsupported currency." }, { status: 400 });
+      }
+      updateData.preferredCurrency = preferredCurrency;
     }
 
     if (Object.keys(updateData).length === 0) {
