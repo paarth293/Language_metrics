@@ -94,6 +94,24 @@ export async function fetchSuccessfulPayment(orderId: string): Promise<GatewayPa
   return success ? toGatewayPayment(success, orderId) : null;
 }
 
+export type CashfreeOrderStatus = "ACTIVE" | "PAID" | "EXPIRED" | "TERMINATED" | "TERMINATION_REQUESTED";
+
+/** Cashfree's view of an order: whether it can still be paid, and its checkout session. */
+export async function fetchCashfreeOrder(orderId: string): Promise<{ status: CashfreeOrderStatus; paymentSessionId: string | null }> {
+  const { baseUrl, headers } = cashfreeConfig();
+  const request = { headers, cache: "no-store" as const };
+  const response = await fetch(`${baseUrl}/orders/${encodeURIComponent(orderId)}`, request);
+  if (!response.ok) throw new CashfreeError("Payment confirmation is unavailable. Please try again.", 502);
+  const order = (await response.json()) as Partial<Record<"order_id" | "order_status" | "payment_session_id", unknown>> | null;
+  if (!order || order.order_id !== orderId || typeof order.order_status !== "string") {
+    throw new CashfreeError("Payment provider returned an invalid response", 502);
+  }
+  return {
+    status: order.order_status as CashfreeOrderStatus,
+    paymentSessionId: typeof order.payment_session_id === "string" ? order.payment_session_id : null,
+  };
+}
+
 /** Cashfree signs webhooks as base64(HMAC-SHA256(timestamp + rawBody, client secret)). */
 export function verifyCashfreeWebhook(rawBody: string, signature: string, timestamp: string): boolean {
   const secret = process.env.CASHFREE_CLIENT_SECRET;
