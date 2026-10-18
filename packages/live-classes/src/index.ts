@@ -21,3 +21,4 @@ export * from "./coin-payments";
 export * from "./payment-reconciliation";
 export * from "./payment-incidents";
 export * from "./payment-webhooks";
+export * from "./payment-order-status";
