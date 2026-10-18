@@ -31,15 +31,29 @@ export interface GatewayPayment {
   status: string;
 }
 
+/**
+ * The gateway must be chosen explicitly: a missing or misspelt CASHFREE_ENV
+ * used to fall back to sandbox, which in production takes "payments" that
+ * never charge anyone.
+ */
 export function cashfreeMode(): CashfreeMode {
-  return process.env.CASHFREE_ENV === "production" ? "production" : "sandbox";
+  const mode = process.env.CASHFREE_ENV;
+  if (mode === "production" || mode === "sandbox") return mode;
+  console.error(`[payments] CASHFREE_ENV must be "production" or "sandbox", got ${mode ? JSON.stringify(mode) : "nothing"}`);
+  throw new CashfreeError("Payments are unavailable", 503);
 }
 
 function cashfreeConfig() {
   const clientId = process.env.CASHFREE_CLIENT_ID;
   const clientSecret = process.env.CASHFREE_CLIENT_SECRET;
   if (!clientId || !clientSecret) throw new CashfreeError("Payments are unavailable", 503);
-  const baseUrl = cashfreeMode() === "production" ? "https://api.cashfree.com/pg" : "https://sandbox.cashfree.com/pg";
+  const mode = cashfreeMode();
+  // Cashfree test-mode app ids start with "TEST"; production ones never do.
+  if (mode === "production" && clientId.startsWith("TEST")) {
+    console.error("[payments] CASHFREE_ENV is production but CASHFREE_CLIENT_ID is a test-mode key");
+    throw new CashfreeError("Payments are unavailable", 503);
+  }
+  const baseUrl = mode === "production" ? "https://api.cashfree.com/pg" : "https://sandbox.cashfree.com/pg";
   return {
     baseUrl,
     headers: {
