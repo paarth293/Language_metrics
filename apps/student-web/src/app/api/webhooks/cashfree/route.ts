@@ -1,6 +1,6 @@
-import { CashfreeError, paymentFromWebhook, RecordingPaymentError, settleRecordingPayment, verifyCashfreeWebhook } from "@repo/live-classes";
+import { CashfreeError, paymentFromWebhook, RecordingPaymentError, settleGatewayPayment, verifyCashfreeWebhook } from "@repo/live-classes";
 import { NextResponse } from "next/server";
-import { PaymentError, settlePayment } from "@/lib/payment-settlement";
+import { PaymentError } from "@/lib/payment-settlement";
 
 export async function POST(req: Request) {
   try {
@@ -10,11 +10,7 @@ export async function POST(req: Request) {
     const raw = await req.text();
     if (!verifyCashfreeWebhook(raw, signature, timestamp)) return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     const payment = paymentFromWebhook(JSON.parse(raw));
-    if (payment) {
-      // Order ids are our receipts, so the prefix says what was bought.
-      if (payment.order_id.startsWith("rec_")) await settleRecordingPayment(payment);
-      else await settlePayment(payment);
-    }
+    if (payment) await settleGatewayPayment(payment);
     return NextResponse.json({ success: true });
   } catch (error) {
     if (error instanceof PaymentError || error instanceof RecordingPaymentError || error instanceof CashfreeError) {
