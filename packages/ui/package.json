@@ -9,7 +9,7 @@
     "./Badge": "./src/Badge.tsx",
     "./PasswordInput": "./src/PasswordInput.tsx",
     "./cn": "./src/cn.ts",
-    "./razorpay": "./src/razorpay.ts",
+    "./cashfree": "./src/cashfree.ts",
     "./useCookieConsent": "./src/useCookieConsent.ts"
   },
   "scripts": {

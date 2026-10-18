@@ -2,16 +2,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { settlePayment } from "./payment-settlement";
 
 const mocks = vi.hoisted(() => ({
-  findUnique: vi.fn(), updateMany: vi.fn(), credit: vi.fn(), transaction: vi.fn(),
+  findUnique: vi.fn(), updateMany: vi.fn(), credit: vi.fn(), transaction: vi.fn(), paymentCreate: vi.fn(),
 }));
 vi.mock("@repo/database", () => ({
   credit: mocks.credit,
   db: { $transaction: mocks.transaction },
 }));
 
-const payment = { id: "pay_1", order_id: "order_1", amount: 29900, currency: "INR", status: "captured" };
-const order = { id: "db-order", orderId: "order_1", userId: "student-1", amount: 299, currency: "INR", status: "CREATED", receipt: "coins_100_snapshot", paymentId: null };
-const tx = { razorpayOrder: { findUnique: mocks.findUnique, updateMany: mocks.updateMany } };
+const payment = { id: "pay_1", order_id: "order_1", amount: 10000, currency: "INR", status: "SUCCESS" };
+const order = { id: "db-order", orderId: "order_1", userId: "student-1", amount: 100, currency: "INR", status: "CREATED", receipt: "coins_100_snapshot", paymentId: null };
+const tx = { paymentOrder: { findUnique: mocks.findUnique, updateMany: mocks.updateMany }, payment: { create: mocks.paymentCreate } };
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -25,14 +25,17 @@ describe("payment settlement", () => {
   it("credits the saved coin quantity to the order owner inside the same transaction", async () => {
     await settlePayment(payment, "student-1");
     expect(mocks.credit).toHaveBeenCalledWith(expect.objectContaining({
-      userId: "student-1", amount: 100, idempotencyKey: "razorpay:order_1",
+      userId: "student-1", amount: 100, idempotencyKey: "cashfree:order_1",
     }), tx);
+    expect(mocks.paymentCreate).toHaveBeenCalledWith({ data: expect.objectContaining({
+      type: "COIN_PURCHASE", status: "SUCCESS", amount: 10000, gatewayOrderId: "order_1", gatewayPaymentId: "pay_1",
+    }) });
   });
 
   it.each([
     [{ ...payment, amount: 100 }, "student-1"],
     [{ ...payment, currency: "USD" }, "student-1"],
-    [{ ...payment, status: "authorized" }, "student-1"],
+    [{ ...payment, status: "PENDING" }, "student-1"],
     [payment, "another-student"],
   ])("rejects mismatched, uncaptured, and foreign payments", async (details, user) => {
     await expect(settlePayment(details, user)).rejects.toThrow();
@@ -62,7 +65,7 @@ describe("payment settlement", () => {
     await expect(settlePayment(payment)).rejects.toThrow("ledger unavailable");
   });
 
-  it("resolves a legacy order from the published package price", async () => {
+  it("converts an order without a coin snapshot at 1 coin = ₹1", async () => {
     mocks.findUnique.mockResolvedValue({ ...order, receipt: "receipt_legacy" });
     await settlePayment(payment);
     expect(mocks.credit).toHaveBeenCalledWith(expect.objectContaining({ amount: 100 }), tx);

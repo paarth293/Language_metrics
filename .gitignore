@@ -91,3 +91,4 @@ scratch/
 # ── SQL dumps (Prisma migrations must still be committed) ─────────────────────
 *.sql
 !packages/database/prisma/migrations/**/migration.sql
+!tests/payment-security/payment-integrity.sql

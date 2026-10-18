@@ -11,9 +11,9 @@ import { elevation, layout, radii, spacing } from "../theme/tokens";
 
 /** Same packages as the web wallet (`apps/student-web/src/types/coins.ts`). */
 const COIN_PACKAGES = [
-  { id: "tier1", coins: 100, priceInr: 299, name: "Basic Pack" },
-  { id: "tier2", coins: 500, priceInr: 1499, name: "Popular Pack" },
-  { id: "tier3", coins: 1000, priceInr: 2999, name: "Pro Pack" },
+  { id: "tier1", coins: 100, priceInr: 100, name: "Basic Pack" },
+  { id: "tier2", coins: 500, priceInr: 500, name: "Popular Pack" },
+  { id: "tier3", coins: 1000, priceInr: 1000, name: "Pro Pack" },
 ] as const;
 
 export function WalletScreen() {
@@ -93,7 +93,7 @@ export function WalletScreen() {
         ))}
 
         <AppText variant="caption" tone="subtle" style={styles.footnote}>
-          Payments are secured by Razorpay and processed on the Language Metrics student portal. Your balance
+          Payments are secured by Cashfree and processed on the Language Metrics student portal. Your balance
           here updates as soon as the payment is confirmed — pull down to refresh.
         </AppText>
       </ScrollView>

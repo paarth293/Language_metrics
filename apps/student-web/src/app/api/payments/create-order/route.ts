@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { randomUUID } from 'node:crypto';
+import { CashfreeError, createCashfreeOrder } from '@repo/live-classes';
 import { COIN_PACKAGES } from '@/types/coins';
 import { requireAuth } from '@/lib/auth';
 
@@ -19,42 +20,15 @@ export async function POST(req: Request) {
     if (!pack || currency !== 'INR' || (amount !== undefined && amount !== pack.priceInr)) {
       return NextResponse.json({ error: 'Invalid coin package or amount' }, { status: 400 });
     }
-    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-      return NextResponse.json({ error: 'Payments are unavailable' }, { status: 503 });
-    }
+    // The receipt snapshots the coin quantity and doubles as the Cashfree order id.
     const receipt = `coins_${pack.coins}_${randomUUID().replaceAll('-', '').slice(0, 24)}`;
 
-    const authHeader = 'Basic ' + Buffer.from(process.env.RAZORPAY_KEY_ID + ':' + process.env.RAZORPAY_KEY_SECRET).toString('base64');
-
-    // Call Razorpay API to create order
-    const rpResponse = await fetch('https://api.razorpay.com/v1/orders', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': authHeader
-      },
-      body: JSON.stringify({
-        amount: pack.priceInr * 100, // Razorpay works in paise
-        currency,
-        receipt
-      })
-    });
-
-    if (!rpResponse.ok) {
-      const rpError = await rpResponse.json();
-      console.error('Razorpay Error:', rpError);
-      return NextResponse.json({ error: 'Payment provider error' }, { status: 502 });
-    }
-
-    const rpOrder = await rpResponse.json();
-    if (typeof rpOrder.id !== 'string' || rpOrder.amount !== pack.priceInr * 100 || rpOrder.currency !== currency) {
-      return NextResponse.json({ error: 'Payment provider returned an invalid order' }, { status: 502 });
-    }
+    const order = await createCashfreeOrder({ orderId: receipt, amountInr: pack.priceInr, customerId: auth.user.sub });
 
     // Save to our DB
-    await db.razorpayOrder.create({
+    await db.paymentOrder.create({
       data: {
-        orderId: rpOrder.id,
+        orderId: order.orderId,
         amount: pack.priceInr,
         currency,
         status: 'CREATED',
@@ -63,8 +37,9 @@ export async function POST(req: Request) {
       }
     });
 
-    return NextResponse.json(rpOrder);
+    return NextResponse.json({ orderId: order.orderId, paymentSessionId: order.paymentSessionId, mode: order.mode });
   } catch (error) {
+    if (error instanceof CashfreeError) return NextResponse.json({ error: error.message }, { status: error.status });
     if (error instanceof SyntaxError) return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
     console.error('Order creation error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

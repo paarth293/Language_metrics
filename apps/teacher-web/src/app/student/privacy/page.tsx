@@ -26,7 +26,7 @@ export default function PrivacyPage() {
           </h2>
           <p>
             We collect information you provide directly: name, email, language
-            preferences, payment information (processed securely via Razorpay), and
+            preferences, payment information (processed securely via Cashfree), and
             communications with teachers. We also collect device tokens for push
             notifications when you opt in.
           </p>
@@ -50,7 +50,7 @@ export default function PrivacyPage() {
           <p>
             We do not sell your personal information. We share data with teachers only
             as necessary for class delivery (name, language preferences). Payment data
-            is handled exclusively by Razorpay and never stored on our servers.
+            is handled exclusively by Cashfree and never stored on our servers.
           </p>
         </section>
 

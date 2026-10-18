@@ -24,6 +24,16 @@ const liveKitConnectSrc = (() => {
   return origins.join(" ");
 })();
 
+/**
+ * Cashfree checkout (student recording unlocks). The SDK must load from
+ * Cashfree's CDN and opens its payment frames from these hosts; origins per
+ * the cashfree-js README's CSP section, plus sandbox.cashfree.com for
+ * connect-src because sandbox is the default mode.
+ */
+const cashfreeScriptSrc = "https://sdk.cashfree.com";
+const cashfreeConnectSrc = "https://api.cashfree.com https://sandbox.cashfree.com";
+const cashfreeFrameSrc = "https://sdk.cashfree.com https://api.cashfree.com https://sandbox.cashfree.com https://payments.cashfree.com https://payments-test.cashfree.com";
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
@@ -115,13 +125,13 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               // Scripts: self + Next.js dev overlay in dev only
               // unsafe-eval is ONLY needed for Next.js HMR in development
-              `script-src 'self'${isProd ? "" : " 'unsafe-eval'"} 'unsafe-inline'`,
+              `script-src 'self'${isProd ? "" : " 'unsafe-eval'"} 'unsafe-inline' ${cashfreeScriptSrc}`,
               // Styles: self + inline (required by Next.js)
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https://lh3.googleusercontent.com https://i.pravatar.cc https://avatars.githubusercontent.com https://flagcdn.com",
-              `connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com ${liveKitConnectSrc}`,
-              "frame-src https://accounts.google.com",
+              `connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com ${liveKitConnectSrc} ${cashfreeConnectSrc}`,
+              `frame-src https://accounts.google.com ${cashfreeFrameSrc}`,
               "form-action 'self'",
               "base-uri 'self'",
               "object-src 'none'",

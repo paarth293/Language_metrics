@@ -44,7 +44,7 @@ model User {
   studentProfile               StudentProfile?
   teacherProfile               TeacherProfile?
   deviceTokens                 DeviceToken[]
-  razorpayOrders               RazorpayOrder[]
+  paymentOrders                PaymentOrder[]
   coinAccount                  CoinAccount?
   liveSessions                 LiveParticipantSession[]
 
@@ -157,7 +157,7 @@ model CoinTransaction {
   /// What this movement was for, when it relates to a class.
   classSessionId String?          @db.Uuid
   bookingId      String?          @db.Uuid
-  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User                @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@index([userId, createdAt])
   @@index([classSessionId])
@@ -400,8 +400,8 @@ model Payment {
   type              PaymentType
   amount            Int
   status            PaymentStatus @default(PENDING)
-  razorpayOrderId   String?       @unique
-  razorpayPaymentId String?       @unique
+  gatewayOrderId    String?       @unique @map("razorpayOrderId")
+  gatewayPaymentId  String?       @unique @map("razorpayPaymentId")
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
   booking           Booking?      @relation(fields: [bookingId], references: [id])
@@ -925,19 +925,24 @@ model DeviceToken {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model RazorpayOrder {
+/// Orders created with the payment gateway (Cashfree). The table keeps its
+/// original name so switching gateways needed no data migration.
+model PaymentOrder {
   id        String   @id @default(uuid()) @db.Uuid
   userId    String   @db.Uuid
   orderId   String   @unique
   amount    Int
   currency  String   @default("INR")
+  /// One of PAYMENT_ORDER_STATUSES (packages/live-classes/src/payment-order-status.ts);
+  /// enforced by the RazorpayOrder_status_check constraint.
   status    String   @default("CREATED")
   receipt   String?
   paymentId String?  @unique
   signature String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@index([userId])
+  @@map("RazorpayOrder")
 }

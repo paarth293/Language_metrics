@@ -2,13 +2,13 @@
 
 **Prepared for:** Internship delivery (Aug 16 – Sep 15, 2026)
 **Project:** Language-learning platform — booking, live classes, payments, coin economy
-**Stack (as specified):** Node.js + Express · PostgreSQL / Supabase · Prisma ORM · React (Teacher + Admin portals) · Razorpay · LiveKit
+**Stack (as specified):** Node.js + Express · PostgreSQL / Supabase · Prisma ORM · React (Teacher + Admin portals) · Cashfree · LiveKit
 
 ---
 
 ## 1. Executive Summary
 
-Language Metrics is a two-sided marketplace connecting language learners with teachers for live, paid classes. Students discover teachers, book time slots, pay using an in-app coin currency (topped up via Razorpay), and attend classes through embedded live video (LiveKit). Teachers manage their availability, deliver sessions, and track earnings through a dedicated portal. Admins oversee the whole platform — users, payments, disputes, and content — through an admin portal.
+Language Metrics is a two-sided marketplace connecting language learners with teachers for live, paid classes. Students discover teachers, book time slots, pay using an in-app coin currency (topped up via Cashfree), and attend classes through embedded live video (LiveKit). Teachers manage their availability, deliver sessions, and track earnings through a dedicated portal. Admins oversee the whole platform — users, payments, disputes, and content — through an admin portal.
 
 This document is the complete build blueprint: every module, the database design, the API surface, the security architecture, and the scaling plan needed to take this from zero to a live, production-hardened platform.
 
@@ -95,19 +95,19 @@ Every role above must be enforced **server-side** on every request — never tru
 
 ### 4.6 Coin (Virtual Currency) System
 - Every student has a `Wallet` with a `balance` field
-- Coins purchased in packages via Razorpay (e.g., ₹500 → 500 coins, with possible bonus tiers)
+- Coins purchased in packages via Cashfree (1 coin = ₹1, e.g. ₹500 → 500 coins)
 - Every balance change is recorded as an **immutable ledger entry** (`CoinTransaction`) — balance is never edited directly, it's derived/reconciled from the ledger. This is non-negotiable for auditability and dispute resolution.
 - Booking a class = a `debit` transaction; cancellation refund = a `credit` transaction; admin grant = a `credit` transaction with an `admin_id` and `reason`
 - Teacher payout logic: coins earned per completed session convert to a payout amount at a defined rate — tracked separately from student-facing coins
 
-### 4.7 Payments (Razorpay)
-- Razorpay Checkout for coin package purchases
-- Server creates a Razorpay `order` first (amount fixed server-side — **never trust a client-submitted amount**)
-- Client completes checkout → Razorpay redirects/returns payment_id + signature
-- Server verifies the payment via Razorpay webhook (HMAC signature check) as the **source of truth**, not the client callback alone
+### 4.7 Payments (Cashfree)
+- Cashfree Checkout for coin package purchases
+- Server creates a Cashfree `order` first (amount fixed server-side — **never trust a client-submitted amount**)
+- Client completes checkout in the Cashfree modal, then asks the server to verify the order
+- Server confirms the payment by fetching the order's payments from Cashfree, with the signed Cashfree webhook as backup — never the client callback alone
 - Idempotent webhook processing (store processed `event_id`s, ignore duplicates/retries)
 - Coins credited only after webhook-verified success
-- Refund handling (admin-triggered, hits Razorpay refund API, logged in ledger)
+- Refund handling (admin-triggered, hits Cashfree refund API, logged in ledger)
 - Invoice/receipt generation per transaction
 
 ### 4.8 Live Class System (LiveKit)
@@ -162,15 +162,15 @@ The offer letter mentions collaborating with an AI Developer on API contracts �
      │  via Prisma)     │   │  token blacklist)   │   │ webhooks, email  │
      └──────────────────┘   └─────────────────────┘   └──────────────────┘
 
-     External services:  Razorpay (payments)  ·  LiveKit Cloud (video)
+     External services:  Cashfree (payments)  ·  LiveKit Cloud (video)
                           Resend/SendGrid (email)  ·  Sentry (errors)
 ```
 
 Key architecture decisions:
 - **Stateless API layer** — no in-memory session state, so any node can handle any request → horizontal scaling is trivial
 - **Redis** sits in the critical path for rate-limiting and caching, not just as a nice-to-have
-- **Webhooks (Razorpay) and heavy async work go through a job queue**, never processed inline in the request that triggers them
-- **All third-party secrets and API keys live only on the backend** — the React apps never see Razorpay secret keys or LiveKit API secrets, only public/anon keys where applicable
+- **Webhooks (Cashfree) and heavy async work go through a job queue**, never processed inline in the request that triggers them
+- **All third-party secrets and API keys live only on the backend** — the React apps never see Cashfree secret keys or LiveKit API secrets, only public/anon keys where applicable
 
 ---
 
@@ -193,7 +193,7 @@ enum BookingStatus {
 }
 
 enum TxnType {
-  PURCHASE      // coins bought via Razorpay
+  PURCHASE      // coins bought via Cashfree
   DEBIT_BOOKING // coins spent on a booking
   REFUND        // coins refunded
   ADMIN_GRANT   // manual admin adjustment
@@ -277,7 +277,7 @@ model CoinTransaction {
   wallet    Wallet   @relation(fields: [walletId], references: [id])
   type      TxnType
   amount    Int      // positive or negative
-  reference String?  // booking id, razorpay payment id, admin id, etc.
+  reference String?  // booking id, gateway payment id, admin id, etc.
   reason    String?
   createdAt DateTime @default(now())
 }
@@ -285,8 +285,8 @@ model CoinTransaction {
 model Payment {
   id              String   @id @default(uuid())
   userId          String
-  razorpayOrderId String   @unique
-  razorpayPaymentId String? @unique
+  gatewayOrderId String   @unique
+  gatewayPaymentId String? @unique
   amountPaise     Int
   status          String   // created | paid | failed | refunded
   webhookEventId  String?  @unique // idempotency guard
@@ -327,8 +327,8 @@ model Review {
 | POST | `/api/bookings` | Student | Create booking (locks slot, deducts coins atomically) |
 | PATCH | `/api/bookings/:id/cancel` | Student/Teacher | Cancel per policy, triggers refund logic |
 | GET | `/api/bookings/me` | Auth | List own bookings |
-| POST | `/api/wallet/purchase-order` | Student | Creates Razorpay order for a coin package |
-| POST | `/api/webhooks/razorpay` | Signature-verified | Razorpay event receiver (source of truth for payment success) |
+| POST | `/api/wallet/purchase-order` | Student | Creates Cashfree order for a coin package |
+| POST | `/api/webhooks/cashfree` | Signature-verified | Cashfree event receiver (source of truth for payment success) |
 | GET | `/api/wallet/me` | Student | Balance + transaction history |
 | POST | `/api/sessions/:bookingId/token` | Student/Teacher | Issues a scoped, short-lived LiveKit join token |
 | POST | `/api/admin/coins/grant` | Admin | Manual coin adjustment (always writes AuditLog) |
@@ -341,9 +341,9 @@ Every endpoint above must run through: auth middleware → role check → reques
 
 ## 8. Third-Party Integration Notes
 
-**Razorpay**
+**Cashfree**
 - Use server-side Orders API; amount is always computed server-side from a fixed price table, never accepted from the client
-- Verify every webhook using the `X-Razorpay-Signature` header (HMAC-SHA256 with your webhook secret) before processing
+- Verify every webhook using the `x-webhook-signature` header (base64 HMAC-SHA256 of `x-webhook-timestamp` + raw body, keyed with the client secret) before processing
 - Treat the webhook — not the browser redirect callback — as the actual confirmation of payment
 
 **LiveKit**
@@ -387,7 +387,7 @@ This is the section to take most seriously given the "no one can infiltrate or b
 **Payment-specific security**
 - Never trust a client-submitted amount for anything
 - Idempotency on webhook processing (store and check `event_id`) so retried webhooks can't double-credit coins
-- Razorpay itself handles PCI compliance for card data — you should never see or store raw card numbers
+- Cashfree itself handles PCI compliance for card data — you should never see or store raw card numbers
 
 **Live-class security**
 - Join tokens are short-lived, scoped to one room + one verified identity, generated only after confirming the requester is the enrolled student or assigned teacher for that exact booking
@@ -426,7 +426,7 @@ A useful distinction: **15,000 daily *visitors* is not 15,000 concurrent users.*
 - **Database indexing** on every foreign key and every frequently filtered column (`teacherId + slotStart`, `userId + createdAt`, booking `status`)
 - **CDN** for all static frontend assets and images
 - **Autoscaling** on your hosting platform (Render/Railway/Fly.io for simplicity, or AWS ECS/Fargate for more control) based on CPU/memory thresholds
-- **Circuit breakers** around third-party calls (Razorpay, LiveKit) so an outage on their end degrades gracefully instead of cascading into your whole API
+- **Circuit breakers** around third-party calls (Cashfree, LiveKit) so an outage on their end degrades gracefully instead of cascading into your whole API
 - **Load testing before go-live** — script realistic user journeys (browse → book → pay → join class) with k6 or Artillery, and actually run them at ~1.5x your expected peak before trusting the number
 
 ---
@@ -470,7 +470,7 @@ Mapped directly onto the milestone structure already defined in the offer letter
 |---|---|---|---|
 | **Phase 1** — Foundation | Aug 16–22 | Repo setup, CI/CD, DB schema, Auth (signup/login/roles), base portal scaffolds | Milestone 1 (start) |
 | **Phase 2–3** — Core & Booking | Aug 23–29 | Teacher/Admin portal core screens, availability calendar, full booking flow with conflict-safe slot locking | Milestone 2 — Booking system ready |
-| **Phase 4** — Payments & Coins | Aug 30–Sep 5 | Razorpay integration, coin wallet + ledger, admin coin tools, notifications | — |
+| **Phase 4** — Payments & Coins | Aug 30–Sep 5 | Cashfree integration, coin wallet + ledger, admin coin tools, notifications | — |
 | **Phase 5** — Live Classes | Sep 6–12 | LiveKit integration, scoped join tokens, session lifecycle, attendance tracking | Milestone 3 — Live classes working |
 | **Phase 6** — Hardening & Delivery | Sep 13–15 | Security pass, automated tests, load test, deployment, docs, certificate generation | Milestone 4 — Final delivery & deployment |
 
@@ -484,9 +484,9 @@ DIRECT_URL=                 # for Prisma migrations via Supabase pooler
 JWT_ACCESS_SECRET=
 JWT_REFRESH_SECRET=
 REDIS_URL=
-RAZORPAY_KEY_ID=
-RAZORPAY_KEY_SECRET=
-RAZORPAY_WEBHOOK_SECRET=
+CASHFREE_CLIENT_ID=
+CASHFREE_CLIENT_SECRET=
+CASHFREE_ENV=sandbox
 LIVEKIT_API_KEY=
 LIVEKIT_API_SECRET=
 LIVEKIT_URL=

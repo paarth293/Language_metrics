@@ -34,7 +34,7 @@ const faqCategories = [
     questions: [
       {
         q: "How do I book a class?",
-        a: "Go to Discover, find a teacher you like, view their profile and availability, select a time slot, and complete the booking. Payment is processed via Razorpay.",
+        a: "Go to Discover, find a teacher you like, view their profile and availability, select a time slot, and complete the booking. Payment is processed via Cashfree.",
       },
       {
         q: "Can I cancel a booking?",
@@ -61,7 +61,7 @@ const faqCategories = [
       },
       {
         q: "What payment methods are accepted?",
-        a: "We accept UPI, credit/debit cards, net banking, and wallets through Razorpay. All transactions are secure and encrypted.",
+        a: "We accept UPI, credit/debit cards, net banking, and wallets through Cashfree. All transactions are secure and encrypted.",
       },
       {
         q: "How do coupons work?",

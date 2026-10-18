@@ -62,13 +62,13 @@ If a newly deployed release introduces unexpected exceptions or breaks core work
   2. If down, activate platform notice banner via Admin Panel.
   3. Students whose classes were interrupted are granted automatic 100% coin refund via Admin Panel or `/api/students/classes/[id]/cancel`.
 
-### Scenario 3: Payment Gateway (Razorpay) Outage
+### Scenario 3: Payment Gateway (Cashfree) Outage
 - **Symptom**: Order creation or webhook signature verification fails.
 - **RTO**: < 24 hours (Queue-backed)
 - **Mitigation Procedure**:
-  1. All webhook events are logged in Redis with idempotency keys.
-  2. Once Razorpay status recovers, unverified orders are reconciled using Razorpay Payment ID lookup.
-  3. No student is double-debited due to Redis idempotency checks (`checkAndSetIdempotency`).
+  1. Orders stay `CREATED` in the `PaymentOrder` table until Cashfree confirms a successful payment.
+  2. Once Cashfree recovers, it retries webhooks; students can also re-run verification, which looks the order's payments up with Cashfree.
+  3. No student is double-credited: settlement claims the order with a conditional `PAID` update and credits with an idempotency key.
 
 ### Scenario 4: Redis Cache Degradation
 - **Symptom**: Redis connection timeouts reported in `/api/health`.
