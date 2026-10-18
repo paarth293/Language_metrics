@@ -6,6 +6,7 @@ import { COIN_PACKAGES, MAX_CUSTOM_TOPUP_INR, MIN_CUSTOM_TOPUP_INR, isValidCusto
 import { openCashfreeCheckout, type CashfreeMode } from "@repo/ui/cashfree";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
+import { fetchWithRefresh } from "@/lib/fetch-with-refresh";
 
 /**
  * Coin top-up through Cashfree.
@@ -36,9 +37,9 @@ interface TopUpCoinsDialogProps {
 }
 
 async function postJson(url: string, body: unknown) {
-  const response = await fetch(url, {
+  // The checkout can outlast the 15-minute access token, so refresh on a 401.
+  const response = await fetchWithRefresh(url, {
     method: "POST",
-    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
