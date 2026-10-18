@@ -55,7 +55,7 @@ language-metrics/
 | Video | LiveKit (optional) |
 | Storage | S3 / Supabase Storage / Local |
 | Email | Resend / Zoho SMTP |
-| Payments | Razorpay |
+| Payments | Cashfree |
 
 ## Getting Started
 
@@ -163,7 +163,7 @@ npm run db:seed            # Seed reference data
 - **Discover** — Browse verified teachers by language, rating, and availability
 - **Book Classes** — Book demo or regular classes using coins
 - **Live Video** — Join 1-on-1 video sessions with whiteboard and screen sharing
-- **Wallet** — Purchase coins via Razorpay, track transactions
+- **Wallet** — Purchase coins via Cashfree, track transactions
 - **Profile** — Manage language preferences and proficiency level
 
 ### Teacher Dashboard
