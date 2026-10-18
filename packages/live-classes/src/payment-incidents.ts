@@ -11,7 +11,7 @@ import { db } from "@repo/database";
 import type { GatewayPayment } from "./cashfree";
 
 export interface PaymentIncident {
-  kind: "unsettleable_payment" | "duplicate_payment" | "stuck_orders" | "reconciliation_failed";
+  kind: "unsettleable_payment" | "duplicate_payment" | "stuck_orders" | "reconciliation_failed" | "refund_processed" | "refund_failed" | "dispute";
   orderId?: string;
   paymentId?: string;
   reason: string;
