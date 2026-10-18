@@ -1,15 +1,15 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { createRecordingPaymentOrder, settleRecordingPayment, verifyRecordingPayment } from "./recording-payments";
 
-const mocks = vi.hoisted(() => ({ session: vi.fn(), order: vi.fn(), create: vi.fn(), claim: vi.fn(), unlock: vi.fn(), payment: vi.fn(), transaction: vi.fn(), fetch: vi.fn() }));
+const mocks = vi.hoisted(() => ({ session: vi.fn(), order: vi.fn(), openOrder: vi.fn(), create: vi.fn(), claim: vi.fn(), unlock: vi.fn(), payment: vi.fn(), transaction: vi.fn(), fetch: vi.fn() }));
 vi.mock("@repo/database", () => ({ db: {
-  classSession: { findFirst: mocks.session }, paymentOrder: { create: mocks.create, findUnique: mocks.order }, $transaction: mocks.transaction,
+  classSession: { findFirst: mocks.session }, paymentOrder: { create: mocks.create, findUnique: mocks.order, findFirst: mocks.openOrder }, $transaction: mocks.transaction,
 } }));
 const sessionId = "11111111-1111-4111-8111-111111111111";
 const receipt = `rec_${Buffer.from(sessionId.replaceAll("-", ""), "hex").toString("base64url")}_abcdef12`;
 const order = { id: "saved-order", orderId: receipt, userId: "student", receipt, amount: 299, currency: "INR", status: "CREATED", paymentId: null };
 const captured = { id: "pay_1", order_id: receipt, amount: 29900, currency: "INR", status: "SUCCESS" };
-const tx = { paymentOrder: { findUnique: mocks.order, updateMany: mocks.claim }, classSession: { findFirst: mocks.session, update: mocks.unlock }, payment: { create: mocks.payment } };
+const tx = { paymentOrder: { findUnique: mocks.order, updateMany: mocks.claim }, classSession: { findFirst: mocks.session, updateMany: mocks.unlock }, payment: { create: mocks.payment } };
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -18,6 +18,8 @@ beforeEach(() => {
   mocks.session.mockResolvedValue({ id: sessionId, bookingId: "booking", isRecordingPaid: false });
   mocks.order.mockResolvedValue(order);
   mocks.claim.mockResolvedValue({ count: 1 });
+  mocks.unlock.mockResolvedValue({ count: 1 });
+  mocks.openOrder.mockResolvedValue(null);
   mocks.transaction.mockImplementation(async (callback) => callback(tx));
 });
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
@@ -68,7 +70,7 @@ describe("recording purchases", () => {
 
   it("commits the unlock and payment entry inside the order transaction", async () => {
     await settleRecordingPayment(captured, "student");
-    expect(mocks.unlock).toHaveBeenCalledWith({ where: { id: sessionId }, data: { isRecordingPaid: true } });
+    expect(mocks.unlock).toHaveBeenCalledWith({ where: { id: sessionId, isRecordingPaid: false }, data: { isRecordingPaid: true } });
     expect(mocks.payment).toHaveBeenCalledWith({ data: expect.objectContaining({ type: "RECORDING_FEE", amount: 29900, bookingId: "booking", gatewayPaymentId: "pay_1" }) });
   });
 
