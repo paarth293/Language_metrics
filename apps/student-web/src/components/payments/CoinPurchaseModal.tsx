@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { RazorpayCheckout } from './RazorpayCheckout';
+import { CashfreeCheckout } from './CashfreeCheckout';
 import { COIN_PACKAGES, CoinPackage } from '@/types/coins';
 
 interface CoinPurchaseModalProps {
@@ -46,7 +46,7 @@ export function CoinPurchaseModal({ isOpen, onClose, onSuccess }: CoinPurchaseMo
               </div>
               <div className="flex items-center gap-4">
                 <span className="font-bold">₹{pkg.priceInr}</span>
-                <RazorpayCheckout
+                <CashfreeCheckout
                   amount={pkg.priceInr}
                   packageId={pkg.id}
                   onSuccess={() => {
