@@ -52,6 +52,14 @@ describe("cashfree webhooks", () => {
   });
 
   it("ignores events that are not successful payments", () => {
-    expect(paymentFromWebhook({ type: "PAYMENT_FAILED_WEBHOOK", data: {} })).toBeNull();
+    const failed = JSON.parse(body);
+    failed.type = "PAYMENT_FAILED_WEBHOOK";
+    failed.data.payment.payment_status = "FAILED";
+    expect(paymentFromWebhook(failed)).toBeNull();
+    expect(paymentFromWebhook({ type: "PAYMENT_CHARGES_WEBHOOK", data: {} })).toBeNull();
+  });
+
+  it("rejects a recognised event it cannot read", () => {
+    expect(() => paymentFromWebhook({ type: "PAYMENT_FAILED_WEBHOOK", data: {} })).toThrow("Invalid payment details");
   });
 });
