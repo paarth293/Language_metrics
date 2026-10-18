@@ -1,5 +1,6 @@
 import { credit, db } from "@repo/database";
 import type { GatewayPayment } from "./cashfree";
+import { sourcesOf, transitionOrder, type PaymentOrderStatus } from "./payment-order-status";
 
 // Must match COIN_VALUE_INR in apps/student-web/src/types/coins.ts (1 coin = ₹1).
 const COIN_VALUE_INR = 1;
@@ -26,6 +27,12 @@ export async function settlePayment(payment: GatewayPayment, userId?: string) {
       if (order.paymentId !== payment.id) throw new PaymentError("Order was paid using another payment", 409);
       return;
     }
+    // Refunded, duplicate and parked orders stay where they are: Cashfree
+    // keeps listing a refunded payment as SUCCESS, so this check is what stops
+    // a later verify from fulfilling it again.
+    if (!sourcesOf("PAID").includes(order.status as PaymentOrderStatus)) {
+      throw new PaymentError(`Order is ${order.status.toLowerCase().replace("_", " ")} and cannot be fulfilled.`, 409);
+    }
 
     // Receipts snapshot the coin quantity on the server. Without one, the
     // amount paid converts at 1 coin = ₹1 — never a quantity from the browser.
@@ -37,11 +44,8 @@ export async function settlePayment(payment: GatewayPayment, userId?: string) {
 
     // This conditional UPDATE serializes simultaneous webhook/checkout retries.
     // The wallet mutation commits with the order or both roll back on failure.
-    const claimed = await tx.paymentOrder.updateMany({
-      where: { id: order.id, status: { not: "PAID" } },
-      data: { status: "PAID", paymentId: payment.id },
-    });
-    if (!claimed.count) return;
+    const claimed = await transitionOrder(tx, { id: order.id }, "PAID", { paymentId: payment.id });
+    if (!claimed) return;
     // The money record admin, analytics and refunds read; amount in paise like
     // every other Payment row.
     await tx.payment.create({ data: {
