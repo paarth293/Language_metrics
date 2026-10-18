@@ -171,7 +171,7 @@ export function createFakeDb() {
   return {
     db, balances,
     /** The module shape `vi.mock("@repo/database", …)` should return. */
-    module: { db, credit, adjust, InsufficientCoinsError },
+    module: { db, credit, adjust, InsufficientCoinsError, getSpendableBalance: async (userId: string) => balances.get(userId) ?? 0 },
   };
 }
 
