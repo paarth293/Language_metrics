@@ -41,6 +41,15 @@ describe("issue #2: paying twice for one recording", () => {
     expect(harness.cashfree.orders.size).toBe(1);
   });
 
+  it("an order whose first attempt failed is still reused (it stays payable)", async () => {
+    const first = await order();
+    const attempt = harness.cashfree.pay(first.orderId, "FAILED");
+    await webhook(harness.cashfree.webhookRequest({ type: "PAYMENT_FAILED_WEBHOOK", data: { order: { order_id: first.orderId }, payment: attempt } }));
+    const second = await order();
+    expect(second.orderId).toBe(first.orderId);
+    expect(harness.cashfree.orders.size).toBe(1);
+  });
+
   it("ordering again after the first order was paid settles it instead of charging again", async () => {
     const first = await order();
     harness.cashfree.pay(first.orderId, "SUCCESS");
