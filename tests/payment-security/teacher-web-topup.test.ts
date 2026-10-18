@@ -46,6 +46,37 @@ describe("teacher-web wallet: Top up Coins", () => {
     expect(harness.cashfree.calls).toHaveLength(0);
   });
 
+  it("a custom amount buys exactly that many coins (1 coin = ₹1)", async () => {
+    const response = await order({ customAmountInr: 250 });
+    expect(response.status).toBe(200);
+    const { orderId } = await response.json();
+    expect(orderId).toMatch(/^coins_250_/);
+    expect(orderId.length).toBeLessThanOrEqual(35);
+    expect(harness.cashfree.orders.get(orderId)).toMatchObject({ order_amount: 250, order_currency: "INR" });
+
+    harness.cashfree.pay(orderId, "SUCCESS");
+    expect((await verifyPayment(jsonRequest("/api/payments/verify-payment", { orderId }))).status).toBe(200);
+    expect(harness.db.balances.get("student-a")).toBe(250);
+  });
+
+  it("accepts the bounds ₹1 and ₹1,00,000 and keeps order ids short enough for refunds", async () => {
+    for (const amount of [1, 100000]) {
+      const response = await order({ customAmountInr: amount });
+      expect(response.status).toBe(200);
+      const { orderId } = await response.json();
+      expect(`rf_${orderId}`.length).toBeLessThanOrEqual(40);
+    }
+  });
+
+  it.each([
+    [{ customAmountInr: 0 }], [{ customAmountInr: -5 }], [{ customAmountInr: 2.5 }], [{ customAmountInr: 100001 }],
+    [{ customAmountInr: "500" }], [{ customAmountInr: 500, packageId: "tier1" }], [{ customAmountInr: 500, amount: 1 }],
+    [{ customAmountInr: 500, currency: "USD" }],
+  ])("rejects an invalid custom amount %j before contacting Cashfree", async (body) => {
+    expect((await order(body)).status).toBe(400);
+    expect(harness.cashfree.calls).toHaveLength(0);
+  });
+
   it("requires a signed-in student", async () => {
     harness.signIn(null);
     expect((await order({ packageId: "tier1" })).status).toBe(401);
