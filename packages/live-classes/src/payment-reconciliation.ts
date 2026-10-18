@@ -13,6 +13,7 @@ import { db } from "@repo/database";
 import { fetchCashfreeOrder, fetchSuccessfulPayment, type GatewayPayment } from "./cashfree";
 import { settlePayment } from "./coin-payments";
 import { flagPaymentForReview, isPermanentPaymentError } from "./payment-incidents";
+import { transitionOrder } from "./payment-order-status";
 import { settleRecordingPayment } from "./recording-payments";
 
 /** Leave orders this young alone: the student is probably still paying. */
@@ -69,8 +70,7 @@ export async function reconcilePaymentOrders(now: Date = new Date()): Promise<Pa
       const { status } = await fetchCashfreeOrder(order.orderId);
       if (status === "EXPIRED" || status === "TERMINATED") {
         // Conditional so a payment settled meanwhile is never overwritten.
-        const expired = await db.paymentOrder.updateMany({ where: { id: order.id, status: { in: ["CREATED", "FAILED"] } }, data: { status: "EXPIRED" } });
-        if (expired.count) summary.expired.push(order.orderId);
+        if (await transitionOrder(db, { id: order.id }, "EXPIRED")) summary.expired.push(order.orderId);
         continue;
       }
       if (now.getTime() - order.createdAt.getTime() > STUCK_AFTER_MS) summary.stuck.push(order.orderId);
