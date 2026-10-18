@@ -12,7 +12,7 @@
 import { db } from "@repo/database";
 import { fetchCashfreeOrder, fetchCashfreeRefund, fetchSuccessfulPayment, type GatewayPayment } from "./cashfree";
 import { settlePayment } from "./coin-payments";
-import { flagPaymentForReview, isPermanentPaymentError } from "./payment-incidents";
+import { flagPaymentForReview, isPermanentPaymentError, reportPaymentIncident } from "./payment-incidents";
 import { transitionOrder } from "./payment-order-status";
 import { completeRefund, refundIdFor } from "./payment-refunds";
 import { settleRecordingPayment } from "./recording-payments";
@@ -23,6 +23,11 @@ const MIN_AGE_MS = 10 * 60_000;
 const MAX_AGE_MS = 72 * 60 * 60_000;
 /** Unpaid and older than this is worth a human look. */
 const STUCK_AFTER_MS = 60 * 60_000;
+/**
+ * Alert only for orders that crossed STUCK_AFTER_MS within this window (about
+ * two 10-minute sweeps), so one stuck order pages once, not every sweep.
+ */
+const STUCK_ALERT_WINDOW_MS = 20 * 60_000;
 const BATCH_SIZE = 50;
 
 export interface PaymentReconciliationSummary {
@@ -45,6 +50,7 @@ export async function settleGatewayPayment(payment: GatewayPayment) {
 
 export async function reconcilePaymentOrders(now: Date = new Date()): Promise<PaymentReconciliationSummary> {
   const summary: PaymentReconciliationSummary = { checked: 0, settled: [], flagged: [], expired: [], refunded: [], stuck: [], failed: [] };
+  const newlyStuck: string[] = [];
   const orders = await db.paymentOrder.findMany({
     where: {
       // FAILED orders stay payable, so a later success can be missed too.
@@ -76,7 +82,11 @@ export async function reconcilePaymentOrders(now: Date = new Date()): Promise<Pa
         if (await transitionOrder(db, { id: order.id }, "EXPIRED")) summary.expired.push(order.orderId);
         continue;
       }
-      if (now.getTime() - order.createdAt.getTime() > STUCK_AFTER_MS) summary.stuck.push(order.orderId);
+      const age = now.getTime() - order.createdAt.getTime();
+      if (age > STUCK_AFTER_MS) {
+        summary.stuck.push(order.orderId);
+        if (age <= STUCK_AFTER_MS + STUCK_ALERT_WINDOW_MS) newlyStuck.push(order.orderId);
+      }
     } catch (error) {
       summary.failed.push({ orderId: order.orderId, error: error instanceof Error ? error.message : String(error) });
     }
@@ -91,10 +101,24 @@ export async function reconcilePaymentOrders(now: Date = new Date()): Promise<Pa
     try {
       const { status } = await fetchCashfreeRefund(order.orderId, refundIdFor(order.orderId));
       if (status === "SUCCESS" && (await completeRefund(order.orderId))) summary.refunded.push(order.orderId);
-      else if (status === "CANCELLED") summary.stuck.push(order.orderId);
+      else if (status === "CANCELLED") {
+        summary.stuck.push(order.orderId);
+        // Alert once: only the sweep that first marks the refund FAILED reports it.
+        const marked = await db.payment.updateMany({ where: { gatewayPaymentId: `refund:${refundIdFor(order.orderId)}`, status: "PENDING" }, data: { status: "FAILED" } });
+        if (marked.count) {
+          await reportPaymentIncident({ kind: "refund_failed", orderId: order.orderId, refundId: refundIdFor(order.orderId), reason: "Cashfree cancelled this refund after failing to pay the customer back." });
+        }
+      }
     } catch (error) {
       summary.failed.push({ orderId: order.orderId, error: error instanceof Error ? error.message : String(error) });
     }
+  }
+  // One alert per run, so a backlog does not page someone once per order.
+  if (newlyStuck.length) {
+    await reportPaymentIncident({ kind: "stuck_orders", orderIds: newlyStuck, reason: `${newlyStuck.length} order(s) still open at Cashfree over an hour after checkout; check them in the Cashfree dashboard.` });
+  }
+  if (summary.failed.length) {
+    await reportPaymentIncident({ kind: "reconciliation_failed", failures: summary.failed, reason: `${summary.failed.length} order(s) could not be reconciled this run.` });
   }
   return summary;
 }
