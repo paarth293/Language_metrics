@@ -11,6 +11,7 @@
 import { db } from "@repo/database";
 import { fetchCashfreeOrder, fetchSuccessfulPayment, type GatewayPayment } from "./cashfree";
 import { settlePayment } from "./coin-payments";
+import { flagPaymentForReview, isPermanentPaymentError } from "./payment-incidents";
 import { settleRecordingPayment } from "./recording-payments";
 
 /** Leave orders this young alone: the student is probably still paying. */
@@ -24,6 +25,8 @@ const BATCH_SIZE = 50;
 export interface PaymentReconciliationSummary {
   checked: number;
   settled: string[];
+  /** Paid but unsettleable; parked at NEEDS_REVIEW. */
+  flagged: string[];
   expired: string[];
   stuck: string[];
   failed: Array<{ orderId: string; error: string }>;
@@ -36,7 +39,7 @@ export async function settleGatewayPayment(payment: GatewayPayment) {
 }
 
 export async function reconcilePaymentOrders(now: Date = new Date()): Promise<PaymentReconciliationSummary> {
-  const summary: PaymentReconciliationSummary = { checked: 0, settled: [], expired: [], stuck: [], failed: [] };
+  const summary: PaymentReconciliationSummary = { checked: 0, settled: [], flagged: [], expired: [], stuck: [], failed: [] };
   const orders = await db.paymentOrder.findMany({
     where: {
       status: "CREATED",
@@ -51,8 +54,14 @@ export async function reconcilePaymentOrders(now: Date = new Date()): Promise<Pa
     try {
       const payment = await fetchSuccessfulPayment(order.orderId);
       if (payment) {
-        await settleGatewayPayment(payment);
-        summary.settled.push(order.orderId);
+        try {
+          await settleGatewayPayment(payment);
+          summary.settled.push(order.orderId);
+        } catch (error) {
+          if (!isPermanentPaymentError(error)) throw error;
+          await flagPaymentForReview(payment, error.message);
+          summary.flagged.push(order.orderId);
+        }
         continue;
       }
       const { status } = await fetchCashfreeOrder(order.orderId);
