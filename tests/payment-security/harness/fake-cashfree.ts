@@ -27,6 +27,8 @@ export function createFakeCashfree() {
   const orders = new Map<string, FakeOrder>();
   const calls: Array<{ method: string; path: string }> = [];
   let nextPaymentId = 1000;
+  let failures: number[] = [];
+  let lastOrder: Record<string, unknown> = {};
 
   const json = (status: number, body: unknown) => ({ ok: status >= 200 && status < 300, status, json: async () => body });
 
@@ -35,11 +37,14 @@ export function createFakeCashfree() {
     const method = (init.method ?? "GET").toUpperCase();
     const path = url.pathname.replace(/^\/pg/, "");
     calls.push({ method, path });
+    const injected = failures.shift();
+    if (injected) return json(injected, { message: "injected failure" });
     const headers = new Headers(init.headers);
     if (headers.get("x-client-secret") !== TEST_SECRET) return json(401, { message: "authentication Failed", code: "request_failed" });
 
     if (method === "POST" && path === "/orders") {
       const body = JSON.parse(String(init.body));
+      lastOrder = body;
       if (orders.has(body.order_id)) return json(409, { message: "order with same id is already present", code: "order_already_exists" });
       const order: FakeOrder = {
         order_id: body.order_id, order_amount: body.order_amount, order_currency: body.order_currency,
@@ -113,7 +118,10 @@ export function createFakeCashfree() {
     };
   }
 
-  return { orders, calls, fetch: fetchStub, pay, expire, settleRefund, webhookRequest, successWebhook };
+  /** The next calls answer with these HTTP statuses before behaving normally. */
+  function failNext(...statuses: number[]) { failures = statuses; }
+
+  return { orders, calls, fetch: fetchStub, pay, expire, settleRefund, webhookRequest, successWebhook, failNext, lastOrderBody: () => lastOrder };
 }
 
 export type FakeCashfree = ReturnType<typeof createFakeCashfree>;
