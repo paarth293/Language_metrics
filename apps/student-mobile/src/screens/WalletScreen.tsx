@@ -8,13 +8,8 @@ import { formatNumber } from "../lib/format";
 import { openWebLink, WebLinks } from "../lib/links";
 import { useTheme } from "../theme/ThemeProvider";
 import { elevation, layout, radii, spacing } from "../theme/tokens";
-
-/** Same packages as the web wallet (`apps/student-web/src/types/coins.ts`). */
-const COIN_PACKAGES = [
-  { id: "tier1", coins: 100, priceInr: 100, name: "Basic Pack" },
-  { id: "tier2", coins: 500, priceInr: 500, name: "Popular Pack" },
-  { id: "tier3", coins: 1000, priceInr: 1000, name: "Pro Pack" },
-] as const;
+// The same packs every app sells (packages/api-contracts/src/wallet.ts).
+import { COIN_PACKAGES } from "@repo/api-contracts";
 
 export function WalletScreen() {
   const { colors, scheme } = useTheme();
