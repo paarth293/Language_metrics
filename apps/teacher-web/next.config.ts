@@ -33,6 +33,9 @@ const liveKitConnectSrc = (() => {
 const cashfreeScriptSrc = "https://sdk.cashfree.com";
 const cashfreeConnectSrc = "https://api.cashfree.com https://sandbox.cashfree.com";
 const cashfreeFrameSrc = "https://sdk.cashfree.com https://api.cashfree.com https://sandbox.cashfree.com https://payments.cashfree.com https://payments-test.cashfree.com";
+// The modal checkout opens by POSTing a hidden form into its iframe, so
+// form-action must allow the same hosts or the popup stays blank.
+const cashfreeFormAction = cashfreeFrameSrc;
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
@@ -132,7 +135,7 @@ const nextConfig: NextConfig = {
               "img-src 'self' data: https://lh3.googleusercontent.com https://i.pravatar.cc https://avatars.githubusercontent.com https://flagcdn.com",
               `connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com ${liveKitConnectSrc} ${cashfreeConnectSrc}`,
               `frame-src https://accounts.google.com ${cashfreeFrameSrc}`,
-              "form-action 'self'",
+              `form-action 'self' ${cashfreeFormAction}`,
               "base-uri 'self'",
               "object-src 'none'",
             ].join("; "),
