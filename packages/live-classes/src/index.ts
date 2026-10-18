@@ -19,3 +19,4 @@ export * from "./recording-payments";
 export * from "./cashfree";
 export * from "./coin-payments";
 export * from "./payment-reconciliation";
+export * from "./payment-incidents";
