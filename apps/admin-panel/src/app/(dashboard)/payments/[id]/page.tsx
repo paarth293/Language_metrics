@@ -90,7 +90,7 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
             )}
             <div className="flex items-center justify-between pb-1">
               <span className="text-[12px] font-medium text-[var(--lm-muted)]">Gateway Reference</span>
-              <span className="lm-mono text-[12px] font-semibold text-[var(--lm-ink)]">{payment.razorpayPaymentId || payment.razorpayOrderId || "N/A"}</span>
+              <span className="lm-mono text-[12px] font-semibold text-[var(--lm-ink)]">{payment.gatewayPaymentId || payment.gatewayOrderId || "N/A"}</span>
             </div>
           </div>
         </section>
