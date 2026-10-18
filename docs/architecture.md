@@ -29,7 +29,7 @@ Language Metrics Monorepo
 - **Primary Relational Store**: Supabase PostgreSQL (managed with PgBouncer connection pooling).
 - **In-Memory Cache & Session Store**: Upstash Redis (serverless, low-latency key-value store for session rotation, rate-limiting, and webhook idempotency).
 - **Video & Realtime Streaming**: LiveKit Cloud (WebRTC SFU for low-latency live classes).
-- **Payment Gateway**: Razorpay (orders, cryptographic signature verification, and automated coin credits).
+- **Payment Gateway**: Cashfree (server-created orders, server-side payment confirmation, signed webhooks, and automated coin credits at 1 coin = ₹1).
 - **Object Storage**: Supabase Storage / AWS S3 (secure signed URLs for avatars, materials, and recordings).
 
 ---
@@ -50,18 +50,20 @@ Student                student-web API               PostgreSQL (Prisma)
 ```
 - **Concurrency Protection**: The booking mutation runs under `Prisma.TransactionIsolationLevel.Serializable`. If two concurrent requests contest the same slot or double-spend, PostgreSQL triggers a serialization conflict (`P2034`) which gracefully returns HTTP 409 Conflict.
 
-### 3.2 Razorpay Coin Purchase Flow
+### 3.2 Cashfree Coin Purchase Flow
 ```
-Student            student-web               Razorpay                 Upstash Redis
-   ¦                    ¦                       ¦                           ¦
-   ¦-- 1. Buy Tier ---->¦-- Create Order ------>¦                           ¦
-   ¦<-- Order ID -------¦<-- Order Created -----¦                           ¦
-   ¦-- 2. Pay Modal --->¦                       ¦                           ¦
-   ¦                    ¦                       ¦-- 3. Webhook (Payment) -->¦
-   ¦                    ¦                       ¦                           ¦-- Deduplication Check
-   ¦                    ¦<-- Verify Signature --¦                           ¦   (checkAndSetIdempotency)
-   ¦                    ¦-- 4. Credit Coins --->¦(PostgreSQL)               ¦
+Student            student-web                  Cashfree                PostgreSQL
+   ¦                    ¦                           ¦                        ¦
+   ¦-- 1. Buy Pack ---->¦-- Create Order (₹ = coins)>¦                       ¦
+   ¦                    ¦<-- payment_session_id ----¦                        ¦
+   ¦<-- Session ID -----¦-- Save PaymentOrder ---------------------------->¦
+   ¦-- 2. Pay in Cashfree modal ------------------->¦                        ¦
+   ¦-- 3. Verify order->¦-- GET order payments ---->¦                        ¦
+   ¦                    ¦<-- SUCCESS payment -------¦                        ¦
+   ¦                    ¦-- 4. Mark PAID + credit coins (one transaction) -->¦
+   ¦                    ¦<-- 5. Signed webhook (backup, same settlement) ----¦
 ```
+The browser only names the order to check. Coins are credited only for a payment Cashfree reports as `SUCCESS`, whether that arrives through the verify call or the `PAYMENT_SUCCESS_WEBHOOK` webhook (`x-webhook-signature` = base64 HMAC-SHA256 of timestamp + body with the client secret). The conditional `PAID` update makes repeated confirmations credit once.
 
 ### 3.3 Live Class Video Session Flow
 ```
