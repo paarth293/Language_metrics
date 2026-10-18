@@ -15,7 +15,8 @@ function receiptPrefix(recordingId: string) {
   return `rec_${Buffer.from(recordingId.replaceAll("-", ""), "hex").toString("base64url")}_`;
 }
 
-function recordingIdFromReceipt(receipt: string | null) {
+/** The recording a "rec_" receipt (= order id) pays for, or null. */
+export function recordingIdFromReceipt(receipt: string | null) {
   const encoded = /^rec_([A-Za-z0-9_-]{22})_[a-f0-9]{8}$/.exec(receipt ?? "")?.[1];
   if (!encoded) return null;
   const bytes = Buffer.from(encoded, "base64url");
