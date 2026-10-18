@@ -157,7 +157,7 @@ model CoinTransaction {
   /// What this movement was for, when it relates to a class.
   classSessionId String?          @db.Uuid
   bookingId      String?          @db.Uuid
-  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User                @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@index([userId, createdAt])
   @@index([classSessionId])
@@ -941,7 +941,7 @@ model PaymentOrder {
   signature String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@index([userId])
   @@map("RazorpayOrder")
