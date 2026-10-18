@@ -2,12 +2,12 @@ import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { POST } from "./route";
 
-const mocks = vi.hoisted(() => ({ settle: vi.fn() }));
+const mocks = vi.hoisted(() => ({ handle: vi.fn() }));
 vi.mock("@repo/live-classes", async (importActual) => ({
-  ...(await importActual<typeof import("@repo/live-classes")>()), settleGatewayPayment: mocks.settle,
+  ...(await importActual<typeof import("@repo/live-classes")>()), handleCashfreeWebhook: mocks.handle,
 }));
 
-beforeEach(() => { vi.resetAllMocks(); vi.stubEnv("CASHFREE_CLIENT_SECRET", "test-secret"); });
+beforeEach(() => { vi.resetAllMocks(); mocks.handle.mockResolvedValue({}); vi.stubEnv("CASHFREE_CLIENT_SECRET", "test-secret"); });
 afterEach(() => vi.unstubAllEnvs());
 
 const event = (orderId: string) => JSON.stringify({ type: "PAYMENT_SUCCESS_WEBHOOK", data: {
@@ -23,10 +23,10 @@ const signed = (raw: string, secret = "test-secret") => new Request("https://exa
 
 it("rejects webhooks not signed with the client secret", async () => {
   expect((await POST(signed(event("coins_100_abc"), "wrong-secret"))).status).toBe(400);
-  expect(mocks.settle).not.toHaveBeenCalled();
+  expect(mocks.handle).not.toHaveBeenCalled();
 });
 
-it("settles the signed payment, normalised to paise", async () => {
+it("hands the verified event to the shared handler", async () => {
   expect((await POST(signed(event("coins_100_abc")))).status).toBe(200);
-  expect(mocks.settle).toHaveBeenCalledWith(expect.objectContaining({ order_id: "coins_100_abc", amount: 10000, status: "SUCCESS" }));
+  expect(mocks.handle).toHaveBeenCalledWith(JSON.parse(event("coins_100_abc")));
 });
