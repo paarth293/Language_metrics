@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { db } from "@repo/database";
+import { reportPaymentIncident } from "./payment-incidents";
 import { sourcesOf, transitionOrder, type PaymentOrderStatus } from "./payment-order-status";
 import { CashfreeError, cashfreeMode, createCashfreeOrder, fetchCashfreeOrder, fetchSuccessfulPayment, type GatewayPayment } from "./cashfree";
 
@@ -88,7 +89,10 @@ export async function settleRecordingPayment(payment: RecordingPayment, userId?:
     const unlocked = await tx.classSession.updateMany({ where: { id: session.id, isRecordingPaid: false }, data: { isRecordingPaid: true } });
     if (!unlocked.count) {
       await transitionOrder(tx, { id: order.id }, "DUPLICATE", {}, ["PAID"]);
-      console.error("[recording-payments] duplicate payment for an unlocked recording; refund due", { orderId: order.orderId, paymentId: payment.id });
+      await reportPaymentIncident({
+        kind: "duplicate_payment", orderId: order.orderId, paymentId: payment.id, amountPaise: payment.amount,
+        reason: "Paid for a recording that was already unlocked by another order; refund it from the admin panel.",
+      });
       return;
     }
     await tx.payment.create({ data: { userId: order.userId, bookingId: session.bookingId, type: "RECORDING_FEE", amount: payment.amount, status: "SUCCESS", gatewayOrderId: order.orderId, gatewayPaymentId: payment.id } });
