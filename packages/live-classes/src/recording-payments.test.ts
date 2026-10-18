@@ -13,7 +13,7 @@ const tx = { paymentOrder: { findUnique: mocks.order, updateMany: mocks.claim },
 
 beforeEach(() => {
   vi.resetAllMocks();
-  vi.stubEnv("CASHFREE_CLIENT_ID", "test-key"); vi.stubEnv("CASHFREE_CLIENT_SECRET", "test-secret");
+  vi.stubEnv("CASHFREE_CLIENT_ID", "test-key"); vi.stubEnv("CASHFREE_CLIENT_SECRET", "test-secret"); vi.stubEnv("CASHFREE_ENV", "sandbox");
   vi.stubGlobal("fetch", mocks.fetch);
   mocks.session.mockResolvedValue({ id: sessionId, bookingId: "booking", isRecordingPaid: false });
   mocks.order.mockResolvedValue(order);

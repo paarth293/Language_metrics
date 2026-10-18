@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { Video, Lock, Play, Calendar, Search, CreditCard, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { fetchWithRefresh } from "@/lib/fetch-with-refresh";
 
 interface Recording {
   id: string;
@@ -62,7 +63,7 @@ export default function RecordingsPage() {
     if (unlockingId) return;
     setUnlockingId(recordingId);
     try {
-      const orderRes = await fetch("/api/students/payments/cashfree/order", {
+      const orderRes = await fetchWithRefresh("/api/students/payments/cashfree/order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ recordingId }),
@@ -75,7 +76,7 @@ export default function RecordingsPage() {
       if (result.error) throw new Error(result.error.message || "Payment was not completed.");
 
       // The server confirms the payment with Cashfree before unlocking.
-      const verifyRes = await fetch("/api/students/payments/cashfree/verify", {
+      const verifyRes = await fetchWithRefresh("/api/students/payments/cashfree/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderId }),

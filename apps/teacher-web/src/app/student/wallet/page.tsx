@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, ArrowUpRight, ArrowDownRight, ShieldCheck, AlertCircle, Coins, Clock } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { TopUpCoinsDialog } from "@/components/wallet/TopUpCoinsDialog";
 
 type Transaction = {
   id: string;
@@ -21,28 +22,29 @@ export default function WalletPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [topUpOpen, setTopUpOpen] = useState(false);
+
+  const loadWallet = useCallback(async (isCancelled: () => boolean = () => false) => {
+    try {
+      const res = await fetch("/api/students/wallet", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to load wallet data");
+      const data = await res.json();
+      if (!isCancelled()) {
+        setBalance(data.balance);
+        setTransactions(data.transactions);
+      }
+    } catch (err) {
+      if (!isCancelled()) setError(err instanceof Error ? err.message : "Unknown error");
+    } finally {
+      if (!isCancelled()) setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/students/wallet", { credentials: "include" })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to load wallet data");
-        return res.json();
-      })
-      .then((data) => {
-        if (!cancelled) {
-          setBalance(data.balance);
-          setTransactions(data.transactions);
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Unknown error");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => { cancelled = true; };
-  }, []);
+    const initial = setTimeout(() => void loadWallet(() => cancelled), 0);
+    return () => { cancelled = true; clearTimeout(initial); };
+  }, [loadWallet]);
 
   if (loading) {
     return (
@@ -105,7 +107,10 @@ export default function WalletPage() {
                 </span>
                 <span className="text-lg opacity-80" aria-hidden="true">🪙</span>
               </div>
-              <Button className="w-full flex gap-2 h-11 text-[14px] shadow-sm font-bold bg-gold text-gold-950 hover:bg-[#d8b45e] transition-colors border-none">
+              <Button
+                onClick={() => setTopUpOpen(true)}
+                className="w-full flex gap-2 h-11 text-[14px] shadow-sm font-bold bg-gold text-gold-950 hover:bg-[#d8b45e] transition-colors border-none"
+              >
                 <Plus className="w-4 h-4" /> Top up Coins
               </Button>
             </CardContent>
@@ -186,6 +191,8 @@ export default function WalletPage() {
           </Card>
         </div>
       </div>
+
+      <TopUpCoinsDialog open={topUpOpen} onClose={() => setTopUpOpen(false)} onPaid={() => void loadWallet()} />
     </div>
   );
 }

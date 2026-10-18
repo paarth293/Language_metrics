@@ -1,40 +1,32 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "./route";
 
-const mocks = vi.hoisted(() => ({ findUnique: vi.fn(), settle: vi.fn(), fetch: vi.fn() }));
+const mocks = vi.hoisted(() => ({ verify: vi.fn() }));
 vi.mock("@/lib/auth", () => ({ requireAuth: async () => ({ user: { sub: "student" } }) }));
-vi.mock("@/lib/db", () => ({ db: { paymentOrder: { findUnique: mocks.findUnique } } }));
-vi.mock("@/lib/payment-settlement", () => ({ PaymentError: class extends Error {}, settlePayment: mocks.settle }));
+vi.mock("@repo/live-classes", async (importActual) => ({
+  ...(await importActual<typeof import("@repo/live-classes")>()), verifyCoinPayment: mocks.verify,
+}));
+beforeEach(() => vi.resetAllMocks());
+const request = (body: unknown) => new Request("https://example.test/api/payments/verify-payment", { method: "POST", body: JSON.stringify(body) });
 
-const body = { orderId: "coins_100_abc", coinsToCredit: 999999 };
-const request = () => new Request("https://example.test/api/payments/verify-payment", { method: "POST", body: JSON.stringify(body) });
-const providerPayment = { cf_payment_id: 42, payment_status: "SUCCESS", payment_amount: 100, payment_currency: "INR" };
-
-beforeEach(() => {
-  vi.resetAllMocks();
-  vi.stubGlobal("fetch", mocks.fetch);
-  vi.stubEnv("CASHFREE_CLIENT_ID", "test-key"); vi.stubEnv("CASHFREE_CLIENT_SECRET", "test-secret");
-  mocks.findUnique.mockResolvedValue({ orderId: "coins_100_abc", userId: "student" });
-  mocks.fetch.mockResolvedValue({ ok: true, json: async () => [providerPayment] });
-});
-afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
-
-describe("payment confirmation", () => {
-  it("rejects another student's order before contacting Cashfree or crediting it", async () => {
-    mocks.findUnique.mockResolvedValue({ orderId: "coins_100_abc", userId: "other-student" });
-    expect((await POST(request())).status).toBe(404);
-    expect(mocks.fetch).not.toHaveBeenCalled();
-    expect(mocks.settle).not.toHaveBeenCalled();
+describe("payment confirmation route", () => {
+  it("confirms only the named order for the signed-in student, ignoring injected coins", async () => {
+    mocks.verify.mockResolvedValue(undefined);
+    expect((await POST(request({ orderId: "coins_100_abc", coinsToCredit: 999999 }))).status).toBe(200);
+    expect(mocks.verify).toHaveBeenCalledWith("student", "coins_100_abc");
   });
 
-  it("passes only the provider-confirmed payment to settlement, ignoring injected coins", async () => {
-    expect((await POST(request())).status).toBe(200);
-    expect(mocks.settle).toHaveBeenCalledWith({ id: "42", order_id: "coins_100_abc", amount: 10000, currency: "INR", status: "SUCCESS" }, "student");
+  it.each([[404, "Order not found"], [409, "Payment is awaiting confirmation."], [400, "Payment does not match the order"]])("passes a %s from settlement through", async (status, message) => {
+    const { PaymentError } = await import("@repo/live-classes");
+    mocks.verify.mockRejectedValue(new PaymentError(message, status));
+    const response = await POST(request({ orderId: "coins_100_abc" }));
+    expect(response.status).toBe(status);
+    expect((await response.json()).error).toBe(message);
   });
 
-  it("waits while Cashfree has no successful payment for the order", async () => {
-    mocks.fetch.mockResolvedValue({ ok: true, json: async () => [{ ...providerPayment, payment_status: "PENDING" }] });
-    expect((await POST(request())).status).toBe(409);
-    expect(mocks.settle).not.toHaveBeenCalled();
+  it("rejects a malformed body", async () => {
+    const response = await POST(new Request("https://example.test/x", { method: "POST", body: "{" }));
+    expect(response.status).toBe(400);
+    expect(mocks.verify).not.toHaveBeenCalled();
   });
 });

@@ -25,14 +25,21 @@ const liveKitConnectSrc = (() => {
 })();
 
 /**
- * Cashfree checkout (student recording unlocks). The SDK must load from
- * Cashfree's CDN and opens its payment frames from these hosts; origins per
- * the cashfree-js README's CSP section, plus sandbox.cashfree.com for
- * connect-src because sandbox is the default mode.
+ * Cashfree checkout (coin top-ups and recording unlocks). The SDK must load
+ * from Cashfree's CDN and opens its payment frames from these hosts; origins
+ * per the cashfree-js README's CSP section. The test-mode hosts are allowed
+ * only when CASHFREE_ENV is "sandbox", so production pages never trust them.
  */
+const cashfreeSandbox = process.env.CASHFREE_ENV === "sandbox";
 const cashfreeScriptSrc = "https://sdk.cashfree.com";
-const cashfreeConnectSrc = "https://api.cashfree.com https://sandbox.cashfree.com";
-const cashfreeFrameSrc = "https://sdk.cashfree.com https://api.cashfree.com https://sandbox.cashfree.com https://payments.cashfree.com https://payments-test.cashfree.com";
+const cashfreeConnectSrc = ["https://api.cashfree.com", ...(cashfreeSandbox ? ["https://sandbox.cashfree.com"] : [])].join(" ");
+const cashfreeFrameSrc = [
+  "https://sdk.cashfree.com", "https://api.cashfree.com", "https://payments.cashfree.com",
+  ...(cashfreeSandbox ? ["https://sandbox.cashfree.com", "https://payments-test.cashfree.com"] : []),
+].join(" ");
+// The modal checkout opens by POSTing a hidden form into its iframe, so
+// form-action must allow the same hosts or the popup stays blank.
+const cashfreeFormAction = cashfreeFrameSrc;
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
@@ -132,7 +139,7 @@ const nextConfig: NextConfig = {
               "img-src 'self' data: https://lh3.googleusercontent.com https://i.pravatar.cc https://avatars.githubusercontent.com https://flagcdn.com",
               `connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com ${liveKitConnectSrc} ${cashfreeConnectSrc}`,
               `frame-src https://accounts.google.com ${cashfreeFrameSrc}`,
-              "form-action 'self'",
+              `form-action 'self' ${cashfreeFormAction}`,
               "base-uri 'self'",
               "object-src 'none'",
             ].join("; "),

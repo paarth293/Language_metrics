@@ -32,7 +32,7 @@ export interface RefundResult {
   status: "REFUND_PENDING" | "REFUNDED";
 }
 
-// Must match COIN_VALUE_INR in apps/student-web/src/types/coins.ts (1 coin = ₹1).
+// Must match COIN_VALUE_INR in packages/api-contracts/src/wallet.ts (1 coin = ₹1).
 const COIN_VALUE_INR = 1;
 
 /** Cashfree refund_id is ours to choose; order ids are at most 35 characters. */
