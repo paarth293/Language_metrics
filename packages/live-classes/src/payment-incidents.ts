@@ -9,6 +9,7 @@
  */
 import { db } from "@repo/database";
 import type { GatewayPayment } from "./cashfree";
+import { transitionOrder } from "./payment-order-status";
 
 export interface PaymentIncident {
   kind: "unsettleable_payment" | "duplicate_payment" | "stuck_orders" | "reconciliation_failed" | "refund_processed" | "refund_failed" | "dispute";
@@ -30,10 +31,7 @@ export async function reportPaymentIncident(incident: PaymentIncident): Promise<
 
 /** Park the order for a human and report it. Never overwrites a fulfilled order. */
 export async function flagPaymentForReview(payment: GatewayPayment, reason: string): Promise<void> {
-  await db.paymentOrder.updateMany({
-    where: { orderId: payment.order_id, status: { in: ["CREATED", "FAILED", "EXPIRED"] } },
-    data: { status: "NEEDS_REVIEW", paymentId: payment.id },
-  });
+  await transitionOrder(db, { orderId: payment.order_id }, "NEEDS_REVIEW", { paymentId: payment.id });
   await reportPaymentIncident({
     kind: "unsettleable_payment", orderId: payment.order_id, paymentId: payment.id, reason,
     amountPaise: payment.amount, currency: payment.currency,
