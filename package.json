@@ -7,7 +7,12 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev -w teacher-web\" \"npm run dev -w admin-panel\" \"npm run dev -w student-web\"",
+    "db:generate": "prisma generate --schema=packages/database/prisma/schema.prisma",
+    "predev": "npm run db:generate",
+    "predev:teacher": "npm run db:generate",
+    "predev:admin": "npm run db:generate",
+    "predev:student": "npm run db:generate",
+    "dev":"concurrently \"npm run dev -w teacher-web\" \"npm run dev -w admin-panel\" \"npm run dev -w student-web\"",
     "dev:teacher": "npm run dev -w teacher-web",
     "dev:admin": "npm run dev -w admin-panel",
     "dev:student": "npm run dev -w student-web",
