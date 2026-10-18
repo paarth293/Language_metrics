@@ -10,10 +10,11 @@
  * by all three is still fulfilled once.
  */
 import { db } from "@repo/database";
-import { fetchCashfreeOrder, fetchSuccessfulPayment, type GatewayPayment } from "./cashfree";
+import { fetchCashfreeOrder, fetchCashfreeRefund, fetchSuccessfulPayment, type GatewayPayment } from "./cashfree";
 import { settlePayment } from "./coin-payments";
 import { flagPaymentForReview, isPermanentPaymentError } from "./payment-incidents";
 import { transitionOrder } from "./payment-order-status";
+import { completeRefund, refundIdFor } from "./payment-refunds";
 import { settleRecordingPayment } from "./recording-payments";
 
 /** Leave orders this young alone: the student is probably still paying. */
@@ -30,6 +31,8 @@ export interface PaymentReconciliationSummary {
   /** Paid but unsettleable; parked at NEEDS_REVIEW. */
   flagged: string[];
   expired: string[];
+  /** Admin refunds Cashfree completed while the webhook was missed. */
+  refunded: string[];
   stuck: string[];
   failed: Array<{ orderId: string; error: string }>;
 }
@@ -41,7 +44,7 @@ export async function settleGatewayPayment(payment: GatewayPayment) {
 }
 
 export async function reconcilePaymentOrders(now: Date = new Date()): Promise<PaymentReconciliationSummary> {
-  const summary: PaymentReconciliationSummary = { checked: 0, settled: [], flagged: [], expired: [], stuck: [], failed: [] };
+  const summary: PaymentReconciliationSummary = { checked: 0, settled: [], flagged: [], expired: [], refunded: [], stuck: [], failed: [] };
   const orders = await db.paymentOrder.findMany({
     where: {
       // FAILED orders stay payable, so a later success can be missed too.
@@ -74,6 +77,21 @@ export async function reconcilePaymentOrders(now: Date = new Date()): Promise<Pa
         continue;
       }
       if (now.getTime() - order.createdAt.getTime() > STUCK_AFTER_MS) summary.stuck.push(order.orderId);
+    } catch (error) {
+      summary.failed.push({ orderId: order.orderId, error: error instanceof Error ? error.message : String(error) });
+    }
+  }
+  const refunds = await db.paymentOrder.findMany({
+    where: { status: "REFUND_PENDING", updatedAt: { lte: new Date(now.getTime() - MIN_AGE_MS) } },
+    orderBy: { updatedAt: "asc" },
+    take: BATCH_SIZE,
+  });
+  for (const order of refunds) {
+    summary.checked++;
+    try {
+      const { status } = await fetchCashfreeRefund(order.orderId, refundIdFor(order.orderId));
+      if (status === "SUCCESS" && (await completeRefund(order.orderId))) summary.refunded.push(order.orderId);
+      else if (status === "CANCELLED") summary.stuck.push(order.orderId);
     } catch (error) {
       summary.failed.push({ orderId: order.orderId, error: error instanceof Error ? error.message : String(error) });
     }
