@@ -14,6 +14,8 @@ import { createFakeDb, InsufficientCoinsError, type FakeDb } from "./fake-db";
 let fakeDb: FakeDb = createFakeDb();
 let fakeCashfree: FakeCashfree = createFakeCashfree();
 let currentUser: string | null = "student-a";
+let currentAdmin: { id: string; permissions: string[] } | null = null;
+const auditEntries: Array<{ adminId: string; action: string; subjectId: string; details?: Record<string, unknown> }> = [];
 
 export const harness = {
   get db() { return fakeDb; },
@@ -24,6 +26,7 @@ export const harness = {
     get db() { return fakeDb.db; },
     credit: (...args: Parameters<FakeDb["module"]["credit"]>) => fakeDb.module.credit(...args),
     adjust: (...args: Parameters<FakeDb["module"]["adjust"]>) => fakeDb.module.adjust(...args),
+    getSpendableBalance: (userId: string) => fakeDb.module.getSpendableBalance(userId),
     InsufficientCoinsError,
   }),
 
@@ -36,10 +39,28 @@ export const harness = {
 
   signIn(userId: string | null) { currentUser = userId; },
 
+  /** Mirrors admin-panel requireApiAdmin(): 401 without a session, 403 without the permission. */
+  adminAuth: () => ({
+    requireApiAdmin: async (_req: Request, permission?: string) => {
+      if (!currentAdmin) return { ok: false, response: Response.json({ message: "Unauthorized" }, { status: 401 }) };
+      if (permission && !currentAdmin.permissions.includes(permission)) return { ok: false, response: Response.json({ message: "Forbidden" }, { status: 403 }) };
+      return { ok: true, admin: { id: currentAdmin.id, email: "admin@example.test", name: "Admin", roleKey: "TEST", isSuperAdmin: false, permissions: currentAdmin.permissions } };
+    },
+  }),
+  audit: () => ({
+    auditLog: async (ctx: { adminId: string }, action: string, subjectId: string, details?: Record<string, unknown>) => {
+      auditEntries.push({ adminId: ctx.adminId, action, subjectId, details });
+    },
+  }),
+  signInAdmin(admin: { id: string; permissions: string[] } | null) { currentAdmin = admin; },
+  get auditEntries() { return auditEntries; },
+
   reset() {
     fakeDb = createFakeDb();
     fakeCashfree = createFakeCashfree();
     currentUser = "student-a";
+    currentAdmin = null;
+    auditEntries.length = 0;
     vi.stubEnv("CASHFREE_CLIENT_ID", "test-client-id");
     vi.stubEnv("CASHFREE_CLIENT_SECRET", TEST_SECRET);
     vi.stubEnv("CASHFREE_ENV", "sandbox");
