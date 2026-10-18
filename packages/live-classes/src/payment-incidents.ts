@@ -25,8 +25,30 @@ export function isPermanentPaymentError(error: unknown): error is Error & { stat
   return error instanceof Error && typeof status === "number" && status >= 400 && status < 500;
 }
 
+const ALERT_TIMEOUT_MS = 5_000;
+
+/**
+ * Log the incident and, when PAYMENT_ALERT_WEBHOOK_URL is set, POST it there.
+ * The body carries `text` (Slack) and `content` (Discord) plus the raw
+ * incident. Delivery is best-effort: a broken alert endpoint must never fail
+ * the payment flow that raised the alert, so errors are logged and swallowed.
+ */
 export async function reportPaymentIncident(incident: PaymentIncident): Promise<void> {
   console.error("[payment-incident]", incident);
+  const url = process.env.PAYMENT_ALERT_WEBHOOK_URL;
+  if (!url) return;
+  const ids = [incident.orderId && `order ${incident.orderId}`, incident.paymentId && `payment ${incident.paymentId}`].filter(Boolean).join(", ");
+  const text = `Payment incident: ${incident.kind}${ids ? ` (${ids})` : ""}. ${incident.reason}`;
+  try {
+    const response = await fetch(url, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, content: text, incident }),
+      signal: AbortSignal.timeout(ALERT_TIMEOUT_MS),
+    });
+    if (!response.ok) console.error("[payment-incident] alert delivery failed with HTTP", response.status);
+  } catch (error) {
+    console.error("[payment-incident] alert delivery failed:", error instanceof Error ? error.message : error);
+  }
 }
 
 /** Park the order for a human and report it. Never overwrites a fulfilled order. */
