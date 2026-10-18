@@ -9,6 +9,12 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 const API_VERSION = "2023-08-01";
 // Cashfree requires a customer phone number, which accounts do not collect yet.
 const PLACEHOLDER_PHONE = "9999999999";
+/**
+ * Cashfree keeps an order payable for 30 days unless told otherwise. A short
+ * expiry lets reconciliation mark abandoned checkouts EXPIRED instead of
+ * watching them as "stuck" for weeks.
+ */
+const ORDER_TTL_MS = 30 * 60_000;
 
 export type CashfreeMode = "sandbox" | "production";
 
@@ -45,6 +51,22 @@ function cashfreeConfig() {
   };
 }
 
+/**
+ * GET with one retry on a network error or 5xx. Only for reads: they are
+ * idempotent, so asking twice cannot change anything at Cashfree.
+ */
+async function getWithRetry(url: string, init: { headers: Record<string, string>; cache: "no-store" }): Promise<Response> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const response = await fetch(url, init);
+      if (response.status < 500 || attempt === 2) return response;
+    } catch (error) {
+      if (attempt === 2) throw new CashfreeError("Payment provider is unreachable. Please try again.", 502);
+      console.error("Cashfree request failed, retrying:", error instanceof Error ? error.message : error);
+    }
+  }
+}
+
 export async function createCashfreeOrder(input: { orderId: string; amountInr: number; customerId: string }) {
   const { baseUrl, headers } = cashfreeConfig();
   const response = await fetch(`${baseUrl}/orders`, {
@@ -53,6 +75,7 @@ export async function createCashfreeOrder(input: { orderId: string; amountInr: n
       order_id: input.orderId,
       order_amount: input.amountInr,
       order_currency: "INR",
+      order_expiry_time: new Date(Date.now() + ORDER_TTL_MS).toISOString(),
       customer_details: { customer_id: input.customerId, customer_phone: PLACEHOLDER_PHONE },
     }),
   });
@@ -86,7 +109,7 @@ export async function fetchSuccessfulPayment(orderId: string): Promise<GatewayPa
   const { baseUrl, headers } = cashfreeConfig();
   // Next.js caches fetch by default; a confirmation must always be fresh.
   const request = { headers, cache: "no-store" as const };
-  const response = await fetch(`${baseUrl}/orders/${encodeURIComponent(orderId)}/payments`, request);
+  const response = await getWithRetry(`${baseUrl}/orders/${encodeURIComponent(orderId)}/payments`, request);
   if (!response.ok) throw new CashfreeError("Payment confirmation is unavailable. Please try again.", 502);
   const payments = await response.json();
   if (!Array.isArray(payments)) throw new CashfreeError("Payment provider returned an invalid response", 502);
@@ -100,7 +123,7 @@ export type CashfreeOrderStatus = "ACTIVE" | "PAID" | "EXPIRED" | "TERMINATED" |
 export async function fetchCashfreeOrder(orderId: string): Promise<{ status: CashfreeOrderStatus; paymentSessionId: string | null }> {
   const { baseUrl, headers } = cashfreeConfig();
   const request = { headers, cache: "no-store" as const };
-  const response = await fetch(`${baseUrl}/orders/${encodeURIComponent(orderId)}`, request);
+  const response = await getWithRetry(`${baseUrl}/orders/${encodeURIComponent(orderId)}`, request);
   if (!response.ok) throw new CashfreeError("Payment confirmation is unavailable. Please try again.", 502);
   const order = (await response.json()) as Partial<Record<"order_id" | "order_status" | "payment_session_id", unknown>> | null;
   if (!order || order.order_id !== orderId || typeof order.order_status !== "string") {
@@ -117,7 +140,7 @@ export type CashfreeRefundStatus = "PENDING" | "SUCCESS" | "CANCELLED" | "ONHOLD
 export async function fetchCashfreeRefund(orderId: string, refundId: string): Promise<{ status: CashfreeRefundStatus }> {
   const { baseUrl, headers } = cashfreeConfig();
   const request = { headers, cache: "no-store" as const };
-  const response = await fetch(`${baseUrl}/orders/${encodeURIComponent(orderId)}/refunds/${encodeURIComponent(refundId)}`, request);
+  const response = await getWithRetry(`${baseUrl}/orders/${encodeURIComponent(orderId)}/refunds/${encodeURIComponent(refundId)}`, request);
   if (!response.ok) throw new CashfreeError("Refund status is unavailable. Please try again.", 502);
   const refund = (await response.json()) as Partial<Record<"refund_id" | "refund_status", unknown>> | null;
   if (!refund || refund.refund_id !== refundId || typeof refund.refund_status !== "string") {
