@@ -49,7 +49,7 @@ npm run dev:mobile -- -c
 - **Discover:** `GET /teachers` with search, language filters (same list as web) and "Load more" paging.
 - **Book lesson:** pick a duration (30/60/90), a day and a time, then `POST /bookings`. The server checks the balance and deducts coins in a Serializable transaction. If coins are short, the sheet links to Wallet.
 - **Classes:** Upcoming / Past / Cancelled from `GET /classes`. "Join classroom" appears 10 minutes before start and opens the web classroom (`/live/:bookingId`) until the LiveKit mobile SDK ships (Phase 3).
-- **Wallet:** live balance and the web coin packages. Top-up opens the student portal wallet (Razorpay) until the IAP/Play Billing decision (Decisions 2 and 3) is signed off.
+- **Wallet:** live balance and the web coin packages. Top-up opens the student portal wallet (Cashfree) until the IAP/Play Billing decision (Decisions 2 and 3) is signed off.
 - **Profile:** account details, Appearance (System / Light / Dark), help and legal links, and Sign out (`POST /auth/mobile/logout`, which revokes the refresh session).
 
 **Expired or revoked session**
