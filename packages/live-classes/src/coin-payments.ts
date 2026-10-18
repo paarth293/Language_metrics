@@ -42,6 +42,12 @@ export async function settlePayment(payment: GatewayPayment, userId?: string) {
       data: { status: "PAID", paymentId: payment.id },
     });
     if (!claimed.count) return;
+    // The money record admin, analytics and refunds read; amount in paise like
+    // every other Payment row.
+    await tx.payment.create({ data: {
+      userId: order.userId, type: "COIN_PURCHASE", amount: payment.amount, status: "SUCCESS",
+      gatewayOrderId: order.orderId, gatewayPaymentId: payment.id,
+    } });
     await credit({
       userId: order.userId, amount: coins, type: "PURCHASE",
       description: "Coin purchase via Cashfree", idempotencyKey: `cashfree:${order.orderId}`,
