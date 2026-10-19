@@ -10,6 +10,7 @@
     "./PasswordInput": "./src/PasswordInput.tsx",
     "./cn": "./src/cn.ts",
     "./cashfree": "./src/cashfree.ts",
+    "./chat-send-error": "./src/chat-send-error.ts",
     "./useCookieConsent": "./src/useCookieConsent.ts"
   },
   "scripts": {
