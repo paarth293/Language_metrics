@@ -265,3 +265,53 @@ After: `Test Files 6 passed (6)  Tests 67 passed (67)` across all teacher-web ch
 3. **Uploaded files are public by URL.** No access check when fetching an attachment (both apps).
 4. **`storage.ts` is still two copies** (student-web / teacher-web). They now share the same `uploadFile`, but S3/Supabase loading and `getStorageInfo` still differ. They could become one package.
 5. **Still open from before:** #22 (PaymentOrder indexes), dropping `ChatMessage_senderId_receiverId_idx`, unread counts (hard-coded 0), #12 (key in git history).
+
+---
+
+## Leftovers (second request, same branch, not pushed)
+
+| # | Commit | Result |
+|---|---|---|
+| 1 | none | **Already done.** Registration-code route Redis fallback landed in `23196e8` (FIX_BATCH_redis "Follow-up"), which is in this branch's history via `fix/chat-load`. Its proof test, `apps/teacher-web/src/app/api/auth/send-registration-otp/route.test.ts`, mocks every Redis command to throw and asserts the 3rd call gets 429. Re-run here: `Tests 1 passed (1)`. Nothing to change, so no commit. As noted in that batch, the route has no configurable max; the real limits (60 s cooldown, 5/hour) block calls 2 and 3. |
+| 2 | `65bcf63` | **#39 prune test added.** The prune code was also in `23196e8`, untested because the `Map` isn't exported. Both identical `rate-limit.ts` copies gain a read-only `inProcessStoreSize()`. New `src/lib/rate-limit.prune.test.ts` (both apps) checks four things: (a) a write after 1,000 keys clears expired entries; (b) open windows are kept; (c) there's no pruning at 1,000 keys or fewer; (d) the 3rd call with max 2 is still blocked. |
+| 3 | `3a37b6b` | **Audit files committed.** 13 files, staged by name: the six `audit/*.md` and seven `audit/load-tests/` files. `audit/FIX_SUMMARY.md` and `audit/PAYMENT_AUDIT.md` were already tracked. No `.env` staged (checked `git diff --cached --name-only`). |
+
+### #39: the test against code without the prune
+
+I removed the prune block temporarily, ran the test, then restored it. The committed diff only adds the accessor.
+```
+--- WITHOUT prune (both apps)
+× clears expired entries on the first write after it passes 1,000 keys
+AssertionError: expected 1002 to be 1 // Object.is equality
+Tests  1 failed | 3 passed (4)
+--- WITH prune
+Tests  17 passed (17)   (teacher-web src/lib/rate-limit*)
+Tests  6 passed (6)     (student-web src/lib/rate-limit*)
+```
+
+### Secret scan of the audit files (before committing)
+
+gitleaks and trufflehog aren't installed, so I ran a regex scan over the 13 files.
+- **Strict patterns, no matches:**
+  - PEM private keys, AWS `AKIA…`;
+  - Stripe/Razorpay/GitHub/Slack/Google/Resend tokens;
+  - JWTs;
+  - DB/Redis URLs with passwords;
+  - `password|secret|api_key|token = "<6+ chars>"`;
+  - 40+-char hex.
+- **A looser pass** (credential words, emails, URLs, `__ENV.*`) only turned up:
+  - descriptions: PRODUCTION_READINESS #11 names the LiveKit key as "15-char `API…` literal" without the value; the #12 test output is masked `-----BEG****`;
+  - env reads in the k6 scripts;
+  - placeholders: `'***'`, `@example.test`, `<staging-student-web-host>`.
+- `lib/common.js` was read in full: credentials come only from `__ENV`, and it refuses production hosts.
+
+Note: these docs describe open security issues, e.g. #11, a LiveKit key in history that should be revoked. Anyone with access to the repo can now read them.
+
+### Checks after each leftover
+
+| After | typecheck | lint | `npm test` | `test:payments` |
+|---|---|---|---|---|
+| 2 (`65bcf63`) | EXIT 0 | EXIT 0 | EXIT 0, 569 passed | 1 failed (#12) / 180 passed / 2 skipped |
+| 3 (`3a37b6b`) | EXIT 0 | EXIT 0 | EXIT 0, 569 passed | same; the history scan still flags only `159f42f`, so the new commit added no hits |
+
+This section was added in its own docs commit after `3a37b6b`.
