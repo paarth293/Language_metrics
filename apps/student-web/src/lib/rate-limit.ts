@@ -41,6 +41,15 @@ export function rateLimit(
   { windowMs = 60_000, max = 10 }: RateLimitOptions = {}
 ): boolean {
   const now = Date.now();
+
+  // Prune on write so the map cannot grow without bound (e.g. during a long
+  // Redis outage, when every limited request lands here).
+  if (store.size > 1000) {
+    for (const [key, window] of store) {
+      if (now > window.resetAt) store.delete(key);
+    }
+  }
+
   const existing = store.get(identifier);
 
   if (!existing || now > existing.resetAt) {

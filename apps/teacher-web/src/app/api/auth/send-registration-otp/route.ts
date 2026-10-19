@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { getRedisClient } from "@/lib/redis-client";
 import { generateOtp, hashOtp } from "@/lib/otp";
 import { sendVerificationOTP } from "@/lib/email";
-import { exceedsMaxBodySize } from "@/lib/rate-limit";
+import { exceedsMaxBodySize, rateLimit } from "@/lib/rate-limit";
 
 import { memoryOtpStore } from "@/lib/memory-otp-store";
 
@@ -91,8 +91,21 @@ export async function POST(request: NextRequest) {
           );
         }
       } catch (err) {
-        console.error("[send-registration-otp] Redis rate limit error:", err);
-        // Continue without rate limiting rather than blocking
+        console.error("[send-registration-otp] Redis rate limit error, using in-process limiter:", err);
+        // Same limits, enforced per instance, so a Redis outage does not
+        // switch rate limiting off.
+        if (rateLimit(`reg-otp:cooldown:${normalizedEmail}`, { windowMs: 60_000, max: 1 })) {
+          return NextResponse.json(
+            { message: "Please wait before requesting another code." },
+            { status: 429, headers: { "Retry-After": "60" } }
+          );
+        }
+        if (rateLimit(`reg-otp:hourly:${normalizedEmail}`, { windowMs: 3_600_000, max: 5 })) {
+          return NextResponse.json(
+            { message: "Too many requests. Please try again later." },
+            { status: 429, headers: { "Retry-After": "3600" } }
+          );
+        }
       }
     } else {
       console.warn("[send-registration-otp] Redis unavailable — rate limiting disabled.");
