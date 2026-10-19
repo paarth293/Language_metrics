@@ -44,6 +44,8 @@ const FORMATS = z.object({
   LIVEKIT_URL: z.string().regex(/^(wss?|https?):\/\//, "must be a ws(s):// or http(s):// URL").optional(),
   STORAGE_PROVIDER: z.enum(["s3", "supabase", "local"], { error: 'must be "s3", "supabase" or "local"' }).optional(),
   PAYMENT_ALERT_WEBHOOK_URL: z.url({ error: "must be a URL" }).optional(),
+  SENTRY_DSN: z.url({ error: "must be a URL" }).optional(),
+  NEXT_PUBLIC_SENTRY_DSN: z.url({ error: "must be a URL" }).optional(),
   ZOHO_SMTP_PORT: z.string().regex(/^\d+$/, "must be a port number").optional(),
   NEXT_PUBLIC_APP_URL: z.url({ error: "must be a URL" }).optional(),
 });

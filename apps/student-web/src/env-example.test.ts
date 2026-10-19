@@ -7,8 +7,8 @@ import { describe, expect, it } from "vitest";
 // Expo config) and fails when a variable is read but not documented (#31).
 const repoRoot = join(__dirname, "..", "..", "..");
 const SOURCES = ["apps/student-web/src", "apps/teacher-web/src", "apps/admin-panel/src", "packages"];
-/** Set by Node/Next itself, not by a deployer. */
-const RUNTIME = new Set(["NODE_ENV", "NEXT_RUNTIME"]);
+/** Set by Node, Next or Vercel itself, not by a deployer. */
+const RUNTIME = new Set(["NODE_ENV", "NEXT_RUNTIME", "VERCEL_ENV"]);
 
 function sourceFiles(dir: string): string[] {
   // eslint-disable-next-line security/detect-non-literal-fs-filename -- walks fixed folders inside this repo.
