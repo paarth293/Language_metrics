@@ -231,6 +231,27 @@ export async function createCashfreeRefund(input: { orderId: string; refundId: s
   return { status: refund.refund_status as CashfreeRefundStatus };
 }
 
+/**
+ * A valid signature never expires, so a captured webhook could be replayed for
+ * ever (#37). Settlement is idempotent, so this is defence in depth.
+ */
+const WEBHOOK_MAX_AGE_MS = 5 * 60 * 1000;
+/** Allowance for our clock running behind Cashfree's. */
+const WEBHOOK_MAX_SKEW_MS = 60 * 1000;
+
+/**
+ * True when `x-webhook-timestamp` is within 5 minutes of now. Cashfree sends
+ * epoch seconds; milliseconds are accepted too, since the value is only ever
+ * compared with our own clock.
+ */
+export function webhookTimestampFresh(timestamp: string, now: number = Date.now()): boolean {
+  const value = Number(timestamp);
+  if (!Number.isFinite(value) || value <= 0) return false;
+  const sentAt = value < 1e12 ? value * 1000 : value;
+  const age = now - sentAt;
+  return age <= WEBHOOK_MAX_AGE_MS && age >= -WEBHOOK_MAX_SKEW_MS;
+}
+
 /** Cashfree signs webhooks as base64(HMAC-SHA256(timestamp + rawBody, client secret)). */
 export function verifyCashfreeWebhook(rawBody: string, signature: string, timestamp: string): boolean {
   const secret = process.env.CASHFREE_CLIENT_SECRET;

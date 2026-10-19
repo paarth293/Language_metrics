@@ -1,4 +1,4 @@
-import { CashfreeError, handleCashfreeWebhook, verifyCashfreeWebhook } from "@repo/live-classes";
+import { CashfreeError, handleCashfreeWebhook, verifyCashfreeWebhook, webhookTimestampFresh } from "@repo/live-classes";
 import { NextResponse } from "next/server";
 import { requestLogger } from "@repo/logger";
 import { withServerErrorAlerts } from "@repo/logger/ops-alert";
@@ -11,6 +11,8 @@ export const POST = withServerErrorAlerts("student-web webhooks/cashfree", async
     if (!signature || !timestamp) return NextResponse.json({ error: "Missing signature" }, { status: 400 });
     const raw = await req.text();
     if (!verifyCashfreeWebhook(raw, signature, timestamp)) return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+    // Signed but stale: a replay of a captured webhook (#37).
+    if (!webhookTimestampFresh(timestamp)) return NextResponse.json({ error: "Webhook timestamp is too old" }, { status: 400 });
     const { flagged } = await handleCashfreeWebhook(JSON.parse(raw));
     return NextResponse.json(flagged ? { success: true, flagged } : { success: true });
   } catch (error) {

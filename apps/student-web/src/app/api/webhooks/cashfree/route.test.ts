@@ -14,10 +14,11 @@ const event = (orderId: string) => JSON.stringify({ type: "PAYMENT_SUCCESS_WEBHO
   order: { order_id: orderId },
   payment: { cf_payment_id: 42, payment_status: "SUCCESS", payment_amount: 100, payment_currency: "INR" },
 } });
+const FRESH = String(Date.now());
 const signed = (raw: string, secret = "test-secret") => new Request("https://example.test/api/webhooks/cashfree", {
   method: "POST", body: raw, headers: {
-    "x-webhook-timestamp": "1700000000000",
-    "x-webhook-signature": createHmac("sha256", secret).update("1700000000000" + raw).digest("base64"),
+    "x-webhook-timestamp": FRESH,
+    "x-webhook-signature": createHmac("sha256", secret).update(FRESH + raw).digest("base64"),
   },
 });
 

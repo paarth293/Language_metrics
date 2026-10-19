@@ -10,7 +10,7 @@ vi.mock("@repo/live-classes", () => ({
   CashfreeError, PaymentError, RecordingPaymentError,
   createCoinPaymentOrder: down, verifyCoinPayment: down,
   createRecordingPaymentOrder: down, verifyRecordingPayment: down,
-  handleCashfreeWebhook: down, verifyCashfreeWebhook: () => true,
+  handleCashfreeWebhook: down, verifyCashfreeWebhook: () => true, webhookTimestampFresh: () => true,
 }));
 vi.mock("@/lib/auth", () => ({ requireAuth: async () => ({ user: { sub: "student" } }) }));
 vi.mock("@/lib/rate-limit", () => ({ rateLimitRedis: async () => false }));
