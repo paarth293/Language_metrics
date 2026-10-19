@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { fetchConversationPage, parseChatPageQuery } from "@/lib/chat-messages";
 
 export const dynamic = "force-dynamic";
 
@@ -16,17 +17,14 @@ export async function GET(
     const userId = auth.user.sub;
     const { studentId } = await context.params;
 
-    const messages = await prisma.chatMessage.findMany({
-      where: {
-        OR: [
-          { senderId: userId, receiverId: studentId },
-          { senderId: studentId, receiverId: userId },
-        ],
-      },
-      orderBy: { createdAt: "asc" },
-    });
+    const parsed = parseChatPageQuery(request.nextUrl.searchParams);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
 
-    return NextResponse.json({ messages });
+    const page = await fetchConversationPage(prisma.chatMessage, userId, studentId, parsed.query);
+
+    return NextResponse.json(page);
   } catch (error) {
     console.error("Failed to fetch messages:", error);
     return NextResponse.json(
