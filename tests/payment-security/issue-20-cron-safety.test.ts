@@ -17,9 +17,14 @@ afterEach(() => harness.teardown());
 
 const cron = (path: string) => new NextRequest(`https://example.test${path}`, { headers: { authorization: "Bearer test-cron-secret" } });
 
-/** `count` unpaid coin orders, made through the real route and aged 20 minutes; Cashfree lists them as ACTIVE. */
+/**
+ * `count` unpaid coin orders, made through the real route and aged 20 minutes;
+ * Cashfree lists them as ACTIVE. One student each: a student's retry reuses
+ * their open order for the same pack (#10).
+ */
 async function backlog(count: number) {
   for (let i = 0; i < count; i++) {
+    harness.signIn(`student-${i}`);
     const response = await createOrder(jsonRequest("/api/payments/create-order", { packageId: "tier2" }));
     expect(response.status).toBe(200);
   }

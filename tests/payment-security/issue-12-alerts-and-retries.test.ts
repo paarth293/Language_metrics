@@ -72,6 +72,7 @@ describe("issue #12: payment incidents raise alerts", () => {
 
   it("reconciliation raises one stuck_orders alert listing the orders that just became stuck", async () => {
     const a = await coinOrder();
+    harness.signIn("student-b"); // a second order by the same student would reuse the first (#10)
     const b = await coinOrder();
     await harness.db.db.paymentOrder.updateMany({ where: { orderId: { in: [a, b] } }, data: { createdAt: new Date(Date.now() - 70 * 60_000) } });
     await reconcilePaymentOrders();
