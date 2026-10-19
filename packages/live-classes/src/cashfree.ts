@@ -23,6 +23,15 @@ export class CashfreeError extends Error {
   constructor(message: string, readonly status: number) { super(message); }
 }
 
+/**
+ * Cashfree has no order with this id (HTTP 404). Since our row is saved before
+ * the Cashfree call (#10), this is a row whose Cashfree order was never made:
+ * the process died in between, or Cashfree rejected it.
+ */
+export class CashfreeOrderNotFoundError extends CashfreeError {
+  constructor() { super("Payment order not found at the payment provider.", 404); }
+}
+
 /** A provider-confirmed payment, normalised so amounts are in paise. */
 export interface GatewayPayment {
   id: string;
@@ -148,6 +157,7 @@ export async function fetchSuccessfulPayment(orderId: string): Promise<GatewayPa
   // Next.js caches fetch by default; a confirmation must always be fresh.
   const request = { headers, cache: "no-store" as const };
   const response = await getWithRetry(`${baseUrl}/orders/${encodeURIComponent(orderId)}/payments`, request);
+  if (response.status === 404) throw new CashfreeOrderNotFoundError();
   if (!response.ok) throw new CashfreeError("Payment confirmation is unavailable. Please try again.", 502);
   const payments = await response.json();
   if (!Array.isArray(payments)) throw new CashfreeError("Payment provider returned an invalid response", 502);
@@ -162,6 +172,7 @@ export async function fetchCashfreeOrder(orderId: string): Promise<{ status: Cas
   const { baseUrl, headers } = cashfreeConfig();
   const request = { headers, cache: "no-store" as const };
   const response = await getWithRetry(`${baseUrl}/orders/${encodeURIComponent(orderId)}`, request);
+  if (response.status === 404) throw new CashfreeOrderNotFoundError();
   if (!response.ok) throw new CashfreeError("Payment confirmation is unavailable. Please try again.", 502);
   const order = (await response.json()) as Partial<Record<"order_id" | "order_status" | "payment_session_id", unknown>> | null;
   if (!order || order.order_id !== orderId || typeof order.order_status !== "string") {
@@ -171,6 +182,16 @@ export async function fetchCashfreeOrder(orderId: string): Promise<{ status: Cas
     status: order.order_status as CashfreeOrderStatus,
     paymentSessionId: typeof order.payment_session_id === "string" ? order.payment_session_id : null,
   };
+}
+
+/** Like fetchCashfreeOrder, but null when Cashfree has no such order. */
+export async function findCashfreeOrder(orderId: string) {
+  try {
+    return await fetchCashfreeOrder(orderId);
+  } catch (error) {
+    if (error instanceof CashfreeOrderNotFoundError) return null;
+    throw error;
+  }
 }
 
 export type CashfreeRefundStatus = "PENDING" | "SUCCESS" | "CANCELLED" | "ONHOLD";

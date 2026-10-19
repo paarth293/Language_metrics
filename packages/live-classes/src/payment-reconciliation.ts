@@ -10,7 +10,7 @@
  * by all three is still fulfilled once.
  */
 import { db } from "@repo/database";
-import { fetchCashfreeOrder, fetchCashfreeRefund, fetchSuccessfulPayment, type GatewayPayment } from "./cashfree";
+import { CashfreeOrderNotFoundError, fetchCashfreeOrder, fetchCashfreeRefund, fetchSuccessfulPayment, type GatewayPayment } from "./cashfree";
 import { settlePayment } from "./coin-payments";
 import { flagPaymentForReview, isPermanentPaymentError, reportPaymentIncident } from "./payment-incidents";
 import { transitionOrder } from "./payment-order-status";
@@ -76,7 +76,17 @@ export async function reconcilePaymentOrders(
     handle: async (order) => {
       summary.checked++;
       try {
-        const payment = await fetchSuccessfulPayment(order.orderId);
+        let payment: GatewayPayment | null;
+        try {
+          payment = await fetchSuccessfulPayment(order.orderId);
+        } catch (error) {
+          if (!(error instanceof CashfreeOrderNotFoundError)) throw error;
+          // Our row was saved but its Cashfree order never made (#10): a crash
+          // between the two steps, or Cashfree rejected it. Nothing can be
+          // paid, so it expires quietly. MIN_AGE_MS keeps in-flight requests out.
+          if (await transitionOrder(db, { id: order.id }, "EXPIRED")) summary.expired.push(order.orderId);
+          return;
+        }
         if (payment) {
           try {
             await settleGatewayPayment(payment);

@@ -44,7 +44,7 @@
     "livekit-server-sdk": "^2.19.0",
     "lucide-react": "^1.31.0",
     "next": "^16.3.8",
-    "nodemailer": "^9.0.5",
+    "nodemailer": "^10.1.7",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "recharts": "^3.10.1",

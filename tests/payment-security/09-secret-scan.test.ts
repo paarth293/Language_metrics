@@ -28,12 +28,13 @@ const mask = (value: string) => (value.length <= 8 ? "****" : `${value.slice(0, 
  */
 const FIXTURE_VALUE = /=[ \t]*["']?(?:test|dummy|fake|example|sample)[_-]?[a-z]*["']?$/i;
 
-function scan(text: string, where: (index: number) => string, labels = PATTERNS.map(([label]) => label)) {
+function scan(text: string, where: (index: number) => string, labels = PATTERNS.map(([label]) => label), skip?: (index: number) => boolean) {
   const findings: string[] = [];
   for (const [label, pattern] of PATTERNS) {
     if (!labels.includes(label)) continue;
     for (const match of text.matchAll(pattern)) {
       if (label === "payment env var with a value" && FIXTURE_VALUE.test(match[0])) continue;
+      if (skip?.(match.index ?? 0)) continue;
       findings.push(`${label}: ${mask(match[0])} at ${where(match.index ?? 0)}`);
     }
   }
@@ -62,6 +63,28 @@ describe("9. secret scan", () => {
       return `commit ${history.slice(start + 8, start + 20)}`;
     };
     const paymentLabels = PATTERNS.map(([label]) => label).filter((label) => label !== "private key");
+    const shaAt = (i: number) => {
+      const start = history.lastIndexOf("\u0000commit ", i);
+      return history.slice(start + 8, start + 48);
+    };
+    /** The file whose diff holds position i ("" before the first diff of a commit). */
+    const fileAt = (i: number) => {
+      const diff = history.lastIndexOf("\ndiff --git a/", i);
+      if (diff < history.lastIndexOf("\u0000commit ", i)) return "";
+      return / b\/(.+)$/.exec(history.slice(diff + 1, history.indexOf("\n", diff + 1)))?.[1] ?? "";
+    };
+    /**
+     * Findings accepted in .gitleaksignore, the list gitleaks itself uses
+     * (#12, audit/PLAN_12.md), as "<commit>:<file>". Only that exact commit and
+     * file is skipped; a key anywhere else still fails.
+     */
+    const accepted = new Set(
+      readFileSync(join(root, ".gitleaksignore"), "utf8").split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line && !line.startsWith("#"))
+        .map((line) => line.split(":").slice(0, 2).join(":")),
+    );
+    const isAccepted = (i: number) => accepted.has(`${shaAt(i)}:${fileAt(i)}`);
 
     it("covers the whole history", () => {
       expect(history.length).toBeGreaterThan(1_000_000);
@@ -73,9 +96,15 @@ describe("9. secret scan", () => {
       expect(findings, findings.join("\n")).toEqual([]);
     }, 120_000);
 
-    it("no private key material anywhere in git history", () => {
-      const findings = scan(history, commitAt, ["private key"]);
+    it("no private key material anywhere in git history, except findings accepted in .gitleaksignore", () => {
+      const findings = scan(history, commitAt, ["private key"], isAccepted);
       expect(findings, findings.join("\n")).toEqual([]);
+    }, 120_000);
+
+    it("the accepted list is exact: it matches the known placeholder key and nothing else", () => {
+      const all = scan(history, (i) => `${shaAt(i)}:${fileAt(i)}`, ["private key"]).map((finding) => finding.split(" at ")[1]);
+      expect([...accepted]).toEqual(["159f42f43c3f02a9534e369635684aa8a578e0c8:apps/student-web/src/lib/tokens.ts"]);
+      expect(all).toEqual([...accepted]);
     }, 120_000);
   });
 
