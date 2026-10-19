@@ -8,6 +8,7 @@ import {
   refreshCookieOptions,
 } from "@/lib/tokens";
 import { rotateRefreshSession, revokeAllRefreshSessions } from "@/lib/redis-session";
+import { requestLogger } from "@repo/logger";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
@@ -67,9 +68,7 @@ export async function GET(request: NextRequest) {
   if (!rotated) {
     // Potential token theft - revoke all sessions and force re-login
     await revokeAllRefreshSessions(userId).catch(() => {});
-    console.error(
-      `[SilentRefresh] Rotation failed for userId=${userId}. Possible token theft. All sessions revoked.`
-    );
+    requestLogger(request).error("[SilentRefresh] Rotation failed. Possible token theft. All sessions revoked.", { userId });
     const loginUrl = new URL("/login", APP_URL);
     loginUrl.searchParams.set("reason", "security");
     const res = NextResponse.redirect(loginUrl);

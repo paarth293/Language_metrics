@@ -14,6 +14,7 @@ import {
   refreshCookieOptions,
 } from "@/lib/tokens";
 import { storeRefreshSession } from "@/lib/redis-session";
+import { requestLogger } from "@repo/logger";
 
 /**
  * POST /api/auth/register/student
@@ -91,7 +92,7 @@ export async function POST(request: NextRequest) {
       authResult.user.email,
       authResult.user.name,
       verificationToken
-    ).catch((err) => console.error("[Email] Failed to send verification email:", err));
+    ).catch((error) => requestLogger(request).error("[Email] Failed to send verification email", { error }));
   }
 
   // Issue session cookies so the user is immediately logged in

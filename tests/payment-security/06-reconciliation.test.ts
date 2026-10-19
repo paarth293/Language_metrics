@@ -8,7 +8,6 @@ vi.mock("@/lib/auth", async () => (await import("./harness/setup")).harness.auth
 const { POST: createOrder } = await import("@/app/api/payments/create-order/route");
 const { POST: createRecordingOrder } = await import("@/app/api/students/payments/cashfree/order/route");
 const { GET: reconcileStudentWeb } = await import("@/app/api/cron/reconcile-payments/route");
-const { GET: reconcileTeacherWeb } = await import("../../apps/teacher-web/src/app/api/cron/reconcile-payments/route");
 
 beforeEach(() => harness.reset());
 afterEach(() => harness.teardown());
@@ -44,7 +43,8 @@ describe("6. payment succeeded but the webhook was missed", () => {
     harness.cashfree.pay(orderId, "SUCCESS");
     await age(orderId, 20);
 
-    await reconcileTeacherWeb(cron());
+    // Cron is served by student-web only (#20); teacher-web answers 410.
+    await reconcileStudentWeb(cron());
     expect((await harness.db.db.classSession.findUnique({ where: { id: RECORDING } }))?.isRecordingPaid).toBe(true);
   });
 

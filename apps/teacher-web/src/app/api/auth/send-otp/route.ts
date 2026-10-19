@@ -6,6 +6,7 @@ import { generateOtp, hashOtp } from "@/lib/otp";
 import { sendMail } from "@/lib/zoho-mailer";
 import { exceedsMaxBodySize } from "@/lib/rate-limit";
 import { escapeHtml } from "@/lib/sanitize";
+import { requestLogger } from "@repo/logger";
 
 /**
  * POST /api/auth/send-otp
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
       }
     } catch (err) {
       // Redis failure — log but don't block the request
-      console.error("[send-otp] Redis error during rate limiting:", err);
+      requestLogger(request).error("[send-otp] Redis error during rate limiting", { error: err });
     }
   }
 
@@ -154,7 +155,7 @@ export async function POST(request: NextRequest) {
       `,
     });
   } catch (err) {
-    console.error("[send-otp] Failed to send OTP email:", err);
+    requestLogger(request).error("[send-otp] Failed to send OTP email", { error: err });
     return NextResponse.json(
       { message: "Failed to send verification email. Please try again." },
       { status: 500 }
@@ -166,7 +167,7 @@ export async function POST(request: NextRequest) {
     try {
       await redis.set(`otp:cooldown:${normalizedEmail}`, "1", "EX", 60);
     } catch (err) {
-      console.error("[send-otp] Redis error setting cooldown:", err);
+      requestLogger(request).error("[send-otp] Redis error setting cooldown", { error: err });
     }
   }
 

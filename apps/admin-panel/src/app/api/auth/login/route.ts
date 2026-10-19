@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateAdmin } from "@/lib/auth-service";
+import { requestLogger } from "@repo/logger";
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, message: "Logged in successfully" }, { status: 200 });
   } catch (error) {
-    console.error("Login API Error:", error);
+    requestLogger(request).error("Login API Error", { error: error });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

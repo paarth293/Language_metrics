@@ -442,6 +442,10 @@ model ChatMessage {
   sender        User     @relation("SentMessages", fields: [senderId], references: [id])
 
   @@index([senderId, receiverId])
+  /// Conversation pages and the per-thread newest message, one per direction.
+  /// Created CONCURRENTLY by migrations 20261020000000 and 20261020000100.
+  @@index([senderId, receiverId, createdAt])
+  @@index([receiverId, senderId, createdAt])
   @@index([autoDeleteAt])
 }
 

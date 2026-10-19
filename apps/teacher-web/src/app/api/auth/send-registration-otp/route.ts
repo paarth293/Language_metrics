@@ -4,9 +4,11 @@ import { db } from "@/lib/db";
 import { getRedisClient } from "@/lib/redis-client";
 import { generateOtp, hashOtp } from "@/lib/otp";
 import { sendVerificationOTP } from "@/lib/email";
-import { exceedsMaxBodySize } from "@/lib/rate-limit";
+import { exceedsMaxBodySize, rateLimit } from "@/lib/rate-limit";
 
 import { memoryOtpStore } from "@/lib/memory-otp-store";
+import { printForDevelopment } from "@/lib/dev-console";
+import { requestLogger } from "@repo/logger";
 
 /**
  * POST /api/auth/send-registration-otp
@@ -91,11 +93,24 @@ export async function POST(request: NextRequest) {
           );
         }
       } catch (err) {
-        console.error("[send-registration-otp] Redis rate limit error:", err);
-        // Continue without rate limiting rather than blocking
+        requestLogger(request).error("[send-registration-otp] Redis rate limit error, using in-process limiter", { error: err });
+        // Same limits, enforced per instance, so a Redis outage does not
+        // switch rate limiting off.
+        if (rateLimit(`reg-otp:cooldown:${normalizedEmail}`, { windowMs: 60_000, max: 1 })) {
+          return NextResponse.json(
+            { message: "Please wait before requesting another code." },
+            { status: 429, headers: { "Retry-After": "60" } }
+          );
+        }
+        if (rateLimit(`reg-otp:hourly:${normalizedEmail}`, { windowMs: 3_600_000, max: 5 })) {
+          return NextResponse.json(
+            { message: "Too many requests. Please try again later." },
+            { status: 429, headers: { "Retry-After": "3600" } }
+          );
+        }
       }
     } else {
-      console.warn("[send-registration-otp] Redis unavailable — rate limiting disabled.");
+      requestLogger(request).warn("[send-registration-otp] Redis unavailable — rate limiting disabled.");
     }
 
     // ── 3. Generate OTP, hash, store ────────────────────────────────────────────
@@ -111,7 +126,7 @@ export async function POST(request: NextRequest) {
         // Set 60-second cooldown
         await redis.set(`reg-otp:cooldown:${normalizedEmail}`, "1", "EX", 60);
       } catch (err) {
-        console.error("[send-registration-otp] Redis storage error:", err);
+        requestLogger(request).error("[send-registration-otp] Redis storage error", { error: err });
         return NextResponse.json(
           { message: "Failed to generate verification code. Please try again." },
           { status: 500 }
@@ -120,19 +135,16 @@ export async function POST(request: NextRequest) {
     } else {
       // In-memory fallback for local development without Redis
       memoryOtpStore.setHash(normalizedEmail, otpHash);
-      console.warn("[send-registration-otp] OTP stored in memory (Redis unavailable).");
+      requestLogger(request).warn("[send-registration-otp] OTP stored in memory (Redis unavailable).");
     }
 
-    if (process.env.NODE_ENV !== "production") {
-      console.log(`\n==================================================`);
-      console.log(`🔑 REGISTRATION OTP FOR [${normalizedEmail}]: ${otp}`);
-      console.log(`==================================================\n`);
-    }
+    // Local development only: there may be no email provider to deliver it.
+    printForDevelopment([`🔑 REGISTRATION OTP FOR [${normalizedEmail}]: ${otp}`]);
 
     // ── 4. Send OTP email ───────────────────────────────────────────────────────
     const emailSent = await sendVerificationOTP(normalizedEmail, otp);
     if (!emailSent) {
-      console.error("[send-registration-otp] Email send failed.");
+      requestLogger(request).error("[send-registration-otp] Email send failed.");
       return NextResponse.json(
         { message: "Failed to send verification email. Please try again." },
         { status: 500 }
@@ -144,7 +156,7 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
   } catch (err) {
-    console.error("[send-registration-otp] Unhandled error:", err);
+    requestLogger(request).error("[send-registration-otp] Unhandled error", { error: err });
     return NextResponse.json(
       { message: "An unexpected error occurred. Please try again." },
       { status: 500 }

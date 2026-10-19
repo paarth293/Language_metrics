@@ -514,25 +514,9 @@ export function validateBookClass(body: unknown): ValidationResult<BookClassBody
 // allowed it, a runtime error; if coerced, `[object Object]` saved forever)
 // and there was nothing stopping a multi-megabyte string from being written
 // straight into the chat history.
+//
+// Now lives in @repo/api-contracts so teacher-web's chat routes enforce the
+// same rules; re-exported here so existing imports keep working.
 
-export interface ChatMessageBody {
-  content: string;
-}
-
-const MAX_CHAT_MESSAGE_LENGTH = 5_000;
-
-export function validateChatMessage(body: unknown): ValidationResult<ChatMessageBody> {
-  if (!isPlainObject(body)) return invalid(["Request body must be a JSON object."]);
-
-  const raw = body.content;
-  if (raw !== undefined && typeof raw !== "string") {
-    return invalid(["content must be a string."]);
-  }
-
-  const content = typeof raw === "string" ? raw.trim() : "";
-  if (content.length > MAX_CHAT_MESSAGE_LENGTH) {
-    return invalid([`content is too long (max ${MAX_CHAT_MESSAGE_LENGTH} characters).`]);
-  }
-
-  return ok({ content });
-}
+export { validateChatMessage, MAX_CHAT_MESSAGE_LENGTH } from "@repo/api-contracts";
+export type { ChatMessageBody } from "@repo/api-contracts";

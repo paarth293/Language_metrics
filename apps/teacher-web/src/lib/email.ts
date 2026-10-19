@@ -2,18 +2,28 @@
  * lib/email.ts — Email sending via Resend
  */
 
-import { Resend } from "resend";
+import { Resend, type CreateEmailRequestOptions } from "resend";
 import { VerificationEmail, PasswordResetEmail } from "./templates";
 import { sendMail } from "./zoho-mailer";
+import { log } from "@repo/logger";
 
 let _resend: Resend | null = null;
+
+/**
+ * Resend's SDK has no timeout option, but it passes request options through to
+ * fetch, so an abort signal bounds the call. On timeout Resend returns
+ * `{ error }` rather than throwing.
+ */
+const RESEND_TIMEOUT_MS = 10_000;
+// `signal` is not in the SDK's option type, hence the cast.
+const resendTimeout = () => ({ signal: AbortSignal.timeout(RESEND_TIMEOUT_MS) }) as CreateEmailRequestOptions;
 
 function getResend(): Resend {
   if (!_resend) {
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) {
       // In dev without keys, log a warning and skip sending
-      console.warn("RESEND_API_KEY is not configured. Emails will not be sent.");
+      log.warn("RESEND_API_KEY is not configured. Emails will not be sent.");
       throw new Error("RESEND_API_KEY is not set.");
     }
     _resend = new Resend(apiKey);
@@ -50,7 +60,7 @@ export async function sendVerificationOTP(email: string, otp: string): Promise<b
     });
     return true;
   } catch (error) {
-    console.error("Error sending verification OTP:", error);
+    log.error("Error sending verification OTP", { error: error });
     return false;
   }
 }
@@ -70,7 +80,7 @@ export async function sendVerificationEmail(
     to,
     subject: "Verify your Language Metrics account",
     react: VerificationEmail({ name, link }),
-  });
+  }, resendTimeout());
 }
 
 /**
@@ -87,7 +97,7 @@ export async function sendPasswordResetEmail(
     to,
     subject: "Reset your Language Metrics password",
     react: PasswordResetEmail({ name, link }),
-  });
+  }, resendTimeout());
 }
 
 /**
@@ -116,7 +126,7 @@ export async function sendPasswordResetOTP(email: string, otp: string): Promise<
     });
     return true;
   } catch (error) {
-    console.error("Error sending password reset OTP:", error);
+    log.error("Error sending password reset OTP", { error: error });
     return false;
   }
 }

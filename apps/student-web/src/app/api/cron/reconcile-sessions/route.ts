@@ -9,7 +9,10 @@
  *
  * Triggered from two places:
  *   - .github/workflows/reconcile-sessions.yml — every 10 minutes (primary)
- *   - vercel.json crons — daily (fallback; Hobby forbids sub-daily schedules)
+ *   - apps/student-web/vercel.json crons — daily (fallback; Hobby forbids
+ *     sub-daily schedules)
+ *
+ * Served by student-web only; teacher-web's copy answers 410.
  *
  * Both send `Authorization: Bearer <CRON_SECRET>`. Vercel adds that header
  * automatically when CRON_SECRET is set as an environment variable on the
@@ -17,10 +20,14 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { createHash, timingSafeEqual } from "crypto";
-import { reconcileStaleSessions } from "@repo/live-classes";
+import { type CronRun, reconcileStaleSessions, withCronLock } from "@repo/live-classes";
+import { requestLogger } from "@repo/logger";
+import { reportOpsAlert } from "@repo/logger/ops-alert";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+/** The sweep stops starting batches after 45 s (SWEEP_BUDGET_MS), inside this limit. */
+export const maxDuration = 60;
 
 /**
  * Constant-time comparison of the Authorization header against the expected
@@ -45,9 +52,8 @@ export async function GET(request: NextRequest) {
   // which left settlement publicly triggerable on any deployment that forgot
   // to set it — the one configuration where you least want an open endpoint.
   if (!secret) {
-    console.error(
-      "[reconcile] CRON_SECRET is not set — refusing to run. Set it on the deployment."
-    );
+    requestLogger(request).error("[reconcile] CRON_SECRET is not set — refusing to run. Set it on the deployment.");
+    await reportOpsAlert("cron_failed", { scope: "reconcile-sessions", reason: "CRON_SECRET is not set, so the sweep cannot run." });
     return NextResponse.json(
       { message: "Endpoint misconfigured." },
       { status: 500 }
@@ -58,9 +64,24 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
   }
 
-  const summary = await reconcileStaleSessions();
+  // Another run (GitHub, Vercel cron, another deployment) is already sweeping.
+  let run: CronRun<Awaited<ReturnType<typeof reconcileStaleSessions>>>;
+  try {
+    run = await withCronLock("reconcile-sessions", () => reconcileStaleSessions());
+  } catch (error) {
+    requestLogger(request).error("[reconcile] sweep failed", { error });
+    await reportOpsAlert("cron_failed", { scope: "reconcile-sessions", reason: "The session sweep threw.", error });
+    return NextResponse.json({ message: "Cron run failed." }, { status: 500 });
+  }
+  if (!run.ran) return NextResponse.json({ skipped: "locked" }, { status: 200 });
+  const summary = run.result;
   if (summary.failed.length > 0) {
-    console.error("[reconcile] some sessions failed to settle:", summary.failed);
+    requestLogger(request).error("[reconcile] some sessions failed to settle", { detail: summary.failed });
+    await reportOpsAlert("cron_failed", {
+      scope: "reconcile-sessions",
+      reason: `${summary.failed.length} session(s) failed to settle.`,
+      failed: summary.failed,
+    });
   }
   return NextResponse.json(summary, { status: 200 });
 }

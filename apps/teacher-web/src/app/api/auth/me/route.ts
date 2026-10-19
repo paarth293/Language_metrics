@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { verifyAccessToken } from "@/lib/tokens";
 import { db } from "@/lib/db";
+import { requestLogger } from "@repo/logger";
 
 type MeRow = {
   id: string;
@@ -108,7 +109,7 @@ export async function GET(request: NextRequest) {
       { status: 200 }
     );
   } catch (err) {
-    console.error("GET /api/auth/me error:", err);
+    requestLogger(request).error("GET /api/auth/me error", { error: err });
     return NextResponse.json({ user: null }, { status: 200 });
   }
 }

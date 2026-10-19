@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { generateOtp, hashOtp } from "@/lib/otp";
 import { sendVerificationOTP } from "@/lib/email";
 import { rateLimit } from "@/lib/rate-limit";
+import { requestLogger } from "@repo/logger";
 
 export async function POST(request: Request) {
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
@@ -78,7 +79,7 @@ export async function POST(request: Request) {
       message: "If an account requires verification, a new verification code has been sent.",
     });
   } catch (err) {
-    console.error("resend-verification error:", err);
+    requestLogger(request).error("resend-verification error", { error: err });
     return NextResponse.json({ message: "Internal server error." }, { status: 500 });
   }
 }

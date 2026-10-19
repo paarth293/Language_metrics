@@ -7,6 +7,7 @@ import {
   type BookingDetail,
 } from "@repo/api-contracts";
 import { exceedsMaxBodySize, rateLimitRedis } from "@/lib/rate-limit";
+import { requestLogger } from "@repo/logger";
 import { InsufficientCoinsError, getCoinBalance } from "@repo/database";
 import {
   BookingError,
@@ -192,7 +193,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error && error.message === "TEACHER_NOT_AVAILABLE") {
       return NextResponse.json({ message: "Teacher not found or not available." }, { status: 404 });
     }
-    console.error("[Mobile API] Booking error:", error);
+    requestLogger(request).error("[Mobile API] Booking error", { error });
     return NextResponse.json({ message: "Failed to create booking." }, { status: 500 });
   }
 }

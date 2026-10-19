@@ -17,6 +17,7 @@ import { NextResponse } from "next/server";
 import { verifyAccessToken, ACCESS_COOKIE } from "@/lib/tokens";
 import type { Role } from "@/types";
 import type { AccessTokenPayload } from "@/lib/tokens";
+import { log } from "@repo/logger";
 
 // ── Error codes (machine-readable for clients) ─────────────────────────────
 
@@ -117,7 +118,7 @@ export async function requireAuth(
 
     return { user: payload as AccessTokenPayload & { sub: string } };
   } catch (err) {
-    console.error("[requireAuth] Unexpected error:", err);
+    log.error("[requireAuth] Unexpected error", { error: err });
     return {
       error: NextResponse.json(
         {

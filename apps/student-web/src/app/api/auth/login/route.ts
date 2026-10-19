@@ -8,6 +8,7 @@ import { signAccessToken, signRefreshToken, accessCookieOptions, refreshCookieOp
 import { storeRefreshSession } from "@/lib/redis-session";
 import { rateLimitRedis, exceedsMaxBodySize } from "@/lib/rate-limit";
 import { validateLoginBody } from "@/lib/validation";
+import { requestLogger } from "@repo/logger";
 
 /**
  * POST /api/auth/login
@@ -109,7 +110,7 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (err) {
-    console.error("POST /api/auth/login error:", err);
+    requestLogger(request).error("POST /api/auth/login error", { error: err });
     return NextResponse.json({ message: "An unexpected error occurred." }, { status: 500 });
   }
 }

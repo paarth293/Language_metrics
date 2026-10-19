@@ -11,6 +11,20 @@ const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo";
 
+/** Upper bound for one Google call. Not retried: an auth code is single-use. */
+const GOOGLE_TIMEOUT_MS = 8_000;
+
+async function googleFetch(url: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, { ...init, signal: AbortSignal.timeout(GOOGLE_TIMEOUT_MS) });
+  } catch (error) {
+    if ((error as { name?: unknown } | null)?.name === "TimeoutError") {
+      throw new Error("Google sign-in did not respond in time. Please try again.");
+    }
+    throw error;
+  }
+}
+
 function getConfig() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -67,7 +81,7 @@ export async function exchangeGoogleCode(
   const { clientId, clientSecret, redirectUri } = getConfig();
 
   // Step 1: Exchange code for tokens
-  const tokenRes = await fetch(GOOGLE_TOKEN_URL, {
+  const tokenRes = await googleFetch(GOOGLE_TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
@@ -87,7 +101,7 @@ export async function exchangeGoogleCode(
   const { access_token } = (await tokenRes.json()) as { access_token: string };
 
   // Step 2: Fetch user profile
-  const userRes = await fetch(GOOGLE_USERINFO_URL, {
+  const userRes = await googleFetch(GOOGLE_USERINFO_URL, {
     headers: { Authorization: `Bearer ${access_token}` },
   });
 

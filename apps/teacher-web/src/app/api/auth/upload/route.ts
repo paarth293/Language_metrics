@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { rateLimit, rateLimitRedis } from "@/lib/rate-limit";
 import { verifyAccessToken } from "@/lib/tokens";
 import { uploadFile } from "@/lib/storage";
+import { requestLogger } from "@repo/logger";
 
 export async function POST(request: NextRequest) {
   // If an access token is provided, verify it; otherwise allow temp registration upload
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url: result.url, filename: result.key }, { status: 201 });
   } catch (err) {
-    console.error("[Upload] Failed to upload file:", err);
+    requestLogger(request).error("[Upload] Failed to upload file", { error: err });
     const errMessage = err instanceof Error ? err.message : "";
     if (errMessage.includes("File type") || errMessage.includes("File exceeds") || errMessage.includes("Invalid file")) {
       return NextResponse.json({ message: errMessage }, { status: 400 });

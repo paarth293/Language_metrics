@@ -140,12 +140,44 @@ export async function mintClassToken(opts: MintTokenOptions): Promise<MintedToke
   };
 }
 
+/**
+ * Upper bound, in seconds, for one LiveKit server call. The SDK's own default
+ * is 10 s; pinning it here keeps a slow LiveKit from holding the function open
+ * whatever a future SDK version defaults to.
+ */
+const LIVEKIT_TIMEOUT_SECONDS = 8;
+
+/**
+ * Report a LiveKit timeout as such. The SDK rejects with the bare
+ * "The operation was aborted due to timeout", which does not say what timed out.
+ */
+function withClearTimeouts<T extends object>(client: T): T {
+  return new Proxy(client, {
+    get(target, prop, receiver) {
+      const value = Reflect.get(target, prop, receiver);
+      if (typeof value !== "function") return value;
+      return (...args: unknown[]) => {
+        const result = value.apply(target, args);
+        if (!(result instanceof Promise)) return result;
+        return result.catch((error: unknown) => {
+          if ((error as { name?: unknown } | null)?.name === "TimeoutError") {
+            throw new Error(`LiveKit did not respond in time (${LIVEKIT_TIMEOUT_SECONDS} s)`, { cause: error });
+          }
+          throw error;
+        });
+      };
+    },
+  });
+}
+
 let roomService: RoomServiceClient | null = null;
 
 export function getRoomService(): RoomServiceClient {
   const config = assertLiveKitConfigured();
   if (!roomService) {
-    roomService = new RoomServiceClient(config.httpUrl, config.apiKey, config.apiSecret);
+    roomService = withClearTimeouts(
+      new RoomServiceClient(config.httpUrl, config.apiKey, config.apiSecret, { requestTimeout: LIVEKIT_TIMEOUT_SECONDS })
+    );
   }
   return roomService;
 }
@@ -155,7 +187,9 @@ let egressClient: EgressClient | null = null;
 export function getEgressClient(): EgressClient {
   const config = assertLiveKitConfigured();
   if (!egressClient) {
-    egressClient = new EgressClient(config.httpUrl, config.apiKey, config.apiSecret);
+    egressClient = withClearTimeouts(
+      new EgressClient(config.httpUrl, config.apiKey, config.apiSecret, { requestTimeout: LIVEKIT_TIMEOUT_SECONDS })
+    );
   }
   return egressClient;
 }

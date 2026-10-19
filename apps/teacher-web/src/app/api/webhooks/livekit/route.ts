@@ -18,6 +18,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { handleLiveKitWebhook } from "@repo/live-classes";
 import { isLiveKitConfigured } from "@repo/livekit";
 import { verifyWebhook } from "@repo/livekit/server";
+import { requestLogger } from "@repo/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,8 +31,8 @@ export async function POST(request: NextRequest) {
   // not exist. 500 is also the honest status: the fault is ours, and LiveKit
   // should retry once the deployment is configured rather than give up.
   if (!isLiveKitConfigured()) {
-    console.error(
-      "[livekit-webhook] LiveKit is not configured — set LIVEKIT_API_KEY, " +
+    requestLogger(request).error(
+      "livekit webhook: LiveKit is not configured — set LIVEKIT_API_KEY, " +
         "LIVEKIT_API_SECRET and LIVEKIT_WS_URL (or LIVEKIT_URL) on this deployment."
     );
     return NextResponse.json(
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
   try {
     event = await verifyWebhook(rawBody, authHeader);
   } catch (err) {
-    console.error("[livekit-webhook] signature verification failed:", err);
+    requestLogger(request).error("livekit webhook signature verification failed", { error: err });
     // 401, not 500: LiveKit should not retry something it signed wrongly.
     return NextResponse.json({ message: "Invalid signature." }, { status: 401 });
   }
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
     const result = await handleLiveKitWebhook(event);
     return NextResponse.json(result, { status: 200 });
   } catch (err) {
-    console.error("[livekit-webhook] handler failed:", event.event, err);
+    requestLogger(request).error("livekit webhook handler failed", { event: event.event, error: err });
     // 5xx makes LiveKit retry. The event row is left with processedAt null
     // and the error recorded, so the retry re-runs it cleanly.
     return NextResponse.json({ message: "Processing failed." }, { status: 500 });

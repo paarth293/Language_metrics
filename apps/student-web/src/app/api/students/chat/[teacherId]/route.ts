@@ -5,6 +5,7 @@ import { stripHtml } from "@/lib/sanitize";
 import { validateChatMessage } from "@/lib/validation";
 import { exceedsMaxBodySize, rateLimitRedis } from "@/lib/rate-limit";
 import { uploadFile } from "@/lib/storage";
+import { fetchConversationPage, parseChatPageQuery } from "@/lib/chat-messages";
 
 const ALLOWED_ATTACHMENT_TYPES = [
   "image/jpeg",
@@ -64,27 +65,24 @@ export async function GET(
       );
     }
 
-    const messages = await prisma.chatMessage.findMany({
-      where: {
-        OR: [
-          { senderId: userId, receiverId: teacherId },
-          { senderId: teacherId, receiverId: userId },
-        ],
-      },
-      orderBy: { createdAt: "asc" },
-    });
+    const parsed = parseChatPageQuery(request.nextUrl.searchParams);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
+
+    const page = await fetchConversationPage(prisma.chatMessage, userId, teacherId, parsed.query);
 
     // SECURITY FIX: message content is free text typed by the other party
     // (the teacher) and was returned completely unsanitized — the same
     // stored-XSS shape already fixed in chat/route.ts's thread previews.
     // This is the actual message body, so it's the higher-value target of
     // the two.
-    const sanitizedMessages = messages.map((m) => ({
+    const sanitizedMessages = page.messages.map((m) => ({
       ...m,
       content: stripHtml(m.content),
     }));
 
-    return NextResponse.json({ messages: sanitizedMessages });
+    return NextResponse.json({ messages: sanitizedMessages, hasMore: page.hasMore, cursor: page.cursor });
   } catch (error) {
     console.error("Failed to fetch messages:", error);
     return NextResponse.json(
