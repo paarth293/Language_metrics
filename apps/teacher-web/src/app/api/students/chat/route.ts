@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { fetchLastMessages } from "@/lib/chat-threads";
 
 // GET - List all chat threads for the student
 export async function GET(request: NextRequest) {
@@ -10,16 +11,27 @@ export async function GET(request: NextRequest) {
   try {
     const userId = auth.user.sub;
 
-    // Get all bookings to find unique teachers
-    const bookings = await prisma.booking.findMany({
+    // One row per teacher the student has booked, with the latest booking
+    // time as the fallback for threads that have no messages yet.
+    const bookedTeachers = await prisma.booking.groupBy({
+      by: ["teacherId"],
       where: { studentId: userId },
-      include: {
-        teacher: {
-          include: { user: true },
-        },
-      },
-      orderBy: { createdAt: "desc" },
+      _max: { createdAt: true },
     });
+    const teacherIds = bookedTeachers.map((b) => b.teacherId);
+
+    // Only the columns the thread list shows; never the teacher's user row.
+    const teachers = teacherIds.length > 0
+      ? await prisma.teacherProfile.findMany({
+          where: { userId: { in: teacherIds } },
+          select: { userId: true, name: true, avatarUrl: true, language: true },
+        })
+      : [];
+    const teachersById = new Map(teachers.map((t) => [t.userId, t]));
+
+    // The newest message per teacher, from one DISTINCT ON query instead of
+    // one query per teacher.
+    const messagesByTeacher = await fetchLastMessages(userId, teacherIds);
 
     interface ChatThread {
       teacherId: string;
@@ -34,29 +46,19 @@ export async function GET(request: NextRequest) {
     // Build unique teacher threads
     const teacherMap = new Map<string, ChatThread>();
 
-    for (const booking of bookings) {
-      const teacherId = booking.teacher.userId;
-      if (!teacherMap.has(teacherId)) {
-        // Get last message for this thread
-        const lastMessage = await prisma.chatMessage.findFirst({
-          where: {
-            OR: [
-              { senderId: userId, receiverId: teacherId },
-              { senderId: teacherId, receiverId: userId },
-            ],
-          },
-          orderBy: { createdAt: "desc" },
-        });
+    for (const booking of bookedTeachers) {
+      const teacherId = booking.teacherId;
+      const teacher = teachersById.get(teacherId);
+      if (teacher && !teacherMap.has(teacherId)) {
+        const lastMessage = messagesByTeacher.get(teacherId);
 
         teacherMap.set(teacherId, {
           teacherId,
-          teacherName: booking.teacher.name,
-          teacherAvatar: booking.teacher.avatarUrl || null,
-          language: booking.teacher.language || "General",
+          teacherName: teacher.name,
+          teacherAvatar: teacher.avatarUrl || null,
+          language: teacher.language || "General",
           lastMessage: lastMessage?.content || "No messages yet",
-          lastMessageTime:
-            lastMessage?.createdAt.toISOString() ||
-            booking.createdAt.toISOString(),
+          lastMessageTime: (lastMessage?.createdAt ?? booking._max.createdAt ?? new Date(0)).toISOString(),
           unreadCount: 0,
         });
       }
