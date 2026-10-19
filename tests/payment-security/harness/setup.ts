@@ -20,6 +20,31 @@ let alertStatus = 200;
 export const ALERT_URL = "https://alerts.example.test/hook";
 const auditEntries: Array<{ adminId: string; action: string; subjectId: string; details?: Record<string, unknown> }> = [];
 
+/**
+ * Postgres advisory locks for withCronLock: held server-wide, owned by the
+ * connection that took them, freed on unlock or when that connection closes.
+ */
+const advisoryLocks = new Map<unknown, object>();
+function openFakeLockConnection() {
+  const connection = {
+    async $queryRaw(strings: TemplateStringsArray, ...values: unknown[]) {
+      const sql = strings.join("?");
+      const key = values[0];
+      if (sql.includes("pg_try_advisory_lock")) {
+        if (advisoryLocks.has(key)) return [{ locked: false }];
+        advisoryLocks.set(key, connection);
+        return [{ locked: true }];
+      }
+      if (sql.includes("pg_advisory_unlock")) return [{ unlocked: advisoryLocks.get(key) === connection && advisoryLocks.delete(key) }];
+      throw new Error(`fake lock connection: unexpected SQL ${sql}`);
+    },
+    async $disconnect() {
+      for (const [key, owner] of advisoryLocks) if (owner === connection) advisoryLocks.delete(key);
+    },
+  };
+  return connection;
+}
+
 export const harness = {
   get db() { return fakeDb; },
   get cashfree() { return fakeCashfree; },
@@ -31,6 +56,7 @@ export const harness = {
     adjust: (...args: Parameters<FakeDb["module"]["adjust"]>) => fakeDb.module.adjust(...args),
     getSpendableBalance: (userId: string) => fakeDb.module.getSpendableBalance(userId),
     InsufficientCoinsError,
+    openDirectConnection: () => openFakeLockConnection(),
   }),
 
   auth: () => ({
@@ -64,6 +90,7 @@ export const harness = {
 
   reset() {
     fakeDb = createFakeDb();
+    advisoryLocks.clear();
     fakeCashfree = createFakeCashfree();
     currentUser = "student-a";
     currentAdmin = null;

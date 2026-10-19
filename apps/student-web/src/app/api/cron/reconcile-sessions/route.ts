@@ -9,7 +9,10 @@
  *
  * Triggered from two places:
  *   - .github/workflows/reconcile-sessions.yml — every 10 minutes (primary)
- *   - vercel.json crons — daily (fallback; Hobby forbids sub-daily schedules)
+ *   - apps/student-web/vercel.json crons — daily (fallback; Hobby forbids
+ *     sub-daily schedules)
+ *
+ * Served by student-web only; teacher-web's copy answers 410.
  *
  * Both send `Authorization: Bearer <CRON_SECRET>`. Vercel adds that header
  * automatically when CRON_SECRET is set as an environment variable on the
@@ -17,10 +20,12 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { createHash, timingSafeEqual } from "crypto";
-import { reconcileStaleSessions } from "@repo/live-classes";
+import { reconcileStaleSessions, withCronLock } from "@repo/live-classes";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+/** The sweep stops starting batches after 45 s (SWEEP_BUDGET_MS), inside this limit. */
+export const maxDuration = 60;
 
 /**
  * Constant-time comparison of the Authorization header against the expected
@@ -58,7 +63,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
   }
 
-  const summary = await reconcileStaleSessions();
+  // Another run (GitHub, Vercel cron, another deployment) is already sweeping.
+  const run = await withCronLock("reconcile-sessions", () => reconcileStaleSessions());
+  if (!run.ran) return NextResponse.json({ skipped: "locked" }, { status: 200 });
+  const summary = run.result;
   if (summary.failed.length > 0) {
     console.error("[reconcile] some sessions failed to settle:", summary.failed);
   }

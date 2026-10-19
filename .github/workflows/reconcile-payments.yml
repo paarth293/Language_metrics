@@ -10,7 +10,8 @@
 # workflow is the primary trigger and the vercel.json entry is the fallback.
 #
 # Required repository secrets:
-#   APP_URL      — deployment origin, e.g. https://language-metrics-teacher-web.vercel.app
+#   APP_URL      — the STUDENT-WEB deployment origin, e.g. https://language-metrics-student-web.vercel.app
+#                  (cron runs on student-web only; teacher-web answers 410)
 #   CRON_SECRET  — must match the CRON_SECRET environment variable on the deployment
 #
 # Until both are set the job skips with a notice rather than failing, so an

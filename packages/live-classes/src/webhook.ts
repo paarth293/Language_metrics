@@ -31,6 +31,7 @@ import { parseParticipantMetadata, type WebhookEvent } from "@repo/livekit/serve
 
 import { settleClassSession } from "./settlement";
 import { recordDailyUsage } from "./usage";
+import { SWEEP_BUDGET_MS, sweepInBatches } from "./cron-lock";
 
 export interface WebhookResult {
   handled: boolean;
@@ -476,36 +477,50 @@ async function onEgressEnded(event: WebhookEvent): Promise<WebhookResult> {
  * Without this, a dropped `room_finished` leaves a student's coins held
  * forever and nobody notices until they complain.
  */
-export async function reconcileStaleSessions(limit = 50): Promise<SettlementSummary> {
+export async function reconcileStaleSessions(
+  limit = 50,
+  { budgetMs = SWEEP_BUDGET_MS }: { budgetMs?: number } = {},
+): Promise<SettlementSummary> {
   const config = getLiveKitConfig();
   const cutoff = new Date(Date.now() - (config.graceMinutes + 5) * 60_000);
 
-  const stale = await db.classSession.findMany({
-    where: {
-      scheduledEnd: { lt: cutoff },
-      OR: [{ status: { in: ["SCHEDULED", "ONGOING"] } }, { billing: { status: "HELD" } }],
-    },
-    select: { id: true },
-    take: limit,
-  });
-
   const settled: string[] = [];
   const failed: Array<{ id: string; error: string }> = [];
+  let examined = 0;
 
-  for (const { id } of stale) {
-    try {
-      await settleClassSession(id);
-      settled.push(id);
-    } catch (err) {
-      failed.push({ id, error: err instanceof Error ? err.message : String(err) });
-    }
-  }
+  // A session that fails to settle still matches, so each run excludes the
+  // ones it has already tried.
+  const { batches, budgetExhausted } = await sweepInBatches({
+    batchSize: limit,
+    budgetMs,
+    fetchBatch: (excludeIds, take) => db.classSession.findMany({
+      where: {
+        scheduledEnd: { lt: cutoff },
+        OR: [{ status: { in: ["SCHEDULED", "ONGOING"] } }, { billing: { status: "HELD" } }],
+        ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}),
+      },
+      select: { id: true },
+      orderBy: { id: "asc" },
+      take,
+    }),
+    handle: async ({ id }) => {
+      examined++;
+      try {
+        await settleClassSession(id);
+        settled.push(id);
+      } catch (err) {
+        failed.push({ id, error: err instanceof Error ? err.message : String(err) });
+      }
+    },
+  });
 
-  return { examined: stale.length, settled, failed };
+  return { examined, settled, failed, batches, budgetExhausted };
 }
 
 export interface SettlementSummary {
   examined: number;
   settled: string[];
   failed: Array<{ id: string; error: string }>;
+  batches: number;
+  budgetExhausted: boolean;
 }

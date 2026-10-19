@@ -22,6 +22,18 @@ export const db =
 
 if (process.env.NODE_ENV !== "production") globalThis.prismaGlobal = db;
 
+/**
+ * A separate client holding exactly one connection, on DIRECT_URL (not
+ * pooled) when it is set, else DATABASE_URL. For session-scoped state such as
+ * advisory locks: behind a transaction-mode pooler, a lock and its unlock can
+ * land on different server connections. The caller must `$disconnect()` it.
+ */
+export function openDirectConnection(): PrismaClient {
+  const url = process.env.DIRECT_URL || process.env.DATABASE_URL || "";
+  const datasourceUrl = `${url}${url.includes("?") ? "&" : "?"}connection_limit=1`;
+  return new PrismaClient({ datasourceUrl, log: ["error"] });
+}
+
 export type * from "@prisma/client";
 export {
   Prisma,
