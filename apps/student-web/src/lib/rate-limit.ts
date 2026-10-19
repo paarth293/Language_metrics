@@ -54,6 +54,30 @@ export function rateLimit(
 
 // ── Redis sliding-window rate limiter ─────────────────────────────────────────
 
+type RedisClient = import("ioredis").default;
+
+// One client per server instance, reused by every call. Opening a fresh TLS
+// connection per request exhausts Upstash's connection cap under load.
+let sharedClient: RedisClient | null = null;
+
+async function getSharedClient(redisUrl: string): Promise<RedisClient> {
+  if (sharedClient && sharedClient.status !== "end") return sharedClient;
+  const { default: Redis } = await import("ioredis");
+  sharedClient = new Redis(redisUrl, {
+    lazyConnect: true,
+    maxRetriesPerRequest: 0,
+    enableReadyCheck: false,
+    connectTimeout: 2000,
+    // Keep reconnecting with a capped backoff; a long-lived client must
+    // survive a dropped connection instead of ending for good.
+    retryStrategy: (times) => Math.min(times * 200, 2000),
+  });
+  sharedClient.on("error", (err) => {
+    console.error("[rateLimitRedis] Redis connection error:", err.message);
+  });
+  return sharedClient;
+}
+
 /**
  * Redis-backed sliding-window rate limiter using a sorted set.
  *
@@ -78,14 +102,7 @@ export async function rateLimitRedis(
   }
 
   try {
-    const { default: Redis } = await import("ioredis");
-    const client = new Redis(redisUrl, {
-      lazyConnect: true,
-      maxRetriesPerRequest: 0,
-      enableReadyCheck: false,
-      connectTimeout: 2000,
-      retryStrategy: () => null,
-    });
+    const client = await getSharedClient(redisUrl);
 
     const now = Date.now();
     const windowStart = now - windowMs;
@@ -98,8 +115,6 @@ export async function rateLimitRedis(
     pipeline.zcard(key);                                   // count in window
     pipeline.pexpire(key, windowMs);                       // set TTL
     const results = await pipeline.exec();
-
-    await client.quit();
 
     const count = results?.[2]?.[1] as number;
     return count > max;
