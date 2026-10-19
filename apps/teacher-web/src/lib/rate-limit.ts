@@ -61,6 +61,11 @@ export function rateLimit(
   return existing.count > max;
 }
 
+/** Number of keys the in-process limiter holds; lets tests check the pruning. */
+export function inProcessStoreSize(): number {
+  return store.size;
+}
+
 // ── Redis sliding-window rate limiter ─────────────────────────────────────────
 
 type RedisClient = import("ioredis").default;
