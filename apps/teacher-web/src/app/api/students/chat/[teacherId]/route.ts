@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { fetchConversationPage, parseChatPageQuery } from "@/lib/chat-messages";
 import { hasBooking } from "@/lib/chat-access";
+import { stripHtml } from "@/lib/sanitize";
 
 const NO_CONVERSATION = "You don't have a conversation with this teacher.";
 
@@ -29,7 +30,11 @@ export async function GET(
 
     const page = await fetchConversationPage(prisma.chatMessage, userId, teacherId, parsed.query);
 
-    return NextResponse.json(page);
+    // Message content is free text typed by the other party; strip HTML before
+    // returning it, as student-web does.
+    const messages = page.messages.map((m) => ({ ...m, content: stripHtml(m.content) }));
+
+    return NextResponse.json({ messages, hasMore: page.hasMore, cursor: page.cursor });
   } catch (error) {
     console.error("Failed to fetch messages:", error);
     return NextResponse.json(

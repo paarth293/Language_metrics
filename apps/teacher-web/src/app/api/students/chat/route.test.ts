@@ -112,10 +112,21 @@ describe("GET /api/students/chat (thread list)", () => {
     const { status, body } = await getThreads();
     expect(status).toBe(200);
     expect(body.threads).toEqual([
-      { teacherId: T(2), teacherName: "Teacher 2", teacherAvatar: null, language: "Spanish", lastMessage: "<b>reply</b> 1", lastMessageTime: at(3001).toISOString(), unreadCount: 0 },
-      { teacherId: T(1), teacherName: "Teacher 1", teacherAvatar: "https://img.example/1.png", language: "Spanish", lastMessage: "<b>reply</b> 0", lastMessageTime: at(3000).toISOString(), unreadCount: 0 },
+      { teacherId: T(2), teacherName: "Teacher 2", teacherAvatar: null, language: "Spanish", lastMessage: "reply 1", lastMessageTime: at(3001).toISOString(), unreadCount: 0 },
+      { teacherId: T(1), teacherName: "Teacher 1", teacherAvatar: "https://img.example/1.png", language: "Spanish", lastMessage: "reply 0", lastMessageTime: at(3000).toISOString(), unreadCount: 0 },
       { teacherId: T(0), teacherName: "Teacher 0", teacherAvatar: null, language: "General", lastMessage: "No messages yet", lastMessageTime: at(1000).toISOString(), unreadCount: 0 },
     ]);
+  });
+
+  it("removes HTML from teacher names and message previews", async () => {
+    data.teachers[2].name = "<img src=x onerror=alert(1)>Eve<script>x</script>";
+    data.messages.push({ id: "x", senderId: T(2), receiverId: STUDENT, content: "<script>alert(1)</script>hi<b>!</b>", createdAt: at(9000) });
+    data.messages.push({ id: "y", senderId: T(1), receiverId: STUDENT, content: "<i></i>", createdAt: at(8000) });
+    const { body } = await getThreads();
+    const [eve, one] = body.threads;
+    expect(eve.teacherName).toBe("Evex");
+    expect(eve.lastMessage).toBe("alert(1)hi!");
+    expect(one.lastMessage).toBe("No messages yet");
   });
 
   it("never loads a teacher's full user record", async () => {

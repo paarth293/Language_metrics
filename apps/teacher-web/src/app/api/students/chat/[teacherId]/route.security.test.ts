@@ -9,6 +9,7 @@ const state = vi.hoisted(() => ({
   bookingWhere: [] as unknown[],
   created: [] as Record<string, unknown>[],
   findManyCalls: 0,
+  stored: [] as Record<string, unknown>[],
 }));
 
 vi.mock("@/lib/auth", () => ({ requireAuth: async () => ({ user: { sub: STUDENT, role: "STUDENT" } }) }));
@@ -23,7 +24,7 @@ vi.mock("@/lib/db", () => ({
     chatMessage: {
       findMany: async () => {
         state.findManyCalls++;
-        return [];
+        return state.stored;
       },
       create: async ({ data }: { data: Record<string, unknown> }) => {
         state.created.push(data);
@@ -56,6 +57,7 @@ beforeEach(() => {
   state.bookingWhere = [];
   state.created = [];
   state.findManyCalls = 0;
+  state.stored = [];
 });
 
 describe("teacher-web /api/students/chat/[teacherId]: booking check", () => {
@@ -84,5 +86,16 @@ describe("teacher-web /api/students/chat/[teacherId]: booking check", () => {
     const sent = await postJson({ content: "hello" });
     expect(sent.status).toBe(201);
     expect(state.created).toHaveLength(1);
+  });
+});
+
+describe("HTML cleaning", () => {
+  it("GET removes HTML from message content", async () => {
+    state.stored = [
+      { id: "a", senderId: TEACHER, receiverId: STUDENT, content: "<script>alert(1)</script>hi<b>!</b>", attachmentUrl: null, autoDeleteAt: new Date("2099-01-01"), createdAt: new Date("2026-10-01T00:00:00Z") },
+    ];
+    const { status, body } = await get();
+    expect(status).toBe(200);
+    expect(body.messages.map((m: { content: string }) => m.content)).toEqual(["alert(1)hi!"]);
   });
 });

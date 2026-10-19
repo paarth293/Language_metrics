@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { fetchLastMessages } from "@/lib/chat-threads";
+import { stripHtml, sanitizeOrFallback } from "@/lib/sanitize";
 
 // GET - List all chat threads for the student
 export async function GET(request: NextRequest) {
@@ -54,10 +55,10 @@ export async function GET(request: NextRequest) {
 
         teacherMap.set(teacherId, {
           teacherId,
-          teacherName: teacher.name,
+          teacherName: sanitizeOrFallback(teacher.name, ""),
           teacherAvatar: teacher.avatarUrl || null,
           language: teacher.language || "General",
-          lastMessage: lastMessage?.content || "No messages yet",
+          lastMessage: lastMessage ? stripHtml(lastMessage.content) || "No messages yet" : "No messages yet",
           lastMessageTime: (lastMessage?.createdAt ?? booking._max.createdAt ?? new Date(0)).toISOString(),
           unreadCount: 0,
         });

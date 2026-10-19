@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { fetchLastMessages } from "@/lib/chat-threads";
+import { stripHtml, sanitizeOrFallback } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -56,10 +57,10 @@ export async function GET(request: NextRequest) {
 
         studentMap.set(studentId, {
           studentId,
-          studentName: student.name,
+          studentName: sanitizeOrFallback(student.name, ""),
           studentAvatar: student.avatarUrl || null,
           language: "General",
-          lastMessage: lastMessage?.content || "No messages yet",
+          lastMessage: lastMessage ? stripHtml(lastMessage.content) || "No messages yet" : "No messages yet",
           lastMessageTime: (lastMessage?.createdAt ?? booking._max.createdAt ?? new Date(0)).toISOString(),
           unreadCount: 0,
         });
