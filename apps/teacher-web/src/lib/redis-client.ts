@@ -25,6 +25,8 @@ let _connectionOk = false;
  * the same instance.
  */
 export function getRedisClient(): Redis | null {
+  if (process.env.NODE_ENV === "production") return getProductionClient();
+
   if (_initialised) return _connectionOk ? _client : null;
   _initialised = true;
 
@@ -77,5 +79,37 @@ export function getRedisClient(): Redis | null {
   // On the first call, return null (safe). Once the async connect
   // succeeds, subsequent calls will return the live client.
   return null;
+}
+
+/**
+ * Production: hand out the client from the first call. ioredis queues
+ * commands until the connection is up, so a cold start no longer drops to
+ * the per-instance OTP fallback and skips rate limiting, and a failed
+ * connect keeps retrying instead of disabling Redis for the instance.
+ */
+function getProductionClient(): Redis | null {
+  if (_client) return _client;
+
+  const url = process.env.REDIS_URL?.trim();
+  if (!url) {
+    console.warn("[Redis] REDIS_URL is not set — OTP rate limiting will be disabled.");
+    return null;
+  }
+
+  _client = new Redis(url, {
+    lazyConnect: true,
+    maxRetriesPerRequest: 1,
+    enableReadyCheck: true,
+    connectTimeout: 3000,
+    retryStrategy: (times) => Math.min(times * 200, 2000),
+  });
+  _client.on("error", (err) => {
+    console.error("[Redis] Connection error:", err.message);
+  });
+  _client.connect().catch((err) => {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`[Redis] Initial connect failed, retrying: ${msg}`);
+  });
+  return _client;
 }
 
