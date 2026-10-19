@@ -52,6 +52,18 @@ async function postJson(body: unknown) {
   return { status: res.status, body: await res.json() };
 }
 
+async function postRaw(body: BodyInit, headers: Record<string, string> = {}) {
+  const { POST } = await import("./route");
+  const res = await POST(new NextRequest(url, { method: "POST", headers, body }), ctx());
+  return { status: res.status, body: await res.json() };
+}
+
+function form(fields: Record<string, string | Blob>) {
+  const fd = new FormData();
+  for (const [k, v] of Object.entries(fields)) fd.append(k, v);
+  return fd;
+}
+
 beforeEach(() => {
   state.hasBooking = true;
   state.bookingWhere = [];
@@ -97,5 +109,45 @@ describe("HTML cleaning", () => {
     const { status, body } = await get();
     expect(status).toBe(200);
     expect(body.messages.map((m: { content: string }) => m.content)).toEqual(["alert(1)hi!"]);
+  });
+});
+
+describe("message validation (shared validateChatMessage, max 5000 characters)", () => {
+  it("accepts a 5000-character message", async () => {
+    const { status } = await postJson({ content: "x".repeat(5000) });
+    expect(status).toBe(201);
+    expect(state.created[0].content).toHaveLength(5000);
+  });
+
+  it("rejects a 5001-character JSON message with 400 and stores nothing", async () => {
+    const { status, body } = await postJson({ content: "x".repeat(5001) });
+    expect(status).toBe(400);
+    expect(body.code).toBe("VALIDATION_ERROR");
+    expect(body.error).toBe("content is too long (max 5000 characters).");
+    expect(state.created).toHaveLength(0);
+  });
+
+  it("rejects a 5001-character multipart message with 400 and stores nothing", async () => {
+    const { status, body } = await postRaw(form({ content: "x".repeat(5001) }));
+    expect(status).toBe(400);
+    expect(body.code).toBe("VALIDATION_ERROR");
+    expect(state.created).toHaveLength(0);
+  });
+
+  it("rejects non-string content with 400", async () => {
+    const { status } = await postJson({ content: 123 });
+    expect(status).toBe(400);
+    expect(state.created).toHaveLength(0);
+  });
+
+  it("rejects an invalid JSON body with 400, not 500", async () => {
+    const { status, body } = await postRaw("{not json", { "content-type": "application/json" });
+    expect(status).toBe(400);
+    expect(body.error).toBe("Invalid JSON body.");
+  });
+
+  it("trims the stored content", async () => {
+    await postJson({ content: "  hi  " });
+    expect(state.created[0].content).toBe("hi");
   });
 });

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { fetchConversationPage, parseChatPageQuery } from "@/lib/chat-messages";
 import { hasBooking } from "@/lib/chat-access";
 import { stripHtml } from "@/lib/sanitize";
+import { validateChatMessage } from "@repo/api-contracts";
 
 const NO_CONVERSATION = "You don't have a conversation with this teacher.";
 
@@ -66,14 +67,37 @@ export async function POST(
 
     if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData();
-      content = (formData.get("content") as string) || "";
+      const rawContent = formData.get("content");
+      const contentValidation = validateChatMessage({
+        content: typeof rawContent === "string" ? rawContent : undefined,
+      });
+      if (!contentValidation.ok) {
+        return NextResponse.json(
+          { code: "VALIDATION_ERROR", error: contentValidation.errors[0], errors: contentValidation.errors },
+          { status: 400 }
+        );
+      }
+      content = contentValidation.data.content;
+
       const file = formData.get("file") as File;
       if (file) {
         attachmentUrl = file.name;
       }
     } else {
-      const body = await request.json();
-      content = body.content || "";
+      let body: unknown;
+      try {
+        body = await request.json();
+      } catch {
+        return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+      }
+      const contentValidation = validateChatMessage(body);
+      if (!contentValidation.ok) {
+        return NextResponse.json(
+          { code: "VALIDATION_ERROR", error: contentValidation.errors[0], errors: contentValidation.errors },
+          { status: 400 }
+        );
+      }
+      content = contentValidation.data.content;
     }
 
     if (!content && !attachmentUrl) {
