@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from "vitest";
 import { NextRequest } from "next/server";
 
 const STUDENT = "11111111-1111-4111-8111-111111111111";
@@ -193,5 +193,65 @@ describe("rate limit (student-web's: 30 messages per 60 s per user) and body siz
     expect(status).toBe(413);
     expect(body.error).toBe("Request body too large.");
     expect(state.created).toHaveLength(0);
+  });
+});
+
+describe("attachments (real upload through lib/storage, as student-web)", () => {
+  const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13]);
+  const PDF = Buffer.from("%PDF-1.7\n", "latin1");
+  const HTML = "<html><script>alert(document.cookie)</script></html>";
+  const uploaded: string[] = [];
+
+  async function sendFile(bytes: BlobPart, name: string, type: string) {
+    const res = await postRaw(form({ content: name, file: new File([bytes], name, { type }) }));
+    const url = state.created.at(-1)?.attachmentUrl;
+    if (res.status === 201 && typeof url === "string" && url.startsWith("/uploads/")) uploaded.push(url);
+    return res;
+  }
+
+  afterAll(async () => {
+    const { deleteFile } = await import("@/lib/storage");
+    for (const url of uploaded) await deleteFile(url.slice("/uploads/".length));
+  });
+
+  it("uploads an image and stores its real URL, not the filename", async () => {
+    const { status } = await sendFile(PNG, "photo.png", "image/png");
+    expect(status).toBe(201);
+    expect(state.created[0].attachmentUrl).toMatch(/^\/uploads\/chat-attachments\/\d+_[0-9a-f-]{36}\.png$/);
+    expect(state.created[0].content).toBe("photo.png");
+  });
+
+  it("uploads a PDF", async () => {
+    const { status } = await sendFile(PDF, "notes.pdf", "application/pdf");
+    expect(status).toBe(201);
+    expect(state.created[0].attachmentUrl).toMatch(/^\/uploads\/chat-attachments\/.+\.pdf$/);
+  });
+
+  it("rejects a type outside images and PDF with 400 and stores nothing", async () => {
+    const { status, body } = await sendFile(HTML, "page.html", "text/html");
+    expect(status).toBe(400);
+    expect(body.error).toMatch(/^File type "text\/html" is not allowed/);
+    expect(state.created).toHaveLength(0);
+  });
+
+  it("rejects evil.html sent as image/png with 400 and stores nothing", async () => {
+    const { status, body } = await sendFile(HTML, "evil.html", "image/png");
+    expect(status).toBe(400);
+    expect(body.error).toBe('File type "image/png" does not match the file\'s contents.');
+    expect(state.created).toHaveLength(0);
+  });
+
+  it("rejects an image over 10 MB with 400 and stores nothing", async () => {
+    const big = Buffer.concat([PNG, Buffer.alloc(10 * 1024 * 1024)]);
+    const { status, body } = await sendFile(big, "big.png", "image/png");
+    expect(status).toBe(400);
+    expect(body.error).toBe("File exceeds maximum size of 10MB");
+    expect(state.created).toHaveLength(0);
+  });
+
+  it("treats an empty file field as no attachment", async () => {
+    const { status } = await sendFile("", "empty.png", "image/png");
+    expect(status).toBe(201);
+    expect(state.created[0].attachmentUrl).toBeUndefined();
   });
 });

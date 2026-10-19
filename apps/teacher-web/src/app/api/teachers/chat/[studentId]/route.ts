@@ -6,10 +6,18 @@ import { hasBooking } from "@/lib/chat-access";
 import { stripHtml } from "@/lib/sanitize";
 import { validateChatMessage } from "@repo/api-contracts";
 import { exceedsMaxBodySize, rateLimitRedis } from "@/lib/rate-limit";
+import { uploadFile } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
 const NO_CONVERSATION = "You don't have a conversation with this student.";
+const ALLOWED_ATTACHMENT_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "application/pdf",
+];
 const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10MB, matches lib/storage.ts's default
 
 // GET - Get messages with a specific student
@@ -92,9 +100,25 @@ export async function POST(
       }
       content = contentValidation.data.content;
 
-      const file = formData.get("file") as File;
-      if (file) {
-        attachmentUrl = file.name;
+      const file = formData.get("file") as File | null;
+      if (file && file.size > 0) {
+        // The old code stored `file.name` as the attachment URL and never
+        // read the file. Upload it through lib/storage, as student-web does;
+        // uploadFile checks the bytes against the claimed type and names the
+        // stored file itself.
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          const uploaded = await uploadFile(buffer, file.name, file.type, {
+            folder: "chat-attachments",
+            allowedTypes: ALLOWED_ATTACHMENT_TYPES,
+            maxSizeBytes: MAX_ATTACHMENT_SIZE,
+          });
+          attachmentUrl = uploaded.url;
+        } catch (uploadError) {
+          const message = uploadError instanceof Error ? uploadError.message : "File upload failed.";
+          return NextResponse.json({ error: message }, { status: 400 });
+        }
       }
     } else {
       let body: unknown;
