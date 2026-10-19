@@ -6,6 +6,7 @@ import { resetPasswordSchema } from "@/features/auth/validators/auth";
 import { rateLimitRedis, exceedsMaxBodySize } from "@/lib/rate-limit";
 import { revokeAllRefreshSessions } from "@/lib/redis-session";
 import bcrypt from "bcryptjs";
+import { requestLogger } from "@repo/logger";
 
 export async function POST(request: Request) {
   try {
@@ -110,7 +111,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, message: "Password updated successfully." }, { status: 200 });
   } catch (error) {
-    console.error("forgot-password reset error:", error);
+    requestLogger(request).error("forgot-password reset error", { error: error });
     return NextResponse.json({ message: "Internal server error." }, { status: 500 });
   }
 }

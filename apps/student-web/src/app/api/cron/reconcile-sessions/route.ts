@@ -21,6 +21,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHash, timingSafeEqual } from "crypto";
 import { reconcileStaleSessions, withCronLock } from "@repo/live-classes";
+import { requestLogger } from "@repo/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,9 +51,7 @@ export async function GET(request: NextRequest) {
   // which left settlement publicly triggerable on any deployment that forgot
   // to set it — the one configuration where you least want an open endpoint.
   if (!secret) {
-    console.error(
-      "[reconcile] CRON_SECRET is not set — refusing to run. Set it on the deployment."
-    );
+    requestLogger(request).error("[reconcile] CRON_SECRET is not set — refusing to run. Set it on the deployment.");
     return NextResponse.json(
       { message: "Endpoint misconfigured." },
       { status: 500 }
@@ -68,7 +67,7 @@ export async function GET(request: NextRequest) {
   if (!run.ran) return NextResponse.json({ skipped: "locked" }, { status: 200 });
   const summary = run.result;
   if (summary.failed.length > 0) {
-    console.error("[reconcile] some sessions failed to settle:", summary.failed);
+    requestLogger(request).error("[reconcile] some sessions failed to settle", { detail: summary.failed });
   }
   return NextResponse.json(summary, { status: 200 });
 }

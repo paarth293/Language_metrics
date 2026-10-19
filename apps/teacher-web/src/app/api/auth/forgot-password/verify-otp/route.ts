@@ -5,6 +5,7 @@ import { signResetSessionToken } from "@/lib/tokens";
 import { getRedisClient } from "@/lib/redis-client";
 import { rateLimitRedis, exceedsMaxBodySize } from "@/lib/rate-limit";
 import bcrypt from "bcryptjs";
+import { requestLogger } from "@repo/logger";
 
 export async function POST(request: Request) {
   try {
@@ -93,7 +94,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, resetSessionToken }, { status: 200 });
   } catch (error) {
-    console.error("verify-otp error:", error);
+    requestLogger(request).error("verify-otp error", { error: error });
     return NextResponse.json({ message: "Internal server error." }, { status: 500 });
   }
 }

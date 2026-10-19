@@ -5,6 +5,7 @@ import { signAccessToken, signRefreshToken, accessCookieOptions, refreshCookieOp
 import { storeRefreshSession } from "@/lib/redis-session";
 import { db } from "@/lib/db";
 import type { Role } from "@/types";
+import { requestLogger } from "@repo/logger";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
@@ -41,10 +42,10 @@ export async function GET(request: NextRequest) {
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : "";
     if (errMsg === "GOOGLE_EMAIL_NOT_VERIFIED") {
-      console.warn("[OAuth] Google account email is not verified.");
+      requestLogger(request).warn("[OAuth] Google account email is not verified.");
       return NextResponse.redirect(new URL("/login?error=oauth_email_unverified", APP_URL));
     }
-    console.error("[OAuth] Google code exchange failed:", err);
+    requestLogger(request).error("[OAuth] Google code exchange failed", { error: err });
     return NextResponse.redirect(new URL("/login?error=oauth_exchange_failed", APP_URL));
   }
 

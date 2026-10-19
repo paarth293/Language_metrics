@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { verifyRefreshToken, signAccessToken, signRefreshToken, accessCookieOptions, refreshCookieOptions } from "@/lib/tokens";
 import { rotateRefreshSession, revokeAllRefreshSessions } from "@/lib/redis-session";
+import { requestLogger } from "@repo/logger";
 
 /**
  * POST /api/auth/refresh
@@ -45,9 +46,7 @@ export async function POST(request: NextRequest) {
     // Old session not found → possible token reuse/theft.
     // Revoke ALL sessions for this user to contain the breach.
     await revokeAllRefreshSessions(userId).catch(() => {});
-    console.error(
-      `[Refresh] Rotation failed for userId=${userId}. Possible token theft. All sessions revoked.`
-    );
+    requestLogger(request).error("[Refresh] Rotation failed. Possible token theft. All sessions revoked.", { userId });
     const res = NextResponse.json(
       {
         code: "SESSION_STOLEN",

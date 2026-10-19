@@ -103,7 +103,8 @@ describe("email gives up on providers that never answer", () => {
     const { error, ms } = await timed(mailer.sendMail({ to: "a@example.test", subject: "s", html: "<p>hi</p>" }));
     expect(error).toBeNull();
     expect(ms).toBeLessThan(3_000);
-    expect(String(warn.mock.calls.find((c) => String(c[0]).includes("Zoho"))?.[1])).toMatch(/Greeting never received|timeout/i);
+    // One JSON log line (@repo/logger) that carries the SMTP error.
+    expect(String(warn.mock.calls.find((c) => String(c[0]).includes("Zoho"))?.[0])).toMatch(/Greeting never received|timeout/i);
     expect(requested).toEqual([10_000]); // the Resend fallback
   });
 

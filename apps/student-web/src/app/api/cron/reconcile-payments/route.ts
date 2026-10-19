@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHash, timingSafeEqual } from "crypto";
 import { reconcilePaymentOrders, withCronLock } from "@repo/live-classes";
+import { requestLogger } from "@repo/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,7 +32,7 @@ function isAuthorised(request: NextRequest, secret: string): boolean {
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (!secret) {
-    console.error("[reconcile-payments] CRON_SECRET is not set — refusing to run. Set it on the deployment.");
+    requestLogger(request).error("[reconcile-payments] CRON_SECRET is not set — refusing to run. Set it on the deployment.");
     return NextResponse.json({ message: "Endpoint misconfigured." }, { status: 500 });
   }
   if (!isAuthorised(request, secret)) {
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
   if (!run.ran) return NextResponse.json({ skipped: "locked" }, { status: 200 });
   const summary = run.result;
   if (summary.failed.length > 0 || summary.stuck.length > 0) {
-    console.error("[reconcile-payments] orders need attention:", { failed: summary.failed, stuck: summary.stuck });
+    requestLogger(request).error("[reconcile-payments] orders need attention", { failed: summary.failed, stuck: summary.stuck });
   }
   return NextResponse.json(summary, { status: 200 });
 }

@@ -5,6 +5,7 @@
 import { Resend, type CreateEmailRequestOptions } from "resend";
 import { VerificationEmail, PasswordResetEmail } from "./templates";
 import { sendMail } from "./zoho-mailer";
+import { log } from "@repo/logger";
 
 let _resend: Resend | null = null;
 
@@ -22,7 +23,7 @@ function getResend(): Resend {
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) {
       // In dev without keys, log a warning and skip sending
-      console.warn("RESEND_API_KEY is not configured. Emails will not be sent.");
+      log.warn("RESEND_API_KEY is not configured. Emails will not be sent.");
       throw new Error("RESEND_API_KEY is not set.");
     }
     _resend = new Resend(apiKey);
@@ -59,7 +60,7 @@ export async function sendVerificationOTP(email: string, otp: string): Promise<b
     });
     return true;
   } catch (error) {
-    console.error("Error sending verification OTP:", error);
+    log.error("Error sending verification OTP", { error: error });
     return false;
   }
 }
@@ -125,7 +126,7 @@ export async function sendPasswordResetOTP(email: string, otp: string): Promise<
     });
     return true;
   } catch (error) {
-    console.error("Error sending password reset OTP:", error);
+    log.error("Error sending password reset OTP", { error: error });
     return false;
   }
 }

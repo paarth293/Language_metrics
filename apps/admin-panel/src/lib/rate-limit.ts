@@ -20,6 +20,7 @@
  */
 
 import Redis from "ioredis";
+import { log } from "@repo/logger";
 
 interface RateLimitOptions {
   limit: number;
@@ -79,7 +80,7 @@ function rateLimitInMemory(key: string, opts: RateLimitOptions): RateLimitResult
   // detail.
   if (process.env.NODE_ENV === "production" && !warnedMissingRedisInProd) {
     warnedMissingRedisInProd = true;
-    console.error(
+    log.error(
       "[rate-limit] CRITICAL: REDIS_URL is not set in a production environment. " +
         "Falling back to a per-instance in-memory limiter that provides NO real " +
         "brute-force protection on serverless/multi-instance deployments. Set " +
@@ -121,7 +122,7 @@ function getClient(): Redis | null {
       retryStrategy: () => null,
     });
     _client.on("error", (err) => {
-      console.error("[rate-limit] Redis connection error:", err.message);
+      log.error("[rate-limit] Redis connection error", { error: err.message });
     });
   }
   return _client;
@@ -160,7 +161,7 @@ export async function rateLimit(
     }
     return { ok: true, retryAfterMs: 0 };
   } catch (err) {
-    console.error("[rate-limit] Redis error, failing open:", err);
+    log.error("[rate-limit] Redis error, failing open", { error: err });
     // Fail open on Redis outages rather than locking every admin out — the
     // LoginAttempt table still records every attempt for forensic review.
     return { ok: true, retryAfterMs: 0 };
@@ -176,6 +177,6 @@ export async function clearRateLimit(key: string): Promise<void> {
   try {
     await client.del(`rl:admin:${key}`);
   } catch (err) {
-    console.error("[rate-limit] Redis error clearing key:", err);
+    log.error("[rate-limit] Redis error clearing key", { error: err });
   }
 }

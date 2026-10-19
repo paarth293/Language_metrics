@@ -5,6 +5,7 @@ import { loginSchema } from "@/features/auth/validators/auth";
 import { rateLimitRedis, exceedsMaxBodySize } from "@/lib/rate-limit";
 import { signAccessToken, signRefreshToken, accessCookieOptions, refreshCookieOptions } from "@/lib/tokens";
 import { storeRefreshSession } from "@/lib/redis-session";
+import { requestLogger } from "@repo/logger";
 
 /**
  * POST /api/auth/login
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (err: unknown) {
-    console.error("POST /api/auth/login error:", err);
+    requestLogger(request).error("POST /api/auth/login error", { error: err });
     // Distinguish between database connectivity issues and other errors
     const errObj = err instanceof Error ? err : new Error(String(err));
     const message = errObj.message;

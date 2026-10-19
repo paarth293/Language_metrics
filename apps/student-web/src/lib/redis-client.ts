@@ -14,6 +14,7 @@
  */
 
 import Redis from "ioredis";
+import { log } from "@repo/logger";
 
 let _client: Redis | null = null;
 let _initialised = false;
@@ -28,7 +29,7 @@ export function getRedisClient(): Redis | null {
 
   const url = process.env.REDIS_URL;
   if (!url) {
-    console.warn("[Redis] REDIS_URL is not set — OTP rate limiting will be disabled.");
+    log.warn("[Redis] REDIS_URL is not set — OTP rate limiting will be disabled.");
     return null;
   }
 
@@ -44,11 +45,11 @@ export function getRedisClient(): Redis | null {
   });
 
   _client.on("connect", () => {
-    console.log("[Redis] Connected successfully.");
+    log.info("[Redis] Connected successfully.");
   });
 
   _client.on("error", (err) => {
-    console.error("[Redis] Connection error:", err.message);
+    log.error("[Redis] Connection error", { error: err.message });
   });
 
   return _client;

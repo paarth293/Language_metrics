@@ -14,6 +14,7 @@
  */
 
 import Redis from "ioredis";
+import { log } from "@repo/logger";
 
 let _client: Redis | null = null;
 let _initialised = false;
@@ -32,7 +33,7 @@ export function getRedisClient(): Redis | null {
 
   const url = process.env.REDIS_URL?.trim();
   if (!url) {
-    console.warn("[Redis] REDIS_URL is not set — OTP rate limiting will be disabled.");
+    log.warn("[Redis] REDIS_URL is not set — OTP rate limiting will be disabled.");
     return null;
   }
 
@@ -61,18 +62,18 @@ export function getRedisClient(): Redis | null {
     _client.connect()
       .then(() => _client!.ping())
       .then(() => {
-        console.log("[Redis] Connected successfully.");
+        log.info("[Redis] Connected successfully.");
         _connectionOk = true;
       })
       .catch((err) => {
         const msg = err instanceof Error ? err.message : String(err);
-        console.warn(`[Redis] Could not connect — OTP rate limiting will be disabled: ${msg}`);
+        log.warn("[Redis] Could not connect — OTP rate limiting will be disabled", { error: msg });
         _connectionOk = false;
         try { _client?.disconnect(); } catch { /* ignore */ }
         _client = null;
       });
   } catch (err) {
-    console.warn("[Redis] Failed to create client:", err);
+    log.warn("[Redis] Failed to create client", { error: err });
     _client = null;
   }
 
@@ -92,7 +93,7 @@ function getProductionClient(): Redis | null {
 
   const url = process.env.REDIS_URL?.trim();
   if (!url) {
-    console.warn("[Redis] REDIS_URL is not set — OTP rate limiting will be disabled.");
+    log.warn("[Redis] REDIS_URL is not set — OTP rate limiting will be disabled.");
     return null;
   }
 
@@ -104,11 +105,11 @@ function getProductionClient(): Redis | null {
     retryStrategy: (times) => Math.min(times * 200, 2000),
   });
   _client.on("error", (err) => {
-    console.error("[Redis] Connection error:", err.message);
+    log.error("[Redis] Connection error", { error: err.message });
   });
   _client.connect().catch((err) => {
     const msg = err instanceof Error ? err.message : String(err);
-    console.warn(`[Redis] Initial connect failed, retrying: ${msg}`);
+    log.warn("[Redis] Initial connect failed, retrying", { error: msg });
   });
   return _client;
 }

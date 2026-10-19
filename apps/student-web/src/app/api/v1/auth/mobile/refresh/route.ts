@@ -13,6 +13,7 @@ import {
   MobileTokenResponseSchema,
   type MobileTokenResponse,
 } from "@repo/api-contracts";
+import { requestLogger } from "@repo/logger";
 
 /**
  * POST /api/v1/auth/mobile/refresh
@@ -105,7 +106,7 @@ export async function POST(request: NextRequest) {
     const validated = MobileTokenResponseSchema.parse(responsePayload);
     return NextResponse.json(validated, { status: 200 });
   } catch (error) {
-    console.error("[Mobile Auth] Refresh error:", error);
+    requestLogger(request).error("[Mobile Auth] Refresh error", { error: error });
     return NextResponse.json({ message: "Internal server error during token refresh." }, { status: 500 });
   }
 }

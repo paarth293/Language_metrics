@@ -17,6 +17,8 @@
 
 // ── In-process fallback ────────────────────────────────────────────────────────
 
+import { log } from "@repo/logger";
+
 interface Window {
   count: number;
   resetAt: number;
@@ -87,7 +89,7 @@ async function getSharedClient(redisUrl: string): Promise<RedisClient> {
     retryStrategy: (times) => Math.min(times * 200, 2000),
   });
   sharedClient.on("error", (err) => {
-    console.error("[rateLimitRedis] Redis connection error:", err.message);
+    log.error("[rateLimitRedis] Redis connection error", { error: err.message });
   });
   return sharedClient;
 }
@@ -133,7 +135,7 @@ export async function rateLimitRedis(
     const count = results?.[2]?.[1] as number;
     return count > max;
   } catch (err) {
-    console.error("[rateLimitRedis] Redis error, falling back to in-process limiter:", err);
+    log.error("[rateLimitRedis] Redis error, falling back to in-process limiter", { error: err });
     // Weaker than Redis (per instance), but a Redis outage must not switch
     // rate limiting off entirely.
     return rateLimit(`${namespace}:${identifier}`, { windowMs, max });

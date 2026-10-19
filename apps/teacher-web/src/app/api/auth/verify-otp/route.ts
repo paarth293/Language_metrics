@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { getRedisClient } from "@/lib/redis-client";
 import { compareOtp } from "@/lib/otp";
 import { exceedsMaxBodySize, rateLimitRedis } from "@/lib/rate-limit";
+import { requestLogger } from "@repo/logger";
 
 const MAX_ATTEMPTS = 5;
 
@@ -138,7 +139,7 @@ export async function POST(request: NextRequest) {
         );
       }
     } catch (err) {
-      console.error("[verify-otp] Redis error checking attempts:", err);
+      requestLogger(request).error("[verify-otp] Redis error checking attempts", { error: err });
       // Continue without attempt tracking if Redis fails
     }
   }
@@ -164,7 +165,7 @@ export async function POST(request: NextRequest) {
           await redis.expire(attemptsKey, Math.max(remainingSeconds, 60));
         }
       } catch (err) {
-        console.error("[verify-otp] Redis error incrementing attempts:", err);
+        requestLogger(request).error("[verify-otp] Redis error incrementing attempts", { error: err });
       }
     }
 
@@ -190,7 +191,7 @@ export async function POST(request: NextRequest) {
     try {
       await redis.del(attemptsKey);
     } catch (err) {
-      console.error("[verify-otp] Redis error clearing attempts:", err);
+      requestLogger(request).error("[verify-otp] Redis error clearing attempts", { error: err });
     }
   }
 

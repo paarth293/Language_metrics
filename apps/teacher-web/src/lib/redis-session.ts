@@ -14,6 +14,7 @@
  */
 
 import Redis from "ioredis";
+import { log } from "@repo/logger";
 
 const REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
@@ -75,7 +76,7 @@ function getClient(): Redis | null {
     const url = process.env.REDIS_URL;
     if (!url) {
       if (isProduction()) throw new SessionStoreUnavailableError("REDIS_URL is not set");
-      console.warn("[Redis] REDIS_URL not set — using in-memory session store.");
+      log.warn("[Redis] REDIS_URL not set — using in-memory session store.");
       _redisAvailable = false;
       return null;
     }
@@ -90,7 +91,7 @@ function getClient(): Redis | null {
       },
     });
     _client.on("error", (err) => {
-      console.error("[Redis] Connection error:", err.message);
+      log.error("[Redis] Connection error", { error: err.message });
       if (!isProduction()) _redisAvailable = false;
     });
     _client.on("connect", () => {
@@ -119,10 +120,10 @@ async function tryRedis<T>(fn: (client: Redis) => Promise<T>, fallback: () => T)
     return await fn(client);
   } catch (err) {
     if (isProduction()) {
-      console.error("[Redis] Session store operation failed:", (err as Error).message);
+      log.error("[Redis] Session store operation failed", { error: err });
       throw new SessionStoreUnavailableError(err);
     }
-    console.error("[Redis] Operation failed, falling back to in-memory:", (err as Error).message);
+    log.error("[Redis] Operation failed, falling back to in-memory", { error: err });
     _redisAvailable = false;
     return fallback();
   }

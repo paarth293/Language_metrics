@@ -26,6 +26,7 @@
  */
 
 import Redis from "ioredis";
+import { log } from "@repo/logger";
 
 const REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
@@ -43,7 +44,7 @@ function getClient(): Redis {
       enableReadyCheck: true,
     });
     _client.on("error", (err) => {
-      console.error("[Redis] Connection error:", err.message);
+      log.error("[Redis] Connection error", { error: err.message });
     });
   }
   return _client;
