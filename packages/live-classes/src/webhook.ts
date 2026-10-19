@@ -32,6 +32,7 @@ import { parseParticipantMetadata, type WebhookEvent } from "@repo/livekit/serve
 import { settleClassSession } from "./settlement";
 import { recordDailyUsage } from "./usage";
 import { SWEEP_BUDGET_MS, sweepInBatches } from "./cron-lock";
+import { log } from "@repo/logger";
 
 export interface WebhookResult {
   handled: boolean;
@@ -388,7 +389,7 @@ async function onRoomFinished(event: WebhookEvent, occurredAt: Date): Promise<We
       classSessionId,
     });
   } catch (err) {
-    console.error("[livekit] usage rollup failed (non-fatal):", err);
+    log.error("livekit usage rollup failed (non-fatal)", { error: err });
   }
 
   return {
@@ -460,7 +461,7 @@ async function onEgressEnded(event: WebhookEvent): Promise<WebhookResult> {
       egressAudioSeconds: session?.recordingMode === "AUDIO" ? seconds : 0,
     });
   } catch (err) {
-    console.error("[livekit] egress usage rollup failed (non-fatal):", err);
+    log.error("livekit egress usage rollup failed (non-fatal)", { error: err });
   }
 
   return { handled: true, duplicate: false, event: event.event, classSessionId };

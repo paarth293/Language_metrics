@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { log } from "@repo/logger";
 
 /**
  * Server-side Cashfree Payment Gateway client shared by coin top-ups and
@@ -39,7 +40,7 @@ export interface GatewayPayment {
 export function cashfreeMode(): CashfreeMode {
   const mode = process.env.CASHFREE_ENV;
   if (mode === "production" || mode === "sandbox") return mode;
-  console.error(`[payments] CASHFREE_ENV must be "production" or "sandbox", got ${mode ? JSON.stringify(mode) : "nothing"}`);
+  log.error('CASHFREE_ENV must be "production" or "sandbox"', { got: mode ?? null });
   throw new CashfreeError("Payments are unavailable", 503);
 }
 
@@ -50,7 +51,7 @@ function cashfreeConfig() {
   const mode = cashfreeMode();
   // Cashfree test-mode app ids start with "TEST"; production ones never do.
   if (mode === "production" && clientId.startsWith("TEST")) {
-    console.error("[payments] CASHFREE_ENV is production but CASHFREE_CLIENT_ID is a test-mode key");
+    log.error("CASHFREE_ENV is production but CASHFREE_CLIENT_ID is a test-mode key");
     throw new CashfreeError("Payments are unavailable", 503);
   }
   const baseUrl = mode === "production" ? "https://api.cashfree.com/pg" : "https://sandbox.cashfree.com/pg";
@@ -79,7 +80,7 @@ async function getWithRetry(url: string, init: { headers: Record<string, string>
       if (response.status < 500 || attempt === 2) return response;
     } catch (error) {
       if (attempt === 2) throw providerFailure(error);
-      console.error("Cashfree request failed, retrying:", error instanceof Error ? error.message : error);
+      log.warn("cashfree request failed, retrying", { error });
     }
   }
 }
@@ -117,7 +118,7 @@ export async function createCashfreeOrder(input: { orderId: string; amountInr: n
     }),
   });
   if (!response.ok) {
-    console.error("Cashfree order error:", await response.json().catch(() => null));
+    log.error("cashfree order error", { status: response.status, response: await response.json().catch(() => null) });
     throw new CashfreeError("Payment provider error", 502);
   }
   const order = (await response.json()) as Partial<Record<"order_id" | "order_amount" | "order_currency" | "payment_session_id", unknown>> | null;
@@ -199,7 +200,7 @@ export async function createCashfreeRefund(input: { orderId: string; refundId: s
   });
   if (response.status === 409) return fetchCashfreeRefund(input.orderId, input.refundId);
   if (!response.ok) {
-    console.error("Cashfree refund error:", await response.json().catch(() => null));
+    log.error("cashfree refund error", { status: response.status, response: await response.json().catch(() => null) });
     throw new CashfreeError("Cashfree did not accept the refund", 502);
   }
   const refund = (await response.json()) as Partial<Record<"refund_id" | "refund_status", unknown>> | null;

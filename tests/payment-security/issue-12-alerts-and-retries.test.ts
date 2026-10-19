@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ALERT_URL, harness, jsonRequest } from "./harness/setup";
+import { ALERT_URL, harness, jsonRequest, loggedIncidents } from "./harness/setup";
 import { TEST_SECRET } from "./harness/fake-cashfree";
 
 vi.mock("@repo/database", async () => (await import("./harness/setup")).harness.database());
@@ -55,7 +55,7 @@ describe("issue #12: payment incidents raise alerts", () => {
     vi.stubEnv("PAYMENT_ALERT_WEBHOOK_URL", "");
     await mismatchedWebhook();
     expect(harness.alerts).toHaveLength(0);
-    expect(errors.mock.calls.some(([tag]) => tag === "[payment-incident]")).toBe(true);
+    expect(loggedIncidents(errors).length > 0).toBe(true);
   });
 
   it("a duplicate recording payment raises a duplicate_payment alert", async () => {

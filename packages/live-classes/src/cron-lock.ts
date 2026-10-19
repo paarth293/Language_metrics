@@ -7,6 +7,7 @@
  * lock lets exactly one run work; the others return straight away.
  */
 import { openDirectConnection } from "@repo/database";
+import { log } from "@repo/logger";
 
 export type CronRun<T> = { ran: true; result: T } | { ran: false };
 
@@ -28,7 +29,7 @@ export async function withCronLock<T>(name: string, job: () => Promise<T>): Prom
     } finally {
       await connection.$queryRaw`SELECT pg_advisory_unlock(hashtext(${name})) AS unlocked`.catch((error: unknown) => {
         // Disconnecting below releases it anyway.
-        console.error(`[cron-lock] unlock of ${name} failed:`, error instanceof Error ? error.message : error);
+        log.error("cron lock release failed", { job: name, error });
       });
     }
   } finally {

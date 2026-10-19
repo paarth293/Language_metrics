@@ -45,6 +45,21 @@ function openFakeLockConnection() {
   return connection;
 }
 
+/**
+ * Payment incidents as logged: JSON lines tagged "[payment-incident]" on
+ * console.error (packages/live-classes/src/payment-incidents.ts).
+ */
+export function loggedIncidents(spy: { mock: { calls: unknown[][] } }): Record<string, unknown>[] {
+  return spy.mock.calls.flatMap(([line]) => {
+    try {
+      const entry = JSON.parse(String(line)) as { msg?: unknown; incident?: Record<string, unknown> };
+      return entry.msg === "[payment-incident]" && entry.incident ? [entry.incident] : [];
+    } catch {
+      return [];
+    }
+  });
+}
+
 export const harness = {
   get db() { return fakeDb; },
   get cashfree() { return fakeCashfree; },

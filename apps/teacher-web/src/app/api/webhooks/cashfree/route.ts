@@ -1,5 +1,6 @@
 import { CashfreeError, handleCashfreeWebhook, verifyCashfreeWebhook } from "@repo/live-classes";
 import { NextResponse } from "next/server";
+import { requestLogger } from "@repo/logger";
 
 export async function POST(req: Request) {
   try {
@@ -13,7 +14,7 @@ export async function POST(req: Request) {
   } catch (error) {
     if (error instanceof CashfreeError) return NextResponse.json({ error: error.message }, { status: error.status });
     if (error instanceof SyntaxError) return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-    console.error("Webhook error:", error);
+    requestLogger(req).error("cashfree webhook failed", { error });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

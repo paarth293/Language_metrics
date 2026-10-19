@@ -10,6 +10,7 @@
 import { db } from "@repo/database";
 import type { GatewayPayment } from "./cashfree";
 import { transitionOrder } from "./payment-order-status";
+import { log } from "@repo/logger";
 
 export interface PaymentIncident {
   kind: "unsettleable_payment" | "duplicate_payment" | "stuck_orders" | "reconciliation_failed" | "refund_processed" | "refund_failed" | "refund_reversal_failed" | "dispute";
@@ -34,7 +35,7 @@ const ALERT_TIMEOUT_MS = 5_000;
  * the payment flow that raised the alert, so errors are logged and swallowed.
  */
 export async function reportPaymentIncident(incident: PaymentIncident): Promise<void> {
-  console.error("[payment-incident]", incident);
+  log.error("[payment-incident]", { incident });
   const url = process.env.PAYMENT_ALERT_WEBHOOK_URL;
   if (!url) return;
   const ids = [incident.orderId && `order ${incident.orderId}`, incident.paymentId && `payment ${incident.paymentId}`].filter(Boolean).join(", ");
@@ -45,9 +46,9 @@ export async function reportPaymentIncident(incident: PaymentIncident): Promise<
       body: JSON.stringify({ text, content: text, incident }),
       signal: AbortSignal.timeout(ALERT_TIMEOUT_MS),
     });
-    if (!response.ok) console.error("[payment-incident] alert delivery failed with HTTP", response.status);
+    if (!response.ok) log.error("payment alert delivery failed", { status: response.status });
   } catch (error) {
-    console.error("[payment-incident] alert delivery failed:", error instanceof Error ? error.message : error);
+    log.error("payment alert delivery failed", { error });
   }
 }
 

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { harness, jsonRequest } from "./harness/setup";
+import { harness, jsonRequest, loggedIncidents } from "./harness/setup";
 
 vi.mock("@repo/database", async () => (await import("./harness/setup")).harness.database());
 vi.mock("@/lib/auth", async () => (await import("./harness/setup")).harness.auth());
@@ -12,7 +12,7 @@ let errors: ReturnType<typeof vi.spyOn>;
 beforeEach(() => { harness.reset(); errors = vi.spyOn(console, "error").mockImplementation(() => {}); });
 afterEach(() => { harness.teardown(); errors.mockRestore(); });
 
-const incidents = () => errors.mock.calls.filter(([tag]) => tag === "[payment-incident]").map(([, detail]) => detail as Record<string, unknown>);
+const incidents = () => loggedIncidents(errors);
 
 async function coinOrder() {
   return (await (await createOrder(jsonRequest("/api/payments/create-order", { packageId: "tier1" }))).json()).orderId as string;

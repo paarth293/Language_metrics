@@ -10,6 +10,7 @@ import { z } from "zod";
 import { refundPaymentOrder, RefundError } from "@repo/live-classes";
 import { requireApiAdmin } from "@/lib/api-auth";
 import { auditLog } from "@/lib/audit";
+import { requestLogger } from "@repo/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,7 +42,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ ord
     return NextResponse.json(result);
   } catch (error) {
     if (error instanceof RefundError) return NextResponse.json({ message: error.message }, { status: error.status });
-    console.error("[admin refund] failed:", error);
+    requestLogger(request).error("admin refund failed", { error });
     return NextResponse.json({ message: "Refund could not be processed." }, { status: 500 });
   }
 }
