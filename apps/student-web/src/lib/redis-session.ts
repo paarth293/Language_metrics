@@ -82,14 +82,28 @@ function memKeysForUser(userId: string): string[] {
   return Array.from(memUserIndex.get(userId) ?? []);
 }
 
-// ── Redis client (lazy connect, fail-open) ─────────────────────────────────
+// ── Redis client (lazy connect; in-memory fallback in development only) ────
+
+// In production every instance must share one session store, so a session
+// kept in one instance's memory is invisible to the rest: users get logged
+// out at random and revoked sessions stay valid elsewhere. There we fail the
+// request instead and let ioredis reconnect.
+const isProduction = () => process.env.NODE_ENV === "production";
+
+export class SessionStoreUnavailableError extends Error {
+  constructor(cause?: unknown) {
+    super("Redis session store unavailable", { cause });
+    this.name = "SessionStoreUnavailableError";
+  }
+}
 
 function getClient(): Redis | null {
-  if (_redisAvailable === false) return null;
+  if (_redisAvailable === false && !isProduction()) return null;
 
   if (!_client) {
     const url = process.env.REDIS_URL;
     if (!url) {
+      if (isProduction()) throw new SessionStoreUnavailableError("REDIS_URL is not set");
       console.warn("[Redis] REDIS_URL not set — using in-memory session store.");
       _redisAvailable = false;
       return null;
@@ -100,13 +114,13 @@ function getClient(): Redis | null {
       connectTimeout: 3000,
       enableReadyCheck: false,
       retryStrategy(times) {
-        if (times > 2) return null; // stop retrying
-        return Math.min(times * 200, 1000);
+        if (times > 2 && !isProduction()) return null; // stop retrying (dev)
+        return Math.min(times * 200, isProduction() ? 2000 : 1000);
       },
     });
     _client.on("error", (err) => {
       console.error("[Redis] Connection error:", err.message);
-      _redisAvailable = false;
+      if (!isProduction()) _redisAvailable = false;
     });
     _client.on("connect", () => {
       _redisAvailable = true;
@@ -116,17 +130,27 @@ function getClient(): Redis | null {
   return _client;
 }
 
-/** Try Redis, fall back to in-memory silently */
+/** Try Redis; in development fall back to in-memory, in production throw. */
 async function tryRedis<T>(fn: (client: Redis) => Promise<T>, fallback: () => T): Promise<T> {
   const client = getClient();
   if (!client) return fallback();
 
   try {
-    if (client.status !== "ready" && client.status !== "connect") {
+    // In production only the first caller connects; concurrent callers would
+    // get "already connecting" from connect(), so their commands wait in the
+    // offline queue instead.
+    const shouldConnect = isProduction()
+      ? client.status === "wait"
+      : client.status !== "ready" && client.status !== "connect";
+    if (shouldConnect) {
       await client.connect();
     }
     return await fn(client);
   } catch (err) {
+    if (isProduction()) {
+      console.error("[Redis] Session store operation failed:", (err as Error).message);
+      throw new SessionStoreUnavailableError(err);
+    }
     console.error("[Redis] Operation failed, falling back to in-memory:", (err as Error).message);
     _redisAvailable = false;
     return fallback();
