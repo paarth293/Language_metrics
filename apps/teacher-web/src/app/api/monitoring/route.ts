@@ -1,29 +1,34 @@
+import { createHash, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getRedisClient } from "@/lib/redis-client";
+import { log } from "@repo/logger";
+
+/** Compare without leaking length or position through timing. */
+function sameSecret(a: string, b: string): boolean {
+  const left = createHash("sha256").update(a).digest();
+  const right = createHash("sha256").update(b).digest();
+  return timingSafeEqual(left, right);
+}
 
 /**
  * GET /api/monitoring
  * Production health check endpoint. Returns system status.
- * Protected — only accessible with internal key or from same origin.
+ *
+ * MONITORING_API_KEY is the only way in (#36). The old fallback accepted any
+ * request whose Origin header merely contained the Host, which any non-browser
+ * client can forge. With no key configured the endpoint stays closed.
  */
 export async function GET(request: Request) {
-  // Simple API key check for production monitoring
-  const authHeader = request.headers.get("authorization");
   const apiKey = process.env.MONITORING_API_KEY;
-  const origin = request.headers.get("origin");
-  const host = request.headers.get("host");
+  const bearer = request.headers.get("authorization")?.match(/^Bearer (.+)$/)?.[1];
 
-  // Allow same-origin or if monitoring key matches
-  const isSameOrigin = origin && host && origin.includes(host);
-  const hasValidKey = apiKey && authHeader === `Bearer ${apiKey}`;
-
-  if (!isSameOrigin && !hasValidKey) {
+  if (!apiKey || !bearer || !sameSecret(bearer, apiKey)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const startTime = Date.now();
-  const checks: Record<string, { status: string; latencyMs?: number; error?: string }> = {};
+  const checks: Record<string, { status: string; latencyMs?: number }> = {};
 
   // 1. Database check
   try {
@@ -34,10 +39,9 @@ export async function GET(request: Request) {
       latencyMs: Date.now() - dbStart,
     };
   } catch (err) {
-    checks.database = {
-      status: "unhealthy",
-      error: err instanceof Error ? err.message : "Unknown error",
-    };
+    // Never return the driver's message: it can carry hosts and credentials.
+    log.error("[monitoring] database check failed", { error: err });
+    checks.database = { status: "unhealthy" };
   }
 
   // 2. Redis check
@@ -54,10 +58,8 @@ export async function GET(request: Request) {
       checks.redis = { status: "not_configured" };
     }
   } catch (err) {
-    checks.redis = {
-      status: "unhealthy",
-      error: err instanceof Error ? err.message : "Unknown error",
-    };
+    log.error("[monitoring] redis check failed", { error: err });
+    checks.redis = { status: "unhealthy" };
   }
 
   // 3. User counts
