@@ -6,7 +6,7 @@
 # Why this exists: /api/cron/reconcile-sessions settles any class whose grace
 # window has passed but whose `room_finished` webhook never arrived. Until it
 # runs, the student's coins stay HELD. Vercel's Hobby plan only permits daily
-# cron expressions, so the vercel.json entry can leave coins held for up to 24
+# cron expressions, so the apps/student-web/vercel.json entry can leave coins held for up to 24
 # hours. This workflow is the primary trigger; the Vercel cron stays as a
 # fallback for when GitHub Actions is degraded.
 #

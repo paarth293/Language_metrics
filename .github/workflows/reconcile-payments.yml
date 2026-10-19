@@ -7,7 +7,7 @@
 # that was paid but never confirmed, because the student closed the tab and
 # the webhook was missed. Until it runs, the student has paid and received
 # nothing. Vercel's Hobby plan only permits daily cron expressions, so this
-# workflow is the primary trigger and the vercel.json entry is the fallback.
+# workflow is the primary trigger and the apps/student-web/vercel.json entry is the fallback.
 #
 # Required repository secrets:
 #   APP_URL      — the STUDENT-WEB deployment origin, e.g. https://language-metrics-student-web.vercel.app
