@@ -120,8 +120,9 @@ export async function rateLimitRedis(
     return count > max;
   } catch (err) {
     console.error("[rateLimitRedis] Redis error, falling back to in-process limiter:", err);
-    // Fail open: allow the request if Redis is temporarily unavailable
-    return false;
+    // Weaker than Redis (per instance), but a Redis outage must not switch
+    // rate limiting off entirely.
+    return rateLimit(`${namespace}:${identifier}`, { windowMs, max });
   }
 }
 
