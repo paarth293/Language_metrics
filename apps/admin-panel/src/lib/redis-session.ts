@@ -27,6 +27,7 @@
 
 import Redis from "ioredis";
 import { log } from "@repo/logger";
+import { reportOpsAlert } from "@repo/logger/ops-alert";
 
 const REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
@@ -45,6 +46,7 @@ function getClient(): Redis {
     });
     _client.on("error", (err) => {
       log.error("[Redis] Connection error", { error: err.message });
+      void reportOpsAlert("redis_error", { scope: "admin-panel redis-session", reason: "Redis connection error.", error: err.message });
     });
   }
   return _client;

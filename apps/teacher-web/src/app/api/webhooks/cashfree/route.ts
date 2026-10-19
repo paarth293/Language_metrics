@@ -1,8 +1,10 @@
 import { CashfreeError, handleCashfreeWebhook, verifyCashfreeWebhook } from "@repo/live-classes";
 import { NextResponse } from "next/server";
 import { requestLogger } from "@repo/logger";
+import { withServerErrorAlerts } from "@repo/logger/ops-alert";
 
-export async function POST(req: Request) {
+// 5xx answers are counted for the repeated-5xx ops alert (#8e).
+export const POST = withServerErrorAlerts("teacher-web webhooks/cashfree", async (req: Request) => {
   try {
     const signature = req.headers.get("x-webhook-signature");
     const timestamp = req.headers.get("x-webhook-timestamp");
@@ -17,4 +19,4 @@ export async function POST(req: Request) {
     requestLogger(req).error("cashfree webhook failed", { error });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+});

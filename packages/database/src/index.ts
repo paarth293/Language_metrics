@@ -1,12 +1,18 @@
 import { PrismaClient } from "@prisma/client";
+import { onPrismaError } from "./db-alerts";
 
 const prismaClientSingleton = () => {
-  return new PrismaClient({
-    log:
-      process.env.NODE_ENV === "production"
-        ? ["error", "warn"]
-        : ["query", "error", "warn"],
+  const client = new PrismaClient({
+    log: [
+      // Errors go through @repo/logger (JSON, secrets masked) and raise an
+      // ops alert when the database is down (#8e).
+      { emit: "event", level: "error" },
+      { emit: "stdout", level: "warn" },
+      ...(process.env.NODE_ENV === "production" ? [] : [{ emit: "stdout" as const, level: "query" as const }]),
+    ],
   });
+  client.$on("error", onPrismaError);
+  return client;
 };
 
 declare global {

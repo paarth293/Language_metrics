@@ -20,8 +20,9 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { createHash, timingSafeEqual } from "crypto";
-import { reconcileStaleSessions, withCronLock } from "@repo/live-classes";
+import { type CronRun, reconcileStaleSessions, withCronLock } from "@repo/live-classes";
 import { requestLogger } from "@repo/logger";
+import { reportOpsAlert } from "@repo/logger/ops-alert";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -52,6 +53,7 @@ export async function GET(request: NextRequest) {
   // to set it — the one configuration where you least want an open endpoint.
   if (!secret) {
     requestLogger(request).error("[reconcile] CRON_SECRET is not set — refusing to run. Set it on the deployment.");
+    await reportOpsAlert("cron_failed", { scope: "reconcile-sessions", reason: "CRON_SECRET is not set, so the sweep cannot run." });
     return NextResponse.json(
       { message: "Endpoint misconfigured." },
       { status: 500 }
@@ -63,11 +65,23 @@ export async function GET(request: NextRequest) {
   }
 
   // Another run (GitHub, Vercel cron, another deployment) is already sweeping.
-  const run = await withCronLock("reconcile-sessions", () => reconcileStaleSessions());
+  let run: CronRun<Awaited<ReturnType<typeof reconcileStaleSessions>>>;
+  try {
+    run = await withCronLock("reconcile-sessions", () => reconcileStaleSessions());
+  } catch (error) {
+    requestLogger(request).error("[reconcile] sweep failed", { error });
+    await reportOpsAlert("cron_failed", { scope: "reconcile-sessions", reason: "The session sweep threw.", error });
+    return NextResponse.json({ message: "Cron run failed." }, { status: 500 });
+  }
   if (!run.ran) return NextResponse.json({ skipped: "locked" }, { status: 200 });
   const summary = run.result;
   if (summary.failed.length > 0) {
     requestLogger(request).error("[reconcile] some sessions failed to settle", { detail: summary.failed });
+    await reportOpsAlert("cron_failed", {
+      scope: "reconcile-sessions",
+      reason: `${summary.failed.length} session(s) failed to settle.`,
+      failed: summary.failed,
+    });
   }
   return NextResponse.json(summary, { status: 200 });
 }

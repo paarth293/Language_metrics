@@ -18,6 +18,7 @@
 // ── In-process fallback ────────────────────────────────────────────────────────
 
 import { log } from "@repo/logger";
+import { reportOpsAlert } from "@repo/logger/ops-alert";
 
 interface Window {
   count: number;
@@ -90,6 +91,7 @@ async function getSharedClient(redisUrl: string): Promise<RedisClient> {
   });
   sharedClient.on("error", (err) => {
     log.error("[rateLimitRedis] Redis connection error", { error: err.message });
+    void reportOpsAlert("redis_error", { scope: "student-web rate-limit", reason: "Redis connection error.", error: err.message });
   });
   return sharedClient;
 }

@@ -34,6 +34,7 @@ const FORMATS = z.object({
   LIVEKIT_WS_URL: z.string().regex(/^(wss?|https?):\/\//, "must be a ws(s):// or http(s):// URL").optional(),
   LIVEKIT_URL: z.string().regex(/^(wss?|https?):\/\//, "must be a ws(s):// or http(s):// URL").optional(),
   PAYMENT_ALERT_WEBHOOK_URL: z.url({ error: "must be a URL" }).optional(),
+  OPS_ALERT_WEBHOOK_URL: z.url({ error: "must be a URL" }).optional(),
   SENTRY_DSN: z.url({ error: "must be a URL" }).optional(),
   NEXT_PUBLIC_SENTRY_DSN: z.url({ error: "must be a URL" }).optional(),
 });

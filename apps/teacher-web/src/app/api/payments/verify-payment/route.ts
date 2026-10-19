@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { CashfreeError, PaymentError, verifyCoinPayment } from "@repo/live-classes";
 import { requireAuth } from "@/lib/auth";
 import { requestLogger } from "@repo/logger";
+import { withServerErrorAlerts } from "@repo/logger/ops-alert";
 
-export async function POST(req: Request) {
+// 5xx answers are counted for the repeated-5xx ops alert (#8e).
+export const POST = withServerErrorAlerts("teacher-web payments/verify-payment", async (req: Request) => {
   try {
     const auth = await requireAuth(req, "STUDENT");
     if (auth.error) return auth.error;
@@ -19,4 +21,4 @@ export async function POST(req: Request) {
     requestLogger(req).error("payment verification failed", { error });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+});

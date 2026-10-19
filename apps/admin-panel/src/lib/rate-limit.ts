@@ -21,6 +21,7 @@
 
 import Redis from "ioredis";
 import { log } from "@repo/logger";
+import { reportOpsAlert } from "@repo/logger/ops-alert";
 
 interface RateLimitOptions {
   limit: number;
@@ -123,6 +124,7 @@ function getClient(): Redis | null {
     });
     _client.on("error", (err) => {
       log.error("[rate-limit] Redis connection error", { error: err.message });
+      void reportOpsAlert("redis_error", { scope: "admin-panel rate-limit", reason: "Redis connection error.", error: err.message });
     });
   }
   return _client;

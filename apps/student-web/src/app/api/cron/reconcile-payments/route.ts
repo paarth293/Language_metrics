@@ -13,8 +13,9 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { createHash, timingSafeEqual } from "crypto";
-import { reconcilePaymentOrders, withCronLock } from "@repo/live-classes";
+import { type CronRun, reconcilePaymentOrders, withCronLock } from "@repo/live-classes";
 import { requestLogger } from "@repo/logger";
+import { reportOpsAlert } from "@repo/logger/ops-alert";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,6 +34,7 @@ export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (!secret) {
     requestLogger(request).error("[reconcile-payments] CRON_SECRET is not set — refusing to run. Set it on the deployment.");
+    await reportOpsAlert("cron_failed", { scope: "reconcile-payments", reason: "CRON_SECRET is not set, so the sweep cannot run." });
     return NextResponse.json({ message: "Endpoint misconfigured." }, { status: 500 });
   }
   if (!isAuthorised(request, secret)) {
@@ -40,7 +42,14 @@ export async function GET(request: NextRequest) {
   }
 
   // Another run (GitHub, Vercel cron, another deployment) is already sweeping.
-  const run = await withCronLock("reconcile-payments", () => reconcilePaymentOrders());
+  let run: CronRun<Awaited<ReturnType<typeof reconcilePaymentOrders>>>;
+  try {
+    run = await withCronLock("reconcile-payments", () => reconcilePaymentOrders());
+  } catch (error) {
+    requestLogger(request).error("[reconcile-payments] sweep failed", { error });
+    await reportOpsAlert("cron_failed", { scope: "reconcile-payments", reason: "The payment sweep threw.", error });
+    return NextResponse.json({ message: "Cron run failed." }, { status: 500 });
+  }
   if (!run.ran) return NextResponse.json({ skipped: "locked" }, { status: 200 });
   const summary = run.result;
   if (summary.failed.length > 0 || summary.stuck.length > 0) {

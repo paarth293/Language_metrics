@@ -15,6 +15,7 @@
 
 import Redis from "ioredis";
 import { log } from "@repo/logger";
+import { reportOpsAlert } from "@repo/logger/ops-alert";
 
 const REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
@@ -121,6 +122,7 @@ function getClient(): Redis | null {
     });
     _client.on("error", (err) => {
       log.error("[Redis] Connection error", { error: err.message });
+      void reportOpsAlert("redis_error", { scope: "student-web redis-session", reason: "Redis connection error.", error: err.message });
       if (!isProduction()) _redisAvailable = false;
     });
     _client.on("connect", () => {

@@ -15,6 +15,7 @@
 
 import Redis from "ioredis";
 import { log } from "@repo/logger";
+import { reportOpsAlert } from "@repo/logger/ops-alert";
 
 let _client: Redis | null = null;
 let _initialised = false;
@@ -50,6 +51,7 @@ export function getRedisClient(): Redis | null {
 
   _client.on("error", (err) => {
     log.error("[Redis] Connection error", { error: err.message });
+    void reportOpsAlert("redis_error", { scope: "student-web redis-client", reason: "Redis connection error.", error: err.message });
   });
 
   return _client;
