@@ -15,6 +15,19 @@ import { log } from "@repo/logger";
 import { createCashfreeOrder } from "./cashfree";
 import { transitionOrder } from "./payment-order-status";
 
+/**
+ * A row this young may belong to a request still between its insert and its
+ * Cashfree call (which times out after 10 s), so a Cashfree 404 for it proves
+ * nothing yet. Expiring it would leave its soon-payable order EXPIRED, where
+ * the reconciler no longer looks.
+ */
+const IN_FLIGHT_MS = 60_000;
+
+/** Whether an open order Cashfree has no record of can be retired yet. */
+export function mayRetireMissingOrder(row: { createdAt: Date }, now = Date.now()): boolean {
+  return now - row.createdAt.getTime() >= IN_FLIGHT_MS;
+}
+
 export async function openPaymentOrder(input: { userId: string; orderId: string; amountInr: number }) {
   const { userId, orderId, amountInr } = input;
   // The order id is our receipt, so webhooks can be routed by its prefix.

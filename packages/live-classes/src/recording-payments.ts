@@ -3,7 +3,7 @@ import { db } from "@repo/database";
 import { reportPaymentIncident } from "./payment-incidents";
 import { sourcesOf, transitionOrder, type PaymentOrderStatus } from "./payment-order-status";
 import { CashfreeError, cashfreeMode, findCashfreeOrder, fetchSuccessfulPayment, type GatewayPayment } from "./cashfree";
-import { openPaymentOrder } from "./open-payment-order";
+import { mayRetireMissingOrder, openPaymentOrder } from "./open-payment-order";
 
 const RECORDING_PRICE_INR = 299;
 
@@ -52,7 +52,7 @@ export async function createRecordingPaymentOrder(userId: string, recordingId: u
       if (payment) await settleRecordingPayment(payment, userId);
       throw new RecordingPaymentError("Recording is already unlocked", 409);
     }
-    await transitionOrder(db, { id: open.id }, "EXPIRED");
+    if (existing || mayRetireMissingOrder(open)) await transitionOrder(db, { id: open.id }, "EXPIRED");
   }
 
   const receipt = `${receiptPrefix(recordingId)}${randomBytes(4).toString("hex")}`;

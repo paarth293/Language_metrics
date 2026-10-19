@@ -121,10 +121,19 @@ describe("#10 crash case: a row with no Cashfree order", () => {
     expect(createCalls()).toBe(1);
   });
 
+  it("a recording row whose Cashfree call may still be running is not reused, and stays CREATED", async () => {
+    await withRecording();
+    const first = await (await buyRecording()).json();
+    harness.cashfree.orders.clear(); // Cashfree has not created it yet
+    expect((await buyRecording()).status).toBe(200);
+    expect((await harness.db.db.paymentOrder.findUnique({ where: { orderId: first.orderId } }))?.status).toBe("CREATED");
+  });
+
   it("a recording purchase whose open row has no Cashfree order opens a new order instead of failing", async () => {
     await withRecording();
     const prefix = (await (await buyRecording()).json()).orderId.slice(0, -8);
     harness.cashfree.orders.clear(); // the open row now has no Cashfree order, like after a crash
+    await harness.db.db.paymentOrder.updateMany({ where: {}, data: { createdAt: new Date(Date.now() - 2 * 60_000) } });
     const response = await buyRecording();
     expect(response.status).toBe(200);
     const { orderId } = await response.json();
