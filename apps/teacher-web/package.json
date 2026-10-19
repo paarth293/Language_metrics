@@ -28,6 +28,7 @@
     "@repo/languages": "*",
     "@repo/live-classes": "*",
     "@repo/livekit": "*",
+    "@repo/logger": "*",
     "@repo/ui": "*",
     "@sentry/nextjs": "^11.8.0",
     "@supabase/supabase-js": "^2.39.4",

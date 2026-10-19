@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify, importSPKI } from "jose";
+import { requestIdFrom } from "@repo/logger";
 
 /**
  * teacher-web Edge Proxy (Next.js 16.3)
@@ -59,6 +60,11 @@ function isProtected(pathname: string): boolean {
 // ── Main proxy handler ─────────────────────────────────────────────────
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  // One ID per request: forwarded to the handler (for its logs) and returned
+  // to the client, so a user's report can be matched to the server logs.
+  const requestId = requestIdFrom(request);
+  const forwardedHeaders = new Headers(request.headers);
+  forwardedHeaders.set("x-request-id", requestId);
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
 
@@ -130,17 +136,17 @@ export async function proxy(request: NextRequest) {
   // ── 3. Security headers for all responses ────────────────────────────
   const response = isProtected(pathname)
     ? undefined // Will be set after auth check
-    : NextResponse.next();
+    : NextResponse.next({ request: { headers: forwardedHeaders } });
 
   if (response) {
-    response.headers.set("X-Request-ID", crypto.randomUUID());
+    response.headers.set("X-Request-ID", requestId);
     response.headers.set("X-DNS-Prefetch-Control", "on");
   }
 
   // ── 4. Auth check on protected page routes ──────────────────────────
   if (!isProtected(pathname)) {
-    const res = response ?? NextResponse.next();
-    res.headers.set("X-Request-ID", crypto.randomUUID());
+    const res = response ?? NextResponse.next({ request: { headers: forwardedHeaders } });
+    res.headers.set("X-Request-ID", requestId);
     return res;
   }
 
@@ -193,12 +199,11 @@ export async function proxy(request: NextRequest) {
     }
 
     // Token valid — pass identity to server components
-    const requestHeaders = new Headers(request.headers);
-    requestHeaders.set("x-user-id", payload.sub ?? "");
-    requestHeaders.set("x-user-role", role ?? "");
+    forwardedHeaders.set("x-user-id", payload.sub ?? "");
+    forwardedHeaders.set("x-user-role", role ?? "");
 
-    const res = NextResponse.next({ request: { headers: requestHeaders } });
-    res.headers.set("X-Request-ID", crypto.randomUUID());
+    const res = NextResponse.next({ request: { headers: forwardedHeaders } });
+    res.headers.set("X-Request-ID", requestId);
     return res;
   } catch {
     // Token invalid/expired
