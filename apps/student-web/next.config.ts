@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { CSP_HEADER, contentSecurityPolicy } from "./src/csp";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
@@ -29,6 +30,7 @@ const nextConfig: NextConfig = {
             key: "Strict-Transport-Security",
             value: "max-age=31536000; includeSubDomains; preload",
           },
+          { key: CSP_HEADER, value: contentSecurityPolicy(process.env) },
         ],
       },
     ];
