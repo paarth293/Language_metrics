@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getCoinBalance } from '@/lib/coin-service';
+import { requestLogger } from '@repo/logger';
 
 export async function GET(req: Request) {
   try {
@@ -13,7 +14,7 @@ export async function GET(req: Request) {
     
     return NextResponse.json({ balance });
   } catch (error) {
-    console.error('Coin balance error:', error);
+    requestLogger(req).error('Coin balance error', { error });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { requestLogger } from "@repo/logger";
 
 // GET - List all recordings for the student
 export async function GET(request: NextRequest) {
@@ -55,7 +56,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ recordings });
   } catch (error) {
-    console.error("Failed to fetch recordings:", error);
+    requestLogger(request).error("Failed to fetch recordings", { error });
     return NextResponse.json(
       { error: "Failed to fetch recordings" },
       { status: 500 }

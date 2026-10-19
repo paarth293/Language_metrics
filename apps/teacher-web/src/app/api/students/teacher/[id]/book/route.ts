@@ -14,6 +14,7 @@ import { invalidateCache } from "@/lib/api-cache";
 import { validateBookClass } from "@/lib/validation";
 import { exceedsMaxBodySize, rateLimitRedis } from "@/lib/rate-limit";
 import { sanitizeOrFallback } from "@/lib/sanitize";
+import { requestLogger } from "@repo/logger";
 
 export const runtime = "nodejs";
 
@@ -102,7 +103,7 @@ export async function POST(
         { status: 400 }
       );
     }
-    console.error("Error booking class:", error);
+    requestLogger(request).error("Error booking class", { error });
     return NextResponse.json({ error: "Failed to book class" }, { status: 500 });
   }
 }

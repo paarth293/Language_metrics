@@ -13,7 +13,16 @@ const DIRS = [
   "packages/auth/src",
 ];
 const LIB_FILES = ["auth", "rate-limit", "redis-client", "redis-session", "email", "zoho-mailer"];
-const FILES = APPS.flatMap((app) => LIB_FILES.map((name) => `apps/${app}/src/lib/${name}.ts`));
+const FILES = [
+  ...APPS.flatMap((app) => LIB_FILES.map((name) => `apps/${app}/src/lib/${name}.ts`)),
+  // Booking, recordings and coin-balance routes (#8).
+  ...["student-web", "teacher-web"].flatMap((app) => [
+    `apps/${app}/src/app/api/students/teacher/[id]/book/route.ts`,
+    `apps/${app}/src/app/api/students/recordings/route.ts`,
+  ]),
+  "apps/student-web/src/app/api/v1/bookings/route.ts",
+  "apps/student-web/src/app/api/coins/balance/route.ts",
+];
 
 const isSource = (path: string) => /\.tsx?$/.test(path) && !/\.test\.tsx?$/.test(path);
 
@@ -42,7 +51,7 @@ function sources(): string[] {
   return files;
 }
 
-describe("auth and cron paths use @repo/logger (#8d)", () => {
+describe("auth, cron, booking, recordings and coin-balance paths use @repo/logger (#8)", () => {
   it("scans a meaningful set of files", () => {
     expect(sources().length).toBeGreaterThan(40);
   });
