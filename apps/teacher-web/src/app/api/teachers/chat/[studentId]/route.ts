@@ -5,10 +5,12 @@ import { fetchConversationPage, parseChatPageQuery } from "@/lib/chat-messages";
 import { hasBooking } from "@/lib/chat-access";
 import { stripHtml } from "@/lib/sanitize";
 import { validateChatMessage } from "@repo/api-contracts";
+import { exceedsMaxBodySize, rateLimitRedis } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 const NO_CONVERSATION = "You don't have a conversation with this student.";
+const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10MB, matches lib/storage.ts's default
 
 // GET - Get messages with a specific student
 export async function GET(
@@ -55,8 +57,17 @@ export async function POST(
   const auth = await requireAuth(request, "TEACHER");
   if (auth.error) return auth.error;
 
+  if (exceedsMaxBodySize(request, MAX_ATTACHMENT_SIZE)) {
+    return NextResponse.json({ error: "Request body too large." }, { status: 413 });
+  }
+
+  const userId = auth.user.sub;
+  const isLimited = await rateLimitRedis(userId, "chat-send", { windowMs: 60_000, max: 30 });
+  if (isLimited) {
+    return NextResponse.json({ error: "Too many messages. Please slow down." }, { status: 429 });
+  }
+
   try {
-    const userId = auth.user.sub;
     const { studentId } = await context.params;
 
     if (!(await hasBooking(studentId, userId))) {

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 
 const STUDENT = "11111111-1111-4111-8111-111111111111";
@@ -10,9 +10,10 @@ const state = vi.hoisted(() => ({
   created: [] as Record<string, unknown>[],
   findManyCalls: 0,
   stored: [] as Record<string, unknown>[],
+  userId: "",
 }));
 
-vi.mock("@/lib/auth", () => ({ requireAuth: async () => ({ user: { sub: TEACHER, role: "TEACHER" } }) }));
+vi.mock("@/lib/auth", () => ({ requireAuth: async () => ({ user: { sub: state.userId, role: "TEACHER" } }) }));
 vi.mock("@/lib/db", () => ({
   prisma: {
     booking: {
@@ -65,11 +66,20 @@ function form(fields: Record<string, string | Blob>) {
 }
 
 beforeEach(() => {
+  // Fresh route + rate-limit modules per test, so the in-process limiter
+  // (used because REDIS_URL is empty) starts from zero every time.
+  vi.resetModules();
+  vi.stubEnv("REDIS_URL", "");
+  state.userId = TEACHER;
   state.hasBooking = true;
   state.bookingWhere = [];
   state.created = [];
   state.findManyCalls = 0;
   state.stored = [];
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe("teacher-web /api/teachers/chat/[studentId]: booking check", () => {
@@ -149,5 +159,39 @@ describe("message validation (shared validateChatMessage, max 5000 characters)",
   it("trims the stored content", async () => {
     await postJson({ content: "  hi  " });
     expect(state.created[0].content).toBe("hi");
+  });
+});
+
+describe("rate limit (student-web's: 30 messages per 60 s per user) and body size", () => {
+  it("lets the 30th message in a minute through and answers the 31st with 429", async () => {
+    for (let i = 1; i <= 30; i++) {
+      const { status } = await postJson({ content: `message ${i}` });
+      expect(status, `message ${i}`).toBe(201);
+    }
+    const { status, body } = await postJson({ content: "message 31" });
+    expect(status).toBe(429);
+    expect(body.error).toBe("Too many messages. Please slow down.");
+    expect(state.created).toHaveLength(30);
+  });
+
+  it("limits each user separately", async () => {
+    for (let i = 1; i <= 31; i++) await postJson({ content: `message ${i}` });
+    state.userId = "33333333-3333-4333-8333-333333333333";
+    expect((await postJson({ content: "from someone else" })).status).toBe(201);
+  });
+
+  it("does not limit reading messages", async () => {
+    for (let i = 1; i <= 31; i++) await postJson({ content: `message ${i}` });
+    expect((await get()).status).toBe(200);
+  });
+
+  it("rejects a body over 10 MB with 413 before reading it", async () => {
+    const { status, body } = await postRaw("{}", {
+      "content-type": "application/json",
+      "content-length": String(10 * 1024 * 1024 + 1),
+    });
+    expect(status).toBe(413);
+    expect(body.error).toBe("Request body too large.");
+    expect(state.created).toHaveLength(0);
   });
 });
