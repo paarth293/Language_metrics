@@ -52,6 +52,25 @@ function getClient(): Redis {
   return _client;
 }
 
+/** For /api/health: whether Redis answers PING within `timeoutMs`. Never throws. */
+export async function pingSessionStore(timeoutMs: number): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const reply = await Promise.race([
+      getClient().ping(),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("Redis ping timed out")), timeoutMs);
+      }),
+    ]);
+    return reply === "PONG";
+  } catch (error) {
+    log.warn("[health] Redis ping failed", { error });
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function rtKey(userId: string, sessionId: string) {
   return `rt:${userId}:${sessionId}`;
 }
