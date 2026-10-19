@@ -5,6 +5,7 @@ import { loginSchema } from "@/features/auth/validators/auth";
 import { rateLimitRedis, exceedsMaxBodySize } from "@/lib/rate-limit";
 import { signAccessToken, signRefreshToken, accessCookieOptions, refreshCookieOptions } from "@/lib/tokens";
 import { storeRefreshSession } from "@/lib/redis-session";
+import { clearFailedLogins, loginLockoutSeconds, recordFailedLogin } from "@/lib/login-lockout";
 import { requestLogger } from "@repo/logger";
 
 /**
@@ -49,6 +50,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message }, { status: 400 });
   }
 
+  const { email } = result.data;
+
+  // Per-email lockout: a per-IP limit alone does not slow distributed
+  // credential stuffing against one account (#35).
+  const lockedFor = await loginLockoutSeconds(email);
+  if (lockedFor > 0) {
+    return NextResponse.json(
+      { message: "Too many failed attempts for this account. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(lockedFor) } }
+    );
+  }
+
   // 4. Authenticate + 5. Issue tokens
   try {
     const authResult = await AuthService.login(result.data);
@@ -59,11 +72,14 @@ export async function POST(request: NextRequest) {
           { status: 403 }
         );
       }
+      await recordFailedLogin(email);
       if (authResult.error === "USER_NOT_FOUND") {
         return NextResponse.json({ message: "Invalid email or password." }, { status: 401 });
       }
       return NextResponse.json({ message: "Invalid credentials." }, { status: 401 });
     }
+
+    await clearFailedLogins(email);
 
     // Issue tokens — httpOnly cookies only, never in response body
     const sessionId = crypto.randomUUID();

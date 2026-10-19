@@ -8,6 +8,7 @@ import { signAccessToken, signRefreshToken, accessCookieOptions, refreshCookieOp
 import { storeRefreshSession } from "@/lib/redis-session";
 import { rateLimitRedis, exceedsMaxBodySize } from "@/lib/rate-limit";
 import { validateLoginBody } from "@/lib/validation";
+import { clearFailedLogins, loginLockoutSeconds, recordFailedLogin } from "@/lib/login-lockout";
 import { requestLogger } from "@repo/logger";
 
 /**
@@ -41,6 +42,16 @@ export async function POST(request: NextRequest) {
   }
   const { email, password, role } = validation.data;
 
+  // Per-email lockout: a per-IP limit alone does not slow distributed
+  // credential stuffing against one account (#35).
+  const lockedFor = await loginLockoutSeconds(email);
+  if (lockedFor > 0) {
+    return NextResponse.json(
+      { message: "Too many failed attempts for this account. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(lockedFor) } }
+    );
+  }
+
   try {
     const user = await db.user.findUnique({
       where: { email },
@@ -54,11 +65,13 @@ export async function POST(request: NextRequest) {
     // wrong password — now returns the exact same 401 + generic message, so
     // none of them leak whether the email is registered.
     if (!user || !user.passwordHash || (role && user.role !== role)) {
+      await recordFailedLogin(email);
       return NextResponse.json({ message: "Invalid email or password." }, { status: 401 });
     }
 
     const isValid = await bcrypt.compare(password, user.passwordHash);
     if (!isValid) {
+      await recordFailedLogin(email);
       return NextResponse.json({ message: "Invalid email or password." }, { status: 401 });
     }
 
@@ -82,6 +95,8 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     }
+
+    await clearFailedLogins(email);
 
     const sessionId = crypto.randomUUID();
     const [accessToken, refreshToken] = await Promise.all([
