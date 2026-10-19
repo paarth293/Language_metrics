@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { fetchConversationPage, parseChatPageQuery } from "@/lib/chat-messages";
+import { hasBooking } from "@/lib/chat-access";
+
+const NO_CONVERSATION = "You don't have a conversation with this teacher.";
 
 // GET - Get messages with a specific teacher
 export async function GET(
@@ -14,6 +17,10 @@ export async function GET(
   try {
     const userId = auth.user.sub;
     const { teacherId } = await context.params;
+
+    if (!(await hasBooking(userId, teacherId))) {
+      return NextResponse.json({ error: NO_CONVERSATION }, { status: 403 });
+    }
 
     const parsed = parseChatPageQuery(request.nextUrl.searchParams);
     if (!parsed.ok) {
@@ -43,6 +50,10 @@ export async function POST(
   try {
     const userId = auth.user.sub;
     const { teacherId } = await context.params;
+
+    if (!(await hasBooking(userId, teacherId))) {
+      return NextResponse.json({ error: NO_CONVERSATION }, { status: 403 });
+    }
 
     const contentType = request.headers.get("content-type") || "";
     let content = "";
