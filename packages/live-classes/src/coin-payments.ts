@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { credit, db } from "@repo/database";
-import { createCashfreeOrder, fetchSuccessfulPayment, type GatewayPayment } from "./cashfree";
+import { fetchSuccessfulPayment, type GatewayPayment } from "./cashfree";
+import { openPaymentOrder } from "./open-payment-order";
 import { sourcesOf, transitionOrder, type PaymentOrderStatus } from "./payment-order-status";
 
 // Must match COIN_VALUE_INR in packages/api-contracts/src/wallet.ts (1 coin = ₹1).
@@ -64,17 +65,14 @@ export async function settlePayment(payment: GatewayPayment, userId?: string) {
  * Open a Cashfree order for a coin pack. The caller resolves the pack from
  * the shared list (resolveCoinPackage), so the price never comes from the
  * browser. The receipt snapshots the coin quantity and doubles as the
- * Cashfree order id.
+ * Cashfree order id. The row is saved before Cashfree is called (#10).
  */
 export async function createCoinPaymentOrder(userId: string, pack: { coins: number; priceInr: number }) {
   // At most 35 characters, so the derived refund id (rf_<orderId>) stays
   // within Cashfree's 40-character limit for any coin quantity.
   const prefix = `coins_${pack.coins}_`;
   const receipt = `${prefix}${randomUUID().replaceAll("-", "").slice(0, 35 - prefix.length)}`;
-  const order = await createCashfreeOrder({ orderId: receipt, amountInr: pack.priceInr, customerId: userId });
-  await db.paymentOrder.create({
-    data: { orderId: order.orderId, amount: pack.priceInr, currency: "INR", status: "CREATED", receipt, userId },
-  });
+  const order = await openPaymentOrder({ userId, orderId: receipt, amountInr: pack.priceInr });
   return { orderId: order.orderId, paymentSessionId: order.paymentSessionId, mode: order.mode };
 }
 
