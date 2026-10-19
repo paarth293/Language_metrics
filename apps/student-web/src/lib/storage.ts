@@ -41,6 +41,35 @@ export interface UploadOptions {
 
 const DEFAULT_MAX_SIZE = 10 * 1024 * 1024;
 
+/**
+ * Upper bounds for one storage request, so a slow provider cannot hold the
+ * function open. Exported so tests can shorten them.
+ */
+export const STORAGE_TIMEOUTS = { connectionMs: 5_000, requestMs: 10_000 };
+
+/**
+ * S3 client settings for those bounds. In this SDK version `requestTimeout`
+ * only logs a warning unless `throwOnRequestTimeout` is set. Uploads and
+ * deletes are not retried (`maxAttempts: 1`); the SDK's default of 3 attempts
+ * would triple the wait.
+ */
+function s3TimeoutConfig() {
+  return {
+    maxAttempts: 1,
+    requestHandler: {
+      connectionTimeout: STORAGE_TIMEOUTS.connectionMs,
+      requestTimeout: STORAGE_TIMEOUTS.requestMs,
+      throwOnRequestTimeout: true,
+    },
+  };
+}
+
+/** Supabase's client takes a custom fetch; this one adds the request timeout. */
+const fetchWithTimeout: typeof fetch = (input, init) => {
+  const timeout = AbortSignal.timeout(STORAGE_TIMEOUTS.requestMs);
+  return fetch(input, { ...init, signal: init?.signal ? AbortSignal.any([init.signal, timeout]) : timeout });
+};
+
 /** Storage keys are relative, bounded to the upload root, and safe to put in URLs. */
 function validateStorageKey(key: string): void {
   if (!key || !/^[a-zA-Z0-9._/-]+$/.test(key) || key.split("/").some((part) => !part || part === "." || part === "..")) {
@@ -168,6 +197,7 @@ async function uploadToS3(file: Buffer, key: string, contentType: string): Promi
   const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
 
   const client = new S3Client({
+    ...s3TimeoutConfig(),
     region: process.env.STORAGE_REGION ?? "ap-south-1",
     endpoint: process.env.STORAGE_ENDPOINT,
     credentials: {
@@ -195,6 +225,7 @@ async function deleteFromS3(key: string): Promise<void> {
   // @ts-ignore — optional dependency
   const { S3Client, DeleteObjectCommand } = await import("@aws-sdk/client-s3");
   const client = new S3Client({
+    ...s3TimeoutConfig(),
     region: process.env.STORAGE_REGION ?? "ap-south-1",
     endpoint: process.env.STORAGE_ENDPOINT,
     credentials: {
@@ -211,6 +242,7 @@ async function getS3SignedUrl(key: string, expiresIn = 3600): Promise<string> {
   // @ts-ignore — optional dependency
   const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
   const client = new S3Client({
+    ...s3TimeoutConfig(),
     region: process.env.STORAGE_REGION ?? "ap-south-1",
     endpoint: process.env.STORAGE_ENDPOINT,
     credentials: {
@@ -228,7 +260,8 @@ async function uploadToSupabase(file: Buffer, key: string, contentType: string):
   const { createClient } = await import("@supabase/supabase-js");
   const supabase = createClient(
     process.env.SUPABASE_URL ?? "",
-    process.env.SUPABASE_SERVICE_KEY ?? ""
+    process.env.SUPABASE_SERVICE_KEY ?? "",
+    { global: { fetch: fetchWithTimeout } }
   );
 
   const { error } = await supabase.storage
@@ -246,7 +279,8 @@ async function deleteFromSupabase(key: string): Promise<void> {
   const { createClient } = await import("@supabase/supabase-js");
   const supabase = createClient(
     process.env.SUPABASE_URL ?? "",
-    process.env.SUPABASE_SERVICE_KEY ?? ""
+    process.env.SUPABASE_SERVICE_KEY ?? "",
+    { global: { fetch: fetchWithTimeout } }
   );
   await supabase.storage.from(BUCKET).remove([key]);
 }

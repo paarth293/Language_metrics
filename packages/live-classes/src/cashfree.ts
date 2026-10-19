@@ -65,6 +65,9 @@ function cashfreeConfig() {
   };
 }
 
+/** Upper bound for one Cashfree request; a stuck call must not hold the function open. */
+const CASHFREE_TIMEOUT_MS = 10_000;
+
 /**
  * GET with one retry on a network error or 5xx. Only for reads: they are
  * idempotent, so asking twice cannot change anything at Cashfree.
@@ -72,19 +75,39 @@ function cashfreeConfig() {
 async function getWithRetry(url: string, init: { headers: Record<string, string>; cache: "no-store" }): Promise<Response> {
   for (let attempt = 1; ; attempt++) {
     try {
-      const response = await fetch(url, init);
+      const response = await fetch(url, { ...init, signal: AbortSignal.timeout(CASHFREE_TIMEOUT_MS) });
       if (response.status < 500 || attempt === 2) return response;
     } catch (error) {
-      if (attempt === 2) throw new CashfreeError("Payment provider is unreachable. Please try again.", 502);
+      if (attempt === 2) throw providerFailure(error);
       console.error("Cashfree request failed, retrying:", error instanceof Error ? error.message : error);
     }
   }
 }
 
+/**
+ * POSTs are never retried: repeating one could create a second order. A
+ * timeout here is reported, and the caller can retry safely (order and refund
+ * ids are ours, so Cashfree rejects a duplicate).
+ */
+async function postOnce(url: string, init: { headers: Record<string, string>; body: string }): Promise<Response> {
+  try {
+    return await fetch(url, { method: "POST", ...init, signal: AbortSignal.timeout(CASHFREE_TIMEOUT_MS) });
+  } catch (error) {
+    throw providerFailure(error);
+  }
+}
+
+function providerFailure(error: unknown): CashfreeError {
+  if (error instanceof Error && error.name === "TimeoutError") {
+    return new CashfreeError("Payment provider did not respond in time. Please try again.", 504);
+  }
+  return new CashfreeError("Payment provider is unreachable. Please try again.", 502);
+}
+
 export async function createCashfreeOrder(input: { orderId: string; amountInr: number; customerId: string }) {
   const { baseUrl, headers } = cashfreeConfig();
-  const response = await fetch(`${baseUrl}/orders`, {
-    method: "POST", headers,
+  const response = await postOnce(`${baseUrl}/orders`, {
+    headers,
     body: JSON.stringify({
       order_id: input.orderId,
       order_amount: input.amountInr,
@@ -170,8 +193,8 @@ export async function fetchCashfreeRefund(orderId: string, refundId: string): Pr
  */
 export async function createCashfreeRefund(input: { orderId: string; refundId: string; amountInr: number; note: string }): Promise<{ status: CashfreeRefundStatus }> {
   const { baseUrl, headers } = cashfreeConfig();
-  const response = await fetch(`${baseUrl}/orders/${encodeURIComponent(input.orderId)}/refunds`, {
-    method: "POST", headers,
+  const response = await postOnce(`${baseUrl}/orders/${encodeURIComponent(input.orderId)}/refunds`, {
+    headers,
     body: JSON.stringify({ refund_id: input.refundId, refund_amount: input.amountInr, refund_note: input.note.slice(0, 100) }),
   });
   if (response.status === 409) return fetchCashfreeRefund(input.orderId, input.refundId);
