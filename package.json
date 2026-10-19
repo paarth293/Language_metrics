@@ -35,6 +35,7 @@
     "db:migrate:status": "prisma migrate status --schema=packages/database/prisma/schema.prisma",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
+    "audit:web": "node scripts/audit-web-prod.mjs",
     "check:structure": "node scripts/check-structure.mjs",
     "test:smoke": "playwright test tests/e2e/auth-ui.spec.ts"
   },
