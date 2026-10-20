@@ -2,11 +2,16 @@
 
 import React, { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { Sidebar, isNavActive } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { useAuth } from "@/lib/auth-client";
-import { DateOfBirthPrompt } from "@/components/auth/DateOfBirthPrompt";
 import type { Role } from "@/types";
+
+const DateOfBirthPrompt = dynamic(
+  () => import("@/components/auth/DateOfBirthPrompt").then((m) => m.DateOfBirthPrompt),
+  { ssr: false }
+);
 
 export interface NavItem {
   label: string;
