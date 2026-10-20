@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { currentOrNextSession, getJoinWindow } from "@repo/live-classes";
+import { currentOrNextSession, getJoinWindow, studentCancelClosesAt } from "@repo/live-classes";
 
 /**
  * GET /api/students/classes
@@ -73,6 +73,15 @@ export async function GET(request: Request) {
         ? undefined
         : [...b.sessions].reverse().find((s) => s.status === "SCHEDULED" || s.status === "ONGOING");
 
+      // When student cancellation closes for this booking. Measured from
+      // the booking's FIRST session, because that is the row the cancel
+      // route reads, so a button driven by this agrees with the server
+      // instead of guessing. null means there is no session yet, which the
+      // cancel route treats as cancellable.
+      const cancelClosesAt = b.sessions[0]
+        ? studentCancelClosesAt(b.sessions[0].scheduledStart).toISOString()
+        : null;
+
       // Determine status for display
       let displayStatus: string = b.status;
       if (nextSession && joinWindow) {
@@ -91,6 +100,7 @@ export async function GET(request: Request) {
         type: b.type,
         status: displayStatus,
         totalSessions: b.sessions.length,
+        cancelClosesAt,
         completedSessions,
         nextSession: nextSession
           ? {
