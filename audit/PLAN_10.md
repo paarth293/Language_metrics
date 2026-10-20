@@ -1,6 +1,7 @@
 # Plan for #10: save the PaymentOrder row before calling Cashfree
 
-Branch: `fix/phase2-payments` (from `fix/phase1-observability` @ `49cd365`). No code is written yet.
+Branch: `fix/phase2-payments` (from `fix/phase1-observability` @ `49cd365`).
+Status: Previously committed on `fix/phase2-payments` via `d26a046`, `017ad50`, and `2b58eec`. Verified against requirements below. Awaiting user "go" at Hard Gate.
 
 ## The problem today
 
@@ -81,14 +82,17 @@ New file `tests/payment-security/issue-10-order-before-cashfree.test.ts`, using 
 ## Files to change
 
 - `packages/live-classes/src/cashfree.ts`: add `CashfreeOrderNotFoundError` and throw it on 404 in the two GETs.
-- `packages/live-classes/src/coin-payments.ts`: row first, then FAILED on error (plus the Option A reuse, if chosen).
-- `packages/live-classes/src/recording-payments.ts`: row first, then FAILED on error; 404 during reuse means EXPIRED.
-- `packages/live-classes/src/payment-reconciliation.ts`: 404 means EXPIRED, quietly.
-- The new test file.
+- `packages/live-classes/src/open-payment-order.ts`: extracted helper to insert `PaymentOrder` (status `CREATED`) first, invoke `createCashfreeOrder`, transition to `FAILED` on error, and `mayRetireMissingOrder` (60s in-flight buffer).
+- `packages/live-classes/src/coin-payments.ts`: uses `openPaymentOrder`, plus Option A retry reuse via `reuseOpenCoinOrder`.
+- `packages/live-classes/src/recording-payments.ts`: uses `openPaymentOrder`; 404 on reuse marks row `EXPIRED` and creates fresh order.
+- `packages/live-classes/src/payment-reconciliation.ts`: 404 catches `CashfreeOrderNotFoundError` and marks open row `EXPIRED` quietly without alert.
+- `tests/payment-security/issue-10-order-before-cashfree.test.ts`: 18 tests covering order-before-Cashfree lifecycle, crash cases, reconciler 404, recording reuse.
+- `tests/payment-security/issue-10-retry-reuse.test.ts`: 6 tests covering Option A coin retry reuse.
 
-There are 2 commits:
-1. #10 coin + recording + reconciler.
-2. The Option A reuse, kept separate so it can be reverted on its own.
+Commits on `fix/phase2-payments`:
+1. `d26a046`: Save the PaymentOrder row before calling Cashfree (#10)
+2. `017ad50`: Never expire an open order whose Cashfree call may still be running (#10)
+3. `2b58eec`: Reuse a student's open coin order for the same pack on retry (#10)
 
 ## NOT VERIFIED
 
