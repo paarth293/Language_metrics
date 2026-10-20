@@ -8,6 +8,12 @@ import Link from "next/link";
 import { CommandPalette } from "./CommandPalette";
 import type { NavItem } from "./AppShell";
 
+import {
+  useSharedUnreadCount,
+  fetchUnreadCount,
+  setSharedUnreadCount
+} from "@/lib/unread-notifications";
+
 interface TopBarProps {
   onMenuClick: () => void;
   user: User | null;
@@ -31,8 +37,8 @@ export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnread
   const { theme, setTheme } = useTheme();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const isMac = useIsMac();
-  const [localUnreadCount, setUnreadCount] = useState<number | undefined>();
-  const unreadCount = localUnreadCount ?? initialUnreadCount ?? 0;
+  const sharedCount = useSharedUnreadCount(initialUnreadCount);
+  const unreadCount = sharedCount;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -45,28 +51,15 @@ export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnread
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Dedicated lightweight unread-count endpoint.
+  // Dedicated deduplicated lightweight unread-count fetch
   const checkUnreadCount = useCallback(async (signal?: AbortSignal) => {
-    try {
-      const res = await fetch("/api/students/notifications/unread-count", {
-        credentials: "include",
-        signal,
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (typeof data.unreadCount === "number") {
-          setUnreadCount(data.unreadCount);
-        }
-      }
-    } catch (err) {
-      // AbortError is expected when the component unmounts — ignore it.
-      if (err instanceof DOMException && err.name === "AbortError") return;
-    }
+    await fetchUnreadCount(signal);
   }, []);
 
   useEffect(() => {
     // If the parent has already resolved the count server-side, use it.
     if (initialUnreadCount !== undefined) {
+      setSharedUnreadCount(initialUnreadCount);
       return;
     }
 
@@ -77,14 +70,20 @@ export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnread
     const handleNotificationsUpdated = (e: Event) => {
       const customEvent = e as CustomEvent<{ unreadCount?: number }>;
       if (customEvent.detail && typeof customEvent.detail.unreadCount === "number") {
-        setUnreadCount(customEvent.detail.unreadCount);
+        setSharedUnreadCount(customEvent.detail.unreadCount);
       } else {
-        checkUnreadCount();
+        void checkUnreadCount();
       }
     };
 
-    // Re-check when the user returns to the tab (catches out-of-band changes).
-    const handleFocus = () => checkUnreadCount();
+    // Re-check when user returns to tab, throttled to max once per 15 seconds
+    let lastFocusCheck = Date.now();
+    const handleFocus = () => {
+      if (document.visibilityState === "visible" && Date.now() - lastFocusCheck > 15_000) {
+        lastFocusCheck = Date.now();
+        void checkUnreadCount();
+      }
+    };
 
     window.addEventListener("notifications-updated", handleNotificationsUpdated);
     window.addEventListener("focus", handleFocus);

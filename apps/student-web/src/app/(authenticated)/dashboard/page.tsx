@@ -180,11 +180,34 @@ export default function StudentDashboard() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    load();
-    // Keeps "Up next" and Join buttons current as classes start.
-    const t = setInterval(load, 60_000);
-    return () => clearInterval(t);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let cancelled = false;
+
+    const tick = async () => {
+      if (document.visibilityState === "hidden" || cancelled) return;
+      await load();
+      if (!cancelled) {
+        clearTimeout(timer);
+        timer = setTimeout(() => void tick(), 60_000);
+      }
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible" && !cancelled) {
+        clearTimeout(timer);
+        void tick();
+      }
+    };
+
+    // Initial load and visibility-aware poll
+    void tick();
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [load]);
 
   if (error && !data) {

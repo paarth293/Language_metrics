@@ -2,13 +2,14 @@
 
 import Image from "next/image";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronRight, LogOut, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { NavItem } from "./AppShell";
 import { useAuth } from "@/lib/auth-client";
+import { useSharedUnreadCount } from "@/lib/unread-notifications";
 
 interface SidebarProps {
   navItems: NavItem[];
@@ -27,34 +28,8 @@ export function Sidebar({ navItems, isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
 
-  // Mirrors the TopBar's unread count via the same "notifications-updated"
-  // event, so the database stays the single source of truth.
-  const [notifUnreadCount, setNotifUnreadCount] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/students/notifications/unread-count", { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (!cancelled && data && typeof data.unreadCount === "number") {
-          setNotifUnreadCount(data.unreadCount);
-        }
-      })
-      .catch(() => {});
-
-    const handleUpdate = (e: Event) => {
-      const detail = (e as CustomEvent<{ unreadCount?: number }>).detail;
-      if (typeof detail?.unreadCount === "number") {
-        setNotifUnreadCount(detail.unreadCount);
-      }
-    };
-
-    window.addEventListener("notifications-updated", handleUpdate);
-    return () => {
-      cancelled = true;
-      window.removeEventListener("notifications-updated", handleUpdate);
-    };
-  }, []);
+  // Uses the shared deduplicated store so Sidebar and TopBar never fire duplicate requests.
+  const notifUnreadCount = useSharedUnreadCount();
 
   // Group in first-seen order, like the admin panel's module groups.
   const sections: Array<{ name: string; items: NavItem[] }> = [];

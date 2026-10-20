@@ -1,0 +1,192 @@
+[
+  {
+    "category": "Diagnostic Health Check",
+    "name": "Diagnostic Health (www.languagemetrics.in)",
+    "url": "https://www.languagemetrics.in/api/health",
+    "status": 200,
+    "samples": 5,
+    "min": 1190,
+    "max": 2162,
+    "p50": 1207,
+    "p95": 2162,
+    "sizeBytes": 132,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "x-vercel-id": "bom1::iad1::brdm2-1792517054770-af352a2f545e"
+    },
+    "timestamp": "2026-10-20T17:24:14.553Z"
+  },
+  {
+    "category": "Diagnostic Health Check",
+    "name": "Diagnostic Health (admin.languagemetrics.in)",
+    "url": "https://admin.languagemetrics.in/api/health",
+    "status": 200,
+    "samples": 5,
+    "min": 467,
+    "max": 1419,
+    "p50": 479,
+    "p95": 1419,
+    "sizeBytes": 57,
+    "cacheHeaders": {
+      "cache-control": "no-store",
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "x-vercel-id": "bom1::iad1::pjp84-1792517059444-6066125ddb38"
+    },
+    "timestamp": "2026-10-20T17:24:18.499Z"
+  },
+  {
+    "category": "User-Facing API",
+    "name": "User Session /api/auth/me (Unauthenticated)",
+    "url": "https://www.languagemetrics.in/api/auth/me",
+    "status": 200,
+    "samples": 5,
+    "min": 265,
+    "max": 283,
+    "p50": 267,
+    "p95": 283,
+    "sizeBytes": 13,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "x-vercel-id": "bom1::iad1::c6mg4-1792517061544-38ad5360ec57"
+    },
+    "timestamp": "2026-10-20T17:24:20.387Z"
+  },
+  {
+    "category": "User-Facing API",
+    "name": "User Session /api/auth/me (Authenticated Teacher)",
+    "url": "https://www.languagemetrics.in/api/auth/me",
+    "status": 200,
+    "samples": 5,
+    "min": 994,
+    "max": 1141,
+    "p50": 1001,
+    "p95": 1141,
+    "sizeBytes": 13,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "x-vercel-id": "bom1::iad1::5m2hd-1792517066485-ffaa5eddba39"
+    },
+    "timestamp": "2026-10-20T17:24:26.060Z"
+  },
+  {
+    "category": "User-Facing API",
+    "name": "Teacher Dashboard Data /api/teachers/dashboard (Authenticated)",
+    "url": "https://www.languagemetrics.in/api/teachers/dashboard",
+    "status": 200,
+    "samples": 5,
+    "min": 1000,
+    "max": 1015,
+    "p50": 1008,
+    "p95": 1015,
+    "sizeBytes": 281,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "x-vercel-id": "bom1::iad1::f9pf7-1792517072047-b882d0a5f12c"
+    },
+    "timestamp": "2026-10-20T17:24:31.628Z"
+  },
+  {
+    "category": "User-Facing API",
+    "name": "Teacher Dashboard Data /api/teachers/dashboard (Unauthenticated Guard)",
+    "url": "https://www.languagemetrics.in/api/teachers/dashboard",
+    "status": 401,
+    "samples": 5,
+    "min": 257,
+    "max": 299,
+    "p50": 267,
+    "p95": 299,
+    "sizeBytes": 76,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "x-vercel-id": "bom1::iad1::8rl7l-1792517074671-cbaff834f1c7"
+    },
+    "timestamp": "2026-10-20T17:24:33.512Z"
+  },
+  {
+    "category": "User-Facing API",
+    "name": "Teacher Schedule /api/teachers/schedule (Unauthenticated Guard)",
+    "url": "https://www.languagemetrics.in/api/teachers/schedule",
+    "status": 401,
+    "samples": 5,
+    "min": 260,
+    "max": 287,
+    "p50": 268,
+    "p95": 287,
+    "sizeBytes": 76,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "x-vercel-id": "bom1::iad1::f7ld2-1792517076541-b0fb7ec638a2"
+    },
+    "timestamp": "2026-10-20T17:24:35.382Z"
+  },
+  {
+    "category": "User-Facing API",
+    "name": "Student Discover /api/students/discover (Unauthenticated Guard)",
+    "url": "https://www.languagemetrics.in/api/students/discover",
+    "status": 401,
+    "samples": 5,
+    "min": 248,
+    "max": 280,
+    "p50": 273,
+    "p95": 280,
+    "sizeBytes": 76,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "x-vercel-id": "bom1::iad1::zb5f8-1792517078442-95d1e25f7a53"
+    },
+    "timestamp": "2026-10-20T17:24:37.268Z"
+  },
+  {
+    "category": "User-Facing API",
+    "name": "Student Notifications Count (Unauthenticated Guard)",
+    "url": "https://www.languagemetrics.in/api/students/notifications/unread-count",
+    "status": 401,
+    "samples": 5,
+    "min": 266,
+    "max": 289,
+    "p50": 276,
+    "p95": 289,
+    "sizeBytes": 76,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "x-vercel-id": "bom1::iad1::xngxb-1792517080354-4b5b7e49553f"
+    },
+    "timestamp": "2026-10-20T17:24:39.200Z"
+  },
+  {
+    "category": "User-Facing API",
+    "name": "Admin Live Rooms (admin.languagemetrics.in - Unauthenticated Guard)",
+    "url": "https://admin.languagemetrics.in/api/admin/live/rooms",
+    "status": 401,
+    "samples": 5,
+    "min": 242,
+    "max": 446,
+    "p50": 272,
+    "p95": 446,
+    "sizeBytes": 26,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0",
+      "x-vercel-id": "bom1::iad1::xd7lc-1792517082408-7514325b3305"
+    },
+    "timestamp": "2026-10-20T17:24:41.230Z"
+  }
+]
