@@ -49,6 +49,17 @@ export function getCurrencyInfo(code: string): CurrencyInfo {
 
 // ── Exchange rates ─────────────────────────────────────────────────────────
 
+export interface ExchangeRateCacheAdapter {
+  get(key: string): Promise<number | null>;
+  set(key: string, rate: number, ttlMs: number): Promise<void>;
+}
+
+let sharedCacheAdapter: ExchangeRateCacheAdapter | null = null;
+
+export function setExchangeRateCacheAdapter(adapter: ExchangeRateCacheAdapter | null) {
+  sharedCacheAdapter = adapter;
+}
+
 type CacheEntry = { rate: number; expiresAt: number };
 const rateCache = new Map<string, CacheEntry>();
 // Frankfurter refreshes once a day on weekdays; a few hours of staleness is
@@ -69,6 +80,18 @@ export async function getExchangeRate(from: string, to: string): Promise<number>
   const cached = rateCache.get(key);
   if (cached && Date.now() < cached.expiresAt) return cached.rate;
 
+  if (sharedCacheAdapter) {
+    try {
+      const sharedRate = await sharedCacheAdapter.get(key);
+      if (typeof sharedRate === "number" && Number.isFinite(sharedRate)) {
+        rateCache.set(key, { rate: sharedRate, expiresAt: Date.now() + CACHE_TTL_MS });
+        return sharedRate;
+      }
+    } catch {
+      // Degrade gracefully to live fetch
+    }
+  }
+
   try {
     const res = await fetch(`https://api.frankfurter.dev/v1/latest?base=${from}&symbols=${to}`, {
       signal: AbortSignal.timeout(FX_TIMEOUT_MS),
@@ -85,6 +108,9 @@ export async function getExchangeRate(from: string, to: string): Promise<number>
       throw new Error(`Frankfurter did not return a rate for ${from}->${to}`);
     }
     rateCache.set(key, { rate, expiresAt: Date.now() + CACHE_TTL_MS });
+    if (sharedCacheAdapter) {
+      void sharedCacheAdapter.set(key, rate, CACHE_TTL_MS).catch(() => {});
+    }
     return rate;
   } catch (err) {
     if (cached) return cached.rate; // stale beats broken
