@@ -18,6 +18,8 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { STUDENT_CANCEL_WINDOW_NOTE } from "@repo/live-classes/cancel-window";
+import { useNow } from "@repo/classroom/join-window";
 
 type Booking = {
   id: string;
@@ -28,6 +30,11 @@ type Booking = {
   status: string;
   totalSessions: number;
   completedSessions: number;
+  /**
+   * When student cancellation closes, from the server. null when no session is
+   * scheduled, which the cancel route treats as cancellable.
+   */
+  cancelClosesAt: string | null;
   nextSession: {
     id: string;
     scheduledStart: string;
@@ -104,11 +111,20 @@ export default function MyClassesPage() {
     return now >= fiveMinBefore;
   };
 
-  const canCancel = (scheduledStart: string) => {
-    const now = new Date();
-    const start = new Date(scheduledStart);
-    const twelveHoursBefore = new Date(start.getTime() - 12 * 60 * 60 * 1000);
-    return now < twelveHoursBefore;
+  // Ticks so the Cancel button disables itself when the deadline passes,
+  // without waiting for a refetch. Same helper the Join button uses.
+  const now = useNow(60_000);
+
+  // Cancellation closes a fixed time before the class. The boundary is not
+  // computed here: `cancelClosesAt` comes from the server, from the same rule
+  // the cancel route enforces, so this button cannot drift out of step with
+  // what the server will accept. Inclusive, because landing exactly on the
+  // boundary is allowed. null means no session is scheduled yet, which the
+  // server lets through.
+  const canCancel = (cancelClosesAt: string | null) => {
+    if (!cancelClosesAt) return true;
+    const closesAt = Date.parse(cancelClosesAt);
+    return Number.isFinite(closesAt) && now <= closesAt;
   };
 
   const getStatusColor = (status: string) => {
@@ -215,7 +231,7 @@ export default function MyClassesPage() {
               const isStartingSoon = booking.status === "STARTS_SOON";
               const sessionStart = booking.nextSession?.scheduledStart || booking.scheduledStart;
               const joinable = sessionStart && canJoin(sessionStart);
-              const cancellable = activeTab === "upcoming" && sessionStart && canCancel(sessionStart);
+              const cancellable = activeTab === "upcoming" && canCancel(booking.cancelClosesAt);
               const initials = getInitials(booking.teacher);
 
               return (
@@ -330,6 +346,9 @@ export default function MyClassesPage() {
                               <CalendarX2 className="w-3.5 h-3.5 mr-1" /> Cancel
                             </Button>
                           </div>
+                          <p className="text-[10px] text-text-subtle text-center">
+                            {STUDENT_CANCEL_WINDOW_NOTE}
+                          </p>
                         </>
                       ) : booking.status === "COMPLETED" ? (
                         <div className="text-[13px] font-medium text-trust flex items-center gap-1.5 w-full justify-center sm:justify-start">
