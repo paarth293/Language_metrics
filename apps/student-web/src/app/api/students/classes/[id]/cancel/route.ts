@@ -10,11 +10,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { rateLimitRedis } from "@/lib/rate-limit";
-import { BookingNotCancellableError, cancelBookingAndReturnCoins } from "@repo/live-classes";
+import {
+  BookingNotCancellableError,
+  STUDENT_CANCEL_REFUSAL_CODE,
+  cancelBookingAndReturnCoins,
+  canStudentCancel,
+  studentCancelClosesAt,
+  studentCancelRefusalMessage,
+} from "@repo/live-classes";
 
 export const runtime = "nodejs";
-
-const CANCELLATION_WINDOW_HOURS = 12;
 
 export async function POST(
   request: NextRequest,
@@ -54,19 +59,19 @@ export async function POST(
       return NextResponse.json({ error: "Cannot cancel a completed booking" }, { status: 400 });
     }
 
+    // The window is the shared rule in @repo/live-classes, not a number
+    // written here, so this route and teacher-web's copy cannot disagree.
+    // The server's own clock decides; nothing from the request is consulted.
     const firstSession = booking.sessions[0];
-    if (firstSession) {
-      const cutoff = new Date(
-        firstSession.scheduledStart.getTime() - CANCELLATION_WINDOW_HOURS * 60 * 60 * 1000
+    if (firstSession && !canStudentCancel(firstSession.scheduledStart)) {
+      return NextResponse.json(
+        {
+          error: studentCancelRefusalMessage(),
+          code: STUDENT_CANCEL_REFUSAL_CODE,
+          cancelClosesAt: studentCancelClosesAt(firstSession.scheduledStart).toISOString(),
+        },
+        { status: 409 }
       );
-      if (new Date() > cutoff) {
-        return NextResponse.json(
-          {
-            error: `Cannot cancel within ${CANCELLATION_WINDOW_HOURS} hours of the scheduled start time.`,
-          },
-          { status: 400 }
-        );
-      }
     }
 
     await cancelBookingAndReturnCoins(
