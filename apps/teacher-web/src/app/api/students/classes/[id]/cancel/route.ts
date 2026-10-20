@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { BookingNotCancellableError, cancelBookingAndReturnCoins } from "@repo/live-classes";
+import {
+  BookingNotCancellableError,
+  STUDENT_CANCEL_REFUSAL_CODE,
+  cancelBookingAndReturnCoins,
+  canStudentCancel,
+  studentCancelClosesAt,
+  studentCancelRefusalMessage,
+} from "@repo/live-classes";
 
 // POST - Cancel a booking
 export async function POST(
@@ -41,18 +48,19 @@ export async function POST(
       return NextResponse.json({ error: "Cannot cancel a completed booking" }, { status: 400 });
     }
 
+    // The window is the shared rule in @repo/live-classes, not a number
+    // written here, so this copy and student-web's cannot disagree.
+    // The server's own clock decides; nothing from the request is consulted.
     const firstSession = booking.sessions[0];
-    if (firstSession) {
-      const scheduledStart = new Date(firstSession.scheduledStart);
-      const now = new Date();
-      const twelveHoursBefore = new Date(scheduledStart.getTime() - 12 * 60 * 60 * 1000);
-
-      if (now > twelveHoursBefore) {
-        return NextResponse.json(
-          { error: "Cannot cancel within 12 hours of the scheduled start time." },
-          { status: 400 }
-        );
-      }
+    if (firstSession && !canStudentCancel(firstSession.scheduledStart)) {
+      return NextResponse.json(
+        {
+          error: studentCancelRefusalMessage(),
+          code: STUDENT_CANCEL_REFUSAL_CODE,
+          cancelClosesAt: studentCancelClosesAt(firstSession.scheduledStart).toISOString(),
+        },
+        { status: 409 }
+      );
     }
 
     await cancelBookingAndReturnCoins(
