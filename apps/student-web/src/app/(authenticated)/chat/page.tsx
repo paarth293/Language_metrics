@@ -3,6 +3,7 @@
 import Image from "next/image";
 
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
+import { chatSendError } from "@repo/ui/chat-send-error";
 import { motion } from "framer-motion";
 import { MessageCircle, Send, Paperclip, AlertCircle, Loader2, Search, FileText, X, Timer } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -41,6 +42,8 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
+  // Why the last send failed, shown above the composer (chat follow-up).
+  const [sendError, setSendError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [hasOlder, setHasOlder] = useState(false);
@@ -223,13 +226,17 @@ export default function ChatPage() {
   const handleSend = async () => {
     if (!newMessage.trim() || !selectedTeacher || sending) return;
     setSending(true);
+    setSendError(null);
     try {
       const res = await fetch(`/api/students/chat/${selectedTeacher}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: newMessage }),
       });
-      if (!res.ok) throw new Error("Failed to send message");
+      if (!res.ok) {
+        setSendError(await chatSendError(res));
+        return;
+      }
       const data = await res.json();
       if (selectedTeacherRef.current === selectedTeacher) {
         messageRequest.current.version++;
@@ -239,8 +246,8 @@ export default function ChatPage() {
         setMessages(messagesRef.current);
         setNewMessage("");
       }
-    } catch (err: unknown) {
-      console.error("Send failed:", err);
+    } catch {
+      setSendError("Message not sent. Please check your connection and try again.");
     } finally {
       setSending(false);
     }
@@ -248,6 +255,7 @@ export default function ChatPage() {
 
   const handleFileUpload = async (file: File) => {
     if (!selectedTeacher) return;
+    setSendError(null);
     const formData = new FormData();
     formData.append("file", file);
     formData.append("content", file.name);
@@ -257,7 +265,10 @@ export default function ChatPage() {
         method: "POST",
         body: formData,
       });
-      if (!res.ok) throw new Error("Failed to upload file");
+      if (!res.ok) {
+        setSendError(await chatSendError(res));
+        return;
+      }
       const data = await res.json();
       if (selectedTeacherRef.current === selectedTeacher) {
         messageRequest.current.version++;
@@ -266,8 +277,8 @@ export default function ChatPage() {
         messagesRef.current = mergeMessages(messagesRef.current, [data.message]);
         setMessages(messagesRef.current);
       }
-    } catch (err: unknown) {
-      console.error("Upload failed:", err);
+    } catch {
+      setSendError("Attachment not sent. Please check your connection and try again.");
     }
   };
 
@@ -483,14 +494,17 @@ export default function ChatPage() {
                       }`}
                     >
                       {msg.attachmentUrl ? (
-                        <div className="flex items-center gap-2">
-                          <FileText className="w-5 h-5 opacity-70" />
-                          <div>
-                            <p className="text-sm font-medium">
-                              {msg.attachmentUrl}
-                            </p>
-                          </div>
-                        </div>
+                        <a
+                          href={msg.attachmentUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 underline hover:no-underline"
+                        >
+                          <FileText className="w-5 h-5 opacity-70 shrink-0" />
+                          <span className="text-sm font-medium break-all">
+                            {msg.content || "Attachment"}
+                          </span>
+                        </a>
                       ) : (
                         <p className="text-sm">{msg.content}</p>
                       )}
@@ -527,6 +541,22 @@ export default function ChatPage() {
 
           {/* Input */}
           <div className="p-4 border-t border-gray-100">
+              {sendError && (
+                <div
+                  role="alert"
+                  className="flex items-start gap-2 mb-2 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-sm text-red-800"
+                >
+                  <span className="flex-1">{sendError}</span>
+                  <button
+                    type="button"
+                    onClick={() => setSendError(null)}
+                    aria-label="Dismiss"
+                    className="text-red-500 hover:text-red-700 font-medium"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
             <div className="flex items-center gap-2">
               <input
                 type="file"
