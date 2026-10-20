@@ -61,14 +61,15 @@ export function AppShell({ children, navItems, requiredRole }: AppShellProps) {
     }
   }, [user, isLoading, requiredRole, router]);
 
-  // Show minimal skeleton while auth state loads, or while a redirect above
-  // is about to take the visitor away from this section.
-  if (isLoading || !user || user.role !== requiredRole) {
+  // If auth has resolved and user is unauthenticated or has the wrong role, redirect
+  if (!isLoading && (!user || user.role !== requiredRole)) {
     return (
       <div className="flex h-screen items-center justify-center bg-bg">
         <div className="flex flex-col items-center gap-4">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-gold border-t-transparent" />
-          <span className="text-sm text-text-muted font-medium">Loading...</span>
+          <span className="text-sm text-text-muted font-medium">
+            {!user ? "Redirecting to login..." : "Redirecting to your dashboard..."}
+          </span>
         </div>
       </div>
     );
@@ -99,7 +100,7 @@ export function AppShell({ children, navItems, requiredRole }: AppShellProps) {
                 <span className="text-text-muted">{current.label}</span>
               </nav>
             )}
-            {user.needsDateOfBirth ? (
+            {user?.needsDateOfBirth ? (
               <DateOfBirthPrompt role={user.role} onSaved={refreshUser} />
             ) : (
               children

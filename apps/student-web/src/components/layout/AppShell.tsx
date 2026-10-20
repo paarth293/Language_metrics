@@ -32,15 +32,13 @@ export function AppShell({ children, navItems }: AppShellProps) {
     }
   }, [isLoading, user, router]);
 
-  // Show minimal skeleton while auth state loads
-  if (isLoading || !user) {
+  // If unauthenticated after auth resolves, show redirecting state
+  if (!isLoading && !user) {
     return (
       <div className="flex h-screen items-center justify-center bg-bg">
         <div className="flex flex-col items-center gap-4">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-gold border-t-transparent" />
-          <span className="text-sm text-text-muted font-medium">
-            {isLoading ? "Loading..." : "Redirecting to login..."}
-          </span>
+          <span className="text-sm text-text-muted font-medium">Redirecting to login...</span>
         </div>
       </div>
     );

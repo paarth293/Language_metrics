@@ -42,11 +42,11 @@ Fully green, so there is no permitted failure. Any failure in Step 3 is a regres
 | id | Item | Status | Commit | Proof |
 |---|---|---|---|---|
 | P1 | Recordings routes: narrow `select` instead of `include: { user: true }`, both apps | **DONE** | see `git log` | 5 tests per app. 2 of them fail on the old code and pass on the new. Credential-column regression guard included |
-| P11 | teacher-web: zod out of the shared shell | not started | | Measurable from `next build` |
+| P11 | teacher-web: zod out of the shared shell | **DONE** | `d8c749a` | Dynamic import of `DateOfBirthPrompt`; verified with `AppShell.zod.test.tsx` and `next build` |
+| P3 | AppShell: render shell and children immediately | **DONE** | working tree | Children mount immediately; verified with `AppShell.parallel-auth.test.tsx` (server-auth 401 guard included) |
 | P12 | student-web: dead command-palette branch | not started | | |
 | P4 | student-web: duplicate unread-count fetch | not started | | |
 | P13 | Dashboards: stop polling hidden tabs | not started | | |
-| P3 | AppShell: render shell and children immediately | not started | | Needs the unauthenticated-access test |
 | P5 | Discover: review aggregate | not started | | Timing NOT VERIFIED |
 | P7 | Dashboards: database aggregates | not started | | Timing NOT VERIFIED |
 | P8 | Unbounded lists: `take` plus cursor | not started | | Timing NOT VERIFIED |
