@@ -50,7 +50,8 @@ const ok = (body: unknown = { success: true, refunded: true }) => ({
 /** Renders, and returns the spy the component calls once a cancel lands. */
 const setup = (s: ScheduleSession = session()) => {
   const onCancelled = vi.fn();
-  render(<CancelClassButton session={s} onCancelled={onCancelled} />);
+  // The schedule's ticking clock, pinned to the fixed one.
+  render(<CancelClassButton session={s} now={NOW.getTime()} onCancelled={onCancelled} />);
   return { onCancelled };
 };
 
