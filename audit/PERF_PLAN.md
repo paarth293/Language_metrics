@@ -1,8 +1,46 @@
-# PERF_PLAN.md — Step 2 (GATE)
+# PERF_PLAN.md — Step 2 (DECIDED, go given)
 
 Branch `fix/perf` @ `c5a8b5f`. Findings and evidence are in `PERF_BASELINE.md`; this document is only the plan.
 
-**Waiting for your "go".** Nothing below has been implemented. Four items need a decision from you before they can be touched at all, because the fix lands inside code your rules put off limits. They are first.
+**Go received.** Progress is tracked in `PROGRESS_PERF.md`; results are in `PERF_REPORT.md`.
+
+---
+
+## Decisions received, and what they changed in this plan
+
+| id | Decision | Effect on the plan below |
+|---|---|---|
+| D1 | Silent-refresh chain: **leave as is**, it is auth code | **P-silent-refresh dropped.** Recorded as a follow-up for a separate auth batch |
+| D2 | Login rewrites: **leave as is** | **P12 reduced.** `apps/teacher-web/next.config.ts` is not touched. Only the dead command-palette branch is removed |
+| D3 | Review aggregate: **`groupBy` / `_avg` / `_count`, no schema change** | P5 proceeds as Option A. Stored `ratingAvg`/`ratingCount` is a follow-up only if measured numbers justify it, and no number can be measured here, so it stays a follow-up |
+| D4 | Exchange-rate cache: **no new dependency** | P10 proceeds as Option A, an injected cache adapter |
+| — | **Recordings narrow select goes first**, with an explicit finding on whether `passwordHash` or `totpSecret` can reach a response | Promoted to **P1** and done first. The exposure analysis is in `PERF_REPORT.md` |
+| — | AppShell: **render shell and children immediately**, auth check in parallel or user passed from the server, **authorization stays on the server**, proven by a test that an unauthenticated request still gets no protected data | P3 gains that test as a hard requirement |
+| — | teacher-web: **remove zod from the shared shell**, show before/after `next build` sizes | P11 proceeds, measured |
+| — | **P14 (proxy public key) is not authorised.** No confirmation was given to open `proxy.ts`, and it measured at 0.059 ms | **P14 dropped**, recorded as a follow-up for the auth batch |
+
+## Measurement constraint, as instructed
+
+**There is no local or test database, and none will be created.** No Postgres or Docker was installed, the production `DATABASE_URL` was not read or used, and no query was run against any real database.
+
+What that permits and forbids:
+
+| Measurable here | Not measurable here |
+|---|---|
+| First-load and chunk sizes from a real `next build` | Query latency, in milliseconds |
+| Request counts per page load, derived from the client components | `EXPLAIN ANALYZE` plans, before or after |
+| Query **counts** and the **column and row sets** a query asks for, asserted in tests | Index effectiveness |
+| Outbound third-party call counts, with the HTTP layer stubbed | End-to-end page latency |
+
+Every database-side item therefore ships with **NOT VERIFIED** for timing, plus a note on how to measure it later. No millisecond figure is estimated anywhere.
+
+For context on what a later measurement would have to account for: the baseline measured Supabase Postgres in Tokyo at **141 ms p50 TCP handshake from India**, so each serial round trip a change removes is worth roughly that much, per request. That is a baseline network measurement, not a claim about any fix.
+
+---
+
+## Original gate, kept for the record
+
+Four items needed a decision because the fix lands inside code the rules put off limits. The decisions above resolve all four.
 
 ---
 
@@ -96,7 +134,7 @@ Every item below: one small commit, then `npm run typecheck`, `npm run lint`, `n
 
 A note on measurement that applies to all of Part C: **no database-side improvement can be measured in this environment.** There is no local or test Postgres and production is off limits, so for every query change I can show the query plan shape, a unit test, and the row counts the code now requests, but I cannot show a before and after millisecond figure. Payload and request-count changes **can** be measured, with the same scripts as the baseline. Each item says which it is.
 
-> **If you can give me a throwaway Postgres** — a local container, or a free Supabase project seeded with `packages/database/prisma/seed.mjs` — then items P3, P5, P6, P7 and P8 all become properly measurable with Prisma query logging, and I would re-run the baseline against it first. Without one, those items ship as NOT VERIFIED for timing.
+> **Settled: there is no database to measure against, and none is being created.** Items P3, P5, P6, P7 and P8 ship with NOT VERIFIED for timing. What each one *does* prove is a query count, a column set or a row set, asserted in a test, which is a real before-and-after even though it is not a millisecond figure.
 
 ### P3. Break the serial auth waterfall (finding F1) — highest impact
 
@@ -219,12 +257,12 @@ Your Step 3a explicitly asks for localized `loading.tsx` and Suspense instead of
 | Measured how | **Properly measurable.** `jsweight2.mjs` and `chunks.mjs` re-run against a fresh production build, same method as the baseline, reporting first-load gzipped bytes per route before and after |
 | Caching | none |
 
-### P12. Dead config and dead code (findings F3 and F10)
+### P12. Dead code (finding F10 only; F3 left alone per D2)
 
 | | |
 |---|---|
-| Files | `apps/teacher-web/next.config.ts` (pending D2), `apps/student-web/src/components/layout/CommandPalette.tsx` |
-| Change | Per D2 Option A, delete the two rewrites that never fire. Remove the unreachable student-search branch from student-web's `CommandPalette`, which is gated `canSearchStudents={false}` at its only call site and points at a route this app does not have |
+| Files | `apps/student-web/src/components/layout/CommandPalette.tsx` |
+| Change | Remove the unreachable student-search branch from student-web's `CommandPalette`, which is gated `canSearchStudents={false}` at its only call site and points at a route this app does not have. **`apps/teacher-web/next.config.ts` is not touched**: per D2 the two dead login rewrites stay exactly as they are |
 | Expected benefit | Honestly: **no measurable latency win.** A small bundle saving from the dead branch, and two fewer pieces of misleading config. Included because it is cheap and because leaving a broken rewrite in place invites someone to "fix" it in the proxy later |
 | Risk | **Low** |
 | Measured how | First-load bytes for student-web routes, same method as the baseline |
@@ -239,7 +277,9 @@ Your Step 3a explicitly asks for localized `loading.tsx` and Suspense instead of
 | Risk | **Low.** Keep the refetch-on-visible so data is never staler than it is today. Does not touch the chat polling you fixed |
 | Measured how | Test with a faked `document.hidden` asserting no fetch while hidden and exactly one on becoming visible |
 
-### P14. Cache the proxy's public key (finding F4 in your list, measured as not a bottleneck)
+### P14. ~~Cache the proxy's public key~~ — DROPPED, not authorised
+
+This item required explicit confirmation to open `apps/teacher-web/src/proxy.ts`. No confirmation was given, so it is **not done** and is recorded as a follow-up for the auth batch. The measurement below is why it was last on the list anyway.
 
 | | |
 |---|---|
@@ -290,6 +330,27 @@ Your Step 3a explicitly asks for localized `loading.tsx` and Suspense instead of
 
 ---
 
-## The one thing that would most improve this plan
+## Order of work, as actually executed
 
-A throwaway Postgres I am allowed to query. Right now five of the eleven code items ship with **no timing number at all**, because the only database in the repo's configuration is production. A local container or a scratch Supabase project seeded with `packages/database/prisma/seed.mjs` would turn P3, P5, P6, P7 and P8 from "reasoned from the query" into measured before-and-after figures with Prisma query logging. If you can point me at one, I will re-run the whole baseline against it before starting.
+The order below supersedes the list above, because the recordings select was promoted to first.
+
+1. **P1** recordings narrow select, plus the credential-exposure analysis.
+2. **P11** teacher-web zod out of the shared shell, and **P12** dead code. Fully measurable from `next build`.
+3. **P4** duplicate unread-count fetch, **P13** hidden-tab polling.
+4. **P3** AppShell, with the unauthenticated-access test.
+5. **P5** discover aggregate, **P7** dashboard aggregates, **P8** bounded lists.
+6. **P9** shared response cache, **P10** shared exchange-rate cache.
+7. **P15** index migration files, written and never applied.
+
+## Follow-ups handed back, not done here
+
+| Item | Why it was not done |
+|---|---|
+| Silent-refresh chain, 3 requests per expired-token navigation | D1: auth code, deferred to a separate auth batch |
+| Proxy public-key memoization (old P14) | Opening `proxy.ts` was not authorised. Measured at 0.059 ms, so the cost of leaving it is negligible |
+| Dead `/teacher/login` and `/student/login` rewrites | D2: left as is |
+| Stored `ratingAvg` / `ratingCount` columns | D3: needs measured numbers to justify a schema change, and no number is measurable here |
+| Vercel function region, and the Supabase region | Dashboard settings and a data migration. Report only, see P1 above |
+| LiveKit `listRooms` probe per join | Off limits by rule |
+| Admin-panel unbounded table queries | Visible UI change; needs pagination controls |
+| Timing for every database-side item | No database. Each item says how to measure it later |

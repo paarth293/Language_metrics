@@ -22,20 +22,49 @@ Fully green, so there is no permitted failure. Any failure in Step 3 is a regres
 | Step | Status | Output | Notes |
 |---|---|---|---|
 | 1 Baseline | **DONE** | `audit/PERF_BASELINE.md` | Real `next build` plus `next start` for both web apps against a dead local database. 10 suspects adjudicated: 6 confirmed, 1 not confirmed on cost, 3 partly. 14 findings with file and line evidence |
-| 2 Plan | **GATE — waiting for "go"** | `audit/PERF_PLAN.md` | 15 items. **4 decisions needed first (D1-D4)**, each with 2 options and a recommendation, because the fix lands in off-limits code or needs a schema change or a dependency |
-| 3 Implement | not started | | Order of work is at the end of `PERF_PLAN.md` |
-| 4 Verify and report | not started | `audit/PERF_REPORT.md` | |
+| 2 Plan | **DONE** | `audit/PERF_PLAN.md` | Go given. All four decisions answered and recorded at the top of the plan |
+| 3 Implement | **PAUSED after P1** | | Interrupted by a new, unrelated task (the 4-hour student cancel window, branch `fix/cancel-window`). Resume from the P-table below |
+| 4 Verify and report | partial | `audit/PERF_REPORT.md` | Contains the measurement ground rules and the credential-exposure finding. The rest is written as items land |
 
-## Decisions outstanding
+## Decisions — all answered
 
-| id | Subject | Why it is gated | My recommendation |
-|---|---|---|---|
-| D1 | silent-refresh costs 3 requests per navigation | auth, refresh and session logic is off limits | Option A, leave it alone; look at the access-token lifetime instead |
-| D2 | `/teacher/login` and `/student/login` rewrites never fire | the real fix edits the proxy's protected-prefix list | Option A, delete the two dead rewrites; no latency benefit claimed |
-| D3 | discover loads every review row | the denormalised fix is a schema change | Option A, `groupBy` aggregate, no schema change |
-| D4 | exchange-rate cache is per-instance | the simple fix adds a dependency to `packages/currency` | Option A, inject a cache adapter, no new dependency |
+| id | Subject | Decision |
+|---|---|---|
+| D1 | silent-refresh costs 3 requests per navigation | **Leave as is.** Auth code. Follow-up for a separate auth batch |
+| D2 | `/teacher/login` and `/student/login` rewrites never fire | **Leave as is.** `next.config.ts` untouched |
+| D3 | discover loads every review row | **`groupBy` / `_avg` / `_count`, no schema change** |
+| D4 | exchange-rate cache is per-instance | **Inject a cache adapter, no new dependency** |
+| — | throwaway Postgres for measurement | **No local or test database.** None created, production URL never read or used, no query run against any real database. Every database-side item ships NOT VERIFIED for timing |
+| — | open `proxy.ts` for P14 | **Not authorised.** P14 dropped, recorded as a follow-up |
 
-Also asked in the plan: whether I may open `apps/teacher-web/src/proxy.ts` for P14, whether to bound the admin panel's 16 whole-table reads, and whether a throwaway Postgres exists.
+## Item status
+
+| id | Item | Status | Commit | Proof |
+|---|---|---|---|---|
+| P1 | Recordings routes: narrow `select` instead of `include: { user: true }`, both apps | **DONE** | see `git log` | 5 tests per app. 2 of them fail on the old code and pass on the new. Credential-column regression guard included |
+| P11 | teacher-web: zod out of the shared shell | not started | | Measurable from `next build` |
+| P12 | student-web: dead command-palette branch | not started | | |
+| P4 | student-web: duplicate unread-count fetch | not started | | |
+| P13 | Dashboards: stop polling hidden tabs | not started | | |
+| P3 | AppShell: render shell and children immediately | not started | | Needs the unauthenticated-access test |
+| P5 | Discover: review aggregate | not started | | Timing NOT VERIFIED |
+| P7 | Dashboards: database aggregates | not started | | Timing NOT VERIFIED |
+| P8 | Unbounded lists: `take` plus cursor | not started | | Timing NOT VERIFIED |
+| P9 | Shared response cache | not started | | |
+| P10 | Shared exchange-rate cache | not started | | |
+| P15 | Index migration files, never applied | not started | | Timing NOT VERIFIED |
+
+### Known flaky tests, not regressions
+
+`npm test` is green on an idle machine but two wall-clock tests fail when the machine is busy, because
+they assert a real elapsed-time budget:
+
+| test | assertion | observed under load |
+|---|---|---|
+| `apps/student-web/src/lib/storage.timeout.test.ts` | upload gives up in under 3000 ms | 3598 ms and 3775 ms |
+| `apps/teacher-web/src/lib/outbound.timeout.test.ts` | email returns within 10 s | vitest's own 5000 ms test timeout |
+
+Both pass when re-run on their own, on the same code. Re-run them in isolation before treating either as a regression.
 
 ## Headline findings
 
