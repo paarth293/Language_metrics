@@ -108,3 +108,18 @@ Allowed check failures: `test:payments` #12 (`09-secret-scan` git-history test),
 Gate for #12 (gitleaks job) raised again on 2026-10-20; still waiting for "go" and the LiveKit revocation answer.
 **Phase 3 is otherwise complete.** Remaining: the #12 gate and #19 (decision above). Phases 4–6 not started.
 `audit/open-prs.ps1` (untracked) pushes the phase branch chain and prints the PR links; phases 1 and 2 are already on origin, phase 3 is 6 commits ahead.
+
+---
+
+# Cancel Refunds Batch (Task A)
+
+Branch: `fix/cancel-refunds`, made from `fix/cancel-window` @ `2657f1a`.
+
+| Issue | Status | Commit | Checks after | Notes |
+|---|---|---|---|---|
+| Admin cancel refund (`refundSessionHold`) | DONE | `d5cfa8b` (impl), `195550b` (test) | typecheck 0, lint 0, test passed, payments passed | Releases student coin hold via `refundSessionHold` in same transaction as status update. Idempotent on repeat clicks. Not blocked by 4h cancel window. |
+| Invariant tests for `refundSessionHold` | DONE | `0a1e1c7` | typecheck 0, lint 0, test passed, payments passed | Unit tests verifying held coins return to spendable balance and `SessionBilling` status becomes `REFUNDED`. |
+| Teacher cancel endpoint & security | DONE | `5bf6b71` (impl), `e2f8ac3` (test) | typecheck 0, lint 0, test passed, payments passed | `POST /api/teachers/sessions/[id]/cancel`: teacher auth, ownership check, not blocked by 4h window, releases hold, notifies student, logs with `@repo/logger` (no PII). 23 route tests. |
+| Confirm dialog & button UI | DONE | `4d17c0f` (impl), `c6ef197` (test) | typecheck 0, lint 0, test passed, payments passed | `CancelClassButton.tsx`: modal with student name, start time, refund disclosure, busy state disabling, error banner. 17 tests. |
+| Affordance wiring & schedule integration | DONE | `b9b6d52` (impl), `fc21687` (test) | typecheck 0, lint 0, test passed, payments passed | `SessionRow`, `ListView`, `ScheduleSidebar`, and `page.tsx` wired to `onCancelled` callback. Refetches week on cancel and shows toast. |
+
