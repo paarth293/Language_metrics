@@ -6,6 +6,7 @@ import { Video } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { CancelClassButton } from "./CancelClassButton";
 import {
   type ScheduleSession,
   TONE_LABEL,
@@ -22,10 +23,16 @@ type Props = {
   now: number;
   highlighted?: boolean;
   compact?: boolean;
+  /**
+   * Called after the teacher has cancelled this class. A row only offers a
+   * cancel when it is given this, so the row never leaves a page showing a
+   * class that is no longer there. The dashboard's strip passes nothing.
+   */
+  onCancelled?: () => void;
 };
 
 export const SessionRow = forwardRef<HTMLDivElement, Props>(function SessionRow(
-  { session, now, highlighted, compact },
+  { session, now, highlighted, compact, onCancelled },
   ref
 ) {
   const start = new Date(session.scheduledStart);
@@ -92,20 +99,26 @@ export const SessionRow = forwardRef<HTMLDivElement, Props>(function SessionRow(
       </div>
 
       {/* Status / action */}
-      {joinable ? (
-        <Button asChild variant="primary" size="sm" className="h-8 shrink-0 px-3 text-[12px]">
-          <Link href={`/live/${session.id}`}>
-            <Video className="mr-1.5 h-3.5 w-3.5" />
-            {tone === "live" ? "Rejoin" : "Join"}
-          </Link>
-        </Button>
-      ) : (
-        !compact && (
-          <span className={cn("hidden shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold sm:inline-flex", styles.pill)}>
-            {TONE_LABEL[tone]}
-          </span>
-        )
-      )}
+      <div className="flex shrink-0 items-center gap-1">
+        {joinable ? (
+          <Button asChild variant="primary" size="sm" className="h-8 shrink-0 px-3 text-[12px]">
+            <Link href={`/live/${session.id}`}>
+              <Video className="mr-1.5 h-3.5 w-3.5" />
+              {tone === "live" ? "Rejoin" : "Join"}
+            </Link>
+          </Button>
+        ) : (
+          !compact && (
+            <span className={cn("hidden shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold sm:inline-flex", styles.pill)}>
+              {TONE_LABEL[tone]}
+            </span>
+          )
+        )}
+        {/* Decides for itself whether there is anything left to call off. */}
+        {onCancelled && (
+          <CancelClassButton session={session} now={now} onCancelled={onCancelled} compact={compact} />
+        )}
+      </div>
     </div>
   );
 });

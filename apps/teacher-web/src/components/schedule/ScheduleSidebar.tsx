@@ -26,6 +26,7 @@ export function DayAgenda({
   availabilityLoading,
   now,
   selectedSessionId,
+  onCancelled,
 }: {
   day: Date;
   sessions: ScheduleSession[];
@@ -33,6 +34,8 @@ export function DayAgenda({
   availabilityLoading: boolean;
   now: number;
   selectedSessionId: string | null;
+  /** Reload the week after a teacher cancels one of these classes. */
+  onCancelled: () => void;
 }) {
   const isToday = isSameDay(day, new Date(now));
   const slots = availability
@@ -89,7 +92,7 @@ export function DayAgenda({
           <div className="space-y-2">
             {sessions.map((s) => (
               <div key={s.id} id={`agenda-${s.id}`} className="scroll-m-3">
-                <SessionRow session={s} now={now} compact highlighted={s.id === selectedSessionId} />
+                <SessionRow session={s} now={now} compact highlighted={s.id === selectedSessionId} onCancelled={onCancelled} />
               </div>
             ))}
           </div>

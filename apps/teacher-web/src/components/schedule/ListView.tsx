@@ -11,9 +11,11 @@ type Props = {
   sessionsByDay: Map<string, ScheduleSession[]>;
   now: number;
   selectedSessionId: string | null;
+  /** Reload the week after a teacher cancels one of these classes. */
+  onCancelled: () => void;
 };
 
-export function ListView({ days, sessionsByDay, now, selectedSessionId }: Props) {
+export function ListView({ days, sessionsByDay, now, selectedSessionId, onCancelled }: Props) {
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
   const today = new Date(now);
@@ -82,7 +84,7 @@ export function ListView({ days, sessionsByDay, now, selectedSessionId }: Props)
                 ) : (
                   <div className="space-y-2">
                     {sessions.map((s) => (
-                      <SessionRow key={s.id} session={s} now={now} highlighted={s.id === selectedSessionId} />
+                      <SessionRow key={s.id} session={s} now={now} highlighted={s.id === selectedSessionId} onCancelled={onCancelled} />
                     ))}
                   </div>
                 )}

@@ -166,6 +166,15 @@ export default function TeacherSchedule() {
     setSelectedSessionId(s.id);
   };
 
+  // The cancel itself is the row's business; refetching the week is ours, so
+  // the class disappears from the grid and the agenda at once rather than
+  // waiting out the 60-second poll.
+  const onClassCancelled = useCallback(() => {
+    loadWeek(weekStart);
+    setToast("Class cancelled. The student has been notified.");
+    setTimeout(() => setToast(null), 3000);
+  }, [loadWeek, weekStart]);
+
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
   const onAvailabilitySaved = (slots: AvailabilitySlot[]) => {
     setAvailability(slots);
@@ -293,7 +302,7 @@ export default function TeacherSchedule() {
               <Legend />
             </>
           ) : (
-            <ListView days={days} sessionsByDay={sessionsByDay} now={now} selectedSessionId={selectedSessionId} />
+            <ListView days={days} sessionsByDay={sessionsByDay} now={now} selectedSessionId={selectedSessionId} onCancelled={onClassCancelled} />
           )}
         </section>
 
@@ -306,6 +315,7 @@ export default function TeacherSchedule() {
               availabilityLoading={loadedAvailability === null}
               now={now}
               selectedSessionId={selectedSessionId}
+              onCancelled={onClassCancelled}
             />
           )}
           <AvailabilitySummary
