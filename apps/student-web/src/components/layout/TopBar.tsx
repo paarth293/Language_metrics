@@ -37,6 +37,7 @@ export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnread
   const { theme, setTheme } = useTheme();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const isMac = useIsMac();
+  const userId = user?.id;
   const sharedCount = useSharedUnreadCount(initialUnreadCount);
   const unreadCount = sharedCount;
 
@@ -63,7 +64,7 @@ export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnread
       return;
     }
 
-    if (!user) {
+    if (!userId) {
       return;
     }
 
@@ -98,7 +99,10 @@ export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnread
       window.removeEventListener("notifications-updated", handleNotificationsUpdated);
       window.removeEventListener("focus", handleFocus);
     };
-  }, [initialUnreadCount, checkUnreadCount, user]);
+    // Keyed on the user's id, not the user object: a session refresh returns a
+    // fresh object for the same person, and depending on it re-ran this whole
+    // effect — and its initial fetch — on every route change.
+  }, [initialUnreadCount, checkUnreadCount, userId]);
 
   const toggleTheme = () => {
     setTheme(theme === "light" ? "dark" : "light");
