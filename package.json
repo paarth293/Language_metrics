@@ -99,5 +99,9 @@
     "@prisma/client@5.22.0": true,
     "@prisma/engines@5.22.0": true,
     "prisma@5.22.0": true
+  },
+  "overrides": {
+    "follow-redirects": "^1.16.1",
+    "vite": "^8.3.5"
   }
 }
