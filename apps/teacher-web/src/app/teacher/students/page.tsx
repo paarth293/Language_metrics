@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useState, useMemo } from "react";
+import React, { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Users, Search, Star, Calendar, AlertCircle, CheckCircle2, TrendingUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -92,7 +92,7 @@ function TeacherStudents() {
 
   const { data, error, isLoading, isStale, updatedAt, refetch } =
     useJsonResource<{ students: Student[] }>("/api/teachers/students", { staleMs: 30_000 });
-  const students = data?.students ?? [];
+  const students = useMemo(() => data?.students ?? [], [data]);
 
   const filtered = useMemo(() => {
     return students.filter((s) => {
