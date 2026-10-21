@@ -11,6 +11,8 @@ import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
+import { useJsonResource } from "@repo/ui/useResource";
+import { StaleDataNotice } from "@repo/ui/StaleDataNotice";
 
 type DashboardData = {
   profile: { name: string; languageToLearn: string; proficiencyLevel: string; avatarUrl: string | null };
@@ -28,26 +30,26 @@ type DashboardData = {
 };
 
 export default function StudentDashboard() {
-  const [data, setData] = React.useState<DashboardData | null>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
+  // Served from cache on a revisit, so navigating back here no longer drops
+  // to DashboardSkeleton over data that was on screen a moment ago.
+  const { data, error, isLoading, isStale, updatedAt, refetch } =
+    useJsonResource<DashboardData>("/api/students/dashboard", { staleMs: 30_000, pollMs: 60_000 });
 
-  React.useEffect(() => {
-    fetch("/api/students/dashboard", { credentials: "include" })
-      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-      .then(setData).catch(() => setError("Failed to load")).finally(() => setLoading(false));
-  }, []);
+  // A skeleton is only right when nothing has ever loaded.
+  if (isLoading) return <DashboardSkeleton />;
 
-  if (loading) return <DashboardSkeleton />;
-
-  if (error || !data) {
+  if (!data) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <AlertCircle className="w-10 h-10 text-danger mx-auto mb-3" />
           <p className="font-semibold text-text mb-1">Unable to load dashboard</p>
-          <p className="text-text-muted text-sm mb-4">{error}</p>
-          <Button onClick={() => window.location.reload()} variant="primary">Retry</Button>
+          <p className="text-text-muted text-sm mb-4">
+            {error ? "Check your connection and try again." : ""}
+          </p>
+          {/* A client-side retry, not a document reload: reloading threw away
+              the whole app shell and every other cached page with it. */}
+          <Button onClick={() => void refetch()} variant="primary">Retry</Button>
         </div>
       </div>
     );
@@ -63,7 +65,11 @@ export default function StudentDashboard() {
   const showNextClass = !!nextClass || hasHistory;
 
   return (
-    <div className="space-y-8 pb-16 animate-in fade-in duration-300">
+    // No entrance animation: this page re-mounts on every navigation back to
+    // it, and replaying a fade over cached content is exactly the flicker
+    // this change is meant to remove.
+    <div className="space-y-8 pb-16">
+      {isStale && <StaleDataNotice onRetry={() => void refetch()} updatedAt={updatedAt} />}
 
       {/* ── GREETING ─────────────────────────────────── */}
       <DashboardGreeting

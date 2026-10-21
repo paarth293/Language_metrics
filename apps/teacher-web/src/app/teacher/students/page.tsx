@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useState, useEffect, useMemo } from "react";
+import React, { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Users, Search, Star, Calendar, AlertCircle, CheckCircle2, TrendingUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { useJsonResource } from "@repo/ui/useResource";
+import { useStickyState } from "@repo/ui/useStickyState";
+import { StaleDataNotice } from "@repo/ui/StaleDataNotice";
 
 type Student = {
   id: string;
@@ -73,11 +76,9 @@ export default function TeacherStudentsPage() {
 }
 
 function TeacherStudents() {
-  const [students, setStudents] = useState<Student[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   // ?q= pre-fills the search (the header's quick search links here), and
-  // a new ?q= while already on the page replaces it.
+  // a new ?q= while already on the page replaces it. This one stays local
+  // state: it is owned by the URL, which already survives a navigation.
   const urlQuery = useSearchParams().get("q") ?? "";
   const [search, setSearch] = useState(urlQuery);
   const [appliedQuery, setAppliedQuery] = useState(urlQuery);
@@ -85,23 +86,13 @@ function TeacherStudents() {
     setAppliedQuery(urlQuery);
     setSearch(urlQuery);
   }
-  const [levelFilter, setLevelFilter] = useState<string>("ALL");
+  // The level filter is not in the URL, so it needs the sticky store to
+  // survive a trip to a student's page and back.
+  const [levelFilter, setLevelFilter] = useStickyState<string>("teacher/students:level", "ALL");
 
-  useEffect(() => {
-    const fetchStudents = async () => {
-      try {
-        const res = await fetch("/api/teachers/students", { credentials: "include" });
-        if (!res.ok) throw new Error("Failed to load students");
-        const data = await res.json();
-        setStudents(data.students || []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchStudents();
-  }, []);
+  const { data, error, isLoading, isStale, updatedAt, refetch } =
+    useJsonResource<{ students: Student[] }>("/api/teachers/students", { staleMs: 30_000 });
+  const students = useMemo(() => data?.students ?? [], [data]);
 
   const filtered = useMemo(() => {
     return students.filter((s) => {
@@ -117,7 +108,9 @@ function TeacherStudents() {
   }, [students]);
 
   return (
-    <div className="space-y-6 pb-16 animate-in fade-in slide-in-from-bottom-4 duration-500 h-full flex flex-col">
+    <div className="space-y-6 pb-16 h-full flex flex-col">
+      {isStale && <StaleDataNotice onRetry={() => void refetch()} updatedAt={updatedAt} />}
+
       {/* ── HEADER ─────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -131,7 +124,7 @@ function TeacherStudents() {
       </div>
 
       {/* ── SUMMARY STATS ──────────────────────────── */}
-      {students.length > 0 && !loading && !error && (
+      {students.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatTile icon={Users} label="Students" value={String(students.length)} tone="bg-brand/10 text-brand" />
           <StatTile
@@ -196,16 +189,18 @@ function TeacherStudents() {
 
       {/* ── STUDENTS LIST ──────────────────────────── */}
       <div className="flex-1">
-        {loading ? (
+        {isLoading ? (
           <div className="py-8">
             <DashboardSkeleton />
           </div>
-        ) : error ? (
+        ) : error && !data ? (
           <div className="text-center py-20 bg-surface rounded-2xl border border-border">
             <AlertCircle className="w-12 h-12 text-alert mx-auto mb-4" />
             <p className="text-text font-semibold mb-1">Failed to load students</p>
-            <p className="text-text-muted text-[13px]">{error}</p>
-            <Button variant="outline" className="mt-6" onClick={() => window.location.reload()}>Try Again</Button>
+            <p className="text-text-muted text-[13px]">Check your connection and try again.</p>
+            {/* Refetch rather than reload the document: a reload tore down the
+                app shell and every other cached page along with it. */}
+            <Button variant="outline" className="mt-6" onClick={() => void refetch()}>Try Again</Button>
           </div>
         ) : filtered.length === 0 ? (
           <Card className="border border-border/50 shadow-sm">

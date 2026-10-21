@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { Search, Filter, Star, Clock, AlertCircle, Loader2, X } from "lucide-react";
 import { Input } from "@/components/ui/Input";
@@ -9,6 +9,10 @@ import { Card, CardContent, CardFooter } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { getCurrencyInfo } from "@repo/currency";
+import { useJsonResource } from "@repo/ui/useResource";
+import { useStickyState } from "@repo/ui/useStickyState";
+import { useDebouncedValue } from "@repo/ui/useDebouncedValue";
+import { StaleDataNotice } from "@repo/ui/StaleDataNotice";
 
 type Teacher = {
   id: string;
@@ -67,61 +71,55 @@ function budgetLabel(min: number, max: number, symbol: string) {
 }
 
 export default function DiscoverPage() {
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [studentCurrency, setStudentCurrency] = useState("INR");
-  const currencySymbol = getCurrencyInfo(studentCurrency).symbol;
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Filters
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
-  const [selectedBudget, setSelectedBudget] = useState<string | null>(null);
-  const [selectedExperience, setSelectedExperience] = useState<string | null>(
-    null
-  );
-  const [selectedGender, setSelectedGender] = useState<string | null>(null);
-  const [availableOnly, setAvailableOnly] = useState(false);
+  // Every filter outlives a navigation, so opening a teacher's profile and
+  // coming back returns to the same search rather than a reset one.
+  const [searchQuery, setSearchQuery] = useStickyState("discover:search", "");
+  const [selectedLanguage, setSelectedLanguage] = useStickyState<string | null>("discover:language", null);
+  const [selectedBudget, setSelectedBudget] = useStickyState<string | null>("discover:budget", null);
+  const [selectedExperience, setSelectedExperience] = useStickyState<string | null>("discover:experience", null);
+  const [selectedGender, setSelectedGender] = useStickyState<string | null>("discover:gender", null);
+  const [availableOnly, setAvailableOnly] = useStickyState("discover:availableOnly", false);
   const [showFilters, setShowFilters] = useState(true);
 
-  const fetchTeachers = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const params = new URLSearchParams();
-      if (searchQuery) params.set("search", searchQuery);
-      if (selectedLanguage) params.set("language", selectedLanguage);
-      if (selectedBudget) {
-        const range = BUDGET_THRESHOLDS.find((r) => r.value === selectedBudget);
-        if (range) {
-          params.set("minRate", String(range.min));
-          if (range.max !== Infinity) params.set("maxRate", String(range.max));
-        }
+  // Debounced before it reaches the URL: the page used to fire one request
+  // per keystroke, each of them overlapping the last.
+  const settledSearch = useDebouncedValue(searchQuery, 300);
+
+  const url = useMemo(() => {
+    const params = new URLSearchParams();
+    if (settledSearch) params.set("search", settledSearch);
+    if (selectedLanguage) params.set("language", selectedLanguage);
+    if (selectedBudget) {
+      const range = BUDGET_THRESHOLDS.find((r) => r.value === selectedBudget);
+      if (range) {
+        params.set("minRate", String(range.min));
+        if (range.max !== Infinity) params.set("maxRate", String(range.max));
       }
-      if (selectedExperience) params.set("experience", selectedExperience);
-      if (selectedGender) params.set("gender", selectedGender);
-      if (availableOnly) params.set("available", "true");
-
-      const res = await fetch(`/api/students/discover?${params.toString()}`, {
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("Failed to load teachers");
-      const data = await res.json();
-      setTeachers(data.teachers || []);
-      setStudentCurrency(data.currency || "INR");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
     }
-  }, [searchQuery, selectedLanguage, selectedBudget, selectedExperience, selectedGender, availableOnly]);
+    if (selectedExperience) params.set("experience", selectedExperience);
+    if (selectedGender) params.set("gender", selectedGender);
+    if (availableOnly) params.set("available", "true");
+    return `/api/students/discover?${params.toString()}`;
+  }, [settledSearch, selectedLanguage, selectedBudget, selectedExperience, selectedGender, availableOnly]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => void fetchTeachers(), 0);
-    return () => clearTimeout(timer);
-  }, [fetchTeachers]);
+  // Results for the filter set actually applied. A pending request's own
+  // filter set is never shown under a different one; every combination
+  // already looked at is cached, which makes going back to it free.
+  const {
+    data,
+    error,
+    isLoading,
+    isStale,
+    updatedAt,
+    refetch: fetchTeachers,
+  } = useJsonResource<{ teachers: Teacher[]; currency?: string }>(url, {
+    staleMs: 60_000,
+  });
 
-
+  const teachers = data?.teachers ?? [];
+  const studentCurrency = data?.currency ?? "INR";
+  const currencySymbol = getCurrencyInfo(studentCurrency).symbol;
+  const loading = isLoading;
 
   const clearAllFilters = () => {
     setSearchQuery("");
@@ -346,18 +344,20 @@ export default function DiscoverPage() {
             </div>
           </div>
 
+          {isStale && <StaleDataNotice onRetry={() => void fetchTeachers()} updatedAt={updatedAt} />}
+
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="w-8 h-8 text-brand animate-spin" />
             </div>
-          ) : error ? (
+          ) : error && !data ? (
             <div className="text-center py-20">
               <AlertCircle className="w-12 h-12 text-danger mx-auto mb-4" />
-              <p className="text-text-muted">{error}</p>
+              <p className="text-text-muted">Check your connection and try again.</p>
               <Button
                 variant="outline"
                 className="mt-4"
-                onClick={fetchTeachers}
+                onClick={() => void fetchTeachers()}
               >
                 Try Again
               </Button>

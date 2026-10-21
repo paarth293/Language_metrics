@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Save, Loader2, AlertCircle, CheckCircle2, User, Globe, BookOpen, Camera, Key, Bell, BellOff, Trash2, AlertTriangle, Eye, EyeOff } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/Badge";
 import "@/components/ui/Avatar";
 import { LANGUAGES, getLevelsForLanguage } from "@/lib/languages";
 import { CURRENCIES } from "@repo/currency";
+import { useJsonResource } from "@repo/ui/useResource";
+import { invalidateResource } from "@repo/ui/resource-cache";
 
 type ProfileData = {
   profile: {
@@ -31,7 +33,6 @@ type ProfileData = {
 };
 
 export default function StudentProfilePage() {
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -62,7 +63,11 @@ export default function StudentProfilePage() {
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
 
   // Push notifications
-  const [pushEnabled, setPushEnabled] = useState(false);
+  // Notification.permission is readable synchronously, so this is initial
+  // state rather than an effect that re-renders the page right after mount.
+  const [pushEnabled, setPushEnabled] = useState(
+    () => typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted"
+  );
   const [pushLoading, setPushLoading] = useState(false);
 
   // Account deletion
@@ -70,13 +75,17 @@ export default function StudentProfilePage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
 
-  const fetchProfile = async () => {
-    try {
-      const res = await fetch("/api/students/profile", {
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("Failed to load profile");
-      const data: ProfileData = await res.json();
+  // Cached, so coming back to the profile paints the form instead of a
+  // skeleton. Focus revalidation and polling are deliberately off, and the
+  // fields are seeded once per mount: a background payload landing mid-edit
+  // would reseed them and discard whatever the student had typed.
+  const { data: loaded, isLoading, error: loadError, refetch: fetchProfile } =
+    useJsonResource<ProfileData>("/api/students/profile", {
+      staleMs: 60_000,
+      revalidateOnFocus: false,
+    });
+
+  const applyProfile = (data: ProfileData) => {
       const p = data.profile;
 
       setName(p.name);
@@ -96,24 +105,16 @@ export default function StudentProfilePage() {
           day: "numeric",
         })
       );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
   };
 
-  const checkPushStatus = async () => {
-    if (!("Notification" in window)) return;
-    if (Notification.permission === "granted") {
-      setPushEnabled(true);
-    }
-  };
 
+  const seeded = useRef(false);
   useEffect(() => {
-    const initial = setTimeout(() => { void fetchProfile(); void checkPushStatus(); }, 0);
-    return () => clearTimeout(initial);
-  }, []);
+    if (!loaded || seeded.current) return;
+    seeded.current = true;
+    applyProfile(loaded);
+  }, [loaded]);
+
 
 
 
@@ -135,6 +136,9 @@ export default function StudentProfilePage() {
         }),
       });
       if (!res.ok) throw new Error("Failed to save profile");
+      // The name, avatar and preferred currency show up on the dashboard and
+      // in prices across the app, so mark the student keys stale.
+      invalidateResource("/api/students/");
       setSuccessMsg("Profile updated successfully!");
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err) {
@@ -240,7 +244,8 @@ export default function StudentProfilePage() {
     }
   };
 
-  if (loading) {
+  // A skeleton only when the profile has never loaded in this session.
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="flex flex-col items-center gap-4">
@@ -255,8 +260,21 @@ export default function StudentProfilePage() {
     );
   }
 
+  if (!loaded) {
+    return (
+      <div className="py-16 w-full text-center">
+        <AlertCircle className="mx-auto mb-3 h-10 w-10 text-alert" />
+        <p className="font-semibold text-text">Unable to load your profile</p>
+        <p className="mt-1 text-[13px] text-text-muted">
+          {loadError ? "Check your connection and try again." : ""}
+        </p>
+        <Button variant="primary" className="mt-5" onClick={() => void fetchProfile()}>Try again</Button>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl w-full">
+    <div className="flex flex-col gap-6 max-w-4xl w-full">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import React, { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
@@ -20,6 +20,9 @@ import {
 import { cn } from "@/lib/cn";
 import { Button } from "@/components/ui/Button";
 import { useNow } from "@/lib/class-join";
+import { useJsonResource } from "@repo/ui/useResource";
+import { useStickyState } from "@repo/ui/useStickyState";
+import { invalidateResource } from "@repo/ui/resource-cache";
 import { WeekGrid } from "@/components/schedule/WeekGrid";
 import { ListView } from "@/components/schedule/ListView";
 import { AvailabilityEditor } from "@/components/schedule/AvailabilityEditor";
@@ -60,18 +63,13 @@ export default function TeacherSchedule() {
   // Ticks so Join buttons and the "now" line stay current without a reload.
   const now = useNow();
 
-  const [weekOffset, setWeekOffset] = useState(0);
+  // Kept across navigations so returning to the schedule lands on the week
+  // the teacher was looking at.
+  const [weekOffset, setWeekOffset] = useStickyState("teacher/schedule:weekOffset", 0);
   const weekStart = useMemo(() => addDays(startOfWeek(new Date()), weekOffset * 7), [weekOffset]);
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
   const weekKey = dayKey(weekStart);
 
-  const [sessions, setSessions] = useState<ScheduleSession[]>([]);
-  const [loadedWeek, setLoadedWeek] = useState<string | null>(null);
-  const [isFetching, setIsFetching] = useState(true);
-  const [loadError, setLoadError] = useState(false);
-  // null until loaded, so an empty "not set" state never flashes while fetching.
-  const [loadedAvailability, setAvailability] = useState<AvailabilitySlot[] | null>(null);
-  const availability = useMemo(() => loadedAvailability ?? [], [loadedAvailability]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -79,65 +77,37 @@ export default function TeacherSchedule() {
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
 
   const isSmallScreen = useIsSmallScreen();
-  const [chosenView, setChosenView] = useState<View | null>(null);
+  const [chosenView, setChosenView] = useStickyState<View | null>("teacher/schedule:view", null);
   const view: View = chosenView ?? (isSmallScreen ? "list" : "week");
 
   // ── Data ──────────────────────────────────────────────────────────────
-  // Any response for the week on screen is usable, so a duplicate or slower
-  // request never makes us wait; responses for weeks already left are dropped.
-  const shownWeek = useRef(weekKey);
-  const loadWeek = useCallback(async (start: Date) => {
-    const key = dayKey(start);
-    setIsFetching(true);
-    try {
-      const params = new URLSearchParams({ from: start.toISOString(), to: addDays(start, 7).toISOString() });
-      const res = await fetch(`/api/teachers/schedule?${params}`, { credentials: "include" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      // Working hours ride along with every week, so they are always current.
-      setAvailability(data.availability ?? []);
-      if (key !== shownWeek.current) return;
-      setSessions(data.sessions ?? []);
-      setLoadedWeek(key);
-      setLoadError(false);
-    } catch (err) {
-      console.error("Error loading schedule:", err);
-      if (key === shownWeek.current) setLoadError(true);
-    } finally {
-      if (key === shownWeek.current) setIsFetching(false);
-    }
-  }, []);
+  // One cache key per week, so paging back to a week already seen is instant
+  // and a response for a week the teacher has left can never land on screen.
+  // A key change shows that week's own state and never carries the
+  // previous week's classes over, which would be wrong rather than stale.
+  const url = useMemo(() => {
+    const params = new URLSearchParams({
+      from: weekStart.toISOString(),
+      to: addDays(weekStart, 7).toISOString(),
+    });
+    return `/api/teachers/schedule?${params}`;
+  }, [weekStart]);
 
-  useEffect(() => {
-    shownWeek.current = dayKey(weekStart);
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let cancelled = false;
+  const week = useJsonResource<{ sessions: ScheduleSession[]; availability: AvailabilitySlot[] }>(
+    url,
+    { staleMs: 30_000, pollMs: 60_000 }
+  );
 
-    const tick = async () => {
-      if (document.visibilityState === "hidden" || cancelled) return;
-      await loadWeek(weekStart);
-      if (!cancelled) {
-        clearTimeout(timer);
-        timer = setTimeout(() => void tick(), 60_000);
-      }
-    };
-
-    const onVisibility = () => {
-      if (document.visibilityState === "visible" && !cancelled) {
-        clearTimeout(timer);
-        void tick();
-      }
-    };
-
-    void tick();
-    document.addEventListener("visibilitychange", onVisibility);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
-  }, [loadWeek, weekStart]);
+  const sessions = useMemo(() => week.data?.sessions ?? [], [week.data]);
+  const isFetching = week.isRevalidating;
+  const loadError = week.error !== undefined && week.data === undefined;
+  // Working hours ride along with every week's response, and a save shows
+  // immediately. null until the first response lands, so an empty "not set"
+  // state never flashes while fetching.
+  const [savedAvailability, setSavedAvailability] = useState<AvailabilitySlot[] | null>(null);
+  const loadedAvailability = savedAvailability ?? week.data?.availability ?? null;
+  const availability = useMemo(() => loadedAvailability ?? [], [loadedAvailability]);
+  const loadedWeek = week.data ? weekKey : null;
 
   // ── Derived ───────────────────────────────────────────────────────────
   const weekSessions = useMemo(
@@ -177,7 +147,6 @@ export default function TeacherSchedule() {
   // ── Actions ───────────────────────────────────────────────────────────
   const goToWeek = (offset: number) => {
     setWeekOffset(offset);
-    setLoadError(false);
     const start = addDays(startOfWeek(new Date()), offset * 7);
     setSelectedDay(offset === 0 ? new Date() : start);
     setSelectedSessionId(null);
@@ -190,7 +159,10 @@ export default function TeacherSchedule() {
 
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
   const onAvailabilitySaved = (slots: AvailabilitySlot[]) => {
-    setAvailability(slots);
+    // Show the saved hours straight away, then mark every cached week stale so
+    // the server's own copy replaces this on the next revalidation.
+    setSavedAvailability(slots);
+    invalidateResource("/api/teachers/schedule");
     setDrawerOpen(false);
     setToast("Working hours saved");
     setTimeout(() => setToast(null), 3000);
@@ -200,7 +172,7 @@ export default function TeacherSchedule() {
   const selectedDaySessions = sessionsByDay.get(dayKey(selectedDay)) ?? [];
 
   return (
-    <div className="space-y-6 pb-16 animate-in fade-in duration-300">
+    <div className="space-y-6 pb-16">
       {/* ── Header ───────────────────────────────────── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-8">
         <div>
@@ -287,7 +259,7 @@ export default function TeacherSchedule() {
             <div className="flex flex-col items-center gap-3 px-6 py-20 text-center">
               <AlertCircle className="h-8 w-8 text-alert" />
               <p className="text-[15px] font-semibold text-text">We couldn&apos;t load this week</p>
-              <Button variant="outline" size="sm" onClick={() => loadWeek(weekStart)}>
+              <Button variant="outline" size="sm" onClick={() => void week.refetch()}>
                 Try again
               </Button>
             </div>

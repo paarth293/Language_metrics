@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React from "react";
 import Link from "next/link";
+import { useJsonResource } from "@repo/ui/useResource";
+import { StaleDataNotice } from "@repo/ui/StaleDataNotice";
 import {
   AlertCircle,
   ArrowRight,
@@ -164,51 +166,12 @@ const panelLink = "inline-flex shrink-0 items-center gap-1 text-[12px] font-semi
 
 export default function StudentDashboard() {
   const now = useNow();
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [error, setError] = useState(false);
-
-  const load = useCallback(async () => {
-    try {
-      const res = await fetch("/api/students/dashboard", { credentials: "include" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setData(await res.json());
-      setError(false);
-    } catch (err) {
-      console.error("Error loading dashboard:", err);
-      setError(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let cancelled = false;
-
-    const tick = async () => {
-      if (document.visibilityState === "hidden" || cancelled) return;
-      await load();
-      if (!cancelled) {
-        clearTimeout(timer);
-        timer = setTimeout(() => void tick(), 60_000);
-      }
-    };
-
-    const onVisibility = () => {
-      if (document.visibilityState === "visible" && !cancelled) {
-        clearTimeout(timer);
-        void tick();
-      }
-    };
-
-    // Initial load and visibility-aware poll
-    void tick();
-    document.addEventListener("visibilitychange", onVisibility);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
-  }, [load]);
+  // Cached across navigations, revalidated only when actually stale, and
+  // polled once a minute while this tab is the visible one.
+  const { data, error, isStale, updatedAt, refetch } = useJsonResource<DashboardData>(
+    "/api/students/dashboard",
+    { staleMs: 30_000, pollMs: 60_000 }
+  );
 
   if (error && !data) {
     return (
@@ -217,7 +180,7 @@ export default function StudentDashboard() {
           <AlertCircle className="mx-auto mb-3 h-8 w-8 text-alert" />
           <h2 className="text-[15px] font-bold text-text">We couldn&apos;t load your dashboard</h2>
           <p className="mb-5 mt-1 text-[13px] text-text-muted">Check your connection and try again.</p>
-          <Button variant="primary" onClick={load}>
+          <Button variant="primary" onClick={() => void refetch()}>
             Try again
           </Button>
         </div>
@@ -253,6 +216,10 @@ export default function StudentDashboard() {
 
   return (
     <div className="space-y-4 pb-10">
+      {/* A refresh failed, but what follows is a real earlier load — keep it
+          on screen and offer a retry rather than blanking the dashboard. */}
+      {isStale && <StaleDataNotice onRetry={() => void refetch()} updatedAt={updatedAt} />}
+
       {/* ── Header ─────────────────────────────────────── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>

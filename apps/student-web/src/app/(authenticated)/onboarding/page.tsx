@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Globe, ArrowRight, ArrowLeft, Check, Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-client";
+import { invalidateResource } from "@repo/ui/resource-cache";
 import { LANGUAGES, getLevelsForLanguage, type LanguageLevel } from "@/lib/languages";
 
 export default function OnboardingPage() {
@@ -28,6 +29,8 @@ export default function OnboardingPage() {
         body: JSON.stringify({ languageToLearn: language, proficiencyLevel, onboardingComplete: true }),
       });
       if (!res.ok) throw new Error("Failed to save preferences");
+      // The chosen language and level drive the dashboard and discovery.
+      invalidateResource("/api/students/");
       await refreshUser();
       router.push("/dashboard");
     } catch {

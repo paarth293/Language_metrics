@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Bell,
   CheckCheck,
@@ -15,6 +15,9 @@ import {
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { useJsonResource } from "@repo/ui/useResource";
+import { useStickyState } from "@repo/ui/useStickyState";
+import { StaleDataNotice } from "@repo/ui/StaleDataNotice";
 
 type Notification = {
   id: string;
@@ -99,17 +102,14 @@ function ToastList({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: str
   );
 }
 
+type NotificationsPayload = { notifications: Notification[]; unreadCount?: number };
+
 export default function TeacherNotifications() {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<"all" | "unread">("all");
+  const [filter, setFilter] = useStickyState<"all" | "unread">("teacher/notifications:filter", "all");
   const [markingAll, setMarkingAll] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [markingIds, setMarkingIds] = useState<Set<string>>(new Set());
   const toastIdRef = useRef(0);
-
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const showToast = useCallback((message: string, kind: Toast["kind"] = "error") => {
     const id = String(++toastIdRef.current);
@@ -121,38 +121,35 @@ export default function TeacherNotifications() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const fetchNotifications = useCallback(async () => {
-    try {
-      setError(null);
-      const res = await fetch("/api/teachers/notifications", { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to load notifications");
-      const data = await res.json();
-      setNotifications(data.notifications || []);
-      broadcastUnreadCount(data.unreadCount || 0);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // Notifications are time-sensitive, so the freshness window is short and
+  // the list still polls while this tab is visible — but a revisit paints the
+  // cached list rather than a spinner.
+  const { data, error, isLoading, isStale, updatedAt, refetch, mutate } =
+    useJsonResource<NotificationsPayload>("/api/teachers/notifications", {
+      staleMs: 15_000,
+      pollMs: 60_000,
+    });
+
+  const notifications = useMemo(() => data?.notifications ?? [], [data]);
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  // Optimistic writes go through the cache, so the TopBar badge and a later
+  // revisit both see the same list.
+  const setNotifications = useCallback(
+    (next: Notification[]) => mutate({ ...(data ?? {}), notifications: next }),
+    [data, mutate]
+  );
 
   useEffect(() => {
-    const timer = setTimeout(() => void fetchNotifications(), 0);
-    return () => clearTimeout(timer);
-  }, [fetchNotifications]);
-
-  useEffect(() => {
-    if (!loading) {
-      broadcastUnreadCount(unreadCount);
-    }
-  }, [unreadCount, loading]);
+    if (data) broadcastUnreadCount(unreadCount);
+  }, [unreadCount, data]);
 
   const markAsRead = useCallback(async (id: string) => {
     if (markingIds.has(id)) return;
     const snapshot = notifications;
 
     setMarkingIds((prev) => new Set(prev).add(id));
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
+    setNotifications(snapshot.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
 
     try {
       const res = await fetch("/api/teachers/notifications", {
@@ -173,14 +170,14 @@ export default function TeacherNotifications() {
         return next;
       });
     }
-  }, [notifications, markingIds, showToast]);
+  }, [notifications, markingIds, showToast, setNotifications]);
 
   const markAllRead = useCallback(async () => {
     if (markingAll || unreadCount === 0) return;
     const snapshot = notifications;
 
     setMarkingAll(true);
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    setNotifications(snapshot.map((n) => ({ ...n, isRead: true })));
 
     try {
       const res = await fetch("/api/teachers/notifications", {
@@ -197,7 +194,7 @@ export default function TeacherNotifications() {
     } finally {
       setMarkingAll(false);
     }
-  }, [markingAll, unreadCount, notifications, showToast]);
+  }, [markingAll, unreadCount, notifications, showToast, setNotifications]);
 
   const filtered = filter === "unread" ? notifications.filter((n) => !n.isRead) : notifications;
 
@@ -208,7 +205,8 @@ export default function TeacherNotifications() {
     return acc;
   }, {} as Record<string, Notification[]>);
 
-  if (loading) {
+  // A spinner only when the list has never loaded in this session.
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="flex flex-col items-center gap-4">
@@ -222,7 +220,7 @@ export default function TeacherNotifications() {
     );
   }
 
-  if (error) {
+  if (!data) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <Card className="max-w-md w-full">
@@ -231,8 +229,10 @@ export default function TeacherNotifications() {
               <AlertCircle className="w-8 h-8 text-danger" />
             </div>
             <h2 className="text-xl font-display font-bold text-text mb-2">Unable to load notifications</h2>
-            <p className="text-text-muted mb-6">{error}</p>
-            <Button onClick={() => { setLoading(true); fetchNotifications(); }} variant="primary">
+            <p className="text-text-muted mb-6">
+              {error ? "Check your connection and try again." : ""}
+            </p>
+            <Button onClick={() => void refetch()} variant="primary">
               Try Again
             </Button>
           </CardContent>
@@ -244,7 +244,9 @@ export default function TeacherNotifications() {
   return (
     <>
       <ToastList toasts={toasts} onDismiss={dismissToast} />
-      <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-3xl w-full">
+      <div className="flex flex-col gap-6 max-w-3xl w-full">
+        {isStale && <StaleDataNotice onRetry={() => void refetch()} updatedAt={updatedAt} />}
+
         {/* Header */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>

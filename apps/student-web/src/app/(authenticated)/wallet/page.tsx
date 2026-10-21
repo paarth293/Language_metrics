@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Plus, ArrowUpRight, ArrowDownRight, ShieldCheck, AlertCircle } from "lucide-react";
 import { CoinPurchaseModal } from "@/components/payments/CoinPurchaseModal";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { useJsonResource } from "@repo/ui/useResource";
+import { StaleDataNotice } from "@repo/ui/StaleDataNotice";
 
 type Transaction = {
   id: string;
@@ -16,33 +18,23 @@ type Transaction = {
 
 export default function WalletPage() {
   const [purchaseOpen, setPurchaseOpen] = useState(false);
-  const [balance, setBalance] = useState(0);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Balances are money, so the freshness window is short — but a revisit
+  // paints the cached balance instead of a spinner.
+  const {
+    data,
+    isLoading,
+    isStale,
+    updatedAt,
+    refetch: fetchWallet,
+  } = useJsonResource<{ balance: number; transactions: Transaction[] }>(
+    "/api/students/wallet",
+    { staleMs: 10_000 }
+  );
+  const balance = data?.balance ?? 0;
+  const transactions = data?.transactions ?? [];
 
-  const fetchWallet = async () => {
-    try {
-      const res = await fetch("/api/students/wallet", { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to load wallet data");
-      const data = await res.json();
-      setBalance(data.balance);
-      setTransactions(data.transactions);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const timer = setTimeout(() => void fetchWallet(), 0);
-    return () => clearTimeout(timer);
-  }, []);
-
-
-
-  if (loading) {
+  // A spinner only when the wallet has never loaded in this session.
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="flex flex-col items-center gap-4">
@@ -56,7 +48,7 @@ export default function WalletPage() {
     );
   }
 
-  if (error) {
+  if (!data) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <Card className="max-w-md w-full">
@@ -65,8 +57,10 @@ export default function WalletPage() {
               <AlertCircle className="w-8 h-8 text-danger" />
             </div>
             <h2 className="text-xl font-display font-bold text-text mb-2">Unable to load wallet</h2>
-            <p className="text-text-muted mb-6">{error}</p>
-            <Button onClick={() => window.location.reload()} variant="primary">
+            <p className="text-text-muted mb-6">Check your connection and try again.</p>
+            {/* A refetch, not a document reload: reloading tore down the
+                app shell and every other cached page with it. */}
+            <Button onClick={() => void fetchWallet()} variant="primary">
               Try Again
             </Button>
           </CardContent>
@@ -76,7 +70,8 @@ export default function WalletPage() {
   }
 
   return (
-    <div className="flex flex-col h-full gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="flex flex-col h-full gap-8">
+      {isStale && <StaleDataNotice onRetry={() => void fetchWallet()} updatedAt={updatedAt} />}
       <CoinPurchaseModal isOpen={purchaseOpen} onClose={() => setPurchaseOpen(false)} onSuccess={() => void fetchWallet()} />
       <div>
         <h1 className="lm-page-title mb-2">My Wallet</h1>

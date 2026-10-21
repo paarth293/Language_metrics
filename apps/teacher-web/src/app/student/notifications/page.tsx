@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import React, { useCallback, useState } from "react";
 import {
   Bell,
   CheckCheck,
@@ -16,6 +15,9 @@ import {
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { useJsonResource } from "@repo/ui/useResource";
+import { useStickyState } from "@repo/ui/useStickyState";
+import { StaleDataNotice } from "@repo/ui/StaleDataNotice";
 
 type Notification = {
   id: string;
@@ -59,32 +61,32 @@ function getDateGroup(dateStr: string): string {
 }
 
 export default function StudentNotifications() {
-  const router = useRouter();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<"all" | "unread">("all");
+  const [filter, setFilter] = useStickyState<"all" | "unread">("student/notifications:filter", "all");
   const [markingAll, setMarkingAll] = useState(false);
 
-  const fetchNotifications = useCallback(async () => {
-    try {
-      const res = await fetch("/api/students/notifications", { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to load notifications");
-      const data = await res.json();
-      setNotifications(data.notifications || []);
-      setUnreadCount(data.unreadCount || 0);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // Short freshness window and a visible-tab poll, because notifications are
+  // time-sensitive — but a revisit paints the cached list, not a skeleton.
+  const {
+    data,
+    isLoading,
+    isStale,
+    updatedAt,
+    refetch: fetchNotifications,
+    mutate,
+  } = useJsonResource<{ notifications: Notification[]; unreadCount?: number }>(
+    "/api/students/notifications",
+    { staleMs: 15_000, pollMs: 60_000 }
+  );
 
-  useEffect(() => {
-    const timer = setTimeout(() => void fetchNotifications(), 0);
-    return () => clearTimeout(timer);
-  }, [fetchNotifications]);
+  const notifications = data?.notifications ?? [];
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  // Optimistic writes land in the cache, so the TopBar badge and a later
+  // revisit cannot disagree about what has been read.
+  const setNotifications = useCallback(
+    (next: Notification[]) => mutate({ ...(data ?? {}), notifications: next }),
+    [data, mutate]
+  );
 
   const markAsRead = async (id: string) => {
     try {
@@ -94,8 +96,7 @@ export default function StudentNotifications() {
         credentials: "include",
         body: JSON.stringify({ notificationId: id }),
       });
-      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
-      setUnreadCount((c) => Math.max(0, c - 1));
+      setNotifications(notifications.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
     } catch {}
   };
 
@@ -108,8 +109,7 @@ export default function StudentNotifications() {
         credentials: "include",
         body: JSON.stringify({}),
       });
-      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-      setUnreadCount(0);
+      setNotifications(notifications.map((n) => ({ ...n, isRead: true })));
     } catch {} finally {
       setMarkingAll(false);
     }
@@ -125,7 +125,8 @@ export default function StudentNotifications() {
     return acc;
   }, {} as Record<string, Notification[]>);
 
-  if (loading) {
+  // A skeleton only when the list has never loaded in this session.
+  if (isLoading) {
     return (
       <div className="py-8 max-w-3xl w-full">
         <DashboardSkeleton />
@@ -133,7 +134,7 @@ export default function StudentNotifications() {
     );
   }
 
-  if (error) {
+  if (!data) {
     return (
       <div className="flex items-center justify-center min-h-[50vh] max-w-3xl w-full">
         <Card className="max-w-md w-full border border-border/50 shadow-sm bg-surface">
@@ -142,8 +143,8 @@ export default function StudentNotifications() {
               <AlertCircle className="w-8 h-8 text-alert" />
             </div>
             <h2 className="text-[20px] font-display font-bold text-text mb-2 leading-tight">Unable to load notifications</h2>
-            <p className="text-[14px] text-text-muted mb-6">{error}</p>
-            <Button onClick={() => router.refresh()} variant="primary" className="shadow-sm">
+            <p className="text-[14px] text-text-muted mb-6">Check your connection and try again.</p>
+            <Button onClick={() => void fetchNotifications()} variant="primary" className="shadow-sm">
               Try Again
             </Button>
           </CardContent>
@@ -153,7 +154,9 @@ export default function StudentNotifications() {
   }
 
   return (
-    <div className="space-y-6 pb-16 animate-in fade-in duration-300 h-full flex flex-col max-w-3xl w-full">
+    <div className="space-y-6 pb-16 h-full flex flex-col max-w-3xl w-full">
+      {isStale && <StaleDataNotice onRetry={() => void fetchNotifications()} updatedAt={updatedAt} />}
+
       {/* ── HEADER ─────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

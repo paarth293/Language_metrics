@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useCallback, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState } from "react";
 import { Plus, ArrowUpRight, ArrowDownRight, ShieldCheck, AlertCircle, Coins, Clock } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { TopUpCoinsDialog } from "@/components/wallet/TopUpCoinsDialog";
+import { useJsonResource } from "@repo/ui/useResource";
+import { StaleDataNotice } from "@repo/ui/StaleDataNotice";
 
 type Transaction = {
   id: string;
@@ -17,36 +18,26 @@ type Transaction = {
 };
 
 export default function WalletPage() {
-  const router = useRouter();
-  const [balance, setBalance] = useState(0);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [topUpOpen, setTopUpOpen] = useState(false);
 
-  const loadWallet = useCallback(async (isCancelled: () => boolean = () => false) => {
-    try {
-      const res = await fetch("/api/students/wallet", { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to load wallet data");
-      const data = await res.json();
-      if (!isCancelled()) {
-        setBalance(data.balance);
-        setTransactions(data.transactions);
-      }
-    } catch (err) {
-      if (!isCancelled()) setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      if (!isCancelled()) setLoading(false);
-    }
-  }, []);
+  // Balances are money, so the freshness window is short and the page
+  // revalidates on a tab resume — but a revisit still paints the cached
+  // balance rather than a skeleton.
+  const {
+    data,
+    isLoading,
+    isStale,
+    updatedAt,
+    refetch: loadWallet,
+  } = useJsonResource<{ balance: number; transactions: Transaction[] }>(
+    "/api/students/wallet",
+    { staleMs: 10_000 }
+  );
+  const balance = data?.balance ?? 0;
+  const transactions = data?.transactions ?? [];
 
-  useEffect(() => {
-    let cancelled = false;
-    const initial = setTimeout(() => void loadWallet(() => cancelled), 0);
-    return () => { cancelled = true; clearTimeout(initial); };
-  }, [loadWallet]);
-
-  if (loading) {
+  // A skeleton only when the wallet has never loaded in this session.
+  if (isLoading) {
     return (
       <div className="py-8">
         <DashboardSkeleton />
@@ -54,7 +45,7 @@ export default function WalletPage() {
     );
   }
 
-  if (error) {
+  if (!data) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <Card className="max-w-md w-full border border-border/50 shadow-sm bg-surface">
@@ -63,8 +54,8 @@ export default function WalletPage() {
               <AlertCircle className="w-8 h-8 text-alert" />
             </div>
             <h2 className="text-[20px] font-display font-bold text-text mb-2 leading-tight">Unable to load wallet</h2>
-            <p className="text-[14px] text-text-muted mb-6">{error}</p>
-            <Button onClick={() => router.refresh()} variant="primary" className="shadow-sm">
+            <p className="text-[14px] text-text-muted mb-6">Check your connection and try again.</p>
+            <Button onClick={() => void loadWallet()} variant="primary" className="shadow-sm">
               Try Again
             </Button>
           </CardContent>
@@ -74,7 +65,9 @@ export default function WalletPage() {
   }
 
   return (
-    <div className="space-y-6 pb-16 animate-in fade-in duration-300 h-full flex flex-col">
+    <div className="space-y-6 pb-16 h-full flex flex-col">
+      {isStale && <StaleDataNotice onRetry={() => void loadWallet()} updatedAt={updatedAt} />}
+
       {/* ── HEADER ─────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

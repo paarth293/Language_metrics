@@ -1,11 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useState } from "react";
 import { motion } from "framer-motion";
 import { AlertTriangle, Send, Clock, CheckCircle, XCircle, Loader2, AlertCircle, MessageSquare, Plus, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { fetchWithRefresh } from "@/lib/fetch-with-refresh";
+import { useResource } from "@repo/ui/useResource";
+import { useStickyState } from "@repo/ui/useStickyState";
+import { invalidateResource } from "@repo/ui/resource-cache";
 
 type TicketStatus = "PENDING" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
 
@@ -75,43 +78,38 @@ async function errorMessage(res: Response, fallback: string) {
 }
 
 export default function SupportPage() {
-  const [view, setView] = useState<"list" | "new">("list");
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<TicketStatus | "ALL">("ALL");
+  // View and filter outlive a navigation, so leaving the page mid-triage and
+  // coming back returns to the same list.
+  const [view, setView] = useStickyState<"list" | "new">("student/support:view", "list");
+  const [filter, setFilter] = useStickyState<TicketStatus | "ALL">("student/support:filter", "ALL");
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // New ticket form
   const [category, setCategory] = useState("");
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
 
-  const fetchTickets = async () => {
-    try {
-      setLoading(true);
-      const res = await fetchWithRefresh("/api/students/complaints");
-      if (!res.ok) throw new Error(await errorMessage(res, "Failed to load tickets"));
-      const data = await res.json();
-      setTickets(data.tickets || []);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-
-  useEffect(() => {
-    const timer = setTimeout(() => void fetchTickets(), 0);
-    return () => clearTimeout(timer);
+  // Cached, so returning to the ticket list paints it instead of spinning.
+  // fetchWithRefresh is kept as the fetcher so an expired access token is
+  // still rotated once and retried rather than surfacing as a load failure.
+  const fetcher = useCallback(async () => {
+    const res = await fetchWithRefresh("/api/students/complaints");
+    if (!res.ok) throw new Error(await errorMessage(res, "Failed to load tickets"));
+    return (await res.json()) as { tickets: Ticket[] };
   }, []);
+  const ticketsResource = useResource("/api/students/complaints", fetcher, { staleMs: 30_000 });
+  const tickets = ticketsResource.data?.tickets ?? [];
+  const loadError = ticketsResource.error;
+  const error =
+    submitError ?? (loadError instanceof Error ? loadError.message : loadError ? "Failed to load tickets" : null);
+  const fetchTickets = ticketsResource.refetch;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!category || !subject.trim() || !description.trim()) return;
     setSubmitting(true);
-    setError(null);
+    setSubmitError(null);
     try {
       const res = await fetchWithRefresh("/api/students/complaints", {
         method: "POST",
@@ -123,9 +121,9 @@ export default function SupportPage() {
       setCategory("");
       setSubject("");
       setDescription("");
-      fetchTickets();
+      invalidateResource("/api/students/complaints");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : String(err));
+      setSubmitError(err instanceof Error ? err.message : String(err));
     } finally {
       setSubmitting(false);
     }
@@ -144,7 +142,8 @@ export default function SupportPage() {
       minute: "2-digit",
     });
 
-  if (loading) {
+  // A spinner only when the ticket list has never loaded in this session.
+  if (ticketsResource.isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="w-8 h-8 text-amber-700 animate-spin" />
@@ -189,9 +188,12 @@ export default function SupportPage() {
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
           <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
           <p className="text-sm text-red-700">{error}</p>
+          {/* Dismissing clears a submit error; a load failure is retried,
+              since dismissing it would leave the list silently empty. */}
           <button
-            onClick={() => setError(null)}
+            onClick={() => (submitError ? setSubmitError(null) : void fetchTickets())}
             className="ml-auto text-red-500 hover:text-red-700"
+            aria-label={submitError ? "Dismiss error" : "Retry"}
           >
             <XCircle className="w-4 h-4" />
           </button>
