@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import {
   Video,
@@ -18,6 +18,10 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { useJsonResource } from "@repo/ui/useResource";
+import { useStickyState } from "@repo/ui/useStickyState";
+import { invalidateResource } from "@repo/ui/resource-cache";
+import { StaleDataNotice } from "@repo/ui/StaleDataNotice";
 
 type Booking = {
   id: string;
@@ -46,33 +50,27 @@ const PILL_COLORS = ["#231d5e","#0f6b58","#c7982f","#dc4c3e","#3d32a0","#0f9d6b"
 function getInitials(n: string) { return n.split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase(); }
 
 export default function MyClassesPage() {
-  const [activeTab, setActiveTab] = useState("upcoming");
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // The chosen tab outlives a navigation, so opening a class and coming
+  // back lands on the same list.
+  const [activeTab, setActiveTab] = useStickyState("student/classes:tab", "upcoming");
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState<string | null>(null);
 
-  const fetchBookings = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await fetch(`/api/students/classes?filter=${activeTab}`, {
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("Failed to load classes");
-      const data = await res.json();
-      setBookings(data.bookings || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  }, [activeTab]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => void fetchBookings(), 0);
-    return () => clearTimeout(timer);
-  }, [fetchBookings]);
+  // One cache key per tab, so switching back to a tab already looked at is
+  // instant. keepPreviousData is off: another tab's bookings under this tab's
+  // header would be wrong rather than merely stale.
+  const {
+    data,
+    error,
+    isLoading,
+    isStale,
+    updatedAt,
+    refetch: fetchBookings,
+  } = useJsonResource<{ bookings: Booking[] }>(`/api/students/classes?filter=${activeTab}`, {
+    staleMs: 30_000,
+    keepPreviousData: false,
+  });
+  const bookings = data?.bookings ?? [];
 
 
 
@@ -89,7 +87,8 @@ export default function MyClassesPage() {
         throw new Error(data.error || "Failed to cancel booking");
       }
       setShowCancelModal(null);
-      fetchBookings(); // Refresh list
+      // Cancelling moves the booking between tabs, so drop all of them.
+      invalidateResource("/api/students/classes");
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to cancel");
     } finally {
@@ -135,7 +134,7 @@ export default function MyClassesPage() {
   };
 
   return (
-    <div className="space-y-6 pb-16 animate-in fade-in duration-300 h-full flex flex-col">
+    <div className="space-y-6 pb-16 h-full flex flex-col">
       {/* ── HEADER ─────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -175,15 +174,16 @@ export default function MyClassesPage() {
 
       {/* ── CONTENT ────────────────────────────────── */}
       <div className="flex-1">
-        {loading ? (
+        {isStale && <StaleDataNotice onRetry={() => void fetchBookings()} updatedAt={updatedAt} />}
+        {isLoading ? (
           <div className="py-12">
             <DashboardSkeleton />
           </div>
-        ) : error ? (
+        ) : error && !data ? (
           <div className="text-center py-20 bg-surface rounded-2xl border border-border">
             <AlertCircle className="w-12 h-12 text-alert mx-auto mb-4" />
             <p className="text-text font-semibold mb-1">Failed to load classes</p>
-            <p className="text-text-muted text-sm">{error}</p>
+            <p className="text-text-muted text-sm">Check your connection and try again.</p>
             <Button variant="outline" className="mt-6" onClick={fetchBookings}>
               Try Again
             </Button>
