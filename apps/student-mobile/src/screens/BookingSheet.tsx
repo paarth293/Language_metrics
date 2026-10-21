@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { ArrowRight, Check } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BookingDetail, TeacherCard } from "@repo/api-contracts";
 import { useAuth } from "../auth/AuthProvider";
-import { AppText, Avatar, Banner, Button, Chip, Divider, SegmentedControl } from "../components/ui";
+import { AppText, Avatar, Banner, Button, Chip, CoinText, Divider, SegmentedControl } from "../components/ui";
 import { ApiError, MobileApiClient } from "../lib/api-client";
 import { formatDateTime, formatDayLabel, formatNumber, formatTime, initials } from "../lib/format";
 import { useTheme } from "../theme/ThemeProvider";
@@ -129,9 +130,7 @@ export function BookingSheet({
           {booked ? (
             <View style={styles.success}>
               <View style={[styles.successIcon, { backgroundColor: colors.trustSubtle }]}>
-                <AppText variant="h1" tone="trust">
-                  ✓
-                </AppText>
+                <Check size={30} color={colors.trustText} strokeWidth={3} />
               </View>
               <AppText variant="h2" style={styles.centerText}>
                 Lesson booked
@@ -152,8 +151,11 @@ export function BookingSheet({
                 <View style={{ flex: 1, marginLeft: spacing.md }}>
                   <AppText variant="h3">Book a lesson with {teacher.name}</AppText>
                   <AppText variant="small" tone="muted">
-                    {teacher.languages.join(", ") || "1-on-1 lesson"} · 🪙 {formatNumber(teacher.hourlyRate)} coins / hr
+                    {teacher.languages.join(", ") || "1-on-1 lesson"}
                   </AppText>
+                  <CoinText variant="small" tone="muted" iconSize={13}>
+                    {formatNumber(teacher.hourlyRate)} coins / hr
+                  </CoinText>
                 </View>
               </View>
 
@@ -218,13 +220,13 @@ export function BookingSheet({
 
               <View style={styles.summaryRow}>
                 <AppText tone="muted">Lesson cost</AppText>
-                <AppText weight="700">🪙 {formatNumber(cost)} coins</AppText>
+                <CoinText weight="700">{formatNumber(cost)} coins</CoinText>
               </View>
               <View style={styles.summaryRow}>
                 <AppText tone="muted">Your balance</AppText>
-                <AppText weight="600" tone={insufficient ? "alert" : "default"}>
-                  🪙 {formatNumber(coinBalance)} coins
-                </AppText>
+                <CoinText weight="600" tone={insufficient ? "alert" : "default"}>
+                  {formatNumber(coinBalance)} coins
+                </CoinText>
               </View>
               {slot ? (
                 <View style={styles.summaryRow}>
@@ -238,7 +240,8 @@ export function BookingSheet({
                   <Banner
                     tone="alert"
                     message={`You need ${formatNumber(cost)} coins for this lesson but have ${formatNumber(coinBalance)}.`}
-                    actionLabel="Top up coins →"
+                    actionLabel="Top up coins"
+                    actionIcon={ArrowRight}
                     onAction={onTopUp}
                   />
                 ) : null}
