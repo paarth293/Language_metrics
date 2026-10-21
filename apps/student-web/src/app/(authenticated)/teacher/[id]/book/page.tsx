@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, Loader2, Wallet, Clock, AlertCircle } from "lucide-react";
@@ -55,7 +55,7 @@ export default function BookClassPage() {
   const walletResource = useJsonResource<{ balance: number }>("/api/students/wallet", { staleMs: 10_000 });
 
   const teacher = teacherResource.data?.teacher ?? null;
-  const rates = teacherResource.data?.rates ?? [];
+  const rates = useMemo(() => teacherResource.data?.rates ?? [], [teacherResource.data]);
   const demo = teacherResource.data?.demo ?? null;
   const balance = walletResource.data?.balance ?? 0;
 
@@ -67,11 +67,15 @@ export default function BookClassPage() {
     defaulted.current = true;
     // "Book Demo" links arrive with ?option=demo; otherwise keep the first rate.
     const wantsDemo = new URLSearchParams(window.location.search).get("option") === "demo";
+    /* eslint-disable react-hooks/set-state-in-effect -- the default selection
+       can only be chosen once the rates arrive, and the ref above makes sure
+       it happens exactly once rather than on every refresh. */
     if (demo?.available && (wantsDemo || rates.length === 0)) {
       setSelectedRate(DEMO);
     } else if (rates.length > 0) {
       setSelectedRate(rates[0]!.id);
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [teacherResource.data, demo, rates]);
 
   const handleBook = async () => {
