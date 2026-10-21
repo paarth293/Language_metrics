@@ -11,7 +11,9 @@
     "./cn": "./src/cn.ts",
     "./cashfree": "./src/cashfree.ts",
     "./chat-send-error": "./src/chat-send-error.ts",
-    "./useCookieConsent": "./src/useCookieConsent.ts"
+    "./useCookieConsent": "./src/useCookieConsent.ts",
+    "./resource-cache": "./src/resource-cache.ts",
+    "./useResource": "./src/useResource.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
