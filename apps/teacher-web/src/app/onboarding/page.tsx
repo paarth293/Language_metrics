@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { FileUpload } from "@/components/ui/FileUpload";
 import { Button } from "@/components/ui/Button";
 import { motion, AnimatePresence } from "framer-motion";
-import { GraduationCap, BookOpen, ArrowRight, ArrowLeft, Check, Globe } from "lucide-react";
+import { GraduationCap, BookOpen, ArrowRight, ArrowLeft, Check, Globe, Info } from "lucide-react";
 import { TEACHING_LANGUAGES } from "@/lib/languages";
 import { MIN_AGE, dateOfBirthSchema, latestBirthDate } from "@/features/auth/validators/auth";
 import { getLevelsForLanguage, type LanguageLevel } from "@/lib/languages";
@@ -453,9 +453,7 @@ export default function OnboardingPage() {
                           <span className="text-base leading-none flex-shrink-0">{lang.flag}</span>
                           <span className="truncate">{lang.name}</span>
                           {isSelected && (
-                            <svg className="w-3 h-3 ml-auto flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
+                            <Check className="w-3 h-3 ml-auto flex-shrink-0" strokeWidth={3} />
                           )}
                         </button>
                       );
@@ -594,19 +592,7 @@ export default function OnboardingPage() {
                 />
 
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-brand/5 border border-brand/20">
-                  <svg
-                    className="w-4 h-4 text-brand mt-0.5 flex-shrink-0"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
+                  <Info className="w-4 h-4 text-brand mt-0.5 flex-shrink-0" />
                   <p className="text-xs text-text-muted">
                     Your documents are securely stored and only accessible to our
                     admin team for verification purposes.
@@ -684,19 +670,7 @@ export default function OnboardingPage() {
                   />
                 ) : (
                   <div className="flex items-start gap-2 p-3 rounded-lg bg-surface-inset border border-border">
-                    <svg
-                      className="w-4 h-4 text-text-muted mt-0.5 flex-shrink-0"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
+                    <Info className="w-4 h-4 text-text-muted mt-0.5 flex-shrink-0" />
                     <p className="text-xs text-text-muted">
                       Many successful teachers start without formal experience.
                       You&apos;ll go through our verification process and can
