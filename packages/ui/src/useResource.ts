@@ -14,6 +14,10 @@
  * Freshness is accounted for rather than guessed: a tab resume revalidates
  * only keys older than `staleMs`, and concurrent callers of the same key
  * share one request.
+ *
+ * Changing the key shows that key's own state — cached data if it has any,
+ * otherwise a loading state. The previous key's payload is never carried
+ * over: under a new filter or a new week it would be wrong, not merely stale.
  */
 
 import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
@@ -42,11 +46,6 @@ export interface UseResourceOptions {
   pollMs?: number;
   /** Set false to hold off fetching (waiting on auth, or on a route param). */
   enabled?: boolean;
-  /**
-   * Keep the previous key's data on screen while a new key loads — e.g. while
-   * a filter changes — instead of dropping to a skeleton. Default true.
-   */
-  keepPreviousData?: boolean;
 }
 
 export interface Resource<T> {
@@ -84,25 +83,23 @@ export function useResource<T>(
     revalidateOnFocus = true,
     pollMs = 0,
     enabled = true,
-    keepPreviousData = true,
   } = options;
 
   const active = enabled && key !== null;
 
-  // Read through refs so a new inline fetcher on every render does not
-  // restart the effects below.
+  // The fetcher is read through a ref so a new inline closure on every render
+  // does not restart the effects below. It is synced in an effect declared
+  // before them, which React runs first, so they always see the latest one.
   const fetcherRef = useRef(fetcher);
-  fetcherRef.current = fetcher;
+  useEffect(() => {
+    fetcherRef.current = fetcher;
+  }, [fetcher]);
 
   const entry = useSyncExternalStore<CacheEntry<T>>(
     useCallback((cb) => (key === null ? () => {} : subscribe(key, cb)), [key]),
     useCallback(() => (key === null ? getEntry<T>("") : getEntry<T>(key)), [key]),
     useCallback(() => getEntry<T>(""), [])
   );
-
-  // Last payload seen under any key, so switching keys does not blank the UI.
-  const previousRef = useRef<T | undefined>(undefined);
-  if (entry.data !== undefined) previousRef.current = entry.data;
 
   const load = useCallback(
     (force: boolean) => {
@@ -202,7 +199,7 @@ export function useResource<T>(
     [key]
   );
 
-  const data = entry.data ?? (keepPreviousData ? previousRef.current : undefined);
+  const data = entry.data;
 
   return {
     data,
