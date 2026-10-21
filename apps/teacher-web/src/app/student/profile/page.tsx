@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Save,
   Loader2,
@@ -27,6 +27,8 @@ import { Badge } from "@/components/ui/Badge";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { LANGUAGES, getLevelsForLanguage } from "@/lib/languages";
 import { CURRENCIES } from "@repo/currency";
+import { useJsonResource } from "@repo/ui/useResource";
+import { invalidateResource } from "@repo/ui/resource-cache";
 
 type ProfileData = {
   profile: {
@@ -47,7 +49,6 @@ type ProfileData = {
 };
 
 export default function StudentProfilePage() {
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -86,11 +87,17 @@ export default function StudentProfilePage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
 
-  const fetchProfile = async () => {
-    try {
-      const res = await fetch("/api/students/profile", { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to load profile");
-      const data: ProfileData = await res.json();
+  // Cached, so coming back to the profile paints the form instead of a
+  // skeleton. Focus revalidation and polling are deliberately off, and the
+  // fields are seeded once per mount: a background payload landing mid-edit
+  // would reseed them and discard whatever the student had typed.
+  const { data: loaded, isLoading, error: loadError, refetch: fetchProfile } =
+    useJsonResource<ProfileData>("/api/students/profile", {
+      staleMs: 60_000,
+      revalidateOnFocus: false,
+    });
+
+  const applyProfile = (data: ProfileData) => {
       const p = data.profile;
 
       setName(p.name);
@@ -108,11 +115,6 @@ export default function StudentProfilePage() {
           year: "numeric", month: "long", day: "numeric",
         })
       );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
   };
 
   const checkPushStatus = async () => {
@@ -120,9 +122,17 @@ export default function StudentProfilePage() {
     if (Notification.permission === "granted") setPushEnabled(true);
   };
 
+  const seeded = useRef(false);
   useEffect(() => {
-    const initial = setTimeout(() => { void fetchProfile(); void checkPushStatus(); }, 0);
-    return () => clearTimeout(initial);
+    if (!loaded || seeded.current) return;
+    seeded.current = true;
+    applyProfile(loaded);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- applyProfile only writes setState
+  }, [loaded]);
+
+  useEffect(() => {
+    void checkPushStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once
   }, []);
 
 
@@ -139,6 +149,9 @@ export default function StudentProfilePage() {
         body: JSON.stringify({ name, avatarUrl, languageToLearn, proficiencyLevel, preferredCurrency }),
       });
       if (!res.ok) throw new Error("Failed to save profile");
+      // The name, avatar and preferred currency show up on the dashboard and
+      // in prices across the app, so mark the student keys stale.
+      invalidateResource("/api/students/");
       setSuccessMsg("Profile updated successfully!");
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err) {
@@ -235,7 +248,8 @@ export default function StudentProfilePage() {
     }
   };
 
-  if (loading) {
+  // A skeleton only when the profile has never loaded in this session.
+  if (isLoading) {
     return (
       <div className="py-8 max-w-4xl w-full">
         <DashboardSkeleton />
@@ -243,8 +257,21 @@ export default function StudentProfilePage() {
     );
   }
 
+  if (!loaded) {
+    return (
+      <div className="py-16 w-full text-center">
+        <AlertCircle className="mx-auto mb-3 h-10 w-10 text-alert" />
+        <p className="font-semibold text-text">Unable to load your profile</p>
+        <p className="mt-1 text-[13px] text-text-muted">
+          {loadError ? "Check your connection and try again." : ""}
+        </p>
+        <Button variant="primary" className="mt-5" onClick={() => void fetchProfile()}>Try again</Button>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6 pb-16 animate-in fade-in duration-300 h-full flex flex-col max-w-4xl w-full">
+    <div className="space-y-6 pb-16 h-full flex flex-col max-w-4xl w-full">
       {/* ── HEADER ─────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
