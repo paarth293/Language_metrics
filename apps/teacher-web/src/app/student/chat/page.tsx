@@ -14,6 +14,8 @@ import {
   newerMessagesUrl,
   olderMessagesUrl,
 } from "@/lib/chat-polling";
+import { getEntry, mutateResource } from "@repo/ui/resource-cache";
+import { useStickyState } from "@repo/ui/useStickyState";
 
 interface ChatThread {
   teacherId: string;
@@ -34,12 +36,33 @@ interface ChatMessage {
   createdAt: string;
 }
 
+/**
+ * The chat page keeps its own request bookkeeping — versioned requests,
+ * in-flight guards and an idle poll backoff — which is left as it is. What
+ * changed is where the first paint comes from: the thread list and each
+ * conversation are mirrored into the shared cache, so navigating away and
+ * back renders what was on screen instead of a spinner over an empty panel,
+ * and a tab resume checks how old the list actually is before refetching.
+ */
+const THREADS_KEY = "/api/students/chat";
+const messagesKey = (id: string) => `/api/students/chat/${id}`;
+
+type ThreadsCache = { threads: ChatThread[] };
+type MessagesCache = { messages: ChatMessage[]; hasMore: boolean };
+
 export default function ChatPage() {
-  const [threads, setThreads] = useState<ChatThread[]>([]);
-  const [selectedTeacher, setSelectedTeacher] = useState<string | null>(null);
+  const [threads, setThreads] = useState<ChatThread[]>(
+    () => getEntry<ThreadsCache>(THREADS_KEY).data?.threads ?? []
+  );
+  // The open conversation outlives a navigation, so coming back to chat
+  // reopens it rather than dropping to the empty-panel state.
+  const [selectedTeacher, setSelectedTeacher] = useStickyState<string | null>("student/chat:selected", null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  const [loading, setLoading] = useState(true);
+  // Only a true first visit has nothing to show.
+  const [loading, setLoading] = useState(
+    () => getEntry<ThreadsCache>(THREADS_KEY).data === undefined
+  );
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
   // Why the last send failed, shown above the composer (chat follow-up).
@@ -82,6 +105,7 @@ export default function ChatPage() {
       const data = await res.json();
       if (request !== threadRequest.current.version) return;
       setThreads(data.threads || []);
+      mutateResource<ThreadsCache>(THREADS_KEY, { threads: data.threads || [] });
       setError(null);
     } catch (err: unknown) {
       if (request === threadRequest.current.version) setError(err instanceof Error ? err.message : "Failed to load chats");
@@ -97,7 +121,15 @@ export default function ChatPage() {
     messageInFlight.current = true;
     const request = ++messageRequest.current.version;
     try {
-      if (showLoading) { setLoadingMessages(true); setMessages([]); messagesRef.current = []; setHasOlder(false); }
+      if (showLoading) {
+        // Reopening a conversation paints the cached messages first; only a
+        // conversation never opened in this session shows a loading state.
+        const cached = getEntry<MessagesCache>(messagesKey(teacherId)).data;
+        setMessages(cached?.messages ?? []);
+        messagesRef.current = cached?.messages ?? [];
+        setHasOlder(cached?.hasMore ?? false);
+        setLoadingMessages(cached === undefined);
+      }
       const base = `/api/students/chat/${teacherId}`;
       const current = messagesRef.current;
       const res = await fetch(showLoading ? base : newerMessagesUrl(base, current[current.length - 1]));
@@ -109,12 +141,22 @@ export default function ChatPage() {
         setMessages(incoming);
         messagesRef.current = incoming;
         setHasOlder(Boolean(data.hasMore));
+        mutateResource<MessagesCache>(messagesKey(teacherId), {
+          messages: incoming,
+          hasMore: Boolean(data.hasMore),
+        });
       } else {
         const merged = mergeMessages(messagesRef.current, incoming);
         if (merged.length !== messagesRef.current.length) {
           lastActivityRef.current = Date.now();
           messagesRef.current = merged;
           setMessages(merged);
+          // hasMore belongs to the paging state, not this poll, so carry
+          // whatever the cache already recorded for it.
+          mutateResource<MessagesCache>(messagesKey(teacherId), {
+            messages: merged,
+            hasMore: getEntry<MessagesCache>(messagesKey(teacherId)).data?.hasMore ?? false,
+          });
         }
       }
     } catch (err: unknown) {
@@ -159,7 +201,12 @@ export default function ChatPage() {
     };
     const onVisibility = () => {
       clearTimeout(timer);
-      if (document.visibilityState !== "hidden") void tick();
+      if (document.visibilityState === "hidden") return;
+      // Returning to the tab only refetches a list that is genuinely older
+      // than one poll interval; otherwise it just re-arms the timer.
+      const age = Date.now() - getEntry(THREADS_KEY).updatedAt;
+      if (age >= THREAD_POLL_MS) void tick();
+      else timer = setTimeout(() => void tick(), THREAD_POLL_MS - age);
     };
     const initial = setTimeout(() => void fetchThreads(), 0);
     timer = setTimeout(() => void tick(), THREAD_POLL_MS);
