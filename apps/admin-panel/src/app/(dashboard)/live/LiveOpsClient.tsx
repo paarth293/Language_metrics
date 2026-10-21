@@ -116,7 +116,6 @@ export default function LiveOpsClient() {
       else timer = setTimeout(() => void run(), 15_000 - age);
     };
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void run();
     document.addEventListener("visibilitychange", onVisibility);
 
