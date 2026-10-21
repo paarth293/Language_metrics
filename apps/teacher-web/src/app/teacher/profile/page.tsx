@@ -126,7 +126,6 @@ export default function TeacherProfileSettings() {
     if (!loaded || seeded.current) return;
     seeded.current = true;
     applyProfile(loaded);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- applyProfile only writes setState
   }, [loaded]);
 
   const handleSaveProfile = async () => {
