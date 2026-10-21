@@ -99,11 +99,7 @@ export async function POST(request: NextRequest) {
     );
 
     response.cookies.set("lm_teacher_access_token", accessToken, accessCookieOptions);
-    response.cookies.set("lm_teacher_refresh_token", refreshToken, {
-      ...refreshCookieOptions,
-      // Allow the refresh token cookie to reach /api/auth routes
-      path: "/api/auth",
-    });
+    response.cookies.set("lm_teacher_refresh_token", refreshToken, refreshCookieOptions);
 
     return response;
   } catch (err: unknown) {

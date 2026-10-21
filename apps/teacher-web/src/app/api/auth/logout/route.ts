@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
 
   const response = NextResponse.json({ success: true }, { status: 200 });
   response.cookies.set("lm_teacher_access_token", "", { maxAge: 0, path: "/" });
+  response.cookies.set("lm_teacher_refresh_token", "", { maxAge: 0, path: "/" });
   response.cookies.set("lm_teacher_refresh_token", "", { maxAge: 0, path: "/api/auth" });
   return response;
 }

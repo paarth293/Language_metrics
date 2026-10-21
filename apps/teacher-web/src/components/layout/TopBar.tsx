@@ -49,14 +49,21 @@ export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnread
   const unreadCount = localUnreadCount ?? initialUnreadCount ?? 0;
 
   useEffect(() => {
-    if (initialUnreadCount !== undefined) {
+    if (initialUnreadCount !== undefined || !user || !user.role) {
       return;
     }
 
     let isMounted = true;
+    let inFlight = false;
+
     async function checkUnreadNotifications() {
+      if (inFlight || !isMounted || !user?.role) return;
+      inFlight = true;
       try {
-        const endpoint = user?.role === "STUDENT" ? "/api/students/notifications/unread-count" : "/api/teachers/notifications/unread-count";
+        const endpoint =
+          user.role === "STUDENT"
+            ? "/api/students/notifications/unread-count"
+            : "/api/teachers/notifications/unread-count";
         const res = await fetch(endpoint, { credentials: "include" });
         if (res.ok) {
           const data = await res.json();
@@ -66,6 +73,8 @@ export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnread
         }
       } catch {
         // Silently handle fetch failures
+      } finally {
+        inFlight = false;
       }
     }
 
@@ -80,15 +89,23 @@ export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnread
       }
     };
 
+    let lastFocusCheck = Date.now();
+    const handleFocus = () => {
+      if (document.visibilityState === "visible" && Date.now() - lastFocusCheck > 15_000) {
+        lastFocusCheck = Date.now();
+        checkUnreadNotifications();
+      }
+    };
+
     window.addEventListener("notifications-updated", handleNotificationsUpdated);
-    window.addEventListener("focus", checkUnreadNotifications);
+    window.addEventListener("focus", handleFocus);
 
     return () => {
       isMounted = false;
       window.removeEventListener("notifications-updated", handleNotificationsUpdated);
-      window.removeEventListener("focus", checkUnreadNotifications);
+      window.removeEventListener("focus", handleFocus);
     };
-  }, [initialUnreadCount, user?.role]);
+  }, [initialUnreadCount, user?.id, user?.role]);
 
   const toggleTheme = () => {
     setTheme(theme === "light" ? "dark" : "light");

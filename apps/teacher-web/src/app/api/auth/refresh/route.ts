@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
   if (!payload || !payload.sub || !payload.sid) {
     const res = NextResponse.json({ message: "Invalid refresh token." }, { status: 401 });
     res.cookies.set("lm_teacher_access_token", "", { maxAge: 0, path: "/" });
+    res.cookies.set("lm_teacher_refresh_token", "", { maxAge: 0, path: "/" });
     res.cookies.set("lm_teacher_refresh_token", "", { maxAge: 0, path: "/api/auth" });
     return res;
   }
@@ -55,6 +56,7 @@ export async function POST(request: NextRequest) {
       { status: 401 }
     );
     res.cookies.set("lm_teacher_access_token", "", { maxAge: 0, path: "/" });
+    res.cookies.set("lm_teacher_refresh_token", "", { maxAge: 0, path: "/" });
     res.cookies.set("lm_teacher_refresh_token", "", { maxAge: 0, path: "/api/auth" });
     return res;
   }
@@ -71,6 +73,7 @@ export async function POST(request: NextRequest) {
   if (!user) {
     const res = NextResponse.json({ message: "User not found." }, { status: 401 });
     res.cookies.set("lm_teacher_access_token", "", { maxAge: 0, path: "/" });
+    res.cookies.set("lm_teacher_refresh_token", "", { maxAge: 0, path: "/" });
     res.cookies.set("lm_teacher_refresh_token", "", { maxAge: 0, path: "/api/auth" });
     return res;
   }
@@ -88,10 +91,8 @@ export async function POST(request: NextRequest) {
   );
 
   response.cookies.set("lm_teacher_access_token", newAccessToken, accessCookieOptions);
-  response.cookies.set("lm_teacher_refresh_token", newRefreshToken, {
-    ...refreshCookieOptions,
-    path: "/api/auth",
-  });
+  response.cookies.set("lm_teacher_refresh_token", newRefreshToken, refreshCookieOptions);
+  response.cookies.set("lm_teacher_refresh_token", "", { maxAge: 0, path: "/api/auth" });
 
   return response;
 }

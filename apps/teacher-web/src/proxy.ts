@@ -153,14 +153,16 @@ export async function proxy(request: NextRequest) {
   const accessToken = request.cookies.get("lm_teacher_access_token")?.value;
   const refreshToken = request.cookies.get("lm_teacher_refresh_token")?.value;
 
+  const targetPath = request.nextUrl.search ? `${pathname}${request.nextUrl.search}` : pathname;
+
   if (!accessToken) {
     if (refreshToken) {
       const refreshUrl = new URL("/api/auth/silent-refresh", request.url);
-      refreshUrl.searchParams.set("next", pathname);
+      refreshUrl.searchParams.set("next", targetPath);
       return NextResponse.redirect(refreshUrl);
     }
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("next", pathname);
+    loginUrl.searchParams.set("next", targetPath);
     return NextResponse.redirect(loginUrl);
   }
 
@@ -186,7 +188,7 @@ export async function proxy(request: NextRequest) {
 
     if (!emailVerified && pathname !== "/verify-email") {
       const verifyUrl = new URL("/verify-email", request.url);
-      verifyUrl.searchParams.set("next", pathname);
+      verifyUrl.searchParams.set("next", targetPath);
       return NextResponse.redirect(verifyUrl);
     }
 
@@ -209,12 +211,12 @@ export async function proxy(request: NextRequest) {
     // Token invalid/expired
     if (refreshToken) {
       const refreshUrl = new URL("/api/auth/silent-refresh", request.url);
-      refreshUrl.searchParams.set("next", pathname);
+      refreshUrl.searchParams.set("next", targetPath);
       return NextResponse.redirect(refreshUrl);
     }
 
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("next", pathname);
+    loginUrl.searchParams.set("next", targetPath);
     const res = NextResponse.redirect(loginUrl);
     res.cookies.set("lm_teacher_access_token", "", { maxAge: 0, path: "/" });
     return res;

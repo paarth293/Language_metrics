@@ -74,4 +74,36 @@ describe("Unread Notifications Request Deduplication", () => {
     // PROOF OF DEDUPLICATION: exactly 1 request sent instead of 2
     expect(requestCount).toBe(1);
   });
+
+  it("does NOT fire unread-count fetch when user is null (auth in-flight or unauthenticated)", async () => {
+    let requestCount = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes("/api/students/notifications/unread-count")) {
+          requestCount++;
+          return {
+            ok: true,
+            json: async () => ({ unreadCount: 0 }),
+          };
+        }
+        return { ok: true, json: async () => ({}) };
+      })
+    );
+
+    await act(async () => {
+      render(
+        <div>
+          <TopBar onMenuClick={vi.fn()} user={null} navItems={mockNavItems} />
+        </div>
+      );
+    });
+
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+
+    // When user is null, unread-count must NOT be called (prevents 401s)
+    expect(requestCount).toBe(0);
+  });
 });
