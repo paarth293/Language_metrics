@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Globe, ArrowRight, ArrowLeft, Check, Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-client";
+import { invalidateResource } from "@repo/ui/resource-cache";
 import { LANGUAGES, getLevelsForLanguage, type LanguageLevel } from "@/lib/languages";
 
 export default function OnboardingPage() {
@@ -28,8 +29,12 @@ export default function OnboardingPage() {
         body: JSON.stringify({ languageToLearn: language, proficiencyLevel, onboardingComplete: true }),
       });
       if (!res.ok) throw new Error("Failed to save preferences");
+      // The chosen language and level drive the dashboard and discovery.
+      invalidateResource("/api/students/");
       await refreshUser();
-      router.push("/dashboard");
+      // This app serves the student dashboard under /student; "/dashboard" is
+      // not a route here, so the old push 404'd and cost a document load.
+      router.push("/student/dashboard");
     } catch {
       setError("Something went wrong. Please try again.");
       setSubmitting(false);
