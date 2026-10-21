@@ -65,8 +65,8 @@ const STATUS_CONFIG: Record<
     icon: CheckCircle,
   },
   CLOSED: {
-    color: "text-gray-700",
-    bg: "bg-gray-50 border-gray-200",
+    color: "text-text",
+    bg: "bg-surface-inset border-border",
     icon: XCircle,
   },
 };
@@ -159,7 +159,7 @@ export default function SupportPage() {
           {view === "new" && (
             <button
               onClick={() => setView("list")}
-              className="flex items-center gap-1 text-sm text-gray-600 hover:text-navy-900 mb-2"
+              className="flex items-center gap-1 text-sm text-text-secondary hover:text-navy-900 mb-2"
             >
               <ChevronLeft className="w-4 h-4" /> Back to tickets
             </button>
@@ -167,7 +167,7 @@ export default function SupportPage() {
           <h1 className="lm-page-title">
             {view === "list" ? "My Support Tickets" : "Raise a Complaint"}
           </h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-text-secondary mt-1">
             {view === "list"
               ? "Track and manage your support requests"
               : "Describe your issue and we'll help resolve it"}
@@ -203,16 +203,16 @@ export default function SupportPage() {
       {view === "new" ? (
         /* New Complaint Form */
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-white rounded-xl border border-gray-100 p-6 space-y-5">
+          <div className="bg-surface rounded-xl border border-border p-6 space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-text mb-2">
                 Category *
               </label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 required
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
+                className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none bg-surface text-text placeholder:text-text-subtle focus:ring-2 focus:ring-amber-500 text-sm"
               >
                 <option value="">Select a category</option>
                 {CATEGORIES.map((cat) => (
@@ -224,7 +224,7 @@ export default function SupportPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-text mb-2">
                 Subject *
               </label>
               <input
@@ -233,12 +233,12 @@ export default function SupportPage() {
                 onChange={(e) => setSubject(e.target.value)}
                 required
                 placeholder="Brief summary of your issue"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
+                className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none bg-surface text-text placeholder:text-text-subtle focus:ring-2 focus:ring-amber-500 text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-text mb-2">
                 Description *
               </label>
               <textarea
@@ -247,9 +247,9 @@ export default function SupportPage() {
                 required
                 rows={5}
                 placeholder="Provide detailed information about your issue..."
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm resize-none"
+                className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none bg-surface text-text placeholder:text-text-subtle focus:ring-2 focus:ring-amber-500 text-sm resize-none"
               />
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-text-subtle mt-1">
                 Include any relevant details like dates, teacher names, or class
                 IDs.
               </p>
@@ -291,7 +291,7 @@ export default function SupportPage() {
                   className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                     filter === s
                       ? "bg-amber-700 text-white"
-                      : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                      : "bg-surface text-text-secondary border border-border hover:bg-surface-inset"
                   }`}
                 >
                   {s === "ALL" ? "All" : s.replace("_", " ")}
@@ -301,14 +301,14 @@ export default function SupportPage() {
           </div>
 
           {filteredTickets.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 bg-white rounded-xl border border-gray-100">
-              <AlertTriangle className="w-14 h-14 text-gray-300 mb-4" />
-              <h3 className="text-lg font-semibold text-gray-700">
+            <div className="flex flex-col items-center justify-center py-16 bg-surface rounded-xl border border-border">
+              <AlertTriangle className="w-14 h-14 text-text-subtle mb-4" />
+              <h3 className="text-lg font-semibold text-text">
                 {tickets.length === 0
                   ? "No support tickets yet"
                   : "No tickets match this filter"}
               </h3>
-              <p className="text-gray-500 mt-1 text-center max-w-md text-sm">
+              <p className="text-text-muted mt-1 text-center max-w-md text-sm">
                 {tickets.length === 0
                   ? "If you encounter any issues, feel free to raise a complaint."
                   : "Try selecting a different status filter."}
@@ -334,7 +334,7 @@ export default function SupportPage() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.03 }}
-                    className={`bg-white rounded-xl border p-5 ${statusConf.bg}`}
+                    className={`bg-surface rounded-xl border p-5 ${statusConf.bg}`}
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
@@ -343,14 +343,14 @@ export default function SupportPage() {
                             {ticket.subject}
                           </h3>
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+                        <div className="flex items-center gap-2 text-xs text-text-muted mb-2">
                           <Badge variant="outline">
                             {CATEGORY_LABELS[ticket.category] || ticket.category}
                           </Badge>
                           <span>•</span>
                           <span>{formatDate(ticket.createdAt)}</span>
                         </div>
-                        <p className="text-sm text-gray-600 line-clamp-2">
+                        <p className="text-sm text-text-secondary line-clamp-2">
                           {ticket.description}
                         </p>
                       </div>
