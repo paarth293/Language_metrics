@@ -102,9 +102,9 @@ export default function DiscoverPage() {
     return `/api/students/discover?${params.toString()}`;
   }, [settledSearch, selectedLanguage, selectedBudget, selectedExperience, selectedGender, availableOnly]);
 
-  // Results for the filter set actually applied. keepPreviousData is off so a
-  // wider result set is never shown under a narrower filter; every filter
-  // combination already looked at is cached, which makes going back free.
+  // Results for the filter set actually applied. A pending request's own
+  // filter set is never shown under a different one; every combination
+  // already looked at is cached, which makes going back to it free.
   const {
     data,
     error,
@@ -114,7 +114,6 @@ export default function DiscoverPage() {
     refetch: fetchTeachers,
   } = useJsonResource<{ teachers: Teacher[]; currency?: string }>(url, {
     staleMs: 60_000,
-    keepPreviousData: false,
   });
 
   const teachers = data?.teachers ?? [];
@@ -344,6 +343,8 @@ export default function DiscoverPage() {
               )}
             </div>
           </div>
+
+          {isStale && <StaleDataNotice onRetry={() => void fetchTeachers()} updatedAt={updatedAt} />}
 
           {loading ? (
             <div className="flex items-center justify-center py-20">
