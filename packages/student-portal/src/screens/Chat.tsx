@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowDown, ArrowLeft, Check, FileText, Loader2, MessageCircle, Paperclip, Search, SendHorizontal, Timer, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, Check, FileText, Loader2, MessageCircle, Paperclip, Search, SendHorizontal, Timer, X, Hand } from "lucide-react";
 import { chatSendError } from "@repo/ui/chat-send-error";
 import { useNow } from "@repo/classroom/join-window";
 import { getEntry, mutateResource } from "@repo/ui/resource-cache";
@@ -520,7 +520,9 @@ export function ChatScreen({ stickyKey = "chat:selected" }: { stickyKey?: string
                     </div>
                   ) : messages.length === 0 ? (
                     <div className="mx-auto mt-10 max-w-xs rounded-2xl bg-surface px-5 py-4 text-center shadow-sm">
-                      <p className="text-[14px] font-semibold text-text">Say hello 👋</p>
+                      <p className="flex items-center justify-center gap-1.5 text-[14px] font-semibold text-text">
+                        <Hand className="h-4 w-4 text-gold-strong" aria-hidden /> Say hello
+                      </p>
                       <p className="mt-1 text-[12px] text-text-muted">Share what you want to work on, or send notes before your class.</p>
                     </div>
                   ) : (
