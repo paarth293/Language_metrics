@@ -25,7 +25,6 @@ export default function WalletPage() {
   // balance rather than a skeleton.
   const {
     data,
-    error,
     isLoading,
     isStale,
     updatedAt,
