@@ -145,20 +145,37 @@ export function useResource<T>(
   }, [active, revalidateOnFocus, load]);
 
   // Background poll, paused while hidden and restarted on return.
+  //
+  // The next tick is timed from when the data actually landed, not from when
+  // this effect ran. That is what stops a tab resume from firing every poll on
+  // the page at once: a key refreshed moments ago just gets a shorter timer,
+  // and only one whose interval has genuinely elapsed is requested.
   useEffect(() => {
-    if (!active || !pollMs || typeof document === "undefined") return;
+    if (!active || !pollMs || key === null || typeof document === "undefined") return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
 
     const schedule = () => {
       clearTimeout(timer);
-      timer = setTimeout(tick, pollMs);
+      const lastLoad = getEntry(key).updatedAt;
+      // Never loaded: the mount effect above is already fetching, so wait a
+      // whole interval rather than firing a duplicate immediately.
+      const elapsed = lastLoad ? Date.now() - lastLoad : 0;
+      timer = setTimeout(tick, Math.max(0, pollMs - elapsed));
     };
     const tick = () => {
       if (cancelled) return;
-      // Hidden: drop the timer entirely rather than burning one in a
-      // background tab. The visibility listener below restarts the loop.
+      // Hidden: drop the timer rather than burning one in a background tab.
+      // The visibility listener below restarts the loop.
       if (!isVisible()) return;
+      // Something else may have refreshed this key in the meantime — the
+      // focus revalidation above, or another component sharing it. Re-arm
+      // instead of issuing a redundant request.
+      const lastLoad = getEntry(key).updatedAt;
+      if (lastLoad && Date.now() - lastLoad < pollMs) {
+        schedule();
+        return;
+      }
       void load(true).finally(() => {
         if (!cancelled) schedule();
       });
@@ -166,7 +183,7 @@ export function useResource<T>(
 
     schedule();
     const onVisibility = () => {
-      if (!cancelled && isVisible()) tick();
+      if (!cancelled && isVisible()) schedule();
     };
     document.addEventListener("visibilitychange", onVisibility);
 
@@ -175,7 +192,7 @@ export function useResource<T>(
       clearTimeout(timer);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [active, pollMs, load]);
+  }, [active, pollMs, key, load]);
 
   const refetch = useCallback(() => load(true), [load]);
   const mutate = useCallback(
