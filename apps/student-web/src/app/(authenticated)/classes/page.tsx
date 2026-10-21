@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import {
   Video,
@@ -16,6 +16,10 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
+import { useJsonResource } from "@repo/ui/useResource";
+import { useStickyState } from "@repo/ui/useStickyState";
+import { invalidateResource } from "@repo/ui/resource-cache";
+import { StaleDataNotice } from "@repo/ui/StaleDataNotice";
 
 type Booking = {
   id: string;
@@ -41,36 +45,29 @@ type Booking = {
 };
 
 export default function MyClassesPage() {
-  const [activeTab, setActiveTab] = useState("upcoming");
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // The chosen tab outlives a navigation, so opening a class and coming
+  // back lands on the same list.
+  const [activeTab, setActiveTab] = useStickyState("classes:tab", "upcoming");
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState<string | null>(null);
   const [reschedulingSession, setReschedulingSession] = useState<{ id: string, scheduledStart: string } | null>(null);
   const [newStartTime, setNewStartTime] = useState<string>("");
 
-  const fetchBookings = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await fetch(`/api/students/classes?filter=${activeTab}`, {
-        credentials: "include",
-        cache: "no-store",
-      });
-      if (!res.ok) throw new Error("Failed to load classes");
-      const data = await res.json();
-      setBookings(data.bookings || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  }, [activeTab]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => void fetchBookings(), 0);
-    return () => clearTimeout(timer);
-  }, [fetchBookings]);
+  // One cache key per tab, so switching back to a tab already looked at is
+  // instant. keepPreviousData is off: another tab's bookings under this tab's
+  // header would be wrong rather than merely stale.
+  const {
+    data,
+    error,
+    isLoading,
+    isStale,
+    updatedAt,
+    refetch: fetchBookings,
+  } = useJsonResource<{ bookings: Booking[] }>(`/api/students/classes?filter=${activeTab}`, {
+    staleMs: 30_000,
+    keepPreviousData: false,
+  });
+  const bookings = data?.bookings ?? [];
 
 
 
@@ -87,7 +84,8 @@ export default function MyClassesPage() {
         throw new Error(data.error || "Failed to cancel booking");
       }
       setShowCancelModal(null);
-      fetchBookings(); // Refresh list
+      // Cancelling moves the booking between tabs, so drop all of them.
+      invalidateResource("/api/students/classes");
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to cancel");
     } finally {
@@ -110,7 +108,7 @@ export default function MyClassesPage() {
         throw new Error(data.error || "Failed to reschedule booking");
       }
       setReschedulingSession(null);
-      fetchBookings();
+      invalidateResource("/api/students/classes");
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to reschedule");
     } finally {
@@ -209,14 +207,15 @@ export default function MyClassesPage() {
 
       {/* Content */}
       <div className="flex-1">
-        {loading ? (
+        {isStale && <StaleDataNotice onRetry={() => void fetchBookings()} updatedAt={updatedAt} />}
+        {isLoading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 text-brand animate-spin" />
           </div>
-        ) : error ? (
+        ) : error && !data ? (
           <div className="text-center py-20">
             <AlertCircle className="w-12 h-12 text-danger mx-auto mb-4" />
-            <p className="text-text-muted">{error}</p>
+            <p className="text-text-muted">Check your connection and try again.</p>
             <Button variant="outline" className="mt-4" onClick={fetchBookings}>
               Try Again
             </Button>
