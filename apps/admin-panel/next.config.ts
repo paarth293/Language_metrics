@@ -31,6 +31,24 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  /**
+   * Client Router Cache.
+   *
+   * Next's default for a dynamically rendered route is `dynamic: 0`, and every
+   * page here is force-dynamic — so each client-side navigation, Back and
+   * Forward included, re-requested the route and showed (dashboard)/loading
+   * again over the whole workspace.
+   *
+   * Fifteen seconds is shorter than the thirty used in the two web apps on
+   * purpose: these pages are server components that carry their data inside
+   * the payload, so the window also bounds how long an admin whose access was
+   * just revoked could re-read a page they had already opened. Any page not
+   * already in the cache still goes through the proxy and requireAdmin(), as
+   * does every API call and every router.refresh() after a mutation.
+   */
+  experimental: {
+    staleTimes: { dynamic: 15, static: 300 },
+  },
   async headers() {
     return [
       {
