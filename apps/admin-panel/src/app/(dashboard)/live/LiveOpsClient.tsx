@@ -72,6 +72,9 @@ export default function LiveOpsClient() {
   const [cost, setCost] = useState<CostReport | null>(null);
   const [review, setReview] = useState<ReviewItem[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
+  // Ending a class asks for a second click in place; no blocking browser dialog.
+  const [confirmingEnd, setConfirmingEnd] = useState<string | null>(null);
+  const [endError, setEndError] = useState<string | null>(null);
 
   const loadRooms = useCallback(async () => {
     try {
@@ -139,16 +142,23 @@ export default function LiveOpsClient() {
 
   const endClass = useCallback(
     async (sessionId: string) => {
-      if (!window.confirm("End this class for everyone and settle the student's coins?")) return;
+      setConfirmingEnd(null);
+      setEndError(null);
       setBusy(sessionId);
       try {
-        await fetch(`/api/admin/live/rooms/${sessionId}/end`, {
+        const res = await fetch(`/api/admin/live/rooms/${sessionId}/end`, {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ reason: "Ended from the admin console" }),
         });
+        if (!res.ok) {
+          const body = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
+          setEndError(body?.message ?? body?.error ?? "The class could not be ended. Please try again.");
+        }
         await loadRooms();
+      } catch {
+        setEndError("Could not reach the server. Check your connection and try again.");
       } finally {
         setBusy(null);
       }
@@ -165,6 +175,15 @@ export default function LiveOpsClient() {
 
   return (
     <div className="space-y-6">
+      {endError && (
+        <div
+          role="alert"
+          className="rounded-lg px-4 py-3 text-sm"
+          style={{ ...card, borderColor: "var(--danger)", color: "var(--text)" }}
+        >
+          {endError}
+        </div>
+      )}
       {!configured && (
         <div
           className="rounded-lg px-4 py-3 text-sm"
@@ -295,15 +314,39 @@ export default function LiveOpsClient() {
                       {r.recordingStatus === "RECORDING" ? "● recording" : "—"}
                     </td>
                     <td className="py-3 px-5 text-right">
-                      <button
-                        type="button"
-                        onClick={() => endClass(r.classSessionId)}
-                        disabled={busy === r.classSessionId}
-                        className="px-3 py-1.5 rounded-md text-xs font-medium disabled:opacity-50"
-                        style={{ background: "var(--danger)", color: "#fff" }}
-                      >
-                        {busy === r.classSessionId ? "Ending…" : "Force end"}
-                      </button>
+                      {confirmingEnd === r.classSessionId ? (
+                        <span className="inline-flex items-center gap-2">
+                          <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+                            End for everyone and settle coins?
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => endClass(r.classSessionId)}
+                            className="px-3 py-1.5 rounded-md text-xs font-medium"
+                            style={{ background: "var(--danger)", color: "#fff" }}
+                          >
+                            Yes, end
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmingEnd(null)}
+                            className="px-3 py-1.5 rounded-md text-xs font-medium"
+                            style={{ border: "1px solid var(--border)", color: "var(--text)" }}
+                          >
+                            Keep
+                          </button>
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmingEnd(r.classSessionId)}
+                          disabled={busy === r.classSessionId}
+                          className="px-3 py-1.5 rounded-md text-xs font-medium disabled:opacity-50"
+                          style={{ background: "var(--danger)", color: "#fff" }}
+                        >
+                          {busy === r.classSessionId ? "Ending…" : "Force end"}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
