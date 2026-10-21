@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, Loader2, Wallet, Clock, AlertCircle } from "lucide-react";
+import { useJsonResource } from "@repo/ui/useResource";
+import { invalidateResource } from "@repo/ui/resource-cache";
 
 interface Rate {
   id: string;
@@ -30,54 +32,43 @@ export default function BookClassPage() {
   const params = useParams();
   const teacherId = params.id as string;
 
-  const [teacher, setTeacher] = useState<TeacherInfo | null>(null);
-  const [rates, setRates] = useState<Rate[]>([]);
-  const [demo, setDemo] = useState<DemoInfo | null>(null);
   const [selectedRate, setSelectedRate] = useState<string>("");
   const [slotStart, setSlotStart] = useState<string>("");
-  const [balance, setBalance] = useState(0);
-  const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Fetch teacher profile
-        const teacherRes = await fetch(`/api/students/teacher/${teacherId}`, {
-          credentials: "include",
-        });
-        if (!teacherRes.ok) throw new Error("Teacher not found");
-        const teacherData = await teacherRes.json();
-        setTeacher(teacherData.teacher);
-        setRates(teacherData.rates);
-        const demoInfo: DemoInfo | null = teacherData.demo ?? null;
-        setDemo(demoInfo);
-        // "Book Demo" links arrive with ?option=demo; otherwise keep the first rate.
-        const wantsDemo = new URLSearchParams(window.location.search).get("option") === "demo";
-        if (demoInfo?.available && (wantsDemo || teacherData.rates.length === 0)) {
-          setSelectedRate(DEMO);
-        } else if (teacherData.rates.length > 0) {
-          setSelectedRate(teacherData.rates[0].id);
-        }
+  // Two cached keys fetched side by side, where this used to await the
+  // teacher before even starting the wallet request. The teacher key is the
+  // same one the profile page next door uses, so arriving from there needs no
+  // request at all.
+  const teacherResource = useJsonResource<{ teacher: TeacherInfo; rates: Rate[]; demo?: DemoInfo | null }>(
+    `/api/students/teacher/${teacherId}`,
+    { staleMs: 120_000 }
+  );
+  // The balance gates the booking button, so it is kept tight and revalidated
+  // on a tab resume.
+  const walletResource = useJsonResource<{ balance: number }>("/api/students/wallet", { staleMs: 10_000 });
 
-        // Fetch wallet balance
-        const walletRes = await fetch("/api/students/wallet", {
-          credentials: "include",
-        });
-        if (walletRes.ok) {
-          const walletData = await walletRes.json();
-          setBalance(walletData.balance || 0);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load data");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [teacherId]);
+  const teacher = teacherResource.data?.teacher ?? null;
+  const rates = teacherResource.data?.rates ?? [];
+  const demo = teacherResource.data?.demo ?? null;
+  const balance = walletResource.data?.balance ?? 0;
+
+  // The default selection is chosen once, from the first payload: re-running
+  // it on a background refresh would move the student's choice under them.
+  const defaulted = useRef(false);
+  useEffect(() => {
+    if (defaulted.current || !teacherResource.data) return;
+    defaulted.current = true;
+    // "Book Demo" links arrive with ?option=demo; otherwise keep the first rate.
+    const wantsDemo = new URLSearchParams(window.location.search).get("option") === "demo";
+    if (demo?.available && (wantsDemo || rates.length === 0)) {
+      setSelectedRate(DEMO);
+    } else if (rates.length > 0) {
+      setSelectedRate(rates[0]!.id);
+    }
+  }, [teacherResource.data, demo, rates]);
 
   const handleBook = async () => {
     if (!selectedRate || !slotStart) return;
@@ -111,6 +102,8 @@ export default function BookClassPage() {
       }
 
       setSuccess(true);
+      // The booking spends coins and shows up in classes and the dashboard.
+      invalidateResource("/api/students/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Booking failed");
     } finally {
@@ -118,7 +111,9 @@ export default function BookClassPage() {
     }
   };
 
-  if (loading) {
+  // A spinner only while the teacher has never loaded; the wallet arriving
+  // later just enables the button.
+  if (teacherResource.isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="w-8 h-8 text-brand animate-spin" />
@@ -159,6 +154,22 @@ export default function BookClassPage() {
   const selectedPrice =
     selectedRate === DEMO ? demo?.coins : rates.find((r) => r.id === selectedRate)?.amount;
   const canAfford = selectedPrice !== undefined && balance >= selectedPrice;
+
+  // Nothing to book against: say so rather than rendering an empty form.
+  if (!teacher) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <p className="text-text-muted mb-4">
+            {teacherResource.error ? "Couldn’t load this teacher." : "Teacher not found"}
+          </p>
+          <Link href="/student/discover" className="text-brand hover:underline">
+            Back to Discover
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
