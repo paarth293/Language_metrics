@@ -5,6 +5,7 @@
 @source "..";
 @source "../../../../packages/ui/src";
 @source "../../../../packages/classroom/src";
+@source "../../../../packages/student-portal/src";
 
 /* ============================================================
    LANGUAGE METRICS — DESIGN TOKEN SYSTEM v2
