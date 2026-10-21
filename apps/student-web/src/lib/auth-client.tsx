@@ -21,6 +21,7 @@ import {
   ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
+import { clearCache, setCacheOwner } from "@repo/ui/resource-cache";
 import type { Role } from "@/types";
 
 export interface AuthUser {
@@ -59,11 +60,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (res.ok) {
         const data = (await res.json()) as { user: AuthUser | null };
         setUser(data.user);
+        // Scope the client data cache to this identity. Any change — a
+        // different account, or none — wipes it, so cached pages can never
+        // show one user's data to another.
+        setCacheOwner(data.user?.id ?? null);
       } else {
         setUser(null);
+        setCacheOwner(null);
       }
     } catch {
       setUser(null);
+      setCacheOwner(null);
     }
   }, []);
 
@@ -116,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (data.user) {
           setUser(data.user);
+          setCacheOwner(data.user.id);
           // Redirect based on role
           if (data.user.role === "STUDENT") router.push("/dashboard");
           else if (data.user.role === "TEACHER") router.replace("/login");
@@ -141,6 +149,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Best-effort — even if the request fails, clear client state
     }
     setUser(null);
+    // Drop every cached response before the redirect, so nothing protected
+    // is left in memory for the login screen or the next account.
+    setCacheOwner(null);
+    clearCache();
     router.push("/");
   }, [router]);
 
