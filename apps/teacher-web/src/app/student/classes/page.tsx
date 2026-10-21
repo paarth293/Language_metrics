@@ -57,8 +57,7 @@ export default function MyClassesPage() {
   const [showCancelModal, setShowCancelModal] = useState<string | null>(null);
 
   // One cache key per tab, so switching back to a tab already looked at is
-  // instant. keepPreviousData is off: another tab's bookings under this tab's
-  // header would be wrong rather than merely stale.
+  // instant, and a tab never shows another tab's bookings while it loads.
   const {
     data,
     error,
@@ -68,7 +67,6 @@ export default function MyClassesPage() {
     refetch: fetchBookings,
   } = useJsonResource<{ bookings: Booking[] }>(`/api/students/classes?filter=${activeTab}`, {
     staleMs: 30_000,
-    keepPreviousData: false,
   });
   const bookings = data?.bookings ?? [];
 
