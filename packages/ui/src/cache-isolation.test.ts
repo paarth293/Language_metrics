@@ -73,6 +73,19 @@ describe("cache isolation across sessions and roles", () => {
     expect(getEntry("/api/students/wallet").data).toBeUndefined();
   });
 
+  it("keeps a response that was requested before the session resolved", async () => {
+    // A hard load: the page asks for its data while /api/auth/me is still open.
+    let release: (value: unknown) => void = () => {};
+    const pending = fetchResource("/api/students/dashboard", () => new Promise((r) => { release = r; }));
+
+    setCacheOwner("student-1"); // hydration, not an account switch
+    release({ coinBalance: 1240 });
+    await pending;
+
+    expect(getEntry("/api/students/dashboard").data).toEqual({ coinBalance: 1240 });
+    expect(getEntry("/api/students/dashboard").promise).toBeUndefined();
+  });
+
   it("a signed-out tab that signs back in as the same user starts clean", async () => {
     setCacheOwner("student-1");
     await fetchResource("/api/students/wallet", async () => ({ balance: 1200 }));
