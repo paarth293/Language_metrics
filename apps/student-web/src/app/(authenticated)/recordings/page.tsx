@@ -3,11 +3,15 @@
 import Image from "next/image";
 import { openCashfreeCheckout, type CashfreeMode } from "@repo/ui/cashfree";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Video, Lock, Play, Calendar, Search, CreditCard, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { useJsonResource } from "@repo/ui/useResource";
+import { useStickyState } from "@repo/ui/useStickyState";
+import { invalidateResource } from "@repo/ui/resource-cache";
+import { StaleDataNotice } from "@repo/ui/StaleDataNotice";
 
 interface Recording {
   id: string;
@@ -26,31 +30,21 @@ interface Recording {
 type FilterType = "all" | "unlocked" | "locked";
 
 export default function RecordingsPage() {
-  const [recordings, setRecordings] = useState<Recording[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<FilterType>("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  // Filter and search survive a navigation, so opening a recording and coming
+  // back returns to the same view.
+  const [filter, setFilter] = useStickyState<FilterType>("recordings:filter", "all");
+  const [searchQuery, setSearchQuery] = useStickyState("recordings:search", "");
   const [unlockingId, setUnlockingId] = useState<string | null>(null);
 
-  const fetchRecordings = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch("/api/students/recordings");
-      if (!res.ok) throw new Error("Failed to load recordings");
-      const data = await res.json();
-      setRecordings(data.recordings || []);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load recordings");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const initial = setTimeout(() => void fetchRecordings(), 0);
-    return () => clearTimeout(initial);
-  }, []);
+  const {
+    data,
+    error,
+    isLoading,
+    isStale,
+    updatedAt,
+    refetch: fetchRecordings,
+  } = useJsonResource<{ recordings: Recording[] }>("/api/students/recordings", { staleMs: 60_000 });
+  const recordings = data?.recordings ?? [];
 
 
 
@@ -77,7 +71,9 @@ export default function RecordingsPage() {
         body: JSON.stringify({ orderId }),
       });
       if (!verifyRes.ok) throw new Error("Payment verification failed");
-      fetchRecordings();
+      // An unlocked recording changes its own row and the wallet balance.
+      invalidateResource("/api/students/recordings");
+      invalidateResource("/api/students/wallet");
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Payment failed. Please try again.");
     } finally {
@@ -113,7 +109,8 @@ export default function RecordingsPage() {
     return true;
   });
 
-  if (loading) {
+  // A spinner only when nothing has ever loaded.
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="w-8 h-8 text-amber-700 animate-spin" />
@@ -121,12 +118,12 @@ export default function RecordingsPage() {
     );
   }
 
-  if (error) {
+  if (error && !data) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <AlertCircle className="w-12 h-12 text-red-500" />
-        <p className="text-gray-600">{error}</p>
-        <Button onClick={fetchRecordings} variant="outline">
+        <p className="text-gray-600">Check your connection and try again.</p>
+        <Button onClick={() => void fetchRecordings()} variant="outline">
           Try Again
         </Button>
       </div>
@@ -135,6 +132,8 @@ export default function RecordingsPage() {
 
   return (
     <div className="space-y-6">
+      {isStale && <StaleDataNotice onRetry={() => void fetchRecordings()} updatedAt={updatedAt} />}
+
       {/* Header */}
       <div>
         <h1 className="lm-page-title">Recordings</h1>
@@ -173,7 +172,7 @@ export default function RecordingsPage() {
       </div>
 
       {/* Empty State */}
-      {filteredRecordings.length === 0 && !loading && (
+      {filteredRecordings.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 bg-white rounded-xl border border-gray-100">
           <Video className="w-16 h-16 text-gray-300 mb-4" />
           <h3 className="text-lg font-semibold text-gray-700">
