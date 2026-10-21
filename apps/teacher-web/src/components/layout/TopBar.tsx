@@ -7,6 +7,7 @@ import { useTheme } from "@/components/ThemeProvider";
 import Link from "next/link";
 import { CommandPalette } from "./CommandPalette";
 import type { NavItem } from "./AppShell";
+import { useJsonResource } from "@repo/ui/useResource";
 
 interface TopBarProps {
   onMenuClick: () => void;
@@ -45,67 +46,46 @@ export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnread
   const notificationsHref = user?.role === "STUDENT" ? "/student/notifications" : "/teacher/notifications";
   const profileHref = user?.role === "STUDENT" ? "/student/profile" : "/teacher/profile";
 
-  const [localUnreadCount, setUnreadCount] = useState<number | undefined>();
-  const unreadCount = localUnreadCount ?? initialUnreadCount ?? 0;
+  // The badge reads through the shared cache, keyed by endpoint. That gives
+  // de-duplication for free: the TopBar stays mounted across every route
+  // change, so it used to re-request the count each time the user object was
+  // replaced by a session refresh, and again on every window focus.
+  //
+  // The effect it replaced depended on the whole `user` object, so any
+  // identity change — including a refreshUser() that returned the same
+  // person — re-ran it. Only the role actually selects an endpoint.
+  const role = user?.role;
+  const unreadUrl =
+    initialUnreadCount !== undefined || !role
+      ? null
+      : role === "STUDENT"
+        ? "/api/students/notifications/unread-count"
+        : "/api/teachers/notifications/unread-count";
 
+  const { data: unreadData, mutate: setUnreadData, refetch: refetchUnread } =
+    useJsonResource<{ unreadCount?: number }>(unreadUrl, { staleMs: 15_000 });
+
+  const [eventUnreadCount, setEventUnreadCount] = useState<number | undefined>();
+  const unreadCount = eventUnreadCount ?? unreadData?.unreadCount ?? initialUnreadCount ?? 0;
+
+  // The notifications page announces the count it just computed, so marking
+  // something read updates the badge without another request.
   useEffect(() => {
-    if (initialUnreadCount !== undefined || !user || !user.role) {
-      return;
-    }
-
-    let isMounted = true;
-    let inFlight = false;
-
-    async function checkUnreadNotifications() {
-      if (inFlight || !isMounted || !user?.role) return;
-      inFlight = true;
-      try {
-        const endpoint =
-          user.role === "STUDENT"
-            ? "/api/students/notifications/unread-count"
-            : "/api/teachers/notifications/unread-count";
-        const res = await fetch(endpoint, { credentials: "include" });
-        if (res.ok) {
-          const data = await res.json();
-          if (isMounted && typeof data.unreadCount === "number") {
-            setUnreadCount(data.unreadCount);
-          }
-        }
-      } catch {
-        // Silently handle fetch failures
-      } finally {
-        inFlight = false;
-      }
-    }
-
-    checkUnreadNotifications();
+    if (!unreadUrl) return;
 
     const handleNotificationsUpdated = (e: Event) => {
       const customEvent = e as CustomEvent<{ unreadCount?: number }>;
       if (customEvent.detail && typeof customEvent.detail.unreadCount === "number") {
-        setUnreadCount(customEvent.detail.unreadCount);
+        setEventUnreadCount(customEvent.detail.unreadCount);
+        setUnreadData({ unreadCount: customEvent.detail.unreadCount });
       } else {
-        checkUnreadNotifications();
-      }
-    };
-
-    let lastFocusCheck = Date.now();
-    const handleFocus = () => {
-      if (document.visibilityState === "visible" && Date.now() - lastFocusCheck > 15_000) {
-        lastFocusCheck = Date.now();
-        checkUnreadNotifications();
+        void refetchUnread();
       }
     };
 
     window.addEventListener("notifications-updated", handleNotificationsUpdated);
-    window.addEventListener("focus", handleFocus);
-
-    return () => {
-      isMounted = false;
-      window.removeEventListener("notifications-updated", handleNotificationsUpdated);
-      window.removeEventListener("focus", handleFocus);
-    };
-  }, [initialUnreadCount, user]);
+    return () => window.removeEventListener("notifications-updated", handleNotificationsUpdated);
+  }, [unreadUrl, setUnreadData, refetchUnread]);
 
   const toggleTheme = () => {
     setTheme(theme === "light" ? "dark" : "light");
