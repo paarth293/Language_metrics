@@ -18,6 +18,7 @@ import {
   type TextStyle,
   type ViewStyle,
 } from "react-native";
+import { Coins, Moon, Sun, type LucideIcon } from "lucide-react-native";
 import { useTheme } from "../theme/ThemeProvider";
 import { elevation, fonts, layout, radii, spacing, typography, type ThemeColors } from "../theme/tokens";
 import type { ThemePreference } from "../lib/preferences";
@@ -70,6 +71,33 @@ export function AppText({ variant = "body", tone = "default", weight, style, ...
   return <Text {...rest} style={[base, style]} />;
 }
 
+/**
+ * An icon followed by text on one line. React Native cannot nest an SVG
+ * inside <Text>, so inline icons (the coin before an amount) use this row.
+ * The icon takes the text's tone unless `iconColor` says otherwise.
+ */
+export function IconText({
+  icon: Icon,
+  iconColor,
+  iconSize = 16,
+  containerStyle,
+  ...text
+}: AppTextProps & { icon: LucideIcon; iconColor?: string; iconSize?: number; containerStyle?: StyleProp<ViewStyle> }) {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.iconText, { gap: Math.round(iconSize / 3) }, containerStyle]}>
+      <Icon size={iconSize} color={iconColor ?? toneColor(text.tone ?? "default", colors)} />
+      <AppText {...text} />
+    </View>
+  );
+}
+
+/** A coin amount: the gold Coins icon followed by the text. */
+export function CoinText(props: AppTextProps & { iconColor?: string; iconSize?: number; containerStyle?: StyleProp<ViewStyle> }) {
+  const { colors } = useTheme();
+  return <IconText icon={Coins} iconColor={colors.actionText} {...props} />;
+}
+
 // ── Button ───────────────────────────────────────────────────────────────
 type ButtonVariant = "action" | "brand" | "outline" | "ghost" | "danger";
 
@@ -80,7 +108,8 @@ interface ButtonProps {
   loading?: boolean;
   disabled?: boolean;
   size?: "md" | "sm";
-  trailing?: string;
+  /** Lucide icon shown after the label. */
+  trailing?: LucideIcon;
   style?: StyleProp<ViewStyle>;
   accessibilityHint?: string;
 }
@@ -92,7 +121,7 @@ export function Button({
   loading = false,
   disabled = false,
   size = "md",
-  trailing,
+  trailing: Trailing,
   style,
   accessibilityHint,
 }: ButtonProps) {
@@ -127,10 +156,10 @@ export function Button({
       {loading ? (
         <ActivityIndicator color={fg} size="small" />
       ) : (
-        <Text style={[styles.buttonLabel, size === "sm" ? styles.buttonLabelSm : null, { color: fg }]}>
-          {label}
-          {trailing ? `  ${trailing}` : ""}
-        </Text>
+        <>
+          <Text style={[styles.buttonLabel, size === "sm" ? styles.buttonLabelSm : null, { color: fg }]}>{label}</Text>
+          {Trailing ? <Trailing size={size === "sm" ? 15 : 17} color={fg} style={{ marginLeft: spacing.sm }} /> : null}
+        </>
       )}
     </Pressable>
   );
@@ -160,7 +189,8 @@ interface TextFieldProps extends Omit<TextInputProps, "style"> {
   secureToggle?: boolean;
   invalid?: boolean;
   containerStyle?: StyleProp<ViewStyle>;
-  leading?: string;
+  /** Lucide icon shown inside the field, before the text. */
+  leading?: LucideIcon;
   /** React 19: `ref` is a regular prop on function components. */
   ref?: React.Ref<TextInput>;
 }
@@ -171,7 +201,7 @@ export function TextField({
   secureToggle = false,
   invalid = false,
   containerStyle,
-  leading,
+  leading: Leading,
   secureTextEntry,
   ref,
   ...inputProps
@@ -196,7 +226,7 @@ export function TextField({
         </View>
       )}
       <View style={[styles.inputWrap, { backgroundColor: colors.surfaceInset, borderColor }]}>
-        {leading ? <Text style={[styles.inputLeading, { color: colors.textSubtle }]}>{leading}</Text> : null}
+        {Leading ? <Leading size={18} color={colors.textSubtle} style={styles.inputLeading} /> : null}
         <TextInput
           {...inputProps}
           ref={ref}
@@ -233,7 +263,17 @@ export function TextField({
 // ── Badge ────────────────────────────────────────────────────────────────
 type BadgeTone = "brand" | "action" | "trust" | "alert" | "neutral";
 
-export function Badge({ label, tone = "neutral", style }: { label: string; tone?: BadgeTone; style?: StyleProp<ViewStyle> }) {
+export function Badge({
+  label,
+  tone = "neutral",
+  icon: Icon,
+  style,
+}: {
+  label: string;
+  tone?: BadgeTone;
+  icon?: LucideIcon;
+  style?: StyleProp<ViewStyle>;
+}) {
   const { colors } = useTheme();
   const map: Record<BadgeTone, { bg: string; fg: string }> = {
     brand: { bg: colors.brandSubtle, fg: colors.brandText },
@@ -245,6 +285,7 @@ export function Badge({ label, tone = "neutral", style }: { label: string; tone?
   const { bg, fg } = map[tone];
   return (
     <View style={[styles.badge, { backgroundColor: bg }, style]}>
+      {Icon ? <Icon size={12} color={fg} strokeWidth={2.5} /> : null}
       <Text style={[styles.badgeText, { color: fg }]}>{label}</Text>
     </View>
   );
@@ -276,11 +317,13 @@ export function Banner({
   tone = "alert",
   message,
   actionLabel,
+  actionIcon: ActionIcon,
   onAction,
 }: {
   tone?: "alert" | "trust" | "action" | "brand";
   message: string;
   actionLabel?: string;
+  actionIcon?: LucideIcon;
   onAction?: () => void;
 }) {
   const { colors } = useTheme();
@@ -298,8 +341,9 @@ export function Banner({
     >
       <Text style={[styles.bannerText, { color: fg }]}>{message}</Text>
       {actionLabel && onAction ? (
-        <Pressable accessibilityRole="button" onPress={onAction} hitSlop={8}>
+        <Pressable accessibilityRole="button" onPress={onAction} hitSlop={8} style={styles.bannerActionRow}>
           <Text style={[styles.bannerAction, { color: fg }]}>{actionLabel}</Text>
+          {ActionIcon ? <ActionIcon size={15} color={fg} /> : null}
         </Pressable>
       ) : null}
     </View>
@@ -367,13 +411,13 @@ export function Chip({ label, selected, onPress, disabled = false }: { label: st
 
 // ── Empty / loading states ───────────────────────────────────────────────
 export function EmptyState({
-  icon,
+  icon: Icon,
   title,
   message,
   actionLabel,
   onAction,
 }: {
-  icon: string;
+  icon: LucideIcon;
   title: string;
   message: string;
   actionLabel?: string;
@@ -383,7 +427,7 @@ export function EmptyState({
   return (
     <Card style={styles.empty}>
       <View style={[styles.emptyIcon, { backgroundColor: colors.actionSubtle }]}>
-        <Text style={{ fontSize: 26 }}>{icon}</Text>
+        <Icon size={26} color={colors.actionText} />
       </View>
       <AppText variant="h3" style={styles.centerText}>
         {title}
@@ -453,7 +497,7 @@ export function ThemeToggleButton() {
       hitSlop={6}
       style={[styles.iconButton, { borderColor: colors.border, backgroundColor: colors.surface }]}
     >
-      <Text style={{ fontSize: 16, color: colors.text }}>{scheme === "dark" ? "☀" : "☾"}</Text>
+      {scheme === "dark" ? <Sun size={17} color={colors.text} /> : <Moon size={17} color={colors.text} />}
     </Pressable>
   );
 }
@@ -514,7 +558,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
   },
   inputLeading: {
-    fontSize: 15,
     marginRight: spacing.sm,
   },
   inputTrailing: {
@@ -524,6 +567,9 @@ const styles = StyleSheet.create({
   },
   badge: {
     alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
     borderRadius: radii.pill,
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: 3,
@@ -547,6 +593,16 @@ const styles = StyleSheet.create({
   bannerAction: {
     fontSize: 14,
     fontWeight: "700",
+  },
+  bannerActionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  iconText: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
   },
   segmented: {
     flexDirection: "row",
