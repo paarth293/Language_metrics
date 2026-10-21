@@ -68,7 +68,6 @@ export default function StudentNotifications() {
   // time-sensitive — but a revisit paints the cached list, not a skeleton.
   const {
     data,
-    error,
     isLoading,
     isStale,
     updatedAt,
