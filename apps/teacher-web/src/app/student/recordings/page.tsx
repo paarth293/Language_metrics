@@ -36,6 +36,8 @@ export default function RecordingsPage() {
   const [filter, setFilter] = useStickyState<FilterType>("student/recordings:filter", "all");
   const [searchQuery, setSearchQuery] = useStickyState("student/recordings:search", "");
   const [unlockingId, setUnlockingId] = useState<string | null>(null);
+  // An unlock failure shows as a dismissible banner rather than a browser alert.
+  const [unlockError, setUnlockError] = useState<string | null>(null);
 
   const {
     data,
@@ -51,6 +53,7 @@ export default function RecordingsPage() {
 
   const handleUnlock = async (recordingId: string) => {
     if (unlockingId) return;
+    setUnlockError(null);
     setUnlockingId(recordingId);
     try {
       const orderRes = await fetchWithRefresh("/api/students/payments/cashfree/order", {
@@ -76,7 +79,7 @@ export default function RecordingsPage() {
       invalidateResource("/api/students/recordings");
       invalidateResource("/api/students/wallet");
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Payment failed. Please try again.");
+      setUnlockError(err instanceof Error ? err.message : "Payment failed. Please try again.");
     } finally {
       setUnlockingId(null);
     }
@@ -123,7 +126,7 @@ export default function RecordingsPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <AlertCircle className="w-12 h-12 text-red-500" />
-        <p className="text-gray-600">Check your connection and try again.</p>
+        <p className="text-text-secondary">Check your connection and try again.</p>
         <Button onClick={() => void fetchRecordings()} variant="outline">
           Try Again
         </Button>
@@ -135,10 +138,20 @@ export default function RecordingsPage() {
     <div className="space-y-6">
       {isStale && <StaleDataNotice onRetry={() => void fetchRecordings()} updatedAt={updatedAt} />}
 
+      {unlockError && (
+        <div role="alert" className="flex items-start gap-3 rounded-xl border border-alert/30 bg-alert-subtle px-4 py-3 text-sm text-alert-hover">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <p className="flex-1">{unlockError}</p>
+          <button type="button" onClick={() => setUnlockError(null)} className="font-medium underline underline-offset-2">
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div>
         <h1 className="lm-page-title">Recordings</h1>
-        <p className="text-gray-600 mt-1">
+        <p className="text-text-secondary mt-1">
           Watch your recorded class sessions
         </p>
       </div>
@@ -146,13 +159,13 @@ export default function RecordingsPage() {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-subtle" />
           <input
             type="text"
             placeholder="Search recordings..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="w-full pl-10 pr-4 py-2 border border-border rounded-lg focus:outline-none bg-surface text-text placeholder:text-text-subtle focus:ring-2 focus:ring-amber-500"
           />
         </div>
         <div className="flex gap-2">
@@ -163,7 +176,7 @@ export default function RecordingsPage() {
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 filter === f
                   ? "bg-amber-700 text-white"
-                  : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                  : "bg-surface text-text-secondary border border-border hover:bg-surface-inset"
               }`}
             >
               {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -174,12 +187,12 @@ export default function RecordingsPage() {
 
       {/* Empty State */}
       {filteredRecordings.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 bg-white rounded-xl border border-gray-100">
-          <Video className="w-16 h-16 text-gray-300 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-700">
+        <div className="flex flex-col items-center justify-center py-16 bg-surface rounded-xl border border-border">
+          <Video className="w-16 h-16 text-text-subtle mb-4" />
+          <h3 className="text-lg font-semibold text-text">
             No recordings found
           </h3>
-          <p className="text-gray-500 mt-1 text-center max-w-md">
+          <p className="text-text-muted mt-1 text-center max-w-md">
             {recordings.length === 0
               ? "You don't have any recorded sessions yet. Recordings will appear here after your classes."
               : "No recordings match your current filter."}
@@ -195,10 +208,10 @@ export default function RecordingsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
-            className="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg transition-shadow"
+            className="bg-surface rounded-xl border border-border overflow-hidden hover:shadow-lg transition-shadow"
           >
             {/* Thumbnail */}
-            <div className="relative aspect-video bg-gray-100">
+            <div className="relative aspect-video bg-surface-inset">
               {recording.thumbnailUrl ? (
                 <Image unoptimized width={640} height={360}
                   src={recording.thumbnailUrl}
@@ -207,7 +220,7 @@ export default function RecordingsPage() {
                 />
               ) : (
                 <div className="flex items-center justify-center h-full">
-                  <Video className="w-12 h-12 text-gray-300" />
+                  <Video className="w-12 h-12 text-text-subtle" />
                 </div>
               )}
 
@@ -241,11 +254,11 @@ export default function RecordingsPage() {
               <h3 className="font-semibold text-navy-900 line-clamp-1">
                 {recording.title}
               </h3>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-text-muted mt-1">
                 {recording.teacherName}
               </p>
 
-              <div className="flex items-center gap-3 mt-3 text-xs text-gray-500">
+              <div className="flex items-center gap-3 mt-3 text-xs text-text-muted">
                 <span className="flex items-center gap-1">
                   <Calendar className="w-3.5 h-3.5" />
                   {formatDate(recording.scheduledStart)}
