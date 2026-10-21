@@ -6,6 +6,7 @@ import { Bell, Menu, Search, Moon, Sun } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 import Link from "next/link";
 import { CommandPalette } from "./CommandPalette";
+import { NotificationsPanel } from "@repo/student-portal";
 import type { NavItem } from "./AppShell";
 
 import {
@@ -36,6 +37,7 @@ const iconButton =
 export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnreadCount }: TopBarProps) {
   const { theme, setTheme } = useTheme();
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const isMac = useIsMac();
   const userId = user?.id;
   const sharedCount = useSharedUnreadCount(initialUnreadCount);
@@ -149,9 +151,13 @@ export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnread
           <ThemeIcon className="h-[17px] w-[17px]" strokeWidth={1.8} />
         </button>
 
-        <Link
-          href="/notifications"
+        {/* Opens over the current page instead of navigating away from it. */}
+        <button
+          type="button"
+          onClick={() => setNotificationsOpen(true)}
           className={iconButton}
+          aria-haspopup="dialog"
+          aria-expanded={notificationsOpen}
           aria-label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : "Notifications"}
         >
           <Bell className="h-[17px] w-[17px]" strokeWidth={1.8} />
@@ -160,7 +166,7 @@ export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnread
               <span className="absolute inset-0 animate-ping rounded-full bg-danger opacity-60" />
             </span>
           )}
-        </Link>
+        </button>
 
         <div className="mx-1 hidden h-7 w-px bg-border md:block" aria-hidden="true" />
 
@@ -178,6 +184,8 @@ export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnread
           </span>
         </Link>
       </div>
+
+      <NotificationsPanel open={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
 
       <CommandPalette
         open={paletteOpen}
