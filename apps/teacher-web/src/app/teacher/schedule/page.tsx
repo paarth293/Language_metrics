@@ -83,8 +83,8 @@ export default function TeacherSchedule() {
   // ── Data ──────────────────────────────────────────────────────────────
   // One cache key per week, so paging back to a week already seen is instant
   // and a response for a week the teacher has left can never land on screen.
-  // keepPreviousData is off for the same reason: last week's classes under
-  // this week's header would be wrong, not merely stale.
+  // A key change shows that week's own state and never carries the
+  // previous week's classes over, which would be wrong rather than stale.
   const url = useMemo(() => {
     const params = new URLSearchParams({
       from: weekStart.toISOString(),
@@ -95,10 +95,10 @@ export default function TeacherSchedule() {
 
   const week = useJsonResource<{ sessions: ScheduleSession[]; availability: AvailabilitySlot[] }>(
     url,
-    { staleMs: 30_000, pollMs: 60_000, keepPreviousData: false }
+    { staleMs: 30_000, pollMs: 60_000 }
   );
 
-  const sessions = week.data?.sessions ?? [];
+  const sessions = useMemo(() => week.data?.sessions ?? [], [week.data]);
   const isFetching = week.isRevalidating;
   const loadError = week.error !== undefined && week.data === undefined;
   // Working hours ride along with every week's response, and a save shows
