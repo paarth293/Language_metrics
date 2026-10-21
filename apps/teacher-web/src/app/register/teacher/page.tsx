@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, CircleCheck, Info, Mail, TriangleAlert, ArrowLeft } from "lucide-react";
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -338,9 +339,7 @@ export default function TeacherRegisterPage() {
       <AuthLayout>
         <div className="flex flex-col items-center justify-center text-center py-12 animate-fade-up">
           <div className="w-16 h-16 rounded-full bg-trust-subtle text-trust flex items-center justify-center mb-6">
-            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
+            <Check className="w-8 h-8" strokeWidth={3} />
           </div>
           <h2 className="font-display text-[28px] font-bold text-brand mb-2">Application Submitted</h2>
           <p className="text-text-muted">Our team will review your profile and documents shortly. Taking you to your portal...</p>
@@ -379,9 +378,7 @@ export default function TeacherRegisterPage() {
         <div className="animate-fade-up">
           <div className="text-center mb-6">
             <div className="w-14 h-14 rounded-full bg-brand-subtle text-brand flex items-center justify-center mx-auto mb-4">
-              <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
+              <Mail className="w-7 h-7" />
             </div>
             <h2 className="font-display text-xl font-bold text-text mb-1">Verify your email</h2>
             <p className="text-text-muted text-sm">We sent a 6-digit code to <strong className="text-text">{email}</strong></p>
@@ -404,7 +401,7 @@ export default function TeacherRegisterPage() {
               {otpSending ? "Sending..." : cooldown > 0 ? `Resend code in ${cooldown}s` : "Resend code"}
             </button>
             <button type="button" onClick={() => { setShowOtp(false); setOtpValues(["", "", "", "", "", ""]); setOtpError(null); }}
-              className="inline-flex min-h-11 items-center text-sm text-text-muted hover:text-text transition-colors cursor-pointer">← Change email</button>
+              className="inline-flex min-h-11 items-center text-sm text-text-muted hover:text-text transition-colors cursor-pointer"><ArrowLeft className="mr-1 h-4 w-4" aria-hidden /> Change email</button>
           </div>
         </div>
       )}
@@ -429,9 +426,7 @@ export default function TeacherRegisterPage() {
                   Email address
                   {emailVerified && (
                     <span className="ml-2 inline-flex items-center gap-1 text-xs font-medium text-trust">
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
+                      <Check className="w-3.5 h-3.5" strokeWidth={3} />
                       Verified
                     </span>
                   )}
@@ -500,9 +495,7 @@ export default function TeacherRegisterPage() {
                         <span className="text-base leading-none flex-shrink-0">{lang.flag}</span>
                         <span className="truncate">{lang.name}</span>
                         {isSelected && (
-                          <svg className="w-3 h-3 ml-auto flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                          </svg>
+                          <Check className="w-3 h-3 ml-auto flex-shrink-0" strokeWidth={3} />
                         )}
                       </button>
                     );
@@ -559,9 +552,7 @@ export default function TeacherRegisterPage() {
               {step3Errors.idProofDocUrl && <p role="alert" className="text-xs text-danger -mt-3">{step3Errors.idProofDocUrl}</p>}
 
               <div className="flex items-start gap-2 p-3 rounded-lg bg-brand/5 border border-brand/20">
-                <svg className="w-4 h-4 text-brand mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <Info className="w-4 h-4 text-brand mt-0.5 flex-shrink-0" />
                 <p className="text-xs text-text-muted">Your documents are securely stored and only accessible to our admin team for verification purposes. They will not be shared with third parties.</p>
               </div>
             </div>
@@ -612,9 +603,7 @@ export default function TeacherRegisterPage() {
 
               {experienceType === "fresher" && (
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-surface-inset border border-border">
-                  <svg className="w-4 h-4 text-text-muted mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                  <Info className="w-4 h-4 text-text-muted mt-0.5 flex-shrink-0" />
                   <p className="text-xs text-text-muted">No worries! Many successful teachers start without formal experience. You&apos;ll still go through our verification process and can begin teaching once approved.</p>
                 </div>
               )}
@@ -671,16 +660,12 @@ export default function TeacherRegisterPage() {
                 </div>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-trust flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                    <CircleCheck className="w-4 h-4 text-trust flex-shrink-0" />
                     <span className="text-text-muted">Qualification Certificate:</span>
                     <span className="text-text truncate">{qualificationFileName}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-trust flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                    <CircleCheck className="w-4 h-4 text-trust flex-shrink-0" />
                     <span className="text-text-muted">ID Proof:</span>
                     <span className="text-text truncate">{idProofFileName}</span>
                   </div>
@@ -696,9 +681,7 @@ export default function TeacherRegisterPage() {
                   <div><p className="text-text-muted text-xs">Level</p><p className="text-text capitalize">{experienceType === "fresher" ? "New / Fresher" : "Experienced"}</p></div>
                   {experienceType === "experienced" && experienceFileName && (
                     <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-trust flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
+                      <CircleCheck className="w-4 h-4 text-trust flex-shrink-0" />
                       <span className="text-text-muted">Experience Document:</span>
                       <span className="text-text truncate">{experienceFileName}</span>
                     </div>
@@ -708,9 +691,7 @@ export default function TeacherRegisterPage() {
               </div>
 
               <div className="flex items-start gap-2 p-3 rounded-lg bg-gold/5 border border-gold/20">
-                <svg className="w-4 h-4 text-gold-strong mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
+                <TriangleAlert className="w-4 h-4 text-gold-strong mt-0.5 flex-shrink-0" />
                 <p className="text-xs text-text-muted">After submission, our admin team will review your documents and profile. You&apos;ll receive an email once your application is approved. This typically takes 1–3 business days.</p>
               </div>
             </div>
