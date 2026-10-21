@@ -19,7 +19,7 @@ const faqCategories = [
       },
       {
         q: "How do I get started?",
-        a: "Sign up, select your target language and proficiency level, then browse our teacher catalog to book your first class. You can start with a free demo session.",
+        a: "Sign up, select your target language and proficiency level, then browse our teacher catalog to book your first class. You can start with a demo class: a 45-minute introductory session for 29 coins, one per teacher.",
       },
       {
         q: "What languages are available?",
@@ -42,7 +42,7 @@ const faqCategories = [
       },
       {
         q: "How do I join a live class?",
-        a: "Go to My Classes → Upcoming, and click 'Join Class' up to 5 minutes before the session starts. The button activates 5 minutes before and stays active until the session ends.",
+        a: "Go to My Classes → Upcoming, and click 'Join Class' up to 10 minutes before the session starts. The button activates 10 minutes before and stays active until the session ends.",
       },
       {
         q: "What happens if I miss a class?",
@@ -157,14 +157,14 @@ export default function FAQPage() {
       <div className="text-center">
         <HelpCircle className="w-12 h-12 text-amber-700 mx-auto mb-3" />
         <h1 className="lm-page-title">Help & FAQ</h1>
-        <p className="text-gray-600 mt-2">
+        <p className="text-text-secondary mt-2">
           Find answers to common questions about Language Metrics
         </p>
       </div>
 
       {/* Search */}
       <div className="relative max-w-xl mx-auto">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-subtle" />
         <input
           type="text"
           placeholder="Search questions..."
@@ -173,7 +173,7 @@ export default function FAQPage() {
             setSearchQuery(e.target.value);
             if (e.target.value) setActiveCategory(null);
           }}
-          className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
+          className="w-full pl-12 pr-4 py-3 border border-border rounded-xl focus:outline-none bg-surface text-text placeholder:text-text-subtle focus:ring-2 focus:ring-amber-500 text-sm"
         />
       </div>
 
@@ -185,7 +185,7 @@ export default function FAQPage() {
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               !activeCategory
                 ? "bg-amber-700 text-white"
-                : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                : "bg-surface text-text-secondary border border-border hover:bg-surface-inset"
             }`}
           >
             All
@@ -199,7 +199,7 @@ export default function FAQPage() {
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
                   activeCategory === cat.id
                     ? "bg-amber-700 text-white"
-                    : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                    : "bg-surface text-text-secondary border border-border hover:bg-surface-inset"
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -214,8 +214,8 @@ export default function FAQPage() {
       <div className="space-y-3">
         {filteredQuestions.length === 0 ? (
           <div className="text-center py-12">
-            <HelpCircle className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500">
+            <HelpCircle className="w-10 h-10 text-text-subtle mx-auto mb-3" />
+            <p className="text-text-muted">
               No questions found. Try a different search term.
             </p>
           </div>
@@ -229,17 +229,17 @@ export default function FAQPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.02 }}
-                className="bg-white rounded-xl border border-gray-100 overflow-hidden"
+                className="bg-surface rounded-xl border border-border overflow-hidden"
               >
                 <button
                   onClick={() => setExpandedQ(isExpanded ? null : key)}
-                  className="w-full p-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                  className="w-full p-4 text-left flex items-center justify-between hover:bg-surface-inset transition-colors"
                 >
                   <span className="font-medium text-navy-900 text-sm pr-4">
                     {q.q}
                   </span>
                   <ChevronDown
-                    className={`w-5 h-5 text-gray-400 flex-shrink-0 transition-transform ${
+                    className={`w-5 h-5 text-text-subtle flex-shrink-0 transition-transform ${
                       isExpanded ? "rotate-180" : ""
                     }`}
                   />
@@ -252,7 +252,7 @@ export default function FAQPage() {
                       exit={{ height: 0, opacity: 0 }}
                       className="overflow-hidden"
                     >
-                      <div className="px-4 pb-4 text-sm text-gray-600 leading-relaxed">
+                      <div className="px-4 pb-4 text-sm text-text-secondary leading-relaxed">
                         {q.a}
                       </div>
                     </motion.div>
@@ -267,7 +267,7 @@ export default function FAQPage() {
       {/* Contact Support */}
       <div className="bg-amber-50 rounded-xl p-6 text-center">
         <h3 className="font-semibold text-navy-900">Still have questions?</h3>
-        <p className="text-sm text-gray-600 mt-1 mb-4">
+        <p className="text-sm text-text-secondary mt-1 mb-4">
           Our support team is here to help
         </p>
         <Button
