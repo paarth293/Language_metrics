@@ -8,6 +8,7 @@ import {
   BookOpen,
   CalendarClock,
   ChevronDown,
+  ChevronRight,
   Coins,
   CreditCard,
   FileText,
@@ -39,6 +40,33 @@ type Qa = { q: string; a: React.ReactNode; text: string };
 
 function qa(q: string, a: string): Qa {
   return { q, a, text: a };
+}
+
+/** A menu path ("Profile > Password") drawn with chevron icons instead of text arrows. */
+function MenuPath({ steps }: { steps: string[] }) {
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1 align-middle font-semibold text-text">
+      {steps.map((step, i) => (
+        <React.Fragment key={step}>
+          {i > 0 && <ChevronRight className="h-3.5 w-3.5 text-text-subtle" aria-label="then" />}
+          {step}
+        </React.Fragment>
+      ))}
+    </span>
+  );
+}
+
+/** An answer that starts with a menu path; `text` keeps the words searchable. */
+function qaPath(q: string, steps: string[], rest: string): Qa {
+  return {
+    q,
+    a: (
+      <>
+        <MenuPath steps={steps} />. {rest}
+      </>
+    ),
+    text: `${steps.join(" ")} ${rest}`,
+  };
 }
 
 const FAQ: { id: string; label: string; icon: React.ElementType; items: Qa[] }[] = [
@@ -88,9 +116,17 @@ const FAQ: { id: string; label: string; icon: React.ElementType; items: Qa[] }[]
     label: "Account",
     icon: UserRound,
     items: [
-      qa("How do I change my password?", "Profile → Password. Enter your current password and a new one that meets the listed rules."),
-      qa("How do I turn on notifications?", "Everything appears under the bell at the top of every page. For browser alerts, go to Profile → Notifications and choose Turn on."),
-      qa("How do I delete my account?", "Profile → Account → Delete account. Cancel or finish any booked classes first; your data is removed within 30 days."),
+      qaPath("How do I change my password?", ["Profile", "Password"], "Enter your current password and a new one that meets the listed rules."),
+      {
+        q: "How do I turn on notifications?",
+        a: (
+          <>
+            Everything appears under the bell at the top of every page. For browser alerts, go to <MenuPath steps={["Profile", "Notifications"]} /> and choose Turn on.
+          </>
+        ),
+        text: "Everything appears under the bell at the top of every page. For browser alerts, go to Profile Notifications and choose Turn on.",
+      },
+      qaPath("How do I delete my account?", ["Profile", "Account", "Delete account"], "Cancel or finish any booked classes first; your data is removed within 30 days."),
     ],
   },
   {
