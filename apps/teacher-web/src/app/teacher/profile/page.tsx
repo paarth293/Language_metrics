@@ -3,7 +3,8 @@
 import Image from "next/image";
 
 import React, { useEffect, useRef, useState } from "react";
-import { Save, Clock, DollarSign, Loader2, AlertCircle, Plus, Trash2, CheckCircle2, FileText, Video, Shield, Camera, Edit3 } from "lucide-react";
+import { Save, Clock, DollarSign, Loader2, AlertCircle, Plus, Trash2, CheckCircle2, FileText, Video, Shield, Camera, Edit3, GraduationCap, IdCard, ScrollText, Briefcase } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -17,12 +18,12 @@ const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", 
 // Matches the 20% actually applied server-side (see api/students/*/book routes).
 const COMMISSION_RATE = 0.2;
 
-const DOC_TYPE_LABELS: Record<string, { label: string; icon: string }> = {
-  EDUCATION: { label: "Qualification Certificate", icon: "🎓" },
-  ID_PROOF: { label: "ID Proof", icon: "🪪" },
-  LANGUAGE_CERTIFICATE: { label: "Language Certificate", icon: "📜" },
-  EXPERIENCE_LETTER: { label: "Experience Document", icon: "💼" },
-  OTHER: { label: "Other Document", icon: "📄" },
+const DOC_TYPE_LABELS: Record<string, { label: string; icon: LucideIcon }> = {
+  EDUCATION: { label: "Qualification Certificate", icon: GraduationCap },
+  ID_PROOF: { label: "ID Proof", icon: IdCard },
+  LANGUAGE_CERTIFICATE: { label: "Language Certificate", icon: ScrollText },
+  EXPERIENCE_LETTER: { label: "Experience Document", icon: Briefcase },
+  OTHER: { label: "Other Document", icon: FileText },
 };
 
 const DOC_STATUS_COLORS: Record<string, "warning" | "success" | "danger"> = {
@@ -540,7 +541,7 @@ export default function TeacherProfileSettings() {
                     return (
                       <div key={doc.id} className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-xl bg-surface-inset border border-border/60 hover:border-brand/30 transition-colors group">
                         <div className="w-12 h-12 rounded-xl bg-surface flex items-center justify-center text-[24px] shadow-sm shrink-0 border border-border/50 group-hover:scale-105 transition-transform">
-                          {typeInfo.icon}
+                          <typeInfo.icon className="h-6 w-6 text-brand" aria-hidden />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-[15px] font-bold text-text mb-0.5">{typeInfo.label}</div>
