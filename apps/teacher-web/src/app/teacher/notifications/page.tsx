@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Bell,
   CheckCheck,
@@ -130,7 +130,7 @@ export default function TeacherNotifications() {
       pollMs: 60_000,
     });
 
-  const notifications = data?.notifications ?? [];
+  const notifications = useMemo(() => data?.notifications ?? [], [data]);
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   // Optimistic writes go through the cache, so the TopBar badge and a later
