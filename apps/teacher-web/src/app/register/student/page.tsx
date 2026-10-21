@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, Mail, ArrowLeft } from "lucide-react";
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -260,9 +261,7 @@ export default function StudentRegisterPage() {
       <AuthLayout>
         <div className="flex flex-col items-center justify-center text-center py-12 animate-fade-up">
           <div className="w-16 h-16 rounded-full bg-success/20 text-success flex items-center justify-center mb-6">
-            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
+            <Check className="w-8 h-8" strokeWidth={3} />
           </div>
           <h2 className="font-display text-[28px] font-bold text-text mb-2">Account Created!</h2>
           <p className="text-text-muted">Taking you to your dashboard...</p>
@@ -293,9 +292,7 @@ export default function StudentRegisterPage() {
         <div className="animate-fade-up">
           <div className="text-center mb-6">
             <div className="w-14 h-14 rounded-full bg-brand-subtle text-brand flex items-center justify-center mx-auto mb-4">
-              <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
+              <Mail className="w-7 h-7" />
             </div>
             <h2 className="font-display text-xl font-bold text-text mb-1">Verify your email</h2>
             <p className="text-text-muted text-sm">
@@ -363,7 +360,7 @@ export default function StudentRegisterPage() {
               }}
               className="inline-flex min-h-11 items-center text-sm text-text-muted hover:text-text transition-colors cursor-pointer"
             >
-              ← Change email
+              <ArrowLeft className="mr-1 h-4 w-4" aria-hidden /> Change email
             </button>
           </div>
         </div>
@@ -394,9 +391,7 @@ export default function StudentRegisterPage() {
               Email address
               {emailVerified && (
                 <span className="ml-2 inline-flex items-center gap-1 text-xs font-medium text-trust">
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
+                  <Check className="w-3.5 h-3.5" strokeWidth={3} />
                   Verified
                 </span>
               )}
