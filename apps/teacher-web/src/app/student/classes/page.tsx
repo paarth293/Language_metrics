@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Video,
@@ -55,6 +55,22 @@ export default function MyClassesPage() {
   const [activeTab, setActiveTab] = useStickyState("student/classes:tab", "upcoming");
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState<string | null>(null);
+  // A failed cancel is shown inside the dialog instead of a browser alert.
+  const [cancelError, setCancelError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCancelError(null);
+  }, [showCancelModal]);
+
+  useEffect(() => {
+    if (!showCancelModal) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !cancellingId) setShowCancelModal(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showCancelModal, cancellingId]);
 
   // One cache key per tab, so switching back to a tab already looked at is
   // instant, and a tab never shows another tab's bookings while it loads.
@@ -73,6 +89,7 @@ export default function MyClassesPage() {
 
 
   const handleCancel = async (bookingId: string) => {
+    setCancelError(null);
     setCancellingId(bookingId);
     try {
       const res = await fetch(`/api/students/classes/${bookingId}/cancel`, {
@@ -88,7 +105,7 @@ export default function MyClassesPage() {
       // Cancelling moves the booking between tabs, so drop all of them.
       invalidateResource("/api/students/classes");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to cancel");
+      setCancelError(err instanceof Error ? err.message : "Failed to cancel booking");
     } finally {
       setCancellingId(null);
     }
@@ -97,8 +114,8 @@ export default function MyClassesPage() {
   const canJoin = (sessionStart: string) => {
     const now = new Date();
     const start = new Date(sessionStart);
-    const fiveMinBefore = new Date(start.getTime() - 5 * 60 * 1000);
-    return now >= fiveMinBefore;
+    const opensAt = new Date(start.getTime() - 10 * 60 * 1000);
+    return now >= opensAt;
   };
 
   const canCancel = (scheduledStart: string) => {
@@ -350,14 +367,14 @@ export default function MyClassesPage() {
       {/* ── CANCEL MODAL ─────────────────────────────── */}
       {showCancelModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <Card className="max-w-md w-full shadow-level-2 animate-in zoom-in-95 duration-200">
+          <Card role="dialog" aria-modal="true" aria-labelledby="cancel-dialog-title" className="max-w-md w-full shadow-level-2 animate-in zoom-in-95 duration-200">
             <CardContent className="p-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-xl bg-alert/10 flex items-center justify-center shrink-0">
                   <AlertTriangle className="w-5 h-5 text-alert" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-[18px] text-text font-display leading-tight">Cancel Booking</h3>
+                  <h3 id="cancel-dialog-title" className="font-bold text-[18px] text-text font-display leading-tight">Cancel Booking</h3>
                   <p className="text-[13px] text-text-muted mt-0.5">
                     Are you sure you want to cancel this class?
                   </p>
@@ -370,6 +387,13 @@ export default function MyClassesPage() {
                   hours away. The refund will be credited to your wallet.
                 </p>
               </div>
+
+              {cancelError && (
+                <p role="alert" className="mb-4 flex items-start gap-2 rounded-lg border border-alert/30 bg-alert-subtle px-3 py-2 text-[13px] text-alert-hover">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  {cancelError}
+                </p>
+              )}
 
               <div className="flex gap-3 justify-end">
                 <Button variant="outline" onClick={() => setShowCancelModal(null)}>
