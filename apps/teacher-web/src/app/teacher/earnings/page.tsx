@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -15,7 +15,11 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { useJsonResource } from "@repo/ui/useResource";
+import { useStickyState } from "@repo/ui/useStickyState";
+import { StaleDataNotice } from "@repo/ui/StaleDataNotice";
 
 type EarningsData = {
   summary: {
@@ -68,32 +72,25 @@ const PAYOUT_STATUS: Record<string, { label: string; icon: typeof Clock; color: 
 };
 
 export default function TeacherEarnings() {
-  const [earnings, setEarnings] = useState<EarningsData | null>(null);
-  const [wallet, setWallet] = useState<WalletData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"earnings" | "wallet">("earnings");
+  const [activeTab, setActiveTab] = useStickyState<"earnings" | "wallet">(
+    "teacher/earnings:tab",
+    "earnings"
+  );
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [earningsRes, walletRes] = await Promise.all([
-          fetch("/api/teachers/earnings", { credentials: "include" }),
-          fetch("/api/teachers/wallet", { credentials: "include" }),
-        ]);
+  // Two independent keys rather than one combined fetch: the wallet can fail
+  // or refresh on its own without taking the earnings panels down with it.
+  const earningsResource = useJsonResource<EarningsData>("/api/teachers/earnings", { staleMs: 30_000 });
+  const walletResource = useJsonResource<WalletData>("/api/teachers/wallet", { staleMs: 30_000 });
+  const earnings = earningsResource.data;
+  const wallet = walletResource.data;
+  const isStale = earningsResource.isStale || walletResource.isStale;
+  const retry = () => {
+    void earningsResource.refetch();
+    void walletResource.refetch();
+  };
 
-        if (earningsRes.ok) setEarnings(await earningsRes.json());
-        if (walletRes.ok) setWallet(await walletRes.json());
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
-
-  if (loading) {
+  // A skeleton only on a first visit with nothing cached.
+  if (earningsResource.isLoading) {
     return (
       <div className="py-8">
         <DashboardSkeleton />
@@ -101,7 +98,7 @@ export default function TeacherEarnings() {
     );
   }
 
-  if (error || !earnings) {
+  if (!earnings) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <Card className="max-w-md w-full border border-border/50 shadow-sm bg-surface">
@@ -110,7 +107,8 @@ export default function TeacherEarnings() {
               <AlertCircle className="w-8 h-8 text-alert" />
             </div>
             <h2 className="text-[20px] font-display font-bold text-text mb-2 leading-tight">Unable to load earnings</h2>
-            <p className="text-[14px] text-text-muted">{error || "Failed to load data"}</p>
+            <p className="text-[14px] text-text-muted">Check your connection and try again.</p>
+            <Button variant="primary" className="mt-5" onClick={retry}>Try again</Button>
           </CardContent>
         </Card>
       </div>
@@ -120,7 +118,9 @@ export default function TeacherEarnings() {
   const { summary, payouts } = earnings;
 
   return (
-    <div className="space-y-6 pb-16 animate-in fade-in duration-300 h-full flex flex-col">
+    <div className="space-y-6 pb-16 h-full flex flex-col">
+      {isStale && <StaleDataNotice onRetry={retry} updatedAt={earningsResource.updatedAt} />}
+
       {/* ── HEADER ─────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
