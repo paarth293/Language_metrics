@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Bell,
   CheckCheck,
@@ -15,6 +15,9 @@ import {
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { useJsonResource } from "@repo/ui/useResource";
+import { useStickyState } from "@repo/ui/useStickyState";
+import { StaleDataNotice } from "@repo/ui/StaleDataNotice";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -107,15 +110,36 @@ function ToastList({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: str
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function StudentNotifications() {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading]             = useState(true);
-  const [error, setError]                 = useState<string | null>(null);
-  const [filter, setFilter]               = useState<"all" | "unread">("all");
+  const [filter, setFilter]               = useStickyState<"all" | "unread">("notifications:filter", "all");
   const [markingAll, setMarkingAll]       = useState(false);
   const [toasts, setToasts]               = useState<Toast[]>([]);
   // Track which individual notifications are currently being marked.
   const [markingIds, setMarkingIds]       = useState<Set<string>>(new Set());
   const toastIdRef                        = useRef(0);
+
+  // Short freshness window and a visible-tab poll, because notifications are
+  // time-sensitive — but a revisit paints the cached list, not a spinner.
+  const {
+    data,
+    error,
+    isLoading,
+    isStale,
+    updatedAt,
+    refetch: fetchNotifications,
+    mutate,
+  } = useJsonResource<{ notifications: Notification[]; unreadCount?: number }>(
+    "/api/students/notifications",
+    { staleMs: 15_000, pollMs: 60_000 }
+  );
+
+  const notifications = data?.notifications ?? [];
+
+  // Optimistic writes land in the cache, so the bell badge and a later revisit
+  // cannot disagree about what has been read.
+  const setNotifications = useCallback(
+    (next: Notification[]) => mutate({ ...(data ?? {}), notifications: next }),
+    [data, mutate]
+  );
 
   // Derived: always computed from the notifications array (single source of truth).
   const unreadCount = notifications.filter((n) => !n.isRead).length;
@@ -135,33 +159,11 @@ export default function StudentNotifications() {
 
   // ── Data fetching ──────────────────────────────────────────────────────────
 
-  const fetchNotifications = useCallback(async () => {
-    try {
-      setError(null);
-      const res = await fetch("/api/students/notifications", { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to load notifications");
-      const data = await res.json();
-      setNotifications(data.notifications);
-      // Sync the bell badge with the real DB count on page load.
-      broadcastUnreadCount(data.unreadCount);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
+  // Keep the bell badge in sync with the list, whether it came from the
+  // network or from an optimistic write.
   useEffect(() => {
-    const timer = setTimeout(() => void fetchNotifications(), 0);
-    return () => clearTimeout(timer);
-  }, [fetchNotifications]);
-
-  // Keep the bell badge in sync whenever the local unreadCount changes.
-  useEffect(() => {
-    if (!loading) {
-      broadcastUnreadCount(unreadCount);
-    }
-  }, [unreadCount, loading]);
+    if (data) broadcastUnreadCount(unreadCount);
+  }, [unreadCount, data]);
 
   // ── Mark single as read (optimistic + rollback) ────────────────────────────
 
@@ -174,7 +176,7 @@ export default function StudentNotifications() {
 
     // Optimistic update.
     setMarkingIds((prev) => new Set(prev).add(id));
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
+    setNotifications(snapshot.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
 
     try {
       const res = await fetch("/api/students/notifications", {
@@ -196,7 +198,7 @@ export default function StudentNotifications() {
         return next;
       });
     }
-  }, [notifications, markingIds, showToast]);
+  }, [notifications, markingIds, showToast, setNotifications]);
 
   // ── Mark all as read (optimistic + rollback) ───────────────────────────────
 
@@ -206,7 +208,7 @@ export default function StudentNotifications() {
     const snapshot = notifications;
 
     setMarkingAll(true);
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    setNotifications(snapshot.map((n) => ({ ...n, isRead: true })));
 
     try {
       const res = await fetch("/api/students/notifications", {
@@ -224,7 +226,7 @@ export default function StudentNotifications() {
     } finally {
       setMarkingAll(false);
     }
-  }, [markingAll, unreadCount, notifications, showToast]);
+  }, [markingAll, unreadCount, notifications, showToast, setNotifications]);
 
   // ── Derived view ───────────────────────────────────────────────────────────
 
@@ -240,7 +242,8 @@ export default function StudentNotifications() {
 
   // ── Loading state ──────────────────────────────────────────────────────────
 
-  if (loading) {
+  // A spinner only when the list has never loaded in this session.
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="flex flex-col items-center gap-4">
@@ -259,7 +262,7 @@ export default function StudentNotifications() {
 
   // ── Error state ────────────────────────────────────────────────────────────
 
-  if (error) {
+  if (!data) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <Card className="max-w-md w-full">
@@ -268,9 +271,9 @@ export default function StudentNotifications() {
               <AlertCircle className="w-8 h-8 text-danger" />
             </div>
             <h2 className="text-xl font-display font-bold text-text mb-2">Unable to load notifications</h2>
-            <p className="text-text-muted mb-6">{error}</p>
+            <p className="text-text-muted mb-6">Check your connection and try again.</p>
             <Button
-              onClick={() => { setLoading(true); fetchNotifications(); }}
+              onClick={() => void fetchNotifications()}
               variant="primary"
             >
               Try Again
@@ -288,7 +291,8 @@ export default function StudentNotifications() {
       {/* Toast notifications */}
       <ToastList toasts={toasts} onDismiss={dismissToast} />
 
-      <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-3xl w-full">
+      <div className="flex flex-col gap-6 max-w-3xl w-full">
+        {isStale && <StaleDataNotice onRetry={() => void fetchNotifications()} updatedAt={updatedAt} />}
 
         {/* ── Page header ── */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
