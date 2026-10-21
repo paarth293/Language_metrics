@@ -9,19 +9,21 @@ export function TeacherPayoutCard({ teacherId, payouts }: { teacherId: string, p
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   const handleAllocate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || Number(amount) <= 0) return;
     setLoading(true);
+    setError(null);
     try {
       await createPayout(teacherId, Number(amount), note || "Bonus");
       setAmount("");
       setNote("");
       router.refresh();
     } catch {
-      alert("Failed to allocate payout");
+      setError("Failed to allocate payout. Check the amount and try again.");
     } finally {
       setLoading(false);
     }
@@ -38,8 +40,9 @@ export function TeacherPayoutCard({ teacherId, payouts }: { teacherId: string, p
 
       <form onSubmit={handleAllocate} className="mb-6 space-y-3 pb-6 border-b border-gray-700">
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Amount (₹)</label>
+          <label htmlFor="payout-amount" className="block text-xs text-gray-500 mb-1">Amount (₹)</label>
           <input
+            id="payout-amount"
             type="number"
             value={amount}
             onChange={e => setAmount(e.target.value)}
@@ -50,8 +53,9 @@ export function TeacherPayoutCard({ teacherId, payouts }: { teacherId: string, p
           />
         </div>
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Note / Reference</label>
+          <label htmlFor="payout-note" className="block text-xs text-gray-500 mb-1">Note / Reference</label>
           <input
+            id="payout-note"
             type="text"
             value={note}
             onChange={e => setNote(e.target.value)}
@@ -60,6 +64,11 @@ export function TeacherPayoutCard({ teacherId, payouts }: { teacherId: string, p
             required
           />
         </div>
+        {error && (
+          <p role="alert" className="text-xs text-red-400">
+            {error}
+          </p>
+        )}
         <button
           type="submit"
           disabled={loading}
