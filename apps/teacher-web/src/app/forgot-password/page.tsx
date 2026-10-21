@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Mail, KeyRound, CheckCircle } from "lucide-react";
+import { ArrowLeft, Mail, KeyRound, CheckCircle, Check, Circle } from "lucide-react";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -262,7 +262,7 @@ export default function ForgotPasswordPage() {
                       rule.pass ? "text-trust" : "text-text-subtle"
                     }`}
                   >
-                    <span>{rule.pass ? "✓" : "○"}</span>
+                    {rule.pass ? <Check className="h-3.5 w-3.5 shrink-0" aria-hidden /> : <Circle className="h-3.5 w-3.5 shrink-0" aria-hidden />}
                     {rule.label}
                   </li>
                 ))}
