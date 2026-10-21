@@ -73,7 +73,7 @@ export default function TermsPage() {
             5. Class Attendance
           </h2>
           <p>
-            Students may join a live class up to 5 minutes before the scheduled start
+            Students may join a live class up to 10 minutes before the scheduled start
             time. If a student fails to join a session, it will be recorded as a
             no-show and no refund will be issued.
           </p>
