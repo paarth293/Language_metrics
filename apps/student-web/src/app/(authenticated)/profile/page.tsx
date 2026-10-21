@@ -63,7 +63,11 @@ export default function StudentProfilePage() {
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
 
   // Push notifications
-  const [pushEnabled, setPushEnabled] = useState(false);
+  // Notification.permission is readable synchronously, so this is initial
+  // state rather than an effect that re-renders the page right after mount.
+  const [pushEnabled, setPushEnabled] = useState(
+    () => typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted"
+  );
   const [pushLoading, setPushLoading] = useState(false);
 
   // Account deletion
@@ -103,25 +107,14 @@ export default function StudentProfilePage() {
       );
   };
 
-  const checkPushStatus = async () => {
-    if (!("Notification" in window)) return;
-    if (Notification.permission === "granted") {
-      setPushEnabled(true);
-    }
-  };
 
   const seeded = useRef(false);
   useEffect(() => {
     if (!loaded || seeded.current) return;
     seeded.current = true;
     applyProfile(loaded);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- applyProfile only writes setState
   }, [loaded]);
 
-  useEffect(() => {
-    void checkPushStatus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once
-  }, []);
 
 
 
