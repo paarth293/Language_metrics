@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Bell,
   CheckCheck,
@@ -121,7 +121,6 @@ export default function StudentNotifications() {
   // time-sensitive — but a revisit paints the cached list, not a spinner.
   const {
     data,
-    error,
     isLoading,
     isStale,
     updatedAt,
@@ -132,7 +131,7 @@ export default function StudentNotifications() {
     { staleMs: 15_000, pollMs: 60_000 }
   );
 
-  const notifications = data?.notifications ?? [];
+  const notifications = useMemo(() => data?.notifications ?? [], [data]);
 
   // Optimistic writes land in the cache, so the bell badge and a later revisit
   // cannot disagree about what has been read.
