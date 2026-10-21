@@ -9,6 +9,7 @@
  *   3. What needs a human decision (teacher no-shows).
  */
 
+import { CircleDot } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
 import CostChart, { type DailyCost } from "./CostChart";
 
@@ -311,7 +312,13 @@ export default function LiveOpsClient() {
                       {r.participants.map((p) => p.name).join(", ") || r.numParticipants}
                     </td>
                     <td className="py-3 px-5" style={{ color: "var(--text-muted)" }}>
-                      {r.recordingStatus === "RECORDING" ? "● recording" : "—"}
+                      {r.recordingStatus === "RECORDING" ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <CircleDot className="h-3.5 w-3.5" style={{ color: "var(--danger)" }} /> recording
+                        </span>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                     <td className="py-3 px-5 text-right">
                       {confirmingEnd === r.classSessionId ? (
