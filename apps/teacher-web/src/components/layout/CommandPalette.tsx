@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { CornerDownLeft, Loader2, Search, SearchX } from "lucide-react";
+import { CornerDownLeft, Loader2, Search, SearchX, ArrowUp, ArrowDown } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Avatar } from "@/components/ui/Avatar";
 import type { NavItem } from "./AppShell";
@@ -247,11 +247,11 @@ export function CommandPalette({ open, onClose, navItems, canSearchStudents }: P
 
         <div className="hidden items-center gap-4 border-t border-border bg-surface-inset/50 px-4 py-2.5 text-[11px] text-text-subtle sm:flex">
           <span className="flex items-center gap-1">
-            <kbd className="rounded border border-border bg-surface px-1">↑</kbd>
-            <kbd className="rounded border border-border bg-surface px-1">↓</kbd> to move
+            <kbd className="inline-flex items-center rounded border border-border bg-surface px-1 py-0.5" aria-label="Up arrow"><ArrowUp className="h-3 w-3" /></kbd>
+            <kbd className="inline-flex items-center rounded border border-border bg-surface px-1 py-0.5" aria-label="Down arrow"><ArrowDown className="h-3 w-3" /></kbd> to move
           </span>
           <span className="flex items-center gap-1">
-            <kbd className="rounded border border-border bg-surface px-1">↵</kbd> to open
+            <kbd className="inline-flex items-center rounded border border-border bg-surface px-1 py-0.5" aria-label="Enter"><CornerDownLeft className="h-3 w-3" /></kbd> to open
           </span>
           <span className="flex items-center gap-1">
             <kbd className="rounded border border-border bg-surface px-1">esc</kbd> to close
