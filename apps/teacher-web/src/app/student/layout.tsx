@@ -1,18 +1,22 @@
 "use client";
 
 import { AppShell } from "@/components/layout/AppShell";
+import { PortalProvider } from "@repo/student-portal";
+import { fetchWithRefresh } from "@/lib/fetch-with-refresh";
 import {
   LayoutDashboard,
   Search,
   Calendar,
   Wallet,
   User,
-  Bell,
   MessageCircle,
   Video,
   HelpCircle,
   FileText,
 } from "lucide-react";
+
+/** Writes can outlast the 15-minute access token, so refresh on a 401. */
+const portalFetch: typeof fetch = (input, init) => fetchWithRefresh(String(input), init);
 
 const studentNavItems = [
   { label: "Dashboard", href: "/student/dashboard", icon: LayoutDashboard, section: "Learn" },
@@ -21,7 +25,6 @@ const studentNavItems = [
   { label: "Recordings", href: "/student/recordings", icon: Video, section: "Learn" },
   { label: "Chat", href: "/student/chat", icon: MessageCircle, section: "Learn" },
   { label: "Wallet", href: "/student/wallet", icon: Wallet, section: "Account" },
-  { label: "Notifications", href: "/student/notifications", icon: Bell, section: "Account" },
   { label: "Profile", href: "/student/profile", icon: User, section: "Account" },
   { label: "Support", href: "/student/support", icon: HelpCircle, section: "Help" },
   { label: "FAQ", href: "/student/faq", icon: HelpCircle, section: "Help" },
@@ -36,7 +39,10 @@ export default function AuthenticatedLayout({
 }) {
   return (
     <AppShell navItems={studentNavItems} requiredRole="STUDENT">
-      {children}
+      {/* No reschedule route on this app, so the Reschedule action stays hidden. */}
+      <PortalProvider basePath="/student" fetchImpl={portalFetch}>
+        {children}
+      </PortalProvider>
     </AppShell>
   );
 }
