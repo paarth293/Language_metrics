@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Video,
@@ -44,6 +44,12 @@ type Booking = {
   createdAt: string;
 };
 
+/** `datetime-local` wants local wall-clock time, not an ISO string. */
+function toLocalInput(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export default function MyClassesPage() {
   // The chosen tab outlives a navigation, so opening a class and coming
   // back lands on the same list.
@@ -52,6 +58,25 @@ export default function MyClassesPage() {
   const [showCancelModal, setShowCancelModal] = useState<string | null>(null);
   const [reschedulingSession, setReschedulingSession] = useState<{ id: string, scheduledStart: string } | null>(null);
   const [newStartTime, setNewStartTime] = useState<string>("");
+  // Failures from cancel/reschedule show inside the open dialog, not in a
+  // blocking browser alert.
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setActionError(null);
+  }, [showCancelModal, reschedulingSession]);
+
+  useEffect(() => {
+    if (!showCancelModal && !reschedulingSession) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || cancellingId) return;
+      setShowCancelModal(null);
+      setReschedulingSession(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showCancelModal, reschedulingSession, cancellingId]);
 
   // One cache key per tab, so switching back to a tab already looked at is
   // instant, and a tab never shows another tab's bookings while it loads.
@@ -70,6 +95,7 @@ export default function MyClassesPage() {
 
 
   const handleCancel = async (bookingId: string) => {
+    setActionError(null);
     setCancellingId(bookingId);
     try {
       const res = await fetch(`/api/students/classes/${bookingId}/cancel`, {
@@ -85,7 +111,7 @@ export default function MyClassesPage() {
       // Cancelling moves the booking between tabs, so drop all of them.
       invalidateResource("/api/students/classes");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to cancel");
+      setActionError(err instanceof Error ? err.message : "Failed to cancel booking");
     } finally {
       setCancellingId(null);
     }
@@ -93,6 +119,7 @@ export default function MyClassesPage() {
 
   const handleReschedule = async () => {
     if (!reschedulingSession || !newStartTime) return;
+    setActionError(null);
     setCancellingId(reschedulingSession.id);
     try {
       const res = await fetch(`/api/students/classes/${reschedulingSession.id}/reschedule`, {
@@ -108,18 +135,18 @@ export default function MyClassesPage() {
       setReschedulingSession(null);
       invalidateResource("/api/students/classes");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to reschedule");
+      setActionError(err instanceof Error ? err.message : "Failed to reschedule booking");
     } finally {
       setCancellingId(null);
     }
   };
 
-  // Check if booking is within 5-minute join window
+  // Matches the server join window (LIVEKIT_JOIN_WINDOW_MINUTES, default 10)
   const canJoin = (sessionStart: string) => {
     const now = new Date();
     const start = new Date(sessionStart);
-    const fiveMinBefore = new Date(start.getTime() - 5 * 60 * 1000);
-    return now >= fiveMinBefore;
+    const opensAt = new Date(start.getTime() - 10 * 60 * 1000);
+    return now >= opensAt;
   };
 
   // Check if cancellation is allowed (12+ hours before start)
@@ -354,7 +381,7 @@ export default function MyClassesPage() {
                             </Button>
                           ) : (
                             <div className="w-full text-center text-xs text-text-muted py-2">
-                              <Clock className="w-4 h-4 mx-auto mb-1 text-gray-400" />
+                              <Clock className="w-4 h-4 mx-auto mb-1 text-text-subtle" />
                               Join opens 5 min before class
                             </div>
                           )}
@@ -380,7 +407,7 @@ export default function MyClassesPage() {
                               className={`flex-1 ${
                                 cancellable
                                   ? "text-danger hover:text-danger hover:bg-danger/10"
-                                  : "text-gray-400 cursor-not-allowed"
+                                  : "text-text-subtle cursor-not-allowed"
                               }`}
                               disabled={!cancellable}
                               onClick={() =>
@@ -419,23 +446,30 @@ export default function MyClassesPage() {
       {/* Cancel Confirmation Modal */}
       {showCancelModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-5">
+          <div role="dialog" aria-modal="true" aria-labelledby="cancel-dialog-title" className="bg-surface rounded-2xl max-w-md w-full p-6 space-y-5">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
                 <AlertTriangle className="w-5 h-5 text-red-600" />
               </div>
               <div>
-                <h3 className="font-bold text-navy-900">Cancel Booking</h3>
-                <p className="text-sm text-gray-500">
+                <h3 id="cancel-dialog-title" className="font-bold text-text">Cancel Booking</h3>
+                <p className="text-sm text-text-muted">
                   Are you sure you want to cancel this class?
                 </p>
               </div>
             </div>
 
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-text-muted">
               This class is eligible for a full refund as it&apos;s more than 12
               hours away. The refund will be credited to your wallet.
             </p>
+
+            {actionError && (
+              <p role="alert" className="flex items-start gap-2 rounded-lg border border-alert/30 bg-alert-subtle px-3 py-2 text-sm text-alert-hover">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                {actionError}
+              </p>
+            )}
 
             <div className="flex gap-3 justify-end">
               <Button
@@ -466,31 +500,41 @@ export default function MyClassesPage() {
       {/* Reschedule Modal */}
       {reschedulingSession && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-5">
+          <div role="dialog" aria-modal="true" aria-labelledby="reschedule-dialog-title" className="bg-surface rounded-2xl max-w-md w-full p-6 space-y-5">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
                 <RefreshCcw className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <h3 className="font-bold text-navy-900">Reschedule Class</h3>
-                <p className="text-sm text-gray-500">
+                <h3 id="reschedule-dialog-title" className="font-bold text-text">Reschedule Class</h3>
+                <p className="text-sm text-text-muted">
                   Select a new time (within 1 hour range)
                 </p>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">New Start Time</label>
+              <label htmlFor="reschedule-start" className="block text-sm font-medium text-text-secondary mb-1">New Start Time</label>
               <input
+                id="reschedule-start"
                 type="datetime-local"
+                min={toLocalInput(new Date(new Date(reschedulingSession.scheduledStart).getTime() - 3_600_000))}
+                max={toLocalInput(new Date(new Date(reschedulingSession.scheduledStart).getTime() + 3_600_000))}
                 value={newStartTime}
                 onChange={(e) => setNewStartTime(e.target.value)}
-                className="w-full border rounded-md p-2 text-sm text-black"
+                className="w-full border border-border bg-surface rounded-md p-2 text-sm text-text"
               />
               <p className="text-xs text-text-muted mt-2">
                 You can reschedule this class up to 1 hour before or after its original scheduled time for free, provided the teacher is available.
               </p>
             </div>
+
+            {actionError && (
+              <p role="alert" className="flex items-start gap-2 rounded-lg border border-alert/30 bg-alert-subtle px-3 py-2 text-sm text-alert-hover">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                {actionError}
+              </p>
+            )}
 
             <div className="flex gap-3 justify-end mt-4">
               <Button
