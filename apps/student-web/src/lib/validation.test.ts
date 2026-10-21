@@ -101,6 +101,12 @@ describe("validation", () => {
     const r4 = validateProfileUpdate({ avatarUrl: null });
     expect(r4.ok).toBe(true);
 
+    // JLPT, HSK and TOPIK levels are offered by the profile picker too.
+    for (const level of ["N3", "HSK 3", "TOPIK I-2"]) {
+      const r = validateProfileUpdate({ proficiencyLevel: level });
+      expect(r.ok, level).toBe(true);
+    }
+
     const r5 = validateProfileUpdate({ preferredCurrency: "USD" });
     expect(r5.ok).toBe(true);
     if (r5.ok) expect(r5.data.preferredCurrency).toBe("USD");
