@@ -1,5 +1,6 @@
 "use client";
 
+import { CircleCheck, Upload, X } from "lucide-react";
 import React, { useState, useRef, useCallback } from "react";
 
 interface FileUploadProps {
@@ -146,9 +147,7 @@ export function FileUpload({
         <label className="text-sm font-medium text-text">{label}</label>
         <div className="flex items-center gap-3 p-3 rounded-lg border border-trust/30 bg-trust/5">
           <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-trust/10 flex items-center justify-center">
-            <svg className="w-5 h-5 text-trust" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <CircleCheck className="w-5 h-5 text-trust" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-text truncate">{uploadedFileName}</p>
@@ -161,9 +160,7 @@ export function FileUpload({
               className="flex-shrink-0 p-1.5 rounded-md hover:bg-danger/10 text-text-muted hover:text-danger transition-colors cursor-pointer"
               aria-label="Remove file"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <X className="w-4 h-4" />
             </button>
           )}
         </div>
@@ -212,9 +209,7 @@ export function FileUpload({
         ) : (
           <>
             <div className="w-10 h-10 rounded-lg bg-surface-inset flex items-center justify-center mb-3">
-              <svg className="w-5 h-5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-              </svg>
+              <Upload className="w-5 h-5 text-text-muted" strokeWidth={1.5} />
             </div>
             <p className="text-sm font-medium text-text mb-1">
               <span className="text-brand">Click to upload</span> or drag and drop
