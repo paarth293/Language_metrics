@@ -135,7 +135,7 @@ function TeacherStudents() {
           />
           <StatTile
             icon={Star}
-            label="4★ and above"
+            label="Rated 4 and above"
             value={String(students.filter((s) => s.rating && s.rating >= 4).length)}
             tone="bg-action/15 text-gold-strong"
           />
