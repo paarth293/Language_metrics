@@ -98,7 +98,7 @@ export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnread
       window.removeEventListener("notifications-updated", handleNotificationsUpdated);
       window.removeEventListener("focus", handleFocus);
     };
-  }, [initialUnreadCount, checkUnreadCount, user?.id]);
+  }, [initialUnreadCount, checkUnreadCount, user]);
 
   const toggleTheme = () => {
     setTheme(theme === "light" ? "dark" : "light");
