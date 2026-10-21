@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { CalendarDays, Coins, type LucideIcon, Search, UserRound, Wallet } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { TeacherCard } from "@repo/api-contracts";
 import { useAuth } from "../auth/AuthProvider";
@@ -27,11 +28,11 @@ function loadLiveClassScreen(): LiveClassScreenType {
 
 export type Tab = "discover" | "classes" | "wallet" | "profile";
 
-const TABS: ReadonlyArray<{ key: Tab; label: string; icon: string }> = [
-  { key: "discover", label: "Discover", icon: "🔎" },
-  { key: "classes", label: "Classes", icon: "🗓️" },
-  { key: "wallet", label: "Wallet", icon: "🪙" },
-  { key: "profile", label: "Profile", icon: "👤" },
+const TABS: ReadonlyArray<{ key: Tab; label: string; icon: LucideIcon }> = [
+  { key: "discover", label: "Discover", icon: Search },
+  { key: "classes", label: "Classes", icon: CalendarDays },
+  { key: "wallet", label: "Wallet", icon: Wallet },
+  { key: "profile", label: "Profile", icon: UserRound },
 ];
 
 /** Signed-in shell: app bar with live coin balance, the four student tabs, and the booking sheet. */
@@ -84,7 +85,7 @@ export function MainScreen() {
             { backgroundColor: colors.actionSubtle, borderColor: colors.action + "55", opacity: pressed ? 0.8 : 1 },
           ]}
         >
-          <Text style={styles.coinIcon}>🪙</Text>
+          <Coins size={15} color={colors.actionText} style={styles.coinIcon} />
           <Text style={[styles.coinText, { color: colors.text }]}>{formatNumber(coinBalance)}</Text>
         </Pressable>
       </View>
@@ -117,7 +118,7 @@ export function MainScreen() {
               style={styles.tabItem}
             >
               <View style={[styles.tabIconWrap, active ? { backgroundColor: colors.actionSubtle } : null]}>
-                <Text style={[styles.tabIcon, { opacity: active ? 1 : 0.55 }]}>{item.icon}</Text>
+                <item.icon size={20} color={active ? colors.actionText : colors.textSubtle} strokeWidth={active ? 2.25 : 2} />
               </View>
               <Text style={[styles.tabLabel, { color: active ? colors.text : colors.textSubtle, fontWeight: active ? "700" : "500" }]}>
                 {item.label}
@@ -169,7 +170,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     minHeight: 36,
   },
-  coinIcon: { fontSize: 15, marginRight: spacing.xs + 2 },
+  coinIcon: { marginRight: spacing.xs + 2 },
   coinText: { fontSize: 15, fontWeight: "700", fontVariant: ["tabular-nums"] },
   body: { flex: 1 },
   tabBar: {
@@ -190,6 +191,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  tabIcon: { fontSize: 17 },
   tabLabel: { fontSize: 11, marginTop: 2 },
 });
