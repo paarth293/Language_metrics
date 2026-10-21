@@ -14,7 +14,8 @@
     "./useCookieConsent": "./src/useCookieConsent.ts",
     "./resource-cache": "./src/resource-cache.ts",
     "./useResource": "./src/useResource.ts",
-    "./StaleDataNotice": "./src/StaleDataNotice.tsx"
+    "./StaleDataNotice": "./src/StaleDataNotice.tsx",
+    "./useStickyState": "./src/useStickyState.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
