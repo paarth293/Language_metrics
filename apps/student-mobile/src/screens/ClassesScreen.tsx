@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
+import { CalendarDays } from "lucide-react-native";
 import type { BookingDetail } from "@repo/api-contracts";
 import { Dialog } from "../components/Dialog";
-import { AppText, Badge, Banner, Button, Card, EmptyState, LoadingBlock, SegmentedControl } from "../components/ui";
+import { AppText, Badge, Banner, Button, Card, CoinText, EmptyState, LoadingBlock, SegmentedControl } from "../components/ui";
 import { MobileApiClient, type ClassesFilter } from "../lib/api-client";
 import { formatDateTime, formatNumber, formatTime, minutesBetween } from "../lib/format";
 import { openWebLink, WebLinks } from "../lib/links";
@@ -131,7 +132,7 @@ export function ClassesScreen({
           <LoadingBlock label="Loading classes…" />
         ) : bookings.length === 0 && !error ? (
           <EmptyState
-            icon="📅"
+            icon={CalendarDays}
             title={emptyCopy[filter].title}
             message={emptyCopy[filter].message}
             actionLabel={filter === "upcoming" ? "Find a teacher" : undefined}
@@ -150,9 +151,14 @@ export function ClassesScreen({
                 <AppText variant="h3" style={{ marginTop: spacing.md }}>
                   {booking.teacherName}
                 </AppText>
-                <AppText variant="small" tone="muted">
-                  1-on-1 lesson · {minutesBetween(booking.slotStart, booking.slotEnd)} min · 🪙 {formatNumber(booking.coinCost)} coins
-                </AppText>
+                <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap" }}>
+                  <AppText variant="small" tone="muted">
+                    1-on-1 lesson · {minutesBetween(booking.slotStart, booking.slotEnd)} min ·{" "}
+                  </AppText>
+                  <CoinText variant="small" tone="muted" iconSize={13}>
+                    {formatNumber(booking.coinCost)} coins
+                  </CoinText>
+                </View>
 
                 {joinable ? (
                   slotWindow.canJoin ? (
