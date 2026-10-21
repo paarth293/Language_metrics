@@ -1,7 +1,8 @@
 # State Preservation and No-Flicker Navigation
 
 Branch `fix/state-preservation-no-flicker`, based on `origin/main` at `2ad21a8`.
-76 commits, 54 files, +2400/−1004.
+58 files changed, one commit per file. For the exact range, see
+`git diff --stat origin/main..fix/state-preservation-no-flicker`.
 
 **Read this first:** every number below comes from a scripted component-level
 harness run in jsdom, not from a browser. There is no authenticated Playwright
