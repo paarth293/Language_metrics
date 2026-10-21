@@ -86,13 +86,45 @@ export default function LiveOpsClient() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadRooms();
     // 15s is a deliberate floor: this endpoint calls LiveKit's REST API, which
     // is rate limited, and a live-class list does not need to be truer than
     // that.
-    const id = setInterval(loadRooms, 15_000);
-    return () => clearInterval(id);
+    //
+    // The poll used to be a bare setInterval, so a tab left open in the
+    // background kept calling that rate-limited API every 15s for as long as
+    // the admin had the page loaded. It now runs only while the tab is
+    // visible, and refreshes once on return so the list is current again
+    // without a burst.
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let lastLoad = 0;
+
+    const run = async () => {
+      if (cancelled || document.visibilityState === "hidden") return;
+      lastLoad = Date.now();
+      await loadRooms();
+      if (cancelled) return;
+      clearTimeout(timer);
+      timer = setTimeout(() => void run(), 15_000);
+    };
+
+    const onVisibility = () => {
+      if (cancelled || document.visibilityState === "hidden") return;
+      clearTimeout(timer);
+      const age = Date.now() - lastLoad;
+      if (age >= 15_000) void run();
+      else timer = setTimeout(() => void run(), 15_000 - age);
+    };
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void run();
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [loadRooms]);
 
   useEffect(() => {
