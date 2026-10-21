@@ -22,7 +22,6 @@ export default function WalletPage() {
   // paints the cached balance instead of a spinner.
   const {
     data,
-    error,
     isLoading,
     isStale,
     updatedAt,
