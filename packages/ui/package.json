@@ -15,7 +15,8 @@
     "./resource-cache": "./src/resource-cache.ts",
     "./useResource": "./src/useResource.ts",
     "./StaleDataNotice": "./src/StaleDataNotice.tsx",
-    "./useStickyState": "./src/useStickyState.ts"
+    "./useStickyState": "./src/useStickyState.ts",
+    "./useDebouncedValue": "./src/useDebouncedValue.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
