@@ -63,6 +63,10 @@ export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnread
       return;
     }
 
+    if (!user) {
+      return;
+    }
+
     const controller = new AbortController();
     const initial = setTimeout(() => void checkUnreadCount(controller.signal), 0);
 
@@ -94,7 +98,7 @@ export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnread
       window.removeEventListener("notifications-updated", handleNotificationsUpdated);
       window.removeEventListener("focus", handleFocus);
     };
-  }, [initialUnreadCount, checkUnreadCount]);
+  }, [initialUnreadCount, checkUnreadCount, user]);
 
   const toggleTheme = () => {
     setTheme(theme === "light" ? "dark" : "light");

@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
 
   const response = NextResponse.json({ success: true }, { status: 200 });
   response.cookies.set(ACCESS_COOKIE, "", { maxAge: 0, path: "/" });
+  response.cookies.set(REFRESH_COOKIE, "", { maxAge: 0, path: "/" });
   response.cookies.set(REFRESH_COOKIE, "", { maxAge: 0, path: "/api/auth" });
   return response;
 }

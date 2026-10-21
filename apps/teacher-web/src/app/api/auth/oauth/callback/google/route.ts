@@ -235,10 +235,7 @@ export async function GET(request: NextRequest) {
 
   const redirectResponse = NextResponse.redirect(new URL(destination, APP_URL));
   redirectResponse.cookies.set("lm_teacher_access_token", accessToken, accessCookieOptions);
-  redirectResponse.cookies.set("lm_teacher_refresh_token", refreshToken, {
-    ...refreshCookieOptions,
-    path: "/api/auth",
-  });
+  redirectResponse.cookies.set("lm_teacher_refresh_token", refreshToken, refreshCookieOptions);
   // Clear the OAuth state nonce
   redirectResponse.cookies.set("oauth_state", "", { maxAge: 0, path: "/" });
 
