@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { useAuth } from "../auth/AuthProvider";
 import { Dialog } from "../components/Dialog";
-import { AppText, Badge, Banner, Button, Card } from "../components/ui";
+import { AppText, Badge, Banner, Button, Card, CoinText } from "../components/ui";
 import { MobileApiClient } from "../lib/api-client";
 import { formatNumber } from "../lib/format";
 import { openWebLink, WebLinks } from "../lib/links";
@@ -58,9 +58,9 @@ export function WalletScreen() {
           <AppText variant="label" tone="onBrand" style={{ opacity: 0.8 }}>
             Current balance
           </AppText>
-          <AppText variant="display" tone="onBrand" style={styles.balance}>
-            🪙 {formatNumber(coinBalance)}
-          </AppText>
+          <CoinText variant="display" tone="onBrand" iconSize={30} iconColor={colors.action} style={styles.balance}>
+            {formatNumber(coinBalance)}
+          </CoinText>
           <AppText variant="small" tone="onBrand" style={{ opacity: 0.8 }}>
             ≈ ₹{formatNumber(Math.round(coinBalance * coinValueInr))} · Coins never expire
           </AppText>
@@ -77,9 +77,9 @@ export function WalletScreen() {
                 <View style={{ flex: 1 }}>
                   {pkg.id === "tier2" ? <Badge label="Most popular" tone="action" style={{ marginBottom: spacing.xs }} /> : null}
                   <AppText variant="h3">{pkg.name}</AppText>
-                  <AppText variant="small" tone="muted">
-                    🪙 {formatNumber(pkg.coins)} coins
-                  </AppText>
+                  <CoinText variant="small" tone="muted" iconSize={13}>
+                    {formatNumber(pkg.coins)} coins
+                  </CoinText>
                 </View>
                 <AppText variant="h2">₹{formatNumber(pkg.priceInr)}</AppText>
               </Card>

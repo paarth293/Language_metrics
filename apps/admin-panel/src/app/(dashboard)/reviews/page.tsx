@@ -1,3 +1,4 @@
+import { Star } from "lucide-react";
 import { db } from "@repo/database";
 import { requireAdmin } from "@/lib/guards";
 
@@ -37,7 +38,17 @@ export default async function ReviewsPage() {
                 <tr key={r.id} style={{ borderBottom: "1px solid var(--lm-border)" }} className="hover:bg-gray-800/40 transition-colors">
                   <td style={{ color: "var(--lm-text)" }} className="py-3.5 px-5 text-[13px] font-medium">{r.teacher.name}</td>
                   <td style={{ color: "var(--lm-text-muted)" }} className="py-3.5 px-5 text-[13px]">{r.student.name}</td>
-                  <td className="py-3.5 px-5">{"★".repeat(r.rating)}<span style={{ color: "var(--lm-text-subtle)" }}>{"☆".repeat(5 - r.rating)}</span></td>
+                  <td className="py-3.5 px-5">
+                    <span className="inline-flex gap-0.5" aria-label={`${r.rating} out of 5`}>
+                      {Array.from({ length: 5 }, (_, i) => (
+                        <Star
+                          key={i}
+                          className="h-3.5 w-3.5"
+                          style={i < r.rating ? { color: "var(--warning)", fill: "var(--warning)" } : { color: "var(--lm-text-subtle)" }}
+                        />
+                      ))}
+                    </span>
+                  </td>
                   <td style={{ color: "var(--lm-text-muted)" }} className="py-3.5 px-5 text-[13px] max-w-[300px] truncate">{r.comment ?? "—"}</td>
                   <td className="py-3.5 px-5">
                     <button style={{ border: "1px solid var(--lm-border2)", color: "var(--lm-text-muted)" }} className="px-3 py-1 rounded text-[12px] font-medium hover:bg-gray-700 hover:text-white transition-colors">Moderate</button>

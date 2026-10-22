@@ -29,6 +29,7 @@
     "@repo/live-classes": "*",
     "@repo/livekit": "*",
     "@repo/logger": "*",
+    "@repo/student-portal": "*",
     "@repo/ui": "*",
     "@sentry/nextjs": "^11.8.0",
     "@supabase/supabase-js": "^2.39.4",

@@ -54,6 +54,16 @@ const listeners = new Map<string, Set<() => void>>();
  */
 let owner: string | null | undefined = undefined;
 
+/**
+ * Bumped every time the store is wiped. A response is kept only if no wipe
+ * happened while it was in flight. Comparing owners instead dropped every
+ * request a page fired before the session resolved: the first resolution
+ * (undefined -> id) is hydration, not a switch, but the owner still changed,
+ * so the answer was discarded and its promise left set, pinning the page on
+ * a skeleton.
+ */
+let generation = 0;
+
 export function getEntry<T>(key: string): CacheEntry<T> {
   return (store.get(key) as CacheEntry<T> | undefined) ?? (EMPTY as CacheEntry<T>);
 }
@@ -120,18 +130,18 @@ export function fetchResource<T>(key: string, fetcher: () => Promise<T>): Promis
     failedAt: 0,
   };
 
-  // Which owner this request was started for. If the user changes while it is
-  // in flight, the response is discarded instead of landing in the new user's
-  // cache.
-  const startedFor = owner;
+  // Which cache generation this request was started in. If the store is wiped
+  // while it is in flight (sign-out, account switch), the response is
+  // discarded instead of landing in the new user's cache.
+  const startedIn = generation;
 
   const promise = (async () => {
     try {
       const data = await fetcher();
-      if (owner !== startedFor) return;
+      if (generation !== startedIn) return;
       write(key, { data, error: undefined, updatedAt: Date.now(), failedAt: 0 });
     } catch (error) {
-      if (owner !== startedFor) return;
+      if (generation !== startedIn) return;
       const prev = store.get(key);
       write(key, {
         data: prev?.data,
@@ -140,7 +150,7 @@ export function fetchResource<T>(key: string, fetcher: () => Promise<T>): Promis
         failedAt: Date.now(),
       });
     } finally {
-      if (owner === startedFor) {
+      if (generation === startedIn) {
         const settled = store.get(key);
         if (settled?.promise) store.set(key, { ...settled, promise: undefined });
         evictIfNeeded();
@@ -181,6 +191,7 @@ export function invalidateResource(prefix: string) {
  * changes, so protected data is never readable by the next session.
  */
 export function clearCache() {
+  generation++;
   store.clear();
   notifyAll();
 }
@@ -207,4 +218,5 @@ export function __resetCacheForTests() {
   store.clear();
   listeners.clear();
   owner = undefined;
+  generation = 0;
 }

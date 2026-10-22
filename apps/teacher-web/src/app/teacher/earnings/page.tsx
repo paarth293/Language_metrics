@@ -271,7 +271,7 @@ export default function TeacherEarnings() {
                       <span className="font-display text-[48px] font-bold tabular-nums tracking-tight leading-none drop-shadow-sm">
                         {wallet.balance}
                       </span>
-                      <span className="text-lg opacity-80" aria-hidden="true">🪙</span>
+                      <Coins className="h-5 w-5 opacity-80" aria-hidden="true" />
                     </div>
                     <div className="text-[13px] text-white/80 font-medium">Available coins for demos</div>
                   </CardContent>
@@ -340,7 +340,7 @@ export default function TeacherEarnings() {
                             
                             <div className={`text-[16px] font-bold flex items-center gap-1 font-display tracking-tight ${isPositive ? "text-trust" : "text-text"}`}>
                               {isPositive ? "+" : ""}{tx.amount}
-                              <span className="text-[12px] opacity-80" aria-hidden="true">🪙</span>
+                              <Coins className="h-3.5 w-3.5 opacity-80" aria-hidden="true" />
                             </div>
                           </div>
                         );

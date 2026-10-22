@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, Mail } from "lucide-react";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -190,7 +190,7 @@ function OtpVerifyContent({ email }: { email: string }) {
     <>
       <div className="mb-8 text-center sm:text-left">
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gold/10 text-gold mb-4">
-          <span className="text-[20px]">✉️</span>
+          <Mail className="h-6 w-6" aria-hidden />
         </div>
         <h1 className="font-display text-[28px] font-bold text-text mb-2">Verify your email</h1>
         <p className="text-text-muted">

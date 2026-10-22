@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import ChatPage from "./page";
+import { PortalProvider } from "@repo/student-portal";
 
 beforeEach(() => { Element.prototype.scrollIntoView = vi.fn(); });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
@@ -16,7 +17,11 @@ it("discards a slow response from the previous conversation", async () => {
     if (url.endsWith("/a")) return first;
     return { ok: true, json: async () => ({ messages: [message("Bob message")] }) };
   }));
-  render(<ChatPage />);
+  render(
+    <PortalProvider basePath="">
+      <ChatPage />
+    </PortalProvider>
+  );
   fireEvent.click(await screen.findByRole("button", { name: /Alice/ }));
   fireEvent.click(screen.getByRole("button", { name: /Bob/ }));
   expect(await screen.findByText("Bob message")).toBeTruthy();

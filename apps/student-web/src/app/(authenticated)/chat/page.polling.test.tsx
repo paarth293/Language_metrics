@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import ChatPage from "./page";
+import { PortalProvider } from "@repo/student-portal";
 
 const THREADS_URL = "/api/students/chat";
 const MESSAGES_URL = "/api/students/chat/a";
@@ -38,7 +39,11 @@ const threadGets = () => calls.filter((u) => u === THREADS_URL);
 const shown = () => screen.queryAllByText(/^m\d+$/).map((el) => el.textContent);
 
 async function openConversation() {
-  render(<ChatPage />);
+  render(
+    <PortalProvider basePath="">
+      <ChatPage />
+    </PortalProvider>
+  );
   await flush();
   fireEvent.click(screen.getByRole("button", { name: /Alice/ }));
   await flush();

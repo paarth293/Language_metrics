@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Mail, Phone, MapPin, Send, CheckCircle2, ArrowRight } from "lucide-react";
+import { Mail, Phone, MapPin, Send, CheckCircle2, ArrowRight, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 export default function ContactPage() {
@@ -73,10 +73,10 @@ export default function ContactPage() {
             <div className="p-5 rounded-2xl border border-border bg-surface">
               <h3 className="font-display font-semibold text-base text-text tracking-[-0.01em] mb-2">Quick Links</h3>
               <div className="text-sm">
-                <Link href="/faq" className="flex min-h-11 items-center text-brand hover:underline">FAQ →</Link>
-                <Link href="/about" className="flex min-h-11 items-center text-brand hover:underline">About Us →</Link>
-                <Link href="/waitlist" className="flex min-h-11 items-center text-brand hover:underline">Join Waitlist →</Link>
-                <Link href="/register/teacher" className="flex min-h-11 items-center text-brand hover:underline">Apply to Teach →</Link>
+                <Link href="/faq" className="flex min-h-11 items-center text-brand hover:underline">FAQ <ArrowRight className="ml-1 h-3.5 w-3.5" aria-hidden /></Link>
+                <Link href="/about" className="flex min-h-11 items-center text-brand hover:underline">About Us <ArrowRight className="ml-1 h-3.5 w-3.5" aria-hidden /></Link>
+                <Link href="/waitlist" className="flex min-h-11 items-center text-brand hover:underline">Join Waitlist <ArrowRight className="ml-1 h-3.5 w-3.5" aria-hidden /></Link>
+                <Link href="/register/teacher" className="flex min-h-11 items-center text-brand hover:underline">Apply to Teach <ArrowRight className="ml-1 h-3.5 w-3.5" aria-hidden /></Link>
               </div>
             </div>
           </div>
@@ -154,7 +154,7 @@ export default function ContactPage() {
                   >
                     {formState === "submitting" ? (
                       <span className="flex items-center gap-2">
-                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>
+                        <Loader2 className="animate-spin h-4 w-4" />
                         Sending...
                       </span>
                     ) : (

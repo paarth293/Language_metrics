@@ -55,7 +55,7 @@ export function createTotpSecret(): string {
 
 export function totpAuthUri(secret: string, label: string): string {
   return generateURI({
-    issuer: "Language Matrix Admin",
+    issuer: "Language Metrics Admin",
     label,
     secret,
   });

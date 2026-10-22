@@ -43,11 +43,11 @@ export default async function CoursesPage() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr style={{ background: "var(--lm-bg)", borderBottom: "1px solid var(--lm-border2)" }}>
-                    <th style={{ color: "var(--lm-text-subtle)" }} className="py-3 px-5 text-[11px] font-semibold uppercase">Course Name</th>
-                    <th style={{ color: "var(--lm-text-subtle)" }} className="py-3 px-5 text-[11px] font-semibold uppercase">Language</th>
-                    <th style={{ color: "var(--lm-text-subtle)" }} className="py-3 px-5 text-[11px] font-semibold uppercase">Level</th>
-                    <th style={{ color: "var(--lm-text-subtle)" }} className="py-3 px-5 text-[11px] font-semibold uppercase">Price (INR)</th>
-                    <th style={{ color: "var(--lm-text-subtle)" }} className="py-3 px-5 text-[11px] font-semibold uppercase text-right">Status</th>
+                    <th scope="col" style={{ color: "var(--lm-text-subtle)" }} className="py-3 px-5 text-[11px] font-semibold uppercase">Course Name</th>
+                    <th scope="col" style={{ color: "var(--lm-text-subtle)" }} className="py-3 px-5 text-[11px] font-semibold uppercase">Language</th>
+                    <th scope="col" style={{ color: "var(--lm-text-subtle)" }} className="py-3 px-5 text-[11px] font-semibold uppercase">Level</th>
+                    <th scope="col" style={{ color: "var(--lm-text-subtle)" }} className="py-3 px-5 text-[11px] font-semibold uppercase">Price</th>
+                    <th scope="col" style={{ color: "var(--lm-text-subtle)" }} className="py-3 px-5 text-[11px] font-semibold uppercase text-right">Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -63,7 +63,7 @@ export default async function CoursesPage() {
                           {course.level}
                         </span>
                       </td>
-                      <td className="py-3.5 px-5 text-[13px] text-white">{(course.price / 100).toFixed(2)}</td>
+                      <td className="py-3.5 px-5 text-[13px] text-white">₹{(course.price / 100).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       <td className="py-3.5 px-5 text-right">
                         <form action={async () => {
                           "use server";
@@ -95,38 +95,39 @@ export default async function CoursesPage() {
             <h2 className="text-lg font-semibold text-white mb-4">Create Course</h2>
             <form action={addCourse} className="space-y-4">
               <div>
-                <label className="block text-xs text-gray-400 mb-1">Course Name</label>
-                <input required type="text" name="name" placeholder="e.g. Intensive French A1" className="w-full px-3 py-2 text-sm rounded bg-gray-800 border border-gray-700 text-white focus:outline-none focus:border-indigo-500" />
+                <label htmlFor="course-name" className="block text-xs text-gray-400 mb-1">Course Name</label>
+                <input required type="text" id="course-name" name="name" placeholder="e.g. Intensive French A1" className="lm-input w-full px-3 text-sm" />
               </div>
               <div>
-                <label className="block text-xs text-gray-400 mb-1">Language</label>
-                <select required name="languageId" className="w-full px-3 py-2 text-sm rounded bg-gray-800 border border-gray-700 text-white focus:outline-none focus:border-indigo-500">
+                <label htmlFor="course-language" className="block text-xs text-gray-400 mb-1">Language</label>
+                <select required id="course-language" name="languageId" className="lm-input w-full px-3 text-sm">
                   <option value="">Select a language</option>
                   {languages.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1">Level</label>
-                  <input required type="text" name="level" placeholder="A1" className="w-full px-3 py-2 text-sm rounded bg-gray-800 border border-gray-700 text-white focus:outline-none focus:border-indigo-500" />
+                  <label htmlFor="course-level" className="block text-xs text-gray-400 mb-1">Level</label>
+                  <input required type="text" id="course-level" name="level" placeholder="A1" className="lm-input w-full px-3 text-sm" />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1">Price (paise)</label>
-                  <input required type="number" name="price" placeholder="150000" className="w-full px-3 py-2 text-sm rounded bg-gray-800 border border-gray-700 text-white focus:outline-none focus:border-indigo-500" />
+                  <label htmlFor="course-price" className="block text-xs text-gray-400 mb-1">Price (paise)</label>
+                  <input required type="number" id="course-price" name="price" placeholder="150000" min="0" step="1" aria-describedby="course-price-hint" className="lm-input w-full px-3 text-sm" />
+                  <p id="course-price-hint" className="mt-1 text-[11px] text-gray-500">In paise: 150000 = ₹1,500.00</p>
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1">Duration (wks)</label>
-                  <input required type="number" name="durationWeeks" defaultValue={4} className="w-full px-3 py-2 text-sm rounded bg-gray-800 border border-gray-700 text-white focus:outline-none focus:border-indigo-500" />
+                  <label htmlFor="course-weeks" className="block text-xs text-gray-400 mb-1">Duration (wks)</label>
+                  <input required type="number" id="course-weeks" name="durationWeeks" defaultValue={4} className="lm-input w-full px-3 text-sm" />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1">Classes</label>
-                  <input required type="number" name="classCount" defaultValue={8} className="w-full px-3 py-2 text-sm rounded bg-gray-800 border border-gray-700 text-white focus:outline-none focus:border-indigo-500" />
+                  <label htmlFor="course-classes" className="block text-xs text-gray-400 mb-1">Classes</label>
+                  <input required type="number" id="course-classes" name="classCount" defaultValue={8} className="lm-input w-full px-3 text-sm" />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1">Mins/Class</label>
-                  <input required type="number" name="classDurationMin" defaultValue={60} className="w-full px-3 py-2 text-sm rounded bg-gray-800 border border-gray-700 text-white focus:outline-none focus:border-indigo-500" />
+                  <label htmlFor="course-minutes" className="block text-xs text-gray-400 mb-1">Mins/Class</label>
+                  <input required type="number" id="course-minutes" name="classDurationMin" defaultValue={60} className="lm-input w-full px-3 text-sm" />
                 </div>
               </div>
               <button type="submit" className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white py-2 px-4 rounded text-sm transition-colors mt-2">

@@ -31,11 +31,11 @@ const faqs = [
       },
       {
         q: "What is a demo class?",
-        a: "A demo class is a discounted introductory session (29 coins) that lets you meet the teacher and assess if they're the right fit before committing to regular classes.",
+        a: "A demo class is a discounted introductory session (29 coins, 45 minutes) that lets you meet the teacher and assess if they're the right fit before committing to regular classes.",
       },
       {
         q: "Can I cancel or reschedule a booking?",
-        a: "Yes, you can cancel or reschedule up to 24 hours before the class. Cancellations within 24 hours may not be refunded. Check the Cancellation Policy for details.",
+        a: "Yes, you can cancel up to 12 hours before the class for a full refund. Cancellations within 12 hours are non-refundable. Check the Cancellation Policy for details.",
       },
       {
         q: "How do I join a live class?",

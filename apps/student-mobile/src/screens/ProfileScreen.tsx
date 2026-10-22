@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useAuth } from "../auth/AuthProvider";
 import { Dialog } from "../components/Dialog";
-import { AppText, Avatar, Badge, Banner, Button, Card, Divider, SegmentedControl } from "../components/ui";
+import { AppText, Avatar, Badge, Banner, Button, Card, CoinText, Divider, SegmentedControl } from "../components/ui";
 import { APP_VERSION } from "../config/env";
 import { formatMemberSince, formatNumber, initials } from "../lib/format";
 import { openWebLink, WebLinks } from "../lib/links";
@@ -32,10 +32,10 @@ export function ProfileScreen() {
     setLinkError(opened ? null : "Couldn't open your browser. Please try again.");
   };
 
-  const rows: Array<{ label: string; value: string }> = [
+  const rows: Array<{ label: string; value: string; coins?: boolean }> = [
     { label: "Learning", value: student.languageToLearn },
     { label: "Level", value: student.proficiencyLevel },
-    { label: "Coin balance", value: `🪙 ${formatNumber(coinBalance)}` },
+    { label: "Coin balance", value: formatNumber(coinBalance), coins: true },
     { label: "Member since", value: formatMemberSince(student.joinedAt) },
   ];
 
@@ -75,7 +75,7 @@ export function ProfileScreen() {
           {rows.map((row) => (
             <View key={row.label} style={styles.row}>
               <AppText tone="muted">{row.label}</AppText>
-              <AppText weight="600">{row.value}</AppText>
+              {row.coins ? <CoinText weight="600">{row.value}</CoinText> : <AppText weight="600">{row.value}</AppText>}
             </View>
           ))}
         </Card>

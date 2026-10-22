@@ -37,10 +37,10 @@ export default async function LanguagesPage() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr style={{ background: "var(--lm-bg)", borderBottom: "1px solid var(--lm-border2)" }}>
-                    <th style={{ color: "var(--lm-text-subtle)" }} className="py-3 px-5 text-[11px] font-semibold uppercase">Language</th>
-                    <th style={{ color: "var(--lm-text-subtle)" }} className="py-3 px-5 text-[11px] font-semibold uppercase text-center">Levels</th>
-                    <th style={{ color: "var(--lm-text-subtle)" }} className="py-3 px-5 text-[11px] font-semibold uppercase text-center">Courses</th>
-                    <th style={{ color: "var(--lm-text-subtle)" }} className="py-3 px-5 text-[11px] font-semibold uppercase text-right">Status</th>
+                    <th scope="col" style={{ color: "var(--lm-text-subtle)" }} className="py-3 px-5 text-[11px] font-semibold uppercase">Language</th>
+                    <th scope="col" style={{ color: "var(--lm-text-subtle)" }} className="py-3 px-5 text-[11px] font-semibold uppercase text-center">Levels</th>
+                    <th scope="col" style={{ color: "var(--lm-text-subtle)" }} className="py-3 px-5 text-[11px] font-semibold uppercase text-center">Courses</th>
+                    <th scope="col" style={{ color: "var(--lm-text-subtle)" }} className="py-3 px-5 text-[11px] font-semibold uppercase text-right">Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -88,16 +88,16 @@ export default async function LanguagesPage() {
             <h2 className="text-lg font-semibold text-white mb-4">Add New Language</h2>
             <form action={addLanguage} className="space-y-4">
               <div>
-                <label className="block text-xs text-gray-400 mb-1">Language Name</label>
-                <input required type="text" name="name" placeholder="e.g. French" className="w-full px-3 py-2 text-sm rounded bg-gray-800 border border-gray-700 text-white focus:outline-none focus:border-indigo-500" />
+                <label htmlFor="language-name" className="block text-xs text-gray-400 mb-1">Language Name</label>
+                <input required type="text" id="language-name" name="name" placeholder="e.g. French" className="lm-input w-full px-3 text-sm" />
               </div>
               <div>
-                <label className="block text-xs text-gray-400 mb-1">Language Code</label>
-                <input required type="text" name="code" placeholder="e.g. fr" className="w-full px-3 py-2 text-sm rounded bg-gray-800 border border-gray-700 text-white focus:outline-none focus:border-indigo-500" />
+                <label htmlFor="language-code" className="block text-xs text-gray-400 mb-1">Language Code</label>
+                <input required type="text" id="language-code" name="code" placeholder="e.g. fr" className="lm-input w-full px-3 text-sm" />
               </div>
               <div>
-                <label className="block text-xs text-gray-400 mb-1">Number of Levels</label>
-                <input required type="number" name="levels" defaultValue={6} className="w-full px-3 py-2 text-sm rounded bg-gray-800 border border-gray-700 text-white focus:outline-none focus:border-indigo-500" />
+                <label htmlFor="language-levels" className="block text-xs text-gray-400 mb-1">Number of Levels</label>
+                <input required type="number" id="language-levels" name="levels" defaultValue={6} className="lm-input w-full px-3 text-sm" />
               </div>
               <button type="submit" className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white py-2 px-4 rounded text-sm transition-colors mt-1">
                 <Plus size={16} /> Add Language

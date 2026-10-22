@@ -28,6 +28,7 @@
 // longer held to the "no imports" constraint above — it's a plain,
 // dependency-light shared list, not a new package boundary to prove out.
 import { isSupportedCurrency } from "@repo/currency";
+import { LANGUAGES } from "@repo/languages";
 
 export type ValidationResult<T> =
   | { ok: true; data: T }
@@ -259,7 +260,12 @@ export function validateClassesFilter(
 
 // ── Profile update ───────────────────────────────────────────────────────
 
-const PROFICIENCY_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
+// Every level any taught language uses: CEFR A1–C2 plus HSK, JLPT and TOPIK.
+// Only CEFR was accepted before, so a Japanese, Chinese or Korean learner
+// could not save the level the profile picker offered them.
+const PROFICIENCY_LEVELS = Array.from(
+  new Set(LANGUAGES.flatMap((language) => language.levels.map((level) => level.value.toUpperCase())))
+);
 
 export interface ProfileUpdate {
   name?: string;
@@ -309,7 +315,7 @@ export function validateProfileUpdate(body: unknown): ValidationResult<ProfileUp
     if (typeof body.proficiencyLevel !== "string") {
       errors.push("proficiencyLevel must be a string.");
     } else if (!PROFICIENCY_LEVELS.includes(body.proficiencyLevel.toUpperCase())) {
-      errors.push(`proficiencyLevel must be one of: ${PROFICIENCY_LEVELS.join(", ")}.`);
+      errors.push("proficiencyLevel is not a recognised level.");
     } else {
       result.proficiencyLevel = body.proficiencyLevel.toUpperCase();
     }
