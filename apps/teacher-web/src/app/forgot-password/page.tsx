@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Mail, KeyRound, CheckCircle, Check, Circle } from "lucide-react";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { Input } from "@/components/ui/Input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Button } from "@/components/ui/Button";
 import { PASSWORD_RULES } from "@/features/auth/validators/auth";
 
@@ -271,13 +272,14 @@ export default function ForgotPasswordPage() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium text-text">Confirm new password</label>
-            <Input
-              type="password"
+            <label htmlFor="confirm-password" className="text-sm font-medium text-text">Confirm new password</label>
+            <PasswordInput
+              id="confirm-password"
               placeholder="••••••••"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              className={confirm && confirm !== password ? "border-danger" : ""}
+              aria-invalid={Boolean(confirm && confirm !== password)}
+              className={confirm && confirm !== password ? "border-danger focus:ring-danger" : ""}
             />
             {confirm && confirm !== password && (
               <p className="text-xs text-danger mt-1">Passwords do not match.</p>

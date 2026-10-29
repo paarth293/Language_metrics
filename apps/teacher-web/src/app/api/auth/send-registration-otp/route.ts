@@ -43,25 +43,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Email is required." }, { status: 400 });
     }
 
+    const normalizedEmail = email.toLowerCase().trim();
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(normalizedEmail)) {
       return NextResponse.json({ message: "Invalid email format." }, { status: 400 });
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
-
     // ── 1. Check if email is already registered ─────────────────────────────────
-    // Return a generic success to prevent email enumeration.
-    // The actual registration step will reject duplicate emails.
-    const existingUser = await db.user.findUnique({
-      where: { email: normalizedEmail },
-      select: { id: true },
-    });
+    const [existingUser, existingAdmin] = await Promise.all([
+      db.user?.findUnique({
+        where: { email: normalizedEmail },
+        select: { id: true },
+      }),
+      db.adminUser?.findUnique({
+        where: { email: normalizedEmail },
+        select: { userId: true },
+      }),
+    ]);
 
-    if (existingUser) {
+    if (existingUser || existingAdmin) {
       return NextResponse.json(
-        { message: "Verification code sent." },
-        { status: 200 }
+        {
+          code: "EMAIL_ALREADY_EXISTS",
+          message:
+            "This email address is already registered. Please use another email address or sign in to your existing account.",
+        },
+        { status: 409 }
       );
     }
 

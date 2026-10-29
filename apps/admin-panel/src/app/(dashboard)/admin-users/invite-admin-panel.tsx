@@ -22,11 +22,17 @@ const ROLE_OPTIONS: { value: string; label: string }[] = [
 export default function InviteAdminPanel({ canCreateSuperAdmin }: { canCreateSuperAdmin: boolean }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [roleKey, setRoleKey] = useState("");
   const [state, formAction, isPending] = useActionState(inviteAdminAction, null);
 
   function close() {
     setOpen(false);
     setCopied(false);
+    setName("");
+    setEmail("");
+    setRoleKey("");
   }
 
   async function copyPassword() {
@@ -136,6 +142,8 @@ export default function InviteAdminPanel({ canCreateSuperAdmin }: { canCreateSup
                     name="name"
                     type="text"
                     required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
                     autoComplete="off"
                     className="lm-input w-full px-3.5 text-[13px]"
                     placeholder="Priya Sharma"
@@ -151,6 +159,8 @@ export default function InviteAdminPanel({ canCreateSuperAdmin }: { canCreateSup
                     name="email"
                     type="email"
                     required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     autoComplete="off"
                     className="lm-input w-full px-3.5 text-[13px]"
                     placeholder="priya@languagemetrics.com"
@@ -161,7 +171,14 @@ export default function InviteAdminPanel({ canCreateSuperAdmin }: { canCreateSup
                   <label htmlFor="invite-role" className="mb-1.5 block text-[12px] font-semibold" style={{ color: "var(--lm-text)" }}>
                     Role
                   </label>
-                  <select id="invite-role" name="roleKey" required defaultValue="" className="lm-input w-full px-3.5 text-[13px]">
+                  <select
+                    id="invite-role"
+                    name="roleKey"
+                    required
+                    value={roleKey}
+                    onChange={(e) => setRoleKey(e.target.value)}
+                    className="lm-input w-full px-3.5 text-[13px]"
+                  >
                     <option value="" disabled>
                       Select a role…
                     </option>

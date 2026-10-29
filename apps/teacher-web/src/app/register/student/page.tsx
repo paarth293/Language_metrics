@@ -56,11 +56,139 @@ export default function StudentRegisterPage() {
   const [cooldown, setCooldown] = useState(0);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  // Email availability check state
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+  const [emailCheckStatus, setEmailCheckStatus] = useState<{
+    email: string;
+    available: boolean;
+    error?: string;
+  } | null>(null);
+
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const inFlightPromiseRef = useRef<Promise<boolean> | null>(null);
+  const inFlightEmailRef = useRef<string | null>(null);
+  const currentEmailRef = useRef(email);
+
+  useEffect(() => {
+    currentEmailRef.current = email;
+  }, [email]);
+
   const { refreshUser } = useAuth();
   const router = useRouter();
 
   const clearError = (field: keyof FieldErrors) =>
     setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
+
+  // Clean up timers and abort controller
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+    };
+  }, []);
+
+  // ── Email Availability Check ────────────────────────────────────────────────
+  const checkAvailability = async (emailToCheck: string, force = false): Promise<boolean> => {
+    const normalized = emailToCheck.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!normalized || !emailRegex.test(normalized)) {
+      return false;
+    }
+
+    if (!force && emailCheckStatus?.email === normalized) {
+      return emailCheckStatus.available;
+    }
+
+    if (inFlightEmailRef.current === normalized && inFlightPromiseRef.current) {
+      return inFlightPromiseRef.current;
+    }
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    inFlightEmailRef.current = normalized;
+    setIsCheckingEmail(true);
+
+    const checkPromise = (async () => {
+      try {
+        const res = await fetch(`/api/auth/check-email?email=${encodeURIComponent(normalized)}`, {
+          signal: controller.signal,
+        });
+        const data = await res.json().catch(() => ({}));
+
+        // Guard against stale response if aborted or input email changed
+        if (
+          controller.signal.aborted ||
+          controller !== abortControllerRef.current ||
+          currentEmailRef.current.trim().toLowerCase() !== normalized
+        ) {
+          return false;
+        }
+
+        if (res.ok && data.available === true) {
+          setEmailCheckStatus({ email: normalized, available: true });
+          setFieldErrors((prev) => {
+            if (prev.email && (prev.email.includes("already registered") || prev.email.includes("Unable to verify"))) {
+              return { ...prev, email: undefined };
+            }
+            return prev;
+          });
+          return true;
+        }
+
+        if (res.ok && data.available === false) {
+          const msg =
+            data.message ||
+            "This email is already registered. Please use another email address or sign in to your existing account.";
+          setEmailCheckStatus({ email: normalized, available: false, error: msg });
+          setFieldErrors((prev) => ({
+            ...prev,
+            email: msg,
+          }));
+          return false;
+        }
+
+        // Server error or non-200 status (e.g. 500, 502, 503)
+        const errorMsg = "Unable to verify email availability. Please check your connection and try again.";
+        setEmailCheckStatus({ email: normalized, available: false, error: errorMsg });
+        setFieldErrors((prev) => ({
+          ...prev,
+          email: errorMsg,
+        }));
+        return false;
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === "AbortError") {
+          return false;
+        }
+        if (
+          controller !== abortControllerRef.current ||
+          currentEmailRef.current.trim().toLowerCase() !== normalized
+        ) {
+          return false;
+        }
+        const errorMsg = "Unable to verify email availability. Please check your connection and try again.";
+        setEmailCheckStatus({ email: normalized, available: false, error: errorMsg });
+        setFieldErrors((prev) => ({
+          ...prev,
+          email: errorMsg,
+        }));
+        return false;
+      } finally {
+        if (abortControllerRef.current === controller) {
+          setIsCheckingEmail(false);
+          inFlightEmailRef.current = null;
+          inFlightPromiseRef.current = null;
+        }
+      }
+    })();
+
+    inFlightPromiseRef.current = checkPromise;
+    return checkPromise;
+  };
 
   // ── Cooldown timer ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -85,9 +213,14 @@ export default function StudentRegisterPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        if (res.status === 409) {
+        if (res.status === 409 || data.code === "EMAIL_ALREADY_EXISTS") {
           setShowOtp(false);
-          setFieldErrors((prev) => ({ ...prev, email: data.message || "This email is already registered." }));
+          setFieldErrors((prev) => ({
+            ...prev,
+            email:
+              data.message ||
+              "This email address is already registered. Please use another email address or sign in to your existing account.",
+          }));
           return;
         }
         setOtpError(data.message || "Failed to send code.");
@@ -199,6 +332,14 @@ export default function StudentRegisterPage() {
 
       const data = await res.json();
       if (!res.ok) {
+        if (res.status === 409 || data.code === "EMAIL_ALREADY_EXISTS") {
+          setFieldErrors((prev) => ({
+            ...prev,
+            email:
+              data.message ||
+              "This email address is already registered. Please use another email address or sign in to your existing account.",
+          }));
+        }
         setServerError(data.message || "Registration failed");
       } else if (data.verificationRequired) {
         router.replace(`/verify-email?email=${encodeURIComponent(email)}`);
@@ -242,6 +383,29 @@ export default function StudentRegisterPage() {
       return;
     }
     setFieldErrors({});
+
+    // Check email availability BEFORE attempting any registration or OTP API call
+    const normalized = email.trim().toLowerCase();
+    let isAvailable = false;
+
+    if (emailCheckStatus?.email === normalized && emailCheckStatus.available) {
+      isAvailable = true;
+    } else if (emailCheckStatus?.email === normalized && !emailCheckStatus.available) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        email:
+          emailCheckStatus.error ||
+          "This email is already registered. Please use another email address or sign in to your existing account.",
+      }));
+      return; // Block registration immediately: do NOT call registration or OTP API!
+    } else {
+      isAvailable = await checkAvailability(normalized, true);
+    }
+
+    if (!isAvailable) {
+      // Email is taken or verification failed — stop registration submission
+      return;
+    }
 
     // If email already verified, skip OTP and submit directly
     if (emailVerified) {
@@ -387,24 +551,61 @@ export default function StudentRegisterPage() {
 
           {/* Email */}
           <div className="space-y-1">
-            <label htmlFor="student-email" className="text-sm font-medium text-text">
-              Email address
-              {emailVerified && (
-                <span className="ml-2 inline-flex items-center gap-1 text-xs font-medium text-trust">
-                  <Check className="w-3.5 h-3.5" strokeWidth={3} />
-                  Verified
+            <div className="flex items-center justify-between">
+              <label htmlFor="student-email" className="text-sm font-medium text-text">
+                Email address
+                {emailVerified && (
+                  <span className="ml-2 inline-flex items-center gap-1 text-xs font-medium text-trust">
+                    <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                    Verified
+                  </span>
+                )}
+              </label>
+              {isCheckingEmail && (
+                <span
+                  className="inline-flex items-center gap-1 text-xs text-text-muted"
+                  data-testid="email-checking-indicator"
+                >
+                  <span className="w-3 h-3 border-2 border-brand/30 border-t-brand rounded-full animate-spin" />
+                  Checking availability…
                 </span>
               )}
-            </label>
+            </div>
             <Input
               id="student-email"
               type="email"
               placeholder="Enter your email"
               value={email}
               onChange={(e) => {
-                setEmail(e.target.value);
+                const val = e.target.value;
+                setEmail(val);
+                currentEmailRef.current = val;
                 clearError("email");
                 if (emailVerified) setEmailVerified(false);
+                setEmailCheckStatus(null);
+
+                if (abortControllerRef.current) {
+                  abortControllerRef.current.abort();
+                  abortControllerRef.current = null;
+                }
+                setIsCheckingEmail(false);
+                if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+
+                const trimmed = val.trim().toLowerCase();
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (emailRegex.test(trimmed)) {
+                  debounceTimerRef.current = setTimeout(() => {
+                    checkAvailability(trimmed);
+                  }, 400);
+                }
+              }}
+              onBlur={(e) => {
+                if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+                const trimmed = (e.target as HTMLInputElement).value.trim().toLowerCase();
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (emailRegex.test(trimmed) && emailCheckStatus?.email !== trimmed) {
+                  checkAvailability(trimmed);
+                }
               }}
               aria-invalid={!!fieldErrors.email}
               aria-describedby={fieldErrors.email ? "student-email-error" : undefined}
@@ -467,8 +668,9 @@ export default function StudentRegisterPage() {
           {/* Language + Level */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-sm font-medium text-text">I want to learn</label>
+              <label htmlFor="student-language" className="text-sm font-medium text-text">I want to learn</label>
               <select
+                id="student-language"
                 className={`flex h-11 w-full rounded-md border bg-surface-inset px-3 py-2 text-sm text-text focus-ring ${
                   fieldErrors.languageToLearn ? "border-danger" : "border-border"
                 }`}
@@ -490,8 +692,9 @@ export default function StudentRegisterPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-medium text-text">My level is</label>
+              <label htmlFor="student-level" className="text-sm font-medium text-text">My level is</label>
               <select
+                id="student-level"
                 className="flex h-11 w-full rounded-md border border-border bg-surface-inset px-3 py-2 text-sm text-text focus-ring"
                 value={level}
                 onChange={(e) => setLevel(e.target.value)}
@@ -505,8 +708,13 @@ export default function StudentRegisterPage() {
             </div>
           </div>
 
-          <Button type="submit" variant="primary" className="w-full mt-4" disabled={isLoading}>
-            {isLoading ? "Creating account..." : "Create account"}
+          <Button
+            type="submit"
+            variant="primary"
+            className="w-full mt-4"
+            disabled={isLoading || isCheckingEmail}
+          >
+            {isLoading ? "Creating account..." : isCheckingEmail ? "Checking email..." : "Create account"}
           </Button>
         </form>
       )}
