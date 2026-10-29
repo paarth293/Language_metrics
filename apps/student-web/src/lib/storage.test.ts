@@ -5,7 +5,8 @@ import path from "path";
 
 describe("storage", () => {
   it("uploads, verifies, and deletes files", async () => {
-    const content = Buffer.from("fake-image-bytes-for-test");
+    // uploadFile checks the bytes against the claimed type, so this needs a real PNG signature.
+    const content = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from("fake-image-bytes-for-test")]);
     const result = await uploadFile(content, "photo.png", "image/png", {
       folder: "chat-attachments",
       allowedTypes: ["image/png", "image/jpeg"],

@@ -23,3 +23,24 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run lint
+      # #16: fail on high/critical advisories in the web apps' production
+      # dependencies. student-mobile's Expo tree is reported, not blocking,
+      # until the Expo upgrade (follow-up).
+      - run: npm run audit:web
+
+  # #12: the payment-security suite (fake DB + fake Cashfree, no secrets).
+  # Full history: 09-secret-scan checks every commit for payment secrets and
+  # private keys (findings accepted in .gitleaksignore excepted).
+  payment-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate --schema=packages/database/prisma/schema.prisma
+      - run: npm run test:payments

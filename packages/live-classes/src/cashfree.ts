@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { log } from "@repo/logger";
 
 /**
  * Server-side Cashfree Payment Gateway client shared by coin top-ups and
@@ -22,6 +23,15 @@ export class CashfreeError extends Error {
   constructor(message: string, readonly status: number) { super(message); }
 }
 
+/**
+ * Cashfree has no order with this id (HTTP 404). Since our row is saved before
+ * the Cashfree call (#10), this is a row whose Cashfree order was never made:
+ * the process died in between, or Cashfree rejected it.
+ */
+export class CashfreeOrderNotFoundError extends CashfreeError {
+  constructor() { super("Payment order not found at the payment provider.", 404); }
+}
+
 /** A provider-confirmed payment, normalised so amounts are in paise. */
 export interface GatewayPayment {
   id: string;
@@ -39,7 +49,7 @@ export interface GatewayPayment {
 export function cashfreeMode(): CashfreeMode {
   const mode = process.env.CASHFREE_ENV;
   if (mode === "production" || mode === "sandbox") return mode;
-  console.error(`[payments] CASHFREE_ENV must be "production" or "sandbox", got ${mode ? JSON.stringify(mode) : "nothing"}`);
+  log.error('CASHFREE_ENV must be "production" or "sandbox"', { got: mode ?? null });
   throw new CashfreeError("Payments are unavailable", 503);
 }
 
@@ -50,7 +60,7 @@ function cashfreeConfig() {
   const mode = cashfreeMode();
   // Cashfree test-mode app ids start with "TEST"; production ones never do.
   if (mode === "production" && clientId.startsWith("TEST")) {
-    console.error("[payments] CASHFREE_ENV is production but CASHFREE_CLIENT_ID is a test-mode key");
+    log.error("CASHFREE_ENV is production but CASHFREE_CLIENT_ID is a test-mode key");
     throw new CashfreeError("Payments are unavailable", 503);
   }
   const baseUrl = mode === "production" ? "https://api.cashfree.com/pg" : "https://sandbox.cashfree.com/pg";
@@ -65,6 +75,9 @@ function cashfreeConfig() {
   };
 }
 
+/** Upper bound for one Cashfree request; a stuck call must not hold the function open. */
+const CASHFREE_TIMEOUT_MS = 10_000;
+
 /**
  * GET with one retry on a network error or 5xx. Only for reads: they are
  * idempotent, so asking twice cannot change anything at Cashfree.
@@ -72,19 +85,39 @@ function cashfreeConfig() {
 async function getWithRetry(url: string, init: { headers: Record<string, string>; cache: "no-store" }): Promise<Response> {
   for (let attempt = 1; ; attempt++) {
     try {
-      const response = await fetch(url, init);
+      const response = await fetch(url, { ...init, signal: AbortSignal.timeout(CASHFREE_TIMEOUT_MS) });
       if (response.status < 500 || attempt === 2) return response;
     } catch (error) {
-      if (attempt === 2) throw new CashfreeError("Payment provider is unreachable. Please try again.", 502);
-      console.error("Cashfree request failed, retrying:", error instanceof Error ? error.message : error);
+      if (attempt === 2) throw providerFailure(error);
+      log.warn("cashfree request failed, retrying", { error });
     }
   }
 }
 
+/**
+ * POSTs are never retried: repeating one could create a second order. A
+ * timeout here is reported, and the caller can retry safely (order and refund
+ * ids are ours, so Cashfree rejects a duplicate).
+ */
+async function postOnce(url: string, init: { headers: Record<string, string>; body: string }): Promise<Response> {
+  try {
+    return await fetch(url, { method: "POST", ...init, signal: AbortSignal.timeout(CASHFREE_TIMEOUT_MS) });
+  } catch (error) {
+    throw providerFailure(error);
+  }
+}
+
+function providerFailure(error: unknown): CashfreeError {
+  if (error instanceof Error && error.name === "TimeoutError") {
+    return new CashfreeError("Payment provider did not respond in time. Please try again.", 504);
+  }
+  return new CashfreeError("Payment provider is unreachable. Please try again.", 502);
+}
+
 export async function createCashfreeOrder(input: { orderId: string; amountInr: number; customerId: string }) {
   const { baseUrl, headers } = cashfreeConfig();
-  const response = await fetch(`${baseUrl}/orders`, {
-    method: "POST", headers,
+  const response = await postOnce(`${baseUrl}/orders`, {
+    headers,
     body: JSON.stringify({
       order_id: input.orderId,
       order_amount: input.amountInr,
@@ -94,7 +127,7 @@ export async function createCashfreeOrder(input: { orderId: string; amountInr: n
     }),
   });
   if (!response.ok) {
-    console.error("Cashfree order error:", await response.json().catch(() => null));
+    log.error("cashfree order error", { status: response.status, response: await response.json().catch(() => null) });
     throw new CashfreeError("Payment provider error", 502);
   }
   const order = (await response.json()) as Partial<Record<"order_id" | "order_amount" | "order_currency" | "payment_session_id", unknown>> | null;
@@ -124,6 +157,7 @@ export async function fetchSuccessfulPayment(orderId: string): Promise<GatewayPa
   // Next.js caches fetch by default; a confirmation must always be fresh.
   const request = { headers, cache: "no-store" as const };
   const response = await getWithRetry(`${baseUrl}/orders/${encodeURIComponent(orderId)}/payments`, request);
+  if (response.status === 404) throw new CashfreeOrderNotFoundError();
   if (!response.ok) throw new CashfreeError("Payment confirmation is unavailable. Please try again.", 502);
   const payments = await response.json();
   if (!Array.isArray(payments)) throw new CashfreeError("Payment provider returned an invalid response", 502);
@@ -138,6 +172,7 @@ export async function fetchCashfreeOrder(orderId: string): Promise<{ status: Cas
   const { baseUrl, headers } = cashfreeConfig();
   const request = { headers, cache: "no-store" as const };
   const response = await getWithRetry(`${baseUrl}/orders/${encodeURIComponent(orderId)}`, request);
+  if (response.status === 404) throw new CashfreeOrderNotFoundError();
   if (!response.ok) throw new CashfreeError("Payment confirmation is unavailable. Please try again.", 502);
   const order = (await response.json()) as Partial<Record<"order_id" | "order_status" | "payment_session_id", unknown>> | null;
   if (!order || order.order_id !== orderId || typeof order.order_status !== "string") {
@@ -147,6 +182,16 @@ export async function fetchCashfreeOrder(orderId: string): Promise<{ status: Cas
     status: order.order_status as CashfreeOrderStatus,
     paymentSessionId: typeof order.payment_session_id === "string" ? order.payment_session_id : null,
   };
+}
+
+/** Like fetchCashfreeOrder, but null when Cashfree has no such order. */
+export async function findCashfreeOrder(orderId: string) {
+  try {
+    return await fetchCashfreeOrder(orderId);
+  } catch (error) {
+    if (error instanceof CashfreeOrderNotFoundError) return null;
+    throw error;
+  }
 }
 
 export type CashfreeRefundStatus = "PENDING" | "SUCCESS" | "CANCELLED" | "ONHOLD";
@@ -170,13 +215,13 @@ export async function fetchCashfreeRefund(orderId: string, refundId: string): Pr
  */
 export async function createCashfreeRefund(input: { orderId: string; refundId: string; amountInr: number; note: string }): Promise<{ status: CashfreeRefundStatus }> {
   const { baseUrl, headers } = cashfreeConfig();
-  const response = await fetch(`${baseUrl}/orders/${encodeURIComponent(input.orderId)}/refunds`, {
-    method: "POST", headers,
+  const response = await postOnce(`${baseUrl}/orders/${encodeURIComponent(input.orderId)}/refunds`, {
+    headers,
     body: JSON.stringify({ refund_id: input.refundId, refund_amount: input.amountInr, refund_note: input.note.slice(0, 100) }),
   });
   if (response.status === 409) return fetchCashfreeRefund(input.orderId, input.refundId);
   if (!response.ok) {
-    console.error("Cashfree refund error:", await response.json().catch(() => null));
+    log.error("cashfree refund error", { status: response.status, response: await response.json().catch(() => null) });
     throw new CashfreeError("Cashfree did not accept the refund", 502);
   }
   const refund = (await response.json()) as Partial<Record<"refund_id" | "refund_status", unknown>> | null;
@@ -184,6 +229,27 @@ export async function createCashfreeRefund(input: { orderId: string; refundId: s
     throw new CashfreeError("Payment provider returned an invalid response", 502);
   }
   return { status: refund.refund_status as CashfreeRefundStatus };
+}
+
+/**
+ * A valid signature never expires, so a captured webhook could be replayed for
+ * ever (#37). Settlement is idempotent, so this is defence in depth.
+ */
+const WEBHOOK_MAX_AGE_MS = 5 * 60 * 1000;
+/** Allowance for our clock running behind Cashfree's. */
+const WEBHOOK_MAX_SKEW_MS = 60 * 1000;
+
+/**
+ * True when `x-webhook-timestamp` is within 5 minutes of now. Cashfree sends
+ * epoch seconds; milliseconds are accepted too, since the value is only ever
+ * compared with our own clock.
+ */
+export function webhookTimestampFresh(timestamp: string, now: number = Date.now()): boolean {
+  const value = Number(timestamp);
+  if (!Number.isFinite(value) || value <= 0) return false;
+  const sentAt = value < 1e12 ? value * 1000 : value;
+  const age = now - sentAt;
+  return age <= WEBHOOK_MAX_AGE_MS && age >= -WEBHOOK_MAX_SKEW_MS;
 }
 
 /** Cashfree signs webhooks as base64(HMAC-SHA256(timestamp + rawBody, client secret)). */

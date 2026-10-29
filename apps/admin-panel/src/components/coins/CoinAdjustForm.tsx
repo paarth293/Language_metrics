@@ -210,6 +210,17 @@ export function CoinAdjustForm({
           onChange={(e) => setReason(e.target.value)}
         />
       </label>
+      {/* Say why Review is disabled instead of leaving the admin guessing. */}
+      {!reasonValid && (
+        <p className="text-xs text-gray-400">
+          {reason.trim().length === 0
+            ? "A reason is required (at least 10 characters)."
+            : `${10 - reason.trim().length} more character${10 - reason.trim().length === 1 ? "" : "s"} needed.`}
+        </p>
+      )}
+      {!amountValid && amount !== "" && (
+        <p className="text-xs text-red-400">Enter a whole number from 1 to {MAX_SINGLE.toLocaleString("en-IN")}.</p>
+      )}
 
       {success && <p className="text-sm text-green-400">{success}</p>}
 

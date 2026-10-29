@@ -14,6 +14,7 @@
  */
 
 import Redis from "ioredis";
+import { log } from "@repo/logger";
 
 const REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
@@ -35,7 +36,7 @@ function getClient(): Redis {
     });
 
     _client.on("error", (err) => {
-      console.error("[Redis] Connection error:", err.message);
+      log.error("[Redis] Connection error", { error: err });
     });
   }
   return _client;
@@ -85,8 +86,13 @@ export async function verifyRefreshSession(
 
 /**
  * Rotate a refresh token session.
- * Atomically deletes the old sessionId and stores the new one.
+ * Claims the old sessionId with GETDEL and only then stores the new one.
  * Returns false if the old session did not exist (theft detection).
+ *
+ * A pipeline was wrong here (#40): its SET ran whatever the DEL returned, so a
+ * replayed or stolen refresh token still minted a usable new session even
+ * though this returned false. GETDEL makes the claim the decision — two
+ * concurrent uses of one token race, and exactly one wins.
  */
 export async function rotateRefreshSession(
   userId: string,
@@ -99,15 +105,11 @@ export async function rotateRefreshSession(
   const newKey = rtKey(userId, newSessionId);
   const value = JSON.stringify({ userId, ...meta, createdAt: Date.now() });
 
-  // Use a pipeline: delete old, set new — both must succeed atomically
-  const pipeline = client.pipeline();
-  pipeline.del(oldKey);
-  pipeline.set(newKey, value, "EX", REFRESH_TTL_SECONDS);
-  const results = await pipeline.exec();
-
-  // If the DEL returned 0 keys deleted, the session didn't exist
-  const deleted = results?.[0]?.[1] as number;
-  return deleted > 0;
+  // Claim the old session first; nothing is issued if it was already used.
+  const oldValue = await client.getdel(oldKey);
+  if (!oldValue) return false;
+  await client.set(newKey, value, "EX", REFRESH_TTL_SECONDS);
+  return true;
 }
 
 /**

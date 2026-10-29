@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import Link from "next/link";
 import { BookOpen, Video, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, Search, Calendar } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { canJoin, getJoinState, useNow } from "@/lib/class-join";
+import { useJsonResource } from "@repo/ui/useResource";
+import { useStickyState } from "@repo/ui/useStickyState";
+import { StaleDataNotice } from "@repo/ui/StaleDataNotice";
 
 type Booking = {
   id: string;
@@ -38,34 +41,24 @@ const STATUS_CONFIG: Record<string, { label: string; variant: string; icon: type
   CANCELLED: { label: "Cancelled", variant: "danger", icon: XCircle },
 };
 
+type SessionsData = { upcoming: Booking[]; past: Booking[] };
+
 export default function TeacherSessions() {
-  const [upcoming, setUpcoming] = useState<Booking[]>([]);
-  const [past, setPast] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
+  // Search and tab outlive a navigation, so coming back from a student's page
+  // lands on the list the teacher left, not a reset one.
+  const [search, setSearch] = useStickyState("teacher/sessions:search", "");
+  const [tab, setTab] = useStickyState<"upcoming" | "past">("teacher/sessions:tab", "upcoming");
   // Ticks so Join appears the moment the window opens, without a reload.
   const now = useNow();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch("/api/teachers/schedule", { credentials: "include" });
-        if (!res.ok) throw new Error("Failed to load sessions");
-        const data = await res.json();
-        setUpcoming(data.upcoming || []);
-        setPast(data.past || []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  const { data, error, isLoading, isStale, updatedAt, refetch } =
+    useJsonResource<SessionsData>("/api/teachers/schedule", { staleMs: 30_000 });
 
-  if (loading) {
+  const upcoming = data?.upcoming ?? [];
+  const past = data?.past ?? [];
+
+  // A spinner only while there is nothing at all to show.
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="flex flex-col items-center gap-4">
@@ -76,12 +69,13 @@ export default function TeacherSessions() {
     );
   }
 
-  if (error) {
+  if (error && !data) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="text-center">
           <AlertCircle className="w-10 h-10 text-danger mx-auto mb-3" />
-          <p className="text-text-muted">{error}</p>
+          <p className="text-text-muted">Failed to load sessions</p>
+          <Button variant="primary" className="mt-4" onClick={() => void refetch()}>Try again</Button>
         </div>
       </div>
     );
@@ -97,7 +91,9 @@ export default function TeacherSessions() {
   );
 
   return (
-    <div className="flex flex-col gap-6 pb-16 animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
+    <div className="flex flex-col gap-6 pb-16 w-full">
+      {isStale && <StaleDataNotice onRetry={() => void refetch()} updatedAt={updatedAt} />}
+
       {/* Header */}
       <div>
         <h1 className="lm-page-title">Sessions</h1>

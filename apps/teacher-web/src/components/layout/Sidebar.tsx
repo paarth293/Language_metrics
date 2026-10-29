@@ -13,7 +13,7 @@ import type { User } from "@/types";
 
 interface SidebarProps {
   navItems: NavItem[];
-  user: User;
+  user: User | null;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -54,7 +54,7 @@ export function Sidebar({ navItems, user, isOpen, onClose }: SidebarProps) {
           <span>
             <span className="block text-[12px] font-bold leading-tight text-text">Language Metrics</span>
             <span className="block text-[10px] leading-tight text-text-subtle">
-              {user.role === "TEACHER" ? "Teacher" : "Student"}
+              {user ? (user.role === "TEACHER" ? "Teacher" : "Student") : "Teacher"}
             </span>
           </span>
         </Link>
@@ -106,24 +106,34 @@ export function Sidebar({ navItems, user, isOpen, onClose }: SidebarProps) {
 
       {/* Signed-in user */}
       <div className="shrink-0 border-t border-border p-3">
-        <div className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-action/15 text-[11px] font-bold text-text">
-            {initialsOf(user.name)}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[12px] font-semibold text-text">{user.name}</p>
-            <p className="truncate text-[10px] text-text-subtle">{user.email}</p>
+        {user ? (
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-action/15 text-[11px] font-bold text-text">
+              {initialsOf(user.name)}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[12px] font-semibold text-text">{user.name}</p>
+              <p className="truncate text-[10px] text-text-subtle">{user.email}</p>
+            </div>
+            <button
+              type="button"
+              title="Sign out"
+              aria-label="Sign out"
+              onClick={() => void logout()}
+              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-alert/10 hover:text-alert auth-focus"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+            </button>
           </div>
-          <button
-            type="button"
-            title="Sign out"
-            aria-label="Sign out"
-            onClick={() => void logout()}
-            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-alert/10 hover:text-alert auth-focus"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-          </button>
-        </div>
+        ) : (
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-8 w-8 shrink-0 animate-pulse items-center justify-center rounded-full bg-action/10" />
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="h-3 w-20 animate-pulse rounded bg-surface-inset" />
+              <div className="h-2.5 w-28 animate-pulse rounded bg-surface-inset" />
+            </div>
+          </div>
+        )}
         <div className="mt-3 flex items-center gap-1.5 text-[10px] text-text-subtle">
           <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden />
           Language Metrics © {new Date().getFullYear()}

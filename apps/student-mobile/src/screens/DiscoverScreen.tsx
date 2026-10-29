@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
+import { BadgeCheck, GraduationCap, Search, Star } from "lucide-react-native";
 import type { TeacherCard } from "@repo/api-contracts";
-import { AppText, Avatar, Badge, Banner, Button, Card, Chip, EmptyState, LoadingBlock, TextField } from "../components/ui";
+import { AppText, Avatar, Badge, Banner, Button, Card, Chip, CoinText, EmptyState, LoadingBlock, TextField } from "../components/ui";
 import { MobileApiClient } from "../lib/api-client";
 import { formatNumber, initials } from "../lib/format";
 import { useTheme } from "../theme/ThemeProvider";
@@ -111,7 +112,7 @@ export function DiscoverScreen({ onBook }: { onBook: (teacher: TeacherCard) => v
         value={searchInput}
         onChangeText={setSearchInput}
         placeholder="Search by name, language, or keyword..."
-        leading="🔍"
+        leading={Search}
         autoCapitalize="none"
         autoCorrect={false}
         returnKeyType="search"
@@ -131,7 +132,7 @@ export function DiscoverScreen({ onBook }: { onBook: (teacher: TeacherCard) => v
         <LoadingBlock label="Finding teachers…" />
       ) : teachers.length === 0 && !error ? (
         <EmptyState
-          icon="🧑‍🏫"
+          icon={GraduationCap}
           title={hasFilters ? "No teachers match your filters" : "No teachers available yet"}
           message={hasFilters ? "Try another language or clear your search." : "Verified teachers will appear here as soon as they're approved."}
           actionLabel={hasFilters ? "Clear filters" : undefined}
@@ -180,13 +181,13 @@ function TeacherListItem({ teacher, onBook }: { teacher: TeacherCard; onBook: ()
             <AppText variant="h3" numberOfLines={1} style={{ flexShrink: 1 }}>
               {teacher.name}
             </AppText>
-            {teacher.isVerified ? <Badge label="✓ Verified" tone="trust" style={{ marginLeft: spacing.sm }} /> : null}
+            {teacher.isVerified ? <Badge label="Verified" icon={BadgeCheck} tone="trust" style={{ marginLeft: spacing.sm }} /> : null}
           </View>
           <AppText variant="small" tone="muted" numberOfLines={1}>
             {teacher.languages.length > 0 ? teacher.languages.join(" · ") : "Languages coming soon"}
           </AppText>
         </View>
-        <Badge label={`★ ${teacher.rating.toFixed(1)}`} tone="action" />
+        <Badge label={teacher.rating.toFixed(1)} icon={Star} tone="action" />
       </View>
 
       {teacher.headline ? (
@@ -197,12 +198,12 @@ function TeacherListItem({ teacher, onBook }: { teacher: TeacherCard; onBook: ()
 
       <View style={styles.footer}>
         <View style={{ flexShrink: 1 }}>
-          <AppText variant="h3">
-            🪙 {formatNumber(teacher.hourlyRate)}{" "}
+          <CoinText variant="h3" iconSize={18}>
+            {formatNumber(teacher.hourlyRate)}{" "}
             <AppText variant="small" tone="muted">
               coins / hr
             </AppText>
-          </AppText>
+          </CoinText>
           <AppText variant="caption" tone="subtle">
             {teacher.totalReviews} {teacher.totalReviews === 1 ? "review" : "reviews"}
           </AppText>

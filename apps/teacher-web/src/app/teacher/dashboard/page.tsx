@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
@@ -19,6 +19,8 @@ import {
   Video,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { useJsonResource } from "@repo/ui/useResource";
+import { StaleDataNotice } from "@repo/ui/StaleDataNotice";
 import { Button } from "@/components/ui/Button";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { SessionRow } from "@/components/schedule/SessionRow";
@@ -108,36 +110,27 @@ const panelLink = "inline-flex shrink-0 items-center gap-1 text-[12px] font-semi
 
 export default function TeacherDashboard() {
   const now = useNow();
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [error, setError] = useState(false);
 
-  const load = useCallback(async () => {
-    const weekStart = startOfWeek(new Date());
-    const today = new Date();
+  // The week and month this dashboard summarises only move at midnight, so
+  // the URL — and therefore the cache key — is stable for the whole day and a
+  // revisit is served from cache instead of refetching.
+  const dayStamp = new Date(now).toDateString();
+  const url = useMemo(() => {
+    const today = new Date(dayStamp);
+    const weekStart = startOfWeek(today);
     const params = new URLSearchParams({
       weekStart: weekStart.toISOString(),
       weekEnd: addDays(weekStart, 7).toISOString(),
       monthStart: new Date(today.getFullYear(), today.getMonth(), 1).toISOString(),
       monthEnd: new Date(today.getFullYear(), today.getMonth() + 1, 1).toISOString(),
     });
-    try {
-      const res = await fetch(`/api/teachers/dashboard?${params}`, { credentials: "include" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setData(await res.json());
-      setError(false);
-    } catch (err) {
-      console.error("Error loading dashboard:", err);
-      setError(true);
-    }
-  }, []);
+    return `/api/teachers/dashboard?${params}`;
+  }, [dayStamp]);
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    load();
-    // Keeps "Up next" and Join buttons current as classes start.
-    const t = setInterval(load, 60_000);
-    return () => clearInterval(t);
-  }, [load]);
+  const { data, error, isStale, updatedAt, refetch } = useJsonResource<DashboardData>(url, {
+    staleMs: 30_000,
+    pollMs: 60_000,
+  });
 
   const todayDate = new Date(now);
 
@@ -160,7 +153,7 @@ export default function TeacherDashboard() {
           <AlertCircle className="mx-auto mb-3 h-8 w-8 text-alert" />
           <h2 className="text-[15px] font-bold text-text">We couldn&apos;t load your dashboard</h2>
           <p className="mb-5 mt-1 text-[13px] text-text-muted">Check your connection and try again.</p>
-          <Button variant="primary" onClick={load}>
+          <Button variant="primary" onClick={() => void refetch()}>
             Try again
           </Button>
         </div>
@@ -220,6 +213,10 @@ export default function TeacherDashboard() {
 
   return (
     <div className="space-y-4 pb-10">
+      {/* A refresh failed but the numbers below are a real earlier load — say
+          so instead of replacing the dashboard with an error card. */}
+      {isStale && <StaleDataNotice onRetry={() => void refetch()} updatedAt={updatedAt} />}
+
       {/* ── Header ─────────────────────────────────────── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>

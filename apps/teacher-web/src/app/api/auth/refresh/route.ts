@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { verifyRefreshToken, signAccessToken, signRefreshToken, accessCookieOptions, refreshCookieOptions } from "@/lib/tokens";
 import { rotateRefreshSession, revokeAllRefreshSessions } from "@/lib/redis-session";
+import { requestLogger } from "@repo/logger";
 
 /**
  * POST /api/auth/refresh
@@ -24,6 +25,7 @@ export async function POST(request: NextRequest) {
   if (!payload || !payload.sub || !payload.sid) {
     const res = NextResponse.json({ message: "Invalid refresh token." }, { status: 401 });
     res.cookies.set("lm_teacher_access_token", "", { maxAge: 0, path: "/" });
+    res.cookies.set("lm_teacher_refresh_token", "", { maxAge: 0, path: "/" });
     res.cookies.set("lm_teacher_refresh_token", "", { maxAge: 0, path: "/api/auth" });
     return res;
   }
@@ -45,9 +47,7 @@ export async function POST(request: NextRequest) {
     // Old session not found → possible token reuse/theft.
     // Revoke ALL sessions for this user to contain the breach.
     await revokeAllRefreshSessions(userId).catch(() => {});
-    console.error(
-      `[Refresh] Rotation failed for userId=${userId}. Possible token theft. All sessions revoked.`
-    );
+    requestLogger(request).error("[Refresh] Rotation failed. Possible token theft. All sessions revoked.", { userId });
     const res = NextResponse.json(
       {
         code: "SESSION_STOLEN",
@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
       { status: 401 }
     );
     res.cookies.set("lm_teacher_access_token", "", { maxAge: 0, path: "/" });
+    res.cookies.set("lm_teacher_refresh_token", "", { maxAge: 0, path: "/" });
     res.cookies.set("lm_teacher_refresh_token", "", { maxAge: 0, path: "/api/auth" });
     return res;
   }
@@ -72,6 +73,7 @@ export async function POST(request: NextRequest) {
   if (!user) {
     const res = NextResponse.json({ message: "User not found." }, { status: 401 });
     res.cookies.set("lm_teacher_access_token", "", { maxAge: 0, path: "/" });
+    res.cookies.set("lm_teacher_refresh_token", "", { maxAge: 0, path: "/" });
     res.cookies.set("lm_teacher_refresh_token", "", { maxAge: 0, path: "/api/auth" });
     return res;
   }
@@ -89,10 +91,8 @@ export async function POST(request: NextRequest) {
   );
 
   response.cookies.set("lm_teacher_access_token", newAccessToken, accessCookieOptions);
-  response.cookies.set("lm_teacher_refresh_token", newRefreshToken, {
-    ...refreshCookieOptions,
-    path: "/api/auth",
-  });
+  response.cookies.set("lm_teacher_refresh_token", newRefreshToken, refreshCookieOptions);
+  response.cookies.set("lm_teacher_refresh_token", "", { maxAge: 0, path: "/api/auth" });
 
   return response;
 }

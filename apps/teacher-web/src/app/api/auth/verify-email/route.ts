@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { compareOtp } from "@/lib/otp";
 import { rateLimit } from "@/lib/rate-limit";
+import { requestLogger } from "@repo/logger";
 
 /**
  * POST /api/auth/verify-email
@@ -90,7 +91,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (err) {
-    console.error("verify-email (POST) error:", err);
+    requestLogger(request).error("verify-email (POST) error", { error: err });
     return NextResponse.json({ message: "Internal server error." }, { status: 500 });
   }
 }

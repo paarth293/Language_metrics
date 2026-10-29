@@ -41,6 +41,35 @@ export interface UploadOptions {
 
 const DEFAULT_MAX_SIZE = 10 * 1024 * 1024;
 
+/**
+ * Upper bounds for one storage request, so a slow provider cannot hold the
+ * function open. Exported so tests can shorten them.
+ */
+export const STORAGE_TIMEOUTS = { connectionMs: 5_000, requestMs: 10_000 };
+
+/**
+ * S3 client settings for those bounds. In this SDK version `requestTimeout`
+ * only logs a warning unless `throwOnRequestTimeout` is set. Uploads and
+ * deletes are not retried (`maxAttempts: 1`); the SDK's default of 3 attempts
+ * would triple the wait.
+ */
+function s3TimeoutConfig() {
+  return {
+    maxAttempts: 1,
+    requestHandler: {
+      connectionTimeout: STORAGE_TIMEOUTS.connectionMs,
+      requestTimeout: STORAGE_TIMEOUTS.requestMs,
+      throwOnRequestTimeout: true,
+    },
+  };
+}
+
+/** Supabase's client takes a custom fetch; this one adds the request timeout. */
+const fetchWithTimeout: typeof fetch = (input, init) => {
+  const timeout = AbortSignal.timeout(STORAGE_TIMEOUTS.requestMs);
+  return fetch(input, { ...init, signal: init?.signal ? AbortSignal.any([init.signal, timeout]) : timeout });
+};
+
 /** Storage keys are relative, bounded to the upload root, and safe to put in URLs. */
 function validateStorageKey(key: string): void {
   if (!key || !/^[a-zA-Z0-9._/-]+$/.test(key) || key.split("/").some((part) => !part || part === "." || part === "..")) {
@@ -57,6 +86,34 @@ function localFilePath(key: string): string {
   return filePath;
 }
  // 10MB
+
+/**
+ * Every type uploadFile can store, with the extension it is saved under and a
+ * check of the file's first bytes. The claimed type comes from the client, so
+ * it is only trusted when the bytes match; the extension comes from here, never
+ * from the client's filename (an `evil.html` claimed as `image/png` used to be
+ * saved — and, with the local provider, served — as `.html`).
+ */
+const startsWith = (file: Buffer, bytes: number[] | string, offset = 0) => {
+  const expected = typeof bytes === "string" ? Buffer.from(bytes, "latin1") : Buffer.from(bytes);
+  return file.length >= offset + expected.length && file.subarray(offset, offset + expected.length).equals(expected);
+};
+const HEIF_BRANDS = ["heic", "heix", "hevc", "hevx", "heim", "heis", "hevm", "hevs", "mif1", "msf1"];
+const isJpeg = (f: Buffer) => startsWith(f, [0xff, 0xd8, 0xff]);
+const isPdf = (f: Buffer) => startsWith(f, "%PDF-");
+const isHeif = (f: Buffer) => startsWith(f, "ftyp", 4) && HEIF_BRANDS.includes(f.subarray(8, 12).toString("latin1"));
+
+const FILE_TYPES = new Map<string, { ext: string; matches: (file: Buffer) => boolean }>([
+  ["image/jpeg", { ext: "jpg", matches: isJpeg }],
+  ["image/jpg", { ext: "jpg", matches: isJpeg }],
+  ["image/png", { ext: "png", matches: (f) => startsWith(f, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) }],
+  ["image/gif", { ext: "gif", matches: (f) => startsWith(f, "GIF87a") || startsWith(f, "GIF89a") }],
+  ["image/webp", { ext: "webp", matches: (f) => startsWith(f, "RIFF") && startsWith(f, "WEBP", 8) }],
+  ["application/pdf", { ext: "pdf", matches: isPdf }],
+  ["application/x-pdf", { ext: "pdf", matches: isPdf }],
+  ["image/heic", { ext: "heic", matches: isHeif }],
+  ["image/heif", { ext: "heif", matches: isHeif }],
+]);
 
 /**
  * Upload a file to the configured storage provider.
@@ -78,10 +135,18 @@ export async function uploadFile(
     throw new Error(`File type "${contentType}" is not allowed. Accepted: ${allowedTypes.join(", ")}`);
   }
 
-  // Generate unique key using cryptographically secure random
-  const ext = filename.split(".").pop() || "bin";
-  const safeExt = ext.replace(/[^a-zA-Z0-9]/g, "").toLowerCase() || "bin";
-  const key = `${folder}/${Date.now()}_${crypto.randomUUID().slice(0, 8)}.${safeExt}`;
+  // The claimed type must be one we can check, and the bytes must match it.
+  const fileType = FILE_TYPES.get(contentType);
+  if (!fileType) {
+    throw new Error(`File type "${contentType}" is not supported.`);
+  }
+  if (!fileType.matches(file)) {
+    throw new Error(`File type "${contentType}" does not match the file's contents.`);
+  }
+
+  // Random stored name; the extension comes from the checked type, never from
+  // `filename` (kept in the signature for callers, but no longer used).
+  const key = `${folder}/${Date.now()}_${crypto.randomUUID()}.${fileType.ext}`;
 
   switch (PROVIDER) {
     case "s3":
@@ -132,6 +197,7 @@ async function uploadToS3(file: Buffer, key: string, contentType: string): Promi
   const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
 
   const client = new S3Client({
+    ...s3TimeoutConfig(),
     region: process.env.STORAGE_REGION ?? "ap-south-1",
     endpoint: process.env.STORAGE_ENDPOINT,
     credentials: {
@@ -159,6 +225,7 @@ async function deleteFromS3(key: string): Promise<void> {
   // @ts-ignore — optional dependency
   const { S3Client, DeleteObjectCommand } = await import("@aws-sdk/client-s3");
   const client = new S3Client({
+    ...s3TimeoutConfig(),
     region: process.env.STORAGE_REGION ?? "ap-south-1",
     endpoint: process.env.STORAGE_ENDPOINT,
     credentials: {
@@ -175,6 +242,7 @@ async function getS3SignedUrl(key: string, expiresIn = 3600): Promise<string> {
   // @ts-ignore — optional dependency
   const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
   const client = new S3Client({
+    ...s3TimeoutConfig(),
     region: process.env.STORAGE_REGION ?? "ap-south-1",
     endpoint: process.env.STORAGE_ENDPOINT,
     credentials: {
@@ -192,7 +260,8 @@ async function uploadToSupabase(file: Buffer, key: string, contentType: string):
   const { createClient } = await import("@supabase/supabase-js");
   const supabase = createClient(
     process.env.SUPABASE_URL ?? "",
-    process.env.SUPABASE_SERVICE_KEY ?? ""
+    process.env.SUPABASE_SERVICE_KEY ?? "",
+    { global: { fetch: fetchWithTimeout } }
   );
 
   const { error } = await supabase.storage
@@ -210,7 +279,8 @@ async function deleteFromSupabase(key: string): Promise<void> {
   const { createClient } = await import("@supabase/supabase-js");
   const supabase = createClient(
     process.env.SUPABASE_URL ?? "",
-    process.env.SUPABASE_SERVICE_KEY ?? ""
+    process.env.SUPABASE_SERVICE_KEY ?? "",
+    { global: { fetch: fetchWithTimeout } }
   );
   await supabase.storage.from(BUCKET).remove([key]);
 }

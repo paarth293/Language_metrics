@@ -2,11 +2,16 @@
 
 import React, { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { Sidebar, isNavActive } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { useAuth } from "@/lib/auth-client";
-import { DateOfBirthPrompt } from "@/components/auth/DateOfBirthPrompt";
 import type { Role } from "@/types";
+
+const DateOfBirthPrompt = dynamic(
+  () => import("@/components/auth/DateOfBirthPrompt").then((m) => m.DateOfBirthPrompt),
+  { ssr: false }
+);
 
 export interface NavItem {
   label: string;
@@ -56,14 +61,15 @@ export function AppShell({ children, navItems, requiredRole }: AppShellProps) {
     }
   }, [user, isLoading, requiredRole, router]);
 
-  // Show minimal skeleton while auth state loads, or while a redirect above
-  // is about to take the visitor away from this section.
-  if (isLoading || !user || user.role !== requiredRole) {
+  // If auth has resolved and user is unauthenticated or has the wrong role, redirect
+  if (!isLoading && (!user || user.role !== requiredRole)) {
     return (
       <div className="flex h-screen items-center justify-center bg-bg">
         <div className="flex flex-col items-center gap-4">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-gold border-t-transparent" />
-          <span className="text-sm text-text-muted font-medium">Loading...</span>
+          <span className="text-sm text-text-muted font-medium">
+            {!user ? "Redirecting to login..." : "Redirecting to your dashboard..."}
+          </span>
         </div>
       </div>
     );
@@ -94,7 +100,7 @@ export function AppShell({ children, navItems, requiredRole }: AppShellProps) {
                 <span className="text-text-muted">{current.label}</span>
               </nav>
             )}
-            {user.needsDateOfBirth ? (
+            {user?.needsDateOfBirth ? (
               <DateOfBirthPrompt role={user.role} onSaved={refreshUser} />
             ) : (
               children

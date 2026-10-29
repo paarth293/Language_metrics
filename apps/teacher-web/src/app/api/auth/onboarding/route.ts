@@ -4,6 +4,7 @@ import { verifyAccessToken } from "@/lib/tokens";
 import { db } from "@/lib/db";
 import { TEACHING_LANGUAGES } from "@/lib/languages";
 import { MIN_AGE, dateOfBirthSchema, parseDateOfBirth } from "@/features/auth/validators/auth";
+import { requestLogger } from "@repo/logger";
 
 const SUPPORTED_LANGUAGE_CODES = TEACHING_LANGUAGES.map((l) => l.code);
 
@@ -123,7 +124,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("[Onboarding] Failed to save profile:", err);
+    requestLogger(request).error("[Onboarding] Failed to save profile", { error: err });
     return NextResponse.json({ error: "Failed to save profile. Please try again." }, { status: 500 });
   }
 }

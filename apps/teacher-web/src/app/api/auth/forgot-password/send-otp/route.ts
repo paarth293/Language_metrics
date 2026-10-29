@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { generateOtp, hashOtp } from "@/lib/otp";
 import { sendPasswordResetOTP } from "@/lib/email";
 import { getRedisClient } from "@/lib/redis-client";
+import { requestLogger } from "@repo/logger";
 
 export async function POST(request: Request) {
   try {
@@ -68,7 +69,9 @@ export async function POST(request: Request) {
       });
 
       // Send email (blocking so Vercel doesn't kill it)
-      await sendPasswordResetOTP(user.email, otp).catch(console.error);
+      await sendPasswordResetOTP(user.email, otp).catch((err: unknown) => {
+        requestLogger(request).error("[forgot-password] Reset email failed", { error: err });
+      });
     }
 
     // Update Redis rate limits
@@ -88,7 +91,7 @@ export async function POST(request: Request) {
 
     return genericResponse;
   } catch (error) {
-    console.error("send-otp error:", error);
+    requestLogger(request).error("send-otp error", { error: error });
     return NextResponse.json({ message: "Internal server error." }, { status: 500 });
   }
 }

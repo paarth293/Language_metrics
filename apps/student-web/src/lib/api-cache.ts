@@ -1,26 +1,31 @@
 /**
- * api-cache.ts — In-memory response cache for API routes
+ * api-cache.ts — Production-ready Redis cache-aside with memory fallback
  *
- * Reduces DB load on high-traffic endpoints like /discover and /dashboard.
- * Uses a simple Map with TTL-based expiration.
+ * Reduces database load on high-traffic read-heavy endpoints like /discover.
+ * Primary storage: Upstash Redis (shared across all serverless instances).
+ * Fallback storage: In-memory Map (for dev, test, or when Redis is unreachable).
  *
- * For production with multiple instances, replace with Redis cache.
+ * Guarantees:
+ *  - Timeouts on Redis reads (250ms) and writes (500ms) prevent stalls.
+ *  - Gracefully degrades to memory cache or live computation on any Redis error.
+ *  - Responses carry X-Cache: HIT or X-Cache: MISS headers for observability.
  */
+
+import { getRedisClient } from "./redis-client";
 
 interface CacheEntry {
   data: unknown;
   expiresAt: number;
 }
 
-const cache = new Map<string, CacheEntry>();
+const memoryCache = new Map<string, CacheEntry>();
 
-// Prune expired entries every 5 minutes
 let lastPrune = Date.now();
 function maybePrune() {
   const now = Date.now();
   if (now - lastPrune > 300_000) {
-    for (const [key, entry] of cache) {
-      if (now > entry.expiresAt) cache.delete(key);
+    for (const [key, entry] of memoryCache) {
+      if (now > entry.expiresAt) memoryCache.delete(key);
     }
     lastPrune = now;
   }
@@ -39,11 +44,36 @@ export async function withCache(
   ttlMs: number,
   fn: () => Promise<Response>
 ): Promise<Response> {
-  maybePrune();
+  const redis = getRedisClient();
+  const redisKey = `cache:api:v1:${key}`;
+  const ttlSeconds = Math.max(1, Math.ceil(ttlMs / 1000));
 
-  const entry = cache.get(key);
+  // 1. Check Redis if connected
+  if (redis) {
+    try {
+      const cachedStr = await Promise.race([
+        redis.get(redisKey),
+        new Promise<null>((_, reject) => setTimeout(() => reject(new Error("Redis timeout")), 250)),
+      ]);
+      if (cachedStr) {
+        const cached = JSON.parse(cachedStr) as { body: string; status: number; headers: Record<string, string> };
+        return new Response(cached.body, {
+          status: cached.status,
+          headers: {
+            ...cached.headers,
+            "X-Cache": "HIT",
+          },
+        });
+      }
+    } catch {
+      // Degrade to memory cache
+    }
+  }
+
+  // 2. Check in-memory fallback
+  maybePrune();
+  const entry = memoryCache.get(key);
   if (entry && Date.now() < entry.expiresAt) {
-    // Return cached response with header
     const cached = entry.data as { body: string; status: number; headers: Record<string, string> };
     return new Response(cached.body, {
       status: cached.status,
@@ -54,19 +84,28 @@ export async function withCache(
     });
   }
 
-  // Compute fresh response
+  // 3. Compute fresh response
   const response = await fn();
 
-  // Only cache successful GET responses
-  if (response.ok) {
+  // 4. Cache successful responses
+  if (response.ok && response.headers.get("x-skip-cache") !== "1") {
     try {
       const body = await response.text();
       const headers = Object.fromEntries(response.headers.entries());
 
-      cache.set(key, {
+      // Save to memory cache
+      memoryCache.set(key, {
         data: { body, status: response.status, headers },
         expiresAt: Date.now() + ttlMs,
       });
+
+      // Save to Redis
+      if (redis) {
+        void Promise.race([
+          redis.set(redisKey, JSON.stringify({ body, status: response.status, headers }), "EX", ttlSeconds),
+          new Promise<void>((_, reject) => setTimeout(() => reject(new Error("Redis timeout")), 500)),
+        ]).catch(() => {});
+      }
 
       return new Response(body, {
         status: response.status,
@@ -76,7 +115,6 @@ export async function withCache(
         },
       });
     } catch {
-      // If body consumption fails, return original
       return response;
     }
   }
@@ -85,11 +123,29 @@ export async function withCache(
 }
 
 /**
- * Invalidate cache entries matching a prefix.
- * Call after write operations (booking, profile update, etc.)
+ * Invalidate cache entries matching a prefix across both memory and Redis.
  */
-export function invalidateCache(prefix: string) {
-  for (const key of cache.keys()) {
-    if (key.startsWith(prefix)) cache.delete(key);
+export async function invalidateCache(prefix: string) {
+  for (const key of memoryCache.keys()) {
+    if (key.startsWith(prefix)) memoryCache.delete(key);
+  }
+
+  const redis = getRedisClient();
+  if (redis) {
+    try {
+      const stream = redis.scanStream({
+        match: `cache:api:v1:${prefix}*`,
+        count: 50,
+      });
+      stream.on("data", (keys: string[]) => {
+        if (keys.length) {
+          const pipeline = redis.pipeline();
+          keys.forEach((k) => pipeline.del(k));
+          void pipeline.exec();
+        }
+      });
+    } catch {
+      // Degrade gracefully
+    }
   }
 }

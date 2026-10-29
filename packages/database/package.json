@@ -12,7 +12,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@prisma/client": "^5.16.1"
+    "@prisma/client": "^5.16.1",
+    "@repo/logger": "*"
   },
   "devDependencies": {
     "prisma": "^5.16.1",

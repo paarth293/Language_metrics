@@ -150,7 +150,7 @@ Two GitHub behaviours worth knowing before you rely on this:
   `main`.
 
 **Fallback — Vercel cron, daily.**
-`vercel.json` keeps a `0 0 * * *` entry. Vercel's Hobby plan rejects sub-daily
+`apps/student-web/vercel.json` keeps a `0 0 * * *` entry. Vercel's Hobby plan rejects sub-daily
 expressions, which is why it cannot be the primary trigger: on its own it can
 leave a student's coins `HELD` for up to 24 hours. It stays as a safety net for
 when GitHub Actions is degraded. On a paid Vercel plan you can set it to

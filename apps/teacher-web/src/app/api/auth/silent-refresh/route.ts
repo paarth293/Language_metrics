@@ -8,6 +8,7 @@ import {
   refreshCookieOptions,
 } from "@/lib/tokens";
 import { rotateRefreshSession, revokeAllRefreshSessions } from "@/lib/redis-session";
+import { requestLogger } from "@repo/logger";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
@@ -33,8 +34,10 @@ export async function GET(request: NextRequest) {
 
   const refreshToken = request.cookies.get("lm_teacher_refresh_token")?.value;
 
+  const origin = request.nextUrl.origin || APP_URL;
+
   if (!refreshToken) {
-    const loginUrl = new URL("/login", APP_URL);
+    const loginUrl = new URL("/login", origin);
     loginUrl.searchParams.set("next", safeNext);
     return NextResponse.redirect(loginUrl);
   }
@@ -42,11 +45,12 @@ export async function GET(request: NextRequest) {
   // 1. Verify refresh token
   const payload = await verifyRefreshToken(refreshToken);
   if (!payload?.sub || !payload?.sid) {
-    const loginUrl = new URL("/login", APP_URL);
+    const loginUrl = new URL("/login", origin);
     loginUrl.searchParams.set("next", safeNext);
     loginUrl.searchParams.set("reason", "session_expired");
     const res = NextResponse.redirect(loginUrl);
     res.cookies.set("lm_teacher_access_token", "", { maxAge: 0, path: "/" });
+    res.cookies.set("lm_teacher_refresh_token", "", { maxAge: 0, path: "/" });
     res.cookies.set("lm_teacher_refresh_token", "", { maxAge: 0, path: "/api/auth" });
     return res;
   }
@@ -67,13 +71,12 @@ export async function GET(request: NextRequest) {
   if (!rotated) {
     // Potential token theft - revoke all sessions and force re-login
     await revokeAllRefreshSessions(userId).catch(() => {});
-    console.error(
-      `[SilentRefresh] Rotation failed for userId=${userId}. Possible token theft. All sessions revoked.`
-    );
-    const loginUrl = new URL("/login", APP_URL);
+    requestLogger(request).error("[SilentRefresh] Rotation failed. Possible token theft. All sessions revoked.", { userId });
+    const loginUrl = new URL("/login", origin);
     loginUrl.searchParams.set("reason", "security");
     const res = NextResponse.redirect(loginUrl);
     res.cookies.set("lm_teacher_access_token", "", { maxAge: 0, path: "/" });
+    res.cookies.set("lm_teacher_refresh_token", "", { maxAge: 0, path: "/" });
     res.cookies.set("lm_teacher_refresh_token", "", { maxAge: 0, path: "/api/auth" });
     return res;
   }
@@ -86,9 +89,10 @@ export async function GET(request: NextRequest) {
   });
 
   if (!user) {
-    const loginUrl = new URL("/login", APP_URL);
+    const loginUrl = new URL("/login", origin);
     const res = NextResponse.redirect(loginUrl);
     res.cookies.set("lm_teacher_access_token", "", { maxAge: 0, path: "/" });
+    res.cookies.set("lm_teacher_refresh_token", "", { maxAge: 0, path: "/" });
     res.cookies.set("lm_teacher_refresh_token", "", { maxAge: 0, path: "/api/auth" });
     return res;
   }
@@ -100,13 +104,12 @@ export async function GET(request: NextRequest) {
   ]);
 
   // 5. Redirect to original destination with new cookies
-  const destination = new URL(safeNext, APP_URL);
+  const destination = new URL(safeNext, origin);
   const res = NextResponse.redirect(destination);
   res.cookies.set("lm_teacher_access_token", newAccessToken, accessCookieOptions);
-  res.cookies.set("lm_teacher_refresh_token", newRefreshToken, {
-    ...refreshCookieOptions,
-    path: "/api/auth",
-  });
+  res.cookies.set("lm_teacher_refresh_token", newRefreshToken, refreshCookieOptions);
+  // Clear any legacy /api/auth path scoped cookie as well
+  res.cookies.set("lm_teacher_refresh_token", "", { maxAge: 0, path: "/api/auth" });
 
   return res;
 }

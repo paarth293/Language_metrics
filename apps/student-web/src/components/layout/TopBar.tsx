@@ -6,7 +6,14 @@ import { Bell, Menu, Search, Moon, Sun } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 import Link from "next/link";
 import { CommandPalette } from "./CommandPalette";
+import { NotificationsPanel } from "@repo/student-portal";
 import type { NavItem } from "./AppShell";
+
+import {
+  useSharedUnreadCount,
+  fetchUnreadCount,
+  setSharedUnreadCount
+} from "@/lib/unread-notifications";
 
 interface TopBarProps {
   onMenuClick: () => void;
@@ -30,9 +37,11 @@ const iconButton =
 export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnreadCount }: TopBarProps) {
   const { theme, setTheme } = useTheme();
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const isMac = useIsMac();
-  const [localUnreadCount, setUnreadCount] = useState<number | undefined>();
-  const unreadCount = localUnreadCount ?? initialUnreadCount ?? 0;
+  const userId = user?.id;
+  const sharedCount = useSharedUnreadCount(initialUnreadCount);
+  const unreadCount = sharedCount;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -45,28 +54,19 @@ export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnread
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Dedicated lightweight unread-count endpoint.
+  // Dedicated deduplicated lightweight unread-count fetch
   const checkUnreadCount = useCallback(async (signal?: AbortSignal) => {
-    try {
-      const res = await fetch("/api/students/notifications/unread-count", {
-        credentials: "include",
-        signal,
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (typeof data.unreadCount === "number") {
-          setUnreadCount(data.unreadCount);
-        }
-      }
-    } catch (err) {
-      // AbortError is expected when the component unmounts — ignore it.
-      if (err instanceof DOMException && err.name === "AbortError") return;
-    }
+    await fetchUnreadCount(signal);
   }, []);
 
   useEffect(() => {
     // If the parent has already resolved the count server-side, use it.
     if (initialUnreadCount !== undefined) {
+      setSharedUnreadCount(initialUnreadCount);
+      return;
+    }
+
+    if (!userId) {
       return;
     }
 
@@ -77,14 +77,20 @@ export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnread
     const handleNotificationsUpdated = (e: Event) => {
       const customEvent = e as CustomEvent<{ unreadCount?: number }>;
       if (customEvent.detail && typeof customEvent.detail.unreadCount === "number") {
-        setUnreadCount(customEvent.detail.unreadCount);
+        setSharedUnreadCount(customEvent.detail.unreadCount);
       } else {
-        checkUnreadCount();
+        void checkUnreadCount();
       }
     };
 
-    // Re-check when the user returns to the tab (catches out-of-band changes).
-    const handleFocus = () => checkUnreadCount();
+    // Re-check when user returns to tab, throttled to max once per 15 seconds
+    let lastFocusCheck = Date.now();
+    const handleFocus = () => {
+      if (document.visibilityState === "visible" && Date.now() - lastFocusCheck > 15_000) {
+        lastFocusCheck = Date.now();
+        void checkUnreadCount();
+      }
+    };
 
     window.addEventListener("notifications-updated", handleNotificationsUpdated);
     window.addEventListener("focus", handleFocus);
@@ -95,7 +101,10 @@ export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnread
       window.removeEventListener("notifications-updated", handleNotificationsUpdated);
       window.removeEventListener("focus", handleFocus);
     };
-  }, [initialUnreadCount, checkUnreadCount]);
+    // Keyed on the user's id, not the user object: a session refresh returns a
+    // fresh object for the same person, and depending on it re-ran this whole
+    // effect — and its initial fetch — on every route change.
+  }, [initialUnreadCount, checkUnreadCount, userId]);
 
   const toggleTheme = () => {
     setTheme(theme === "light" ? "dark" : "light");
@@ -142,9 +151,13 @@ export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnread
           <ThemeIcon className="h-[17px] w-[17px]" strokeWidth={1.8} />
         </button>
 
-        <Link
-          href="/notifications"
+        {/* Opens over the current page instead of navigating away from it. */}
+        <button
+          type="button"
+          onClick={() => setNotificationsOpen(true)}
           className={iconButton}
+          aria-haspopup="dialog"
+          aria-expanded={notificationsOpen}
           aria-label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : "Notifications"}
         >
           <Bell className="h-[17px] w-[17px]" strokeWidth={1.8} />
@@ -153,7 +166,7 @@ export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnread
               <span className="absolute inset-0 animate-ping rounded-full bg-danger opacity-60" />
             </span>
           )}
-        </Link>
+        </button>
 
         <div className="mx-1 hidden h-7 w-px bg-border md:block" aria-hidden="true" />
 
@@ -171,6 +184,8 @@ export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnread
           </span>
         </Link>
       </div>
+
+      <NotificationsPanel open={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
 
       <CommandPalette
         open={paletteOpen}

@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { verifyRefreshToken, signSession, signRefreshToken, accessCookieOptions, refreshCookieOptions } from "@/lib/auth";
 import { verifyRefreshSession, rotateRefreshSession } from "@/lib/redis-session";
 import { db } from "@repo/database";
+import { requestLogger } from "@repo/logger";
 
 /**
  * GET /api/auth/refresh
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
   const sessionData = await verifyRefreshSession(payload.sub, payload.sid);
   if (!sessionData) {
     // Potential token reuse / stolen token detected.
-    console.warn(`[Auth] Rejected refresh token for user ${payload.sub} — session missing from Redis.`);
+    requestLogger(request).warn("[Auth] Rejected refresh token: session missing from Redis", { userId: payload.sub });
     return failResponse;
   }
 

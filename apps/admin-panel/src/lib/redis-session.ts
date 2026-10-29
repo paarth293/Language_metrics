@@ -26,6 +26,8 @@
  */
 
 import Redis from "ioredis";
+import { log } from "@repo/logger";
+import { reportOpsAlert } from "@repo/logger/ops-alert";
 
 const REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
@@ -43,10 +45,30 @@ function getClient(): Redis {
       enableReadyCheck: true,
     });
     _client.on("error", (err) => {
-      console.error("[Redis] Connection error:", err.message);
+      log.error("[Redis] Connection error", { error: err.message });
+      void reportOpsAlert("redis_error", { scope: "admin-panel redis-session", reason: "Redis connection error.", error: err.message });
     });
   }
   return _client;
+}
+
+/** For /api/health: whether Redis answers PING within `timeoutMs`. Never throws. */
+export async function pingSessionStore(timeoutMs: number): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const reply = await Promise.race([
+      getClient().ping(),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("Redis ping timed out")), timeoutMs);
+      }),
+    ]);
+    return reply === "PONG";
+  } catch (error) {
+    log.warn("[health] Redis ping failed", { error });
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function rtKey(userId: string, sessionId: string) {

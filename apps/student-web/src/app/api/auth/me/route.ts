@@ -4,6 +4,8 @@ import type { NextRequest } from "next/server";
 
 import { verifyAccessToken, ACCESS_COOKIE } from "@/lib/tokens";
 import { db } from "@/lib/db";
+import { withCache } from "@/lib/api-cache";
+import { requestLogger } from "@repo/logger";
 
 /**
  * GET /api/auth/me
@@ -24,45 +26,53 @@ export async function GET(request: NextRequest) {
       return res;
     }
 
-    const user = await db.user.findUnique({
-      where: { id: payload.sub },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        emailVerified: true,
-        studentProfile: {
-          select: {
-            name: true,
-            avatarUrl: true,
-            languageToLearn: true,
-            proficiencyLevel: true,
-            onboardingComplete: true,
-            status: true,
+    const cacheKey = `auth:me:v1:${payload.sub}`;
+    return await withCache(cacheKey, 30_000, async () => {
+      const user = await db.user.findUnique({
+        where: { id: payload.sub },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          emailVerified: true,
+          studentProfile: {
+            select: {
+              name: true,
+              avatarUrl: true,
+              languageToLearn: true,
+              proficiencyLevel: true,
+              onboardingComplete: true,
+              status: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    if (!user) {
-      return NextResponse.json({ user: null }, { status: 200 });
-    }
+      if (!user) {
+        return NextResponse.json({ user: null }, { status: 200, headers: { "x-skip-cache": "1" } });
+      }
 
-    return NextResponse.json(
-      {
-        user: {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          emailVerified: user.emailVerified,
-          name: user.studentProfile?.name ?? "Student",
-          avatarUrl: user.studentProfile?.avatarUrl ?? null,
+      return NextResponse.json(
+        {
+          user: {
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            emailVerified: user.emailVerified,
+            name: user.studentProfile?.name ?? "Student",
+            avatarUrl: user.studentProfile?.avatarUrl ?? null,
+          },
         },
-      },
-      { status: 200 }
-    );
+        {
+          status: 200,
+          headers: {
+            "Cache-Control": "private, no-cache, no-store, must-revalidate",
+          },
+        }
+      );
+    });
   } catch (err) {
-    console.error("GET /api/auth/me error:", err);
+    requestLogger(request).error("GET /api/auth/me error", { error: err });
     return NextResponse.json({ user: null }, { status: 200 });
   }
 }

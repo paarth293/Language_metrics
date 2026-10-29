@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createCashfreeOrder, paymentFromWebhook, verifyCashfreeWebhook } from "./cashfree";
+import { createCashfreeOrder, paymentFromWebhook, verifyCashfreeWebhook, webhookTimestampFresh } from "./cashfree";
 
 const fetchMock = vi.fn();
 beforeEach(() => {
@@ -78,5 +78,32 @@ describe("cashfree webhooks", () => {
 
   it("rejects a recognised event it cannot read", () => {
     expect(() => paymentFromWebhook({ type: "PAYMENT_FAILED_WEBHOOK", data: {} })).toThrow("Invalid payment details");
+  });
+});
+
+describe("webhook timestamp freshness (#37)", () => {
+  const NOW = 1_700_000_000_000;
+
+  it("accepts a timestamp from the last 5 minutes, in seconds or milliseconds", () => {
+    expect(webhookTimestampFresh(String(NOW), NOW)).toBe(true);
+    expect(webhookTimestampFresh(String(NOW / 1000), NOW)).toBe(true);
+    expect(webhookTimestampFresh(String(NOW - 4 * 60_000), NOW)).toBe(true);
+  });
+
+  it("rejects anything older than 5 minutes", () => {
+    expect(webhookTimestampFresh(String(NOW - 5 * 60_000 - 1), NOW)).toBe(false);
+    expect(webhookTimestampFresh(String(NOW / 1000 - 600), NOW)).toBe(false);
+    expect(webhookTimestampFresh("1", NOW)).toBe(false);
+  });
+
+  it("allows a minute of clock skew but not a far-future stamp", () => {
+    expect(webhookTimestampFresh(String(NOW + 30_000), NOW)).toBe(true);
+    expect(webhookTimestampFresh(String(NOW + 10 * 60_000), NOW)).toBe(false);
+  });
+
+  it("rejects a missing or unparsable timestamp", () => {
+    for (const bad of ["", "not-a-number", "0", "-1", "NaN"]) {
+      expect(webhookTimestampFresh(bad, NOW)).toBe(false);
+    }
   });
 });

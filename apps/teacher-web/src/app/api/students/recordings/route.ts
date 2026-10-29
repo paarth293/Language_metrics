@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { requestLogger } from "@repo/logger";
 
 // GET - List all recordings for the student
 export async function GET(request: NextRequest) {
@@ -18,11 +19,20 @@ export async function GET(request: NextRequest) {
           studentId: userId,
         },
       },
-      include: {
+      // Only the columns the response below actually reads. The previous
+      // `include: { user: true }` pulled every User column — passwordHash,
+      // totpSecret, backupCodes and both reset tokens — across the wire into
+      // function memory once per recording, and used none of them.
+      select: {
+        id: true,
+        scheduledStart: true,
+        scheduledEnd: true,
+        isRecordingPaid: true,
+        recordingUrl: true,
         booking: {
-          include: {
+          select: {
             teacher: {
-              include: { user: true },
+              select: { name: true, language: true },
             },
           },
         },
@@ -55,7 +65,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ recordings });
   } catch (error) {
-    console.error("Failed to fetch recordings:", error);
+    requestLogger(request).error("Failed to fetch recordings", { error });
     return NextResponse.json(
       { error: "Failed to fetch recordings" },
       { status: 500 }

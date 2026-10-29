@@ -2,7 +2,8 @@ import { randomBytes } from "node:crypto";
 import { db } from "@repo/database";
 import { reportPaymentIncident } from "./payment-incidents";
 import { sourcesOf, transitionOrder, type PaymentOrderStatus } from "./payment-order-status";
-import { CashfreeError, cashfreeMode, createCashfreeOrder, fetchCashfreeOrder, fetchSuccessfulPayment, type GatewayPayment } from "./cashfree";
+import { CashfreeError, cashfreeMode, findCashfreeOrder, fetchSuccessfulPayment, type GatewayPayment } from "./cashfree";
+import { mayRetireMissingOrder, openPaymentOrder } from "./open-payment-order";
 
 const RECORDING_PRICE_INR = 299;
 
@@ -41,22 +42,22 @@ export async function createRecordingPaymentOrder(userId: string, recordingId: u
     orderBy: { createdAt: "desc" },
   });
   if (open) {
-    const existing = await withProviderErrors(() => fetchCashfreeOrder(open.orderId));
-    if (existing.status === "ACTIVE" && existing.paymentSessionId) {
+    // null: the row was saved but its Cashfree order never made (#10); replace it.
+    const existing = await withProviderErrors(() => findCashfreeOrder(open.orderId));
+    if (existing?.status === "ACTIVE" && existing.paymentSessionId) {
       return { orderId: open.orderId, paymentSessionId: existing.paymentSessionId, mode: cashfreeMode(), amount: open.amount, currency: "INR" };
     }
-    if (existing.status === "PAID") {
+    if (existing?.status === "PAID") {
       const payment = await withProviderErrors(() => fetchSuccessfulPayment(open.orderId));
       if (payment) await settleRecordingPayment(payment, userId);
       throw new RecordingPaymentError("Recording is already unlocked", 409);
     }
-    await transitionOrder(db, { id: open.id }, "EXPIRED");
+    if (existing || mayRetireMissingOrder(open)) await transitionOrder(db, { id: open.id }, "EXPIRED");
   }
 
   const receipt = `${receiptPrefix(recordingId)}${randomBytes(4).toString("hex")}`;
-  // The receipt doubles as the Cashfree order id, so webhooks can be routed by prefix.
-  const order = await withProviderErrors(() => createCashfreeOrder({ orderId: receipt, amountInr: RECORDING_PRICE_INR, customerId: userId }));
-  await db.paymentOrder.create({ data: { userId, orderId: order.orderId, amount: RECORDING_PRICE_INR, currency: "INR", receipt, status: "CREATED" } });
+  // Row first, then Cashfree (#10). The receipt doubles as the Cashfree order id.
+  const order = await withProviderErrors(() => openPaymentOrder({ userId, orderId: receipt, amountInr: RECORDING_PRICE_INR }));
   return { orderId: order.orderId, paymentSessionId: order.paymentSessionId, mode: order.mode, amount: RECORDING_PRICE_INR, currency: "INR" };
 }
 

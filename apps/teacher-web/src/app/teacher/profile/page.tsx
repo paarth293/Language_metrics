@@ -2,25 +2,28 @@
 
 import Image from "next/image";
 
-import React, { useState, useEffect } from "react";
-import { Save, Clock, DollarSign, Loader2, AlertCircle, Plus, Trash2, CheckCircle2, FileText, Video, Shield, Camera, Edit3 } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Save, Clock, DollarSign, Loader2, AlertCircle, Plus, Trash2, CheckCircle2, FileText, Video, Shield, Camera, Edit3, GraduationCap, IdCard, ScrollText, Briefcase } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { CURRENCIES, getCurrencyInfo } from "@repo/currency";
+import { useJsonResource } from "@repo/ui/useResource";
+import { invalidateResource } from "@repo/ui/resource-cache";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 // Matches the 20% actually applied server-side (see api/students/*/book routes).
 const COMMISSION_RATE = 0.2;
 
-const DOC_TYPE_LABELS: Record<string, { label: string; icon: string }> = {
-  EDUCATION: { label: "Qualification Certificate", icon: "🎓" },
-  ID_PROOF: { label: "ID Proof", icon: "🪪" },
-  LANGUAGE_CERTIFICATE: { label: "Language Certificate", icon: "📜" },
-  EXPERIENCE_LETTER: { label: "Experience Document", icon: "💼" },
-  OTHER: { label: "Other Document", icon: "📄" },
+const DOC_TYPE_LABELS: Record<string, { label: string; icon: LucideIcon }> = {
+  EDUCATION: { label: "Qualification Certificate", icon: GraduationCap },
+  ID_PROOF: { label: "ID Proof", icon: IdCard },
+  LANGUAGE_CERTIFICATE: { label: "Language Certificate", icon: ScrollText },
+  EXPERIENCE_LETTER: { label: "Experience Document", icon: Briefcase },
+  OTHER: { label: "Other Document", icon: FileText },
 };
 
 const DOC_STATUS_COLORS: Record<string, "warning" | "success" | "danger"> = {
@@ -61,7 +64,6 @@ type AvailabilitySlot = {
 };
 
 export default function TeacherProfileSettings() {
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -88,11 +90,18 @@ export default function TeacherProfileSettings() {
   const [profileEmail, setProfileEmail] = useState("");
   const [documents, setDocuments] = useState<{ id: string; type: string; status: string; url: string; notes?: string | null; createdAt: string }[]>([]);
 
-  const fetchSettings = async () => {
-    try {
-      const res = await fetch("/api/teachers/profile", { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to load profile");
-      const data: ProfileData = await res.json();
+  // Cached, so coming back to this page paints the form instead of a
+  // skeleton. Focus revalidation is off and there is no poll: a background
+  // payload landing mid-edit would reseed the fields and discard whatever the
+  // teacher had typed.
+  const { data: loaded, isLoading, error: loadError, refetch } = useJsonResource<ProfileData>(
+    "/api/teachers/profile",
+    { staleMs: 60_000, revalidateOnFocus: false }
+  );
+
+  // Seeded once per mount, for the same reason.
+  const seeded = useRef(false);
+  const applyProfile = (data: ProfileData) => {
       const p = data.profile;
 
       setProfileName(p.name);
@@ -112,17 +121,13 @@ export default function TeacherProfileSettings() {
       // Both rates share one currency in this UI; fall back to whichever rate has one set.
       setCurrency(rates.find((r) => r.currency)?.currency || "INR");
       setAvailability(p.availability || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
   };
 
   useEffect(() => {
-    // eslint-disable-next-line
-    fetchSettings();
-  }, []);
+    if (!loaded || seeded.current) return;
+    seeded.current = true;
+    applyProfile(loaded);
+  }, [loaded]);
 
   const handleSaveProfile = async () => {
     setSaving(true);
@@ -151,6 +156,11 @@ export default function TeacherProfileSettings() {
         }),
       });
 
+      // Rates, availability and profile completeness feed the dashboard and
+      // the public teacher card too, so mark every teacher key stale. Mounted
+      // pages revalidate in place and keep showing what they have.
+      invalidateResource("/api/teachers/");
+
       setSuccessMsg("Profile & Settings saved successfully!");
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err) {
@@ -178,7 +188,8 @@ export default function TeacherProfileSettings() {
 
   const currencySymbol = getCurrencyInfo(currency).symbol;
 
-  if (loading) {
+  // A skeleton only when the profile has never loaded in this session.
+  if (isLoading) {
     return (
       <div className="py-8 w-full">
         <DashboardSkeleton />
@@ -186,8 +197,21 @@ export default function TeacherProfileSettings() {
     );
   }
 
+  if (!loaded) {
+    return (
+      <div className="py-16 w-full text-center">
+        <AlertCircle className="mx-auto mb-3 h-10 w-10 text-alert" />
+        <p className="font-semibold text-text">Unable to load your profile</p>
+        <p className="mt-1 text-[13px] text-text-muted">
+          {loadError ? "Check your connection and try again." : ""}
+        </p>
+        <Button variant="primary" className="mt-5" onClick={() => void refetch()}>Try again</Button>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6 pb-16 animate-in fade-in duration-300 h-full flex flex-col w-full">
+    <div className="space-y-6 pb-16 h-full flex flex-col w-full">
       {/* ── HEADER ─────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -517,7 +541,7 @@ export default function TeacherProfileSettings() {
                     return (
                       <div key={doc.id} className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-xl bg-surface-inset border border-border/60 hover:border-brand/30 transition-colors group">
                         <div className="w-12 h-12 rounded-xl bg-surface flex items-center justify-center text-[24px] shadow-sm shrink-0 border border-border/50 group-hover:scale-105 transition-transform">
-                          {typeInfo.icon}
+                          <typeInfo.icon className="h-6 w-6 text-brand" aria-hidden />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-[15px] font-bold text-text mb-0.5">{typeInfo.label}</div>

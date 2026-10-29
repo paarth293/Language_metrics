@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { verifyRecordingPayment, RecordingPaymentError } from "@repo/live-classes";
+import { requestLogger } from "@repo/logger";
+import { withServerErrorAlerts } from "@repo/logger/ops-alert";
 
-export async function POST(request: Request) {
+// 5xx answers are counted for the repeated-5xx ops alert (#8e).
+export const POST = withServerErrorAlerts("teacher-web students/payments/cashfree/verify", async (request: Request) => {
   try {
     const auth = await requireAuth(request, "STUDENT");
     if (auth.error) return auth.error;
@@ -11,7 +14,7 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof RecordingPaymentError) return NextResponse.json({ error: error.message }, { status: error.status });
     if (error instanceof SyntaxError) return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-    console.error("Recording payment verify failed:", error);
+    requestLogger(request).error("recording payment verification failed", { error });
     return NextResponse.json({ error: "Payment could not be processed" }, { status: 500 });
   }
-}
+});

@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Star, Globe, Award, Calendar, BookOpen } from "lucide-react";
 import { formatMoney } from "@repo/currency";
+import { useJsonResource } from "@repo/ui/useResource";
+import { StaleDataNotice } from "@repo/ui/StaleDataNotice";
 
 interface TeacherData {
   id: string;
@@ -54,28 +56,14 @@ const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", 
 export default function TeacherProfilePage() {
   const params = useParams();
   const id = params.id as string;
-  const [data, setData] = useState<TeacherProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // A teacher's public profile barely changes, so it is cached for two
+  // minutes: bouncing between discovery and a profile is free, and the
+  // booking page next door reads the same key.
+  const { data, error, isLoading, isStale, updatedAt, refetch } =
+    useJsonResource<TeacherProfile>(`/api/students/teacher/${id}`, { staleMs: 120_000 });
 
-  useEffect(() => {
-    const fetchTeacher = async () => {
-      try {
-        const res = await fetch(`/api/students/teacher/${id}`, {
-          credentials: "include",
-        });
-        if (!res.ok) throw new Error("Failed to load teacher profile");
-        setData(await res.json());
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchTeacher();
-  }, [id]);
-
-  if (loading) {
+  // A spinner only when this teacher has never been loaded.
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="w-12 h-12 rounded-full border-[3px] border-brand/20 border-t-brand animate-spin" />
@@ -83,11 +71,11 @@ export default function TeacherProfilePage() {
     );
   }
 
-  if (error || !data) {
+  if (!data) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <p className="text-text-muted mb-4">{error || "Teacher not found"}</p>
+          <p className="text-text-muted mb-4">{error ? "Couldn’t load this teacher." : "Teacher not found"}</p>
           <Link href="/discover" className="text-brand hover:underline">
             Back to Discover
           </Link>
@@ -107,6 +95,8 @@ export default function TeacherProfilePage() {
 
   return (
     <div className="space-y-6">
+      {isStale && <StaleDataNotice onRetry={() => void refetch()} updatedAt={updatedAt} />}
+
       {/* Back */}
       <Link
         href="/discover"

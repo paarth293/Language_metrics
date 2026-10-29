@@ -1,0 +1,33 @@
+{
+  "name": "@repo/student-portal",
+  "version": "1.0.0",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts",
+    "./chat-polling": "./src/chat-polling.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --config ../../tooling/eslint/shared.mjs --max-warnings 0"
+  },
+  "dependencies": {
+    "@repo/api-contracts": "*",
+    "@repo/classroom": "*",
+    "@repo/currency": "*",
+    "@repo/languages": "*",
+    "@repo/ui": "*",
+    "framer-motion": "^13.1.0",
+    "lucide-react": "^1.31.0"
+  },
+  "peerDependencies": {
+    "next": "^16.3.8",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "@types/react": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.0"
+  }
+}

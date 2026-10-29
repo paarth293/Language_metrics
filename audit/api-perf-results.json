@@ -1,0 +1,546 @@
+[
+  {
+    "name": "Health Check (Student)",
+    "method": "GET",
+    "url": "https://languagemetrics.in/api/health",
+    "status": 200,
+    "sizeBytes": 132,
+    "samples": 5,
+    "p50": 1426,
+    "p95": 2159,
+    "min": 1228,
+    "max": 2159,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0"
+    }
+  },
+  {
+    "name": "Health Check (Teacher)",
+    "method": "GET",
+    "url": "https://language-metrics-teacher-web.vercel.app/api/health",
+    "status": 200,
+    "sizeBytes": 132,
+    "samples": 5,
+    "p50": 1193,
+    "p95": 1303,
+    "min": 1186,
+    "max": 1303,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0"
+    }
+  },
+  {
+    "name": "Health Check (Admin)",
+    "method": "GET",
+    "url": "https://language-metrics-admin-panel.vercel.app/api/health",
+    "status": 200,
+    "sizeBytes": 57,
+    "samples": 5,
+    "p50": 446,
+    "p95": 2891,
+    "min": 435,
+    "max": 2891,
+    "cacheHeaders": {
+      "cache-control": "no-store",
+      "x-vercel-cache": "MISS",
+      "age": "0"
+    }
+  },
+  {
+    "name": "Monitoring Check (Teacher - Unauthorized)",
+    "method": "GET",
+    "url": "https://language-metrics-teacher-web.vercel.app/api/monitoring",
+    "status": 401,
+    "sizeBytes": 24,
+    "samples": 5,
+    "p50": 262,
+    "p95": 330,
+    "min": 252,
+    "max": 330,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0"
+    }
+  },
+  {
+    "name": "Auth Me (Student - Unauthenticated)",
+    "method": "GET",
+    "url": "https://languagemetrics.in/api/auth/me",
+    "status": 200,
+    "sizeBytes": 13,
+    "samples": 5,
+    "p50": 324,
+    "p95": 466,
+    "min": 306,
+    "max": 466,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0"
+    }
+  },
+  {
+    "name": "Auth Me (Teacher - Unauthenticated)",
+    "method": "GET",
+    "url": "https://language-metrics-teacher-web.vercel.app/api/auth/me",
+    "status": 200,
+    "sizeBytes": 13,
+    "samples": 5,
+    "p50": 267,
+    "p95": 267,
+    "min": 258,
+    "max": 267,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0"
+    }
+  },
+  {
+    "name": "Auth Logout (Student)",
+    "method": "POST",
+    "url": "https://languagemetrics.in/api/auth/logout",
+    "status": 200,
+    "sizeBytes": 16,
+    "samples": 5,
+    "p50": 321,
+    "p95": 354,
+    "min": 286,
+    "max": 354,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0"
+    }
+  },
+  {
+    "name": "Auth Logout (Teacher)",
+    "method": "POST",
+    "url": "https://language-metrics-teacher-web.vercel.app/api/auth/logout",
+    "status": 200,
+    "sizeBytes": 16,
+    "samples": 5,
+    "p50": 266,
+    "p95": 275,
+    "min": 250,
+    "max": 275,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0"
+    }
+  },
+  {
+    "name": "Auth Refresh (Teacher - No Cookie)",
+    "method": "POST",
+    "url": "https://language-metrics-teacher-web.vercel.app/api/auth/refresh",
+    "status": 401,
+    "sizeBytes": 31,
+    "samples": 5,
+    "p50": 293,
+    "p95": 351,
+    "min": 259,
+    "max": 351,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0"
+    }
+  },
+  {
+    "name": "Discover Teachers (Student)",
+    "method": "GET",
+    "url": "https://languagemetrics.in/api/students/discover",
+    "status": 401,
+    "sizeBytes": 76,
+    "samples": 5,
+    "p50": 303,
+    "p95": 476,
+    "min": 296,
+    "max": 476,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0"
+    }
+  },
+  {
+    "name": "Discover Teachers (Teacher)",
+    "method": "GET",
+    "url": "https://language-metrics-teacher-web.vercel.app/api/students/discover",
+    "status": 401,
+    "sizeBytes": 76,
+    "samples": 5,
+    "p50": 262,
+    "p95": 284,
+    "min": 243,
+    "max": 284,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0"
+    }
+  },
+  {
+    "name": "Mobile Teachers V1",
+    "method": "GET",
+    "url": "https://languagemetrics.in/api/v1/teachers",
+    "status": 404,
+    "sizeBytes": 22762,
+    "samples": 5,
+    "p50": 87,
+    "p95": 147,
+    "min": 81,
+    "max": 147,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "HIT",
+      "age": "343"
+    }
+  },
+  {
+    "name": "Student Dashboard (Unauthenticated)",
+    "method": "GET",
+    "url": "https://languagemetrics.in/api/students/dashboard",
+    "status": 401,
+    "sizeBytes": 76,
+    "samples": 5,
+    "p50": 305,
+    "p95": 375,
+    "min": 286,
+    "max": 375,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0"
+    }
+  },
+  {
+    "name": "Student Classes (Unauthenticated)",
+    "method": "GET",
+    "url": "https://languagemetrics.in/api/students/classes",
+    "status": 401,
+    "sizeBytes": 76,
+    "samples": 5,
+    "p50": 292,
+    "p95": 322,
+    "min": 281,
+    "max": 322,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0"
+    }
+  },
+  {
+    "name": "Student Chat Threads (Unauthenticated)",
+    "method": "GET",
+    "url": "https://languagemetrics.in/api/students/chat",
+    "status": 401,
+    "sizeBytes": 76,
+    "samples": 5,
+    "p50": 296,
+    "p95": 324,
+    "min": 281,
+    "max": 324,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0"
+    }
+  },
+  {
+    "name": "Student Notifications (Unauthenticated)",
+    "method": "GET",
+    "url": "https://languagemetrics.in/api/students/notifications",
+    "status": 401,
+    "sizeBytes": 76,
+    "samples": 5,
+    "p50": 305,
+    "p95": 326,
+    "min": 298,
+    "max": 326,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0"
+    }
+  },
+  {
+    "name": "Student Unread Count (Unauthenticated)",
+    "method": "GET",
+    "url": "https://languagemetrics.in/api/students/notifications/unread-count",
+    "status": 401,
+    "sizeBytes": 76,
+    "samples": 5,
+    "p50": 295,
+    "p95": 308,
+    "min": 277,
+    "max": 308,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0"
+    }
+  },
+  {
+    "name": "Student Recordings (Unauthenticated)",
+    "method": "GET",
+    "url": "https://languagemetrics.in/api/students/recordings",
+    "status": 401,
+    "sizeBytes": 76,
+    "samples": 5,
+    "p50": 290,
+    "p95": 299,
+    "min": 277,
+    "max": 299,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0"
+    }
+  },
+  {
+    "name": "Student Wallet (Unauthenticated)",
+    "method": "GET",
+    "url": "https://languagemetrics.in/api/students/wallet",
+    "status": 401,
+    "sizeBytes": 76,
+    "samples": 5,
+    "p50": 304,
+    "p95": 455,
+    "min": 286,
+    "max": 455,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0"
+    }
+  },
+  {
+    "name": "Coin Balance (Unauthenticated)",
+    "method": "GET",
+    "url": "https://languagemetrics.in/api/coins/balance",
+    "status": 404,
+    "sizeBytes": 22762,
+    "samples": 5,
+    "p50": 120,
+    "p95": 432,
+    "min": 84,
+    "max": 432,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "HIT",
+      "age": "359"
+    }
+  },
+  {
+    "name": "Teacher Dashboard (Unauthenticated)",
+    "method": "GET",
+    "url": "https://language-metrics-teacher-web.vercel.app/api/teachers/dashboard",
+    "status": 429,
+    "sizeBytes": 52,
+    "samples": 5,
+    "p50": 255,
+    "p95": 372,
+    "min": 60,
+    "max": 372,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0"
+    }
+  },
+  {
+    "name": "Teacher Earnings (Unauthenticated)",
+    "method": "GET",
+    "url": "https://language-metrics-teacher-web.vercel.app/api/teachers/earnings",
+    "status": 401,
+    "sizeBytes": 76,
+    "samples": 5,
+    "p50": 267,
+    "p95": 280,
+    "min": 50,
+    "max": 280,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "none",
+      "age": "0"
+    }
+  },
+  {
+    "name": "Teacher Schedule (Unauthenticated)",
+    "method": "GET",
+    "url": "https://language-metrics-teacher-web.vercel.app/api/teachers/schedule",
+    "status": 401,
+    "sizeBytes": 76,
+    "samples": 5,
+    "p50": 257,
+    "p95": 313,
+    "min": 251,
+    "max": 313,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0"
+    }
+  },
+  {
+    "name": "Teacher Students (Unauthenticated)",
+    "method": "GET",
+    "url": "https://language-metrics-teacher-web.vercel.app/api/teachers/students",
+    "status": 401,
+    "sizeBytes": 76,
+    "samples": 5,
+    "p50": 266,
+    "p95": 277,
+    "min": 252,
+    "max": 277,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0"
+    }
+  },
+  {
+    "name": "Teacher Wallet (Unauthenticated)",
+    "method": "GET",
+    "url": "https://language-metrics-teacher-web.vercel.app/api/teachers/wallet",
+    "status": 401,
+    "sizeBytes": 76,
+    "samples": 5,
+    "p50": 276,
+    "p95": 299,
+    "min": 251,
+    "max": 299,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0"
+    }
+  },
+  {
+    "name": "Admin Live Rooms (Unauthenticated)",
+    "method": "GET",
+    "url": "https://language-metrics-admin-panel.vercel.app/api/admin/live/rooms",
+    "status": 401,
+    "sizeBytes": 26,
+    "samples": 5,
+    "p50": 282,
+    "p95": 764,
+    "min": 240,
+    "max": 764,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0"
+    }
+  },
+  {
+    "name": "Admin Live Costs (Unauthenticated)",
+    "method": "GET",
+    "url": "https://language-metrics-admin-panel.vercel.app/api/admin/live/costs",
+    "status": 401,
+    "sizeBytes": 26,
+    "samples": 5,
+    "p50": 245,
+    "p95": 273,
+    "min": 239,
+    "max": 273,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0"
+    }
+  },
+  {
+    "name": "Create Order (Unauthenticated)",
+    "method": "POST",
+    "url": "https://languagemetrics.in/api/payments/create-order",
+    "status": 401,
+    "sizeBytes": 76,
+    "samples": 5,
+    "p50": 352,
+    "p95": 535,
+    "min": 297,
+    "max": 535,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0"
+    }
+  },
+  {
+    "name": "Verify Payment (Unauthenticated)",
+    "method": "POST",
+    "url": "https://languagemetrics.in/api/payments/verify-payment",
+    "status": 401,
+    "sizeBytes": 76,
+    "samples": 5,
+    "p50": 294,
+    "p95": 315,
+    "min": 284,
+    "max": 315,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0"
+    }
+  },
+  {
+    "name": "Cashfree Webhook (Unauthenticated, Unsigned)",
+    "method": "POST",
+    "url": "https://languagemetrics.in/api/webhooks/cashfree",
+    "status": 400,
+    "sizeBytes": 29,
+    "samples": 5,
+    "p50": 297,
+    "p95": 324,
+    "min": 292,
+    "max": 324,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0"
+    }
+  },
+  {
+    "name": "Cron Reconcile Payments (No Secret)",
+    "method": "GET",
+    "url": "https://languagemetrics.in/api/cron/reconcile-payments",
+    "status": 410,
+    "sizeBytes": 68,
+    "samples": 5,
+    "p50": 298,
+    "p95": 304,
+    "min": 288,
+    "max": 304,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0"
+    }
+  },
+  {
+    "name": "Cron Reconcile Sessions (No Secret)",
+    "method": "GET",
+    "url": "https://languagemetrics.in/api/cron/reconcile-sessions",
+    "status": 410,
+    "sizeBytes": 68,
+    "samples": 5,
+    "p50": 295,
+    "p95": 320,
+    "min": 285,
+    "max": 320,
+    "cacheHeaders": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "x-vercel-cache": "MISS",
+      "age": "0"
+    }
+  }
+]

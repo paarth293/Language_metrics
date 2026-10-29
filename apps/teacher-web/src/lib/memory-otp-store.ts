@@ -11,14 +11,23 @@ interface OtpEntry {
 const otpHashes = new Map<string, OtpEntry>();
 const verifiedEmails = new Map<string, number>();
 
+// Another instance cannot see this memory, so in production an OTP kept here
+// could never be verified. Refuse to store one (the route then fails before
+// emailing a useless code) and report nothing as stored or verified.
+const isProduction = () => process.env.NODE_ENV === "production";
+
 export const memoryOtpStore = {
   setHash(email: string, hash: string, ttlMs: number = 10 * 60 * 1000) {
+    if (isProduction()) {
+      throw new Error("In-memory OTP store is not available in production; Redis is required.");
+    }
     otpHashes.set(email.toLowerCase().trim(), {
       hash,
       expiresAt: Date.now() + ttlMs,
     });
   },
   getHash(email: string): string | null {
+    if (isProduction()) return null;
     const key = email.toLowerCase().trim();
     const entry = otpHashes.get(key);
     if (!entry) return null;
@@ -32,9 +41,11 @@ export const memoryOtpStore = {
     otpHashes.delete(email.toLowerCase().trim());
   },
   setVerified(email: string, ttlMs: number = 30 * 60 * 1000) {
+    if (isProduction()) return;
     verifiedEmails.set(email.toLowerCase().trim(), Date.now() + ttlMs);
   },
   isVerified(email: string): boolean {
+    if (isProduction()) return false;
     const key = email.toLowerCase().trim();
     const expiresAt = verifiedEmails.get(key);
     if (!expiresAt) return false;

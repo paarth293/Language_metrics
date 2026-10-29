@@ -13,7 +13,19 @@
 
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
-import { Resend } from "resend";
+import { Resend, type CreateEmailRequestOptions } from "resend";
+import { log } from "@repo/logger";
+import { printForDevelopment } from "./dev-console";
+
+/**
+ * nodemailer's defaults (2 min to connect, 30 s for the greeting, 10 min idle)
+ * would hold a request open far longer than any function should run.
+ * Exported so tests can shorten them.
+ */
+export const SMTP_TIMEOUTS = { connectionTimeout: 10_000, greetingTimeout: 10_000, socketTimeout: 15_000 };
+
+/** Resend has no timeout option; a signal passed with the request bounds it. */
+const RESEND_TIMEOUT_MS = 10_000;
 
 let _transporter: Transporter | null = null;
 
@@ -34,6 +46,7 @@ function getTransporter(): Transporter | null {
     port,
     secure: port === 465, // true for 465 (SSL), false for 587 (STARTTLS)
     auth: { user, pass },
+    ...SMTP_TIMEOUTS,
   });
 
   return _transporter;
@@ -70,7 +83,7 @@ export async function sendMail({
       });
       return;
     } catch (err) {
-      console.warn("[Zoho SMTP Warning] Failed to send email via Zoho:", err);
+      log.warn("[Zoho SMTP Warning] Failed to send email via Zoho", { error: err });
     }
   }
 
@@ -85,28 +98,31 @@ export async function sendMail({
         to,
         subject,
         html,
-      });
+      }, { signal: AbortSignal.timeout(RESEND_TIMEOUT_MS) } as CreateEmailRequestOptions); // `signal` is not in the SDK's option type
       if (result.data) {
-        console.log(`[Resend Email Success] Sent to ${to}, ID: ${result.data.id}`);
+        log.info("[Resend Email Success]", { to, id: result.data.id });
         return;
       }
       if (result.error) {
-        console.warn("[Resend Email Warning]", result.error);
+        log.warn("[Resend Email Warning]", { detail: result.error });
       }
     } catch (err) {
-      console.warn("[Resend Email Exception]", err);
+      log.warn("[Resend Email Exception]", { error: err });
     }
   }
 
-  // 3. Dev Mode / Unconfigured fallback (Console Log)
-  console.log(`\n==================================================`);
-  console.log(`[DEV EMAIL FALLBACK] Email dispatch requested`);
-  console.log(`To: ${to}`);
-  console.log(`Subject: ${subject}`);
-  const otpMatch = html.match(/>\s*(\d{6})\s*</);
-  if (otpMatch?.[1]) {
-    console.log(`🔑 VERIFICATION OTP CODE: ${otpMatch[1]}`);
+  // 3. Nothing delivered it. In production say so without the body (it may
+  // hold an OTP); in local development print it so sign-up can continue.
+  if (process.env.NODE_ENV === "production") {
+    log.error("[email] No email provider delivered the message", { to, subject });
+    return;
   }
-  console.log(`==================================================\n`);
+  const otpMatch = html.match(/>\s*(\d{6})\s*</);
+  printForDevelopment([
+    "[DEV EMAIL FALLBACK] Email dispatch requested",
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    ...(otpMatch?.[1] ? [`🔑 VERIFICATION OTP CODE: ${otpMatch[1]}`] : []),
+  ]);
 }
 

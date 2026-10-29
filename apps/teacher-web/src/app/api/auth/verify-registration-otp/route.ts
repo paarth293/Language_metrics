@@ -4,6 +4,7 @@ import { getRedisClient } from "@/lib/redis-client";
 import { compareOtp } from "@/lib/otp";
 import { exceedsMaxBodySize } from "@/lib/rate-limit";
 import { memoryOtpStore } from "@/lib/memory-otp-store";
+import { requestLogger } from "@repo/logger";
 
 const MAX_ATTEMPTS = 5;
 
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
           );
         }
       } catch (err) {
-        console.error("[verify-registration-otp] Redis attempts check error:", err);
+        requestLogger(request).error("[verify-registration-otp] Redis attempts check error", { error: err });
       }
     }
 
@@ -91,7 +92,7 @@ export async function POST(request: NextRequest) {
             await redis.expire(attemptsKey, 600);
           }
         } catch (err) {
-          console.error("[verify-registration-otp] Redis increment error:", err);
+          requestLogger(request).error("[verify-registration-otp] Redis increment error", { error: err });
         }
       }
 
@@ -108,7 +109,7 @@ export async function POST(request: NextRequest) {
         await redis.del(hashKey);
         await redis.del(attemptsKey);
       } catch (err) {
-        console.error("[verify-registration-otp] Redis verified flag error:", err);
+        requestLogger(request).error("[verify-registration-otp] Redis verified flag error", { error: err });
       }
     }
     
@@ -121,7 +122,7 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
   } catch (err) {
-    console.error("[verify-registration-otp] Unhandled error:", err);
+    requestLogger(request).error("[verify-registration-otp] Unhandled error", { error: err });
     return NextResponse.json(
       { message: "An unexpected error occurred. Please try again." },
       { status: 500 }

@@ -8,6 +8,7 @@ import {
   View,
   type TextInput,
 } from "react-native";
+import { ArrowRight } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../auth/AuthProvider";
 import { AppText, Banner, BrandMark, Button, Card, TextField, ThemeToggleButton } from "../components/ui";
@@ -133,7 +134,7 @@ export function LoginScreen() {
 
             <Button
               label="Sign in as Student"
-              trailing="→"
+              trailing={ArrowRight}
               onPress={handleSubmit}
               loading={isLoading}
               style={{ marginTop: spacing.xs }}

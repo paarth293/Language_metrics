@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { verifyAccessToken } from "@/lib/tokens";
 import { db } from "@/lib/db";
+import { requestLogger } from "@repo/logger";
 
 const SUPPORTED_LANGUAGES = [
   "English", "Spanish", "French", "German", "Italian", "Portuguese",
@@ -147,7 +148,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("[Profile] Failed to update profile:", err);
+    requestLogger(request).error("[Profile] Failed to update profile", { error: err });
     return NextResponse.json({ error: "Failed to update profile. Please try again." }, { status: 500 });
   }
 }

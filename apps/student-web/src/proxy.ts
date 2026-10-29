@@ -4,7 +4,10 @@ import type { NextRequest } from "next/server";
 /**
  * student-web Edge Proxy (Next.js 16.3)
  *
- * Scope: ONLY the versioned mobile API (`/api/v1/*`).
+ * Scope: every API route.
+ * - `/api/v1/*`: CORS for the mobile app's web target (below).
+ * - Every other `/api/*` route: an Origin check on writes (#18), since those
+ *   routes authenticate with cookies and SameSite=Lax was the only CSRF defence.
  *
  * Why this exists
  * ───────────────
@@ -62,7 +65,37 @@ function applyCorsHeaders(response: NextResponse, origin: string): NextResponse 
   return response;
 }
 
+const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+/** Called server-to-server and authenticated by signature, not cookies. */
+const WEBHOOK_PREFIX = "/api/webhooks/";
+
+/**
+ * Cookie routes: reject a write whose Origin host differs from Host (same
+ * check as teacher-web's proxy). Hosts are compared exactly, so a look-alike
+ * domain can't pass; a malformed or "null" Origin counts as a mismatch. A
+ * request with no Origin (curl, server-to-server) passes, as in teacher-web.
+ */
+function rejectCrossOriginWrite(request: NextRequest): NextResponse | null {
+  if (!WRITE_METHODS.has(request.method.toUpperCase())) return null;
+  if (request.nextUrl.pathname.startsWith(WEBHOOK_PREFIX)) return null;
+  const origin = request.headers.get("origin");
+  if (!origin) return null;
+  const host = request.headers.get("host") ?? request.nextUrl.host;
+  let originHost: string | null = null;
+  try {
+    originHost = new URL(origin).host;
+  } catch {
+    originHost = null;
+  }
+  if (originHost && originHost === host) return null;
+  return NextResponse.json({ error: "Cross-origin request rejected." }, { status: 403 });
+}
+
 export function proxy(request: NextRequest) {
+  if (!request.nextUrl.pathname.startsWith("/api/v1/")) {
+    return rejectCrossOriginWrite(request) ?? NextResponse.next();
+  }
+
   const origin = request.headers.get("origin");
 
   // Same-origin / native mobile requests carry no Origin header: pass through.
@@ -84,5 +117,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/api/v1/:path*"],
+  matcher: ["/api/:path*"],
 };

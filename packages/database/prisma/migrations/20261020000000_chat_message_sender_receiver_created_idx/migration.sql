@@ -1,0 +1,12 @@
+-- Chat queries filter one direction of a conversation and order by time
+-- (audit/PRODUCTION_READINESS.md #1, #2, #23). This index serves the
+-- sender->receiver half; it supersedes "ChatMessage_senderId_receiverId_idx",
+-- which is left in place for now.
+--
+-- CONCURRENTLY does not lock writes, but cannot run inside a transaction
+-- block, so this file holds exactly one statement. If the build fails it
+-- leaves an INVALID index behind: check with
+--   SELECT indexrelid::regclass, indisvalid FROM pg_index
+--   WHERE indexrelid = '"ChatMessage_senderId_receiverId_createdAt_idx"'::regclass;
+-- then run rollback.sql and apply this again.
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "ChatMessage_senderId_receiverId_createdAt_idx" ON "ChatMessage" ("senderId", "receiverId", "createdAt");

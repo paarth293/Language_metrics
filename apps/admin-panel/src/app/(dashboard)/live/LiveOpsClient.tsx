@@ -9,6 +9,7 @@
  *   3. What needs a human decision (teacher no-shows).
  */
 
+import { CircleDot } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
 import CostChart, { type DailyCost } from "./CostChart";
 
@@ -72,6 +73,9 @@ export default function LiveOpsClient() {
   const [cost, setCost] = useState<CostReport | null>(null);
   const [review, setReview] = useState<ReviewItem[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
+  // Ending a class asks for a second click in place; no blocking browser dialog.
+  const [confirmingEnd, setConfirmingEnd] = useState<string | null>(null);
+  const [endError, setEndError] = useState<string | null>(null);
 
   const loadRooms = useCallback(async () => {
     try {
@@ -86,13 +90,44 @@ export default function LiveOpsClient() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadRooms();
     // 15s is a deliberate floor: this endpoint calls LiveKit's REST API, which
     // is rate limited, and a live-class list does not need to be truer than
     // that.
-    const id = setInterval(loadRooms, 15_000);
-    return () => clearInterval(id);
+    //
+    // The poll used to be a bare setInterval, so a tab left open in the
+    // background kept calling that rate-limited API every 15s for as long as
+    // the admin had the page loaded. It now runs only while the tab is
+    // visible, and refreshes once on return so the list is current again
+    // without a burst.
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let lastLoad = 0;
+
+    const run = async () => {
+      if (cancelled || document.visibilityState === "hidden") return;
+      lastLoad = Date.now();
+      await loadRooms();
+      if (cancelled) return;
+      clearTimeout(timer);
+      timer = setTimeout(() => void run(), 15_000);
+    };
+
+    const onVisibility = () => {
+      if (cancelled || document.visibilityState === "hidden") return;
+      clearTimeout(timer);
+      const age = Date.now() - lastLoad;
+      if (age >= 15_000) void run();
+      else timer = setTimeout(() => void run(), 15_000 - age);
+    };
+
+    void run();
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [loadRooms]);
 
   useEffect(() => {
@@ -108,16 +143,23 @@ export default function LiveOpsClient() {
 
   const endClass = useCallback(
     async (sessionId: string) => {
-      if (!window.confirm("End this class for everyone and settle the student's coins?")) return;
+      setConfirmingEnd(null);
+      setEndError(null);
       setBusy(sessionId);
       try {
-        await fetch(`/api/admin/live/rooms/${sessionId}/end`, {
+        const res = await fetch(`/api/admin/live/rooms/${sessionId}/end`, {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ reason: "Ended from the admin console" }),
         });
+        if (!res.ok) {
+          const body = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
+          setEndError(body?.message ?? body?.error ?? "The class could not be ended. Please try again.");
+        }
         await loadRooms();
+      } catch {
+        setEndError("Could not reach the server. Check your connection and try again.");
       } finally {
         setBusy(null);
       }
@@ -134,6 +176,15 @@ export default function LiveOpsClient() {
 
   return (
     <div className="space-y-6">
+      {endError && (
+        <div
+          role="alert"
+          className="rounded-lg px-4 py-3 text-sm"
+          style={{ ...card, borderColor: "var(--danger)", color: "var(--text)" }}
+        >
+          {endError}
+        </div>
+      )}
       {!configured && (
         <div
           className="rounded-lg px-4 py-3 text-sm"
@@ -261,18 +312,48 @@ export default function LiveOpsClient() {
                       {r.participants.map((p) => p.name).join(", ") || r.numParticipants}
                     </td>
                     <td className="py-3 px-5" style={{ color: "var(--text-muted)" }}>
-                      {r.recordingStatus === "RECORDING" ? "● recording" : "—"}
+                      {r.recordingStatus === "RECORDING" ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <CircleDot className="h-3.5 w-3.5" style={{ color: "var(--danger)" }} /> recording
+                        </span>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                     <td className="py-3 px-5 text-right">
-                      <button
-                        type="button"
-                        onClick={() => endClass(r.classSessionId)}
-                        disabled={busy === r.classSessionId}
-                        className="px-3 py-1.5 rounded-md text-xs font-medium disabled:opacity-50"
-                        style={{ background: "var(--danger)", color: "#fff" }}
-                      >
-                        {busy === r.classSessionId ? "Ending…" : "Force end"}
-                      </button>
+                      {confirmingEnd === r.classSessionId ? (
+                        <span className="inline-flex items-center gap-2">
+                          <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+                            End for everyone and settle coins?
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => endClass(r.classSessionId)}
+                            className="px-3 py-1.5 rounded-md text-xs font-medium"
+                            style={{ background: "var(--danger)", color: "#fff" }}
+                          >
+                            Yes, end
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmingEnd(null)}
+                            className="px-3 py-1.5 rounded-md text-xs font-medium"
+                            style={{ border: "1px solid var(--border)", color: "var(--text)" }}
+                          >
+                            Keep
+                          </button>
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmingEnd(r.classSessionId)}
+                          disabled={busy === r.classSessionId}
+                          className="px-3 py-1.5 rounded-md text-xs font-medium disabled:opacity-50"
+                          style={{ background: "var(--danger)", color: "#fff" }}
+                        >
+                          {busy === r.classSessionId ? "Ending…" : "Force end"}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { stripHtml, sanitizeOrFallback } from "@/lib/sanitize";
+import { fetchLastMessages } from "@/lib/chat-threads";
 
 // GET - List all chat threads for the student
 export async function GET(request: NextRequest) {
@@ -11,60 +12,42 @@ export async function GET(request: NextRequest) {
   try {
     const userId = auth.user.sub;
 
-    // Get all bookings to find unique teachers
-    const bookings = await prisma.booking.findMany({
+    // One row per teacher the student has booked, with the latest booking
+    // time as the fallback for threads that have no messages yet.
+    const bookedTeachers = await prisma.booking.groupBy({
+      by: ["teacherId"],
       where: { studentId: userId },
-      include: {
-        teacher: {
-          include: { user: true },
-        },
-      },
-      orderBy: { createdAt: "desc" },
+      _max: { createdAt: true },
     });
+    const teacherIds = bookedTeachers.map((b) => b.teacherId);
 
-    const teacherIds = Array.from(new Set(bookings.map((b) => b.teacher.userId)));
+    // Only the columns the thread list shows; never the teacher's user row.
+    const teachers = teacherIds.length > 0
+      ? await prisma.teacherProfile.findMany({
+          where: { userId: { in: teacherIds } },
+          select: { userId: true, name: true, avatarUrl: true, language: true },
+        })
+      : [];
+    const teachersById = new Map(teachers.map((t) => [t.userId, t]));
 
-    // PERFORMANCE FIX: this used to run one `chatMessage.findFirst` query
-    // per unique teacher INSIDE the loop below (a classic N+1 — a student
-    // messaging 20 different teachers meant 20 sequential round trips to
-    // the database just to render their thread list). Fetch every
-    // candidate message in a single query instead, then pick the most
-    // recent one per teacher in memory.
-    const allMessages =
-      teacherIds.length > 0
-        ? await prisma.chatMessage.findMany({
-            where: {
-              OR: teacherIds.flatMap((teacherId) => [
-                { senderId: userId, receiverId: teacherId },
-                { senderId: teacherId, receiverId: userId },
-              ]),
-            },
-            orderBy: { createdAt: "desc" },
-          })
-        : [];
-    const messagesByTeacher = new Map<string, (typeof allMessages)[number]>();
-    for (const message of allMessages) {
-      const counterpartId = message.senderId === userId ? message.receiverId : message.senderId;
-      // Results are ordered newest-first, so the first message seen for a
-      // given counterpart is that thread's most recent message.
-      if (!messagesByTeacher.has(counterpartId)) {
-        messagesByTeacher.set(counterpartId, message);
-      }
-    }
+    // PERFORMANCE FIX: the newest message per teacher comes from one
+    // DISTINCT ON query instead of loading every message in every thread.
+    const messagesByTeacher = await fetchLastMessages(userId, teacherIds);
 
     // Build unique teacher threads
     const teacherMap = new Map<string, { teacherId: string; teacherName: string; teacherAvatar: string | null; language: string; lastMessage: string; lastMessageTime: string; unreadCount: number }>();
 
-    for (const booking of bookings) {
-      const teacherId = booking.teacher.userId;
-      if (!teacherMap.has(teacherId)) {
+    for (const booking of bookedTeachers) {
+      const teacherId = booking.teacherId;
+      const teacher = teachersById.get(teacherId);
+      if (teacher && !teacherMap.has(teacherId)) {
         const lastMessage = messagesByTeacher.get(teacherId);
 
         teacherMap.set(teacherId, {
           teacherId,
-          teacherName: sanitizeOrFallback(booking.teacher.name, ""),
-          teacherAvatar: booking.teacher.avatarUrl || null,
-          language: booking.teacher.language || "General",
+          teacherName: sanitizeOrFallback(teacher.name, ""),
+          teacherAvatar: teacher.avatarUrl || null,
+          language: teacher.language || "General",
           // Defense-in-depth: this is genuine free-text chat content typed
           // by another user (the teacher, or the student themself), so
           // unlike a bio it's realistic for someone to actually try
@@ -73,9 +56,7 @@ export async function GET(request: NextRequest) {
           // stripping it at the API boundary protects any future renderer
           // change or non-web client. See docs/audits/error-log.md.
           lastMessage: lastMessage ? stripHtml(lastMessage.content) || "No messages yet" : "No messages yet",
-          lastMessageTime:
-            lastMessage?.createdAt.toISOString() ||
-            booking.createdAt.toISOString(),
+          lastMessageTime: (lastMessage?.createdAt ?? booking._max.createdAt ?? new Date(0)).toISOString(),
           unreadCount: 0,
         });
       }

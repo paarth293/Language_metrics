@@ -15,6 +15,7 @@ import {
   refreshCookieOptions,
 } from "@/lib/tokens";
 import { storeRefreshSession } from "@/lib/redis-session";
+import { requestLogger } from "@repo/logger";
 
 /**
  * POST /api/auth/register/teacher
@@ -102,7 +103,7 @@ export async function POST(request: NextRequest) {
         authResult.user.email,
         authResult.user.name,
         verificationToken
-      ).catch((err) => console.error("[Email] Failed to send verification email:", err));
+      ).catch((error) => requestLogger(request).error("[Email] Failed to send verification email", { error }));
     }
 
     const sessionId = crypto.randomUUID();
@@ -122,10 +123,7 @@ export async function POST(request: NextRequest) {
     );
 
     response.cookies.set("lm_teacher_access_token", accessToken, accessCookieOptions);
-    response.cookies.set("lm_teacher_refresh_token", refreshToken, {
-      ...refreshCookieOptions,
-      path: "/api/auth",
-    });
+    response.cookies.set("lm_teacher_refresh_token", refreshToken, refreshCookieOptions);
 
     return response;
   } catch (err: unknown) {
@@ -142,7 +140,7 @@ export async function POST(request: NextRequest) {
         { status: 409 }
       );
     }
-    console.error("[Register Teacher] Unhandled error:", err);
+    requestLogger(request).error("[Register Teacher] Unhandled error", { error: err });
     return NextResponse.json(
       { message: "An unexpected error occurred. Please try again." },
       { status: 500 }

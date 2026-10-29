@@ -6,7 +6,10 @@ import { Bell, Menu, Search, Moon, Sun } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 import Link from "next/link";
 import { CommandPalette } from "./CommandPalette";
+import { NotificationsPanel } from "@repo/student-portal";
+import { fetchWithRefresh } from "@/lib/fetch-with-refresh";
 import type { NavItem } from "./AppShell";
+import { useJsonResource } from "@repo/ui/useResource";
 
 interface TopBarProps {
   onMenuClick: () => void;
@@ -14,6 +17,9 @@ interface TopBarProps {
   navItems: NavItem[];
   unreadCount?: number;
 }
+
+/** Marking notifications read can outlast the access token, so refresh on a 401. */
+const panelFetch: typeof fetch = (input, init) => fetchWithRefresh(String(input), init);
 
 const noopSubscribe = () => () => {};
 function useIsMac() {
@@ -30,6 +36,7 @@ const iconButton =
 export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnreadCount }: TopBarProps) {
   const { theme, setTheme } = useTheme();
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const isMac = useIsMac();
 
   useEffect(() => {
@@ -45,56 +52,62 @@ export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnread
   const notificationsHref = user?.role === "STUDENT" ? "/student/notifications" : "/teacher/notifications";
   const profileHref = user?.role === "STUDENT" ? "/student/profile" : "/teacher/profile";
 
-  const [localUnreadCount, setUnreadCount] = useState<number | undefined>();
-  const unreadCount = localUnreadCount ?? initialUnreadCount ?? 0;
+  // The badge reads through the shared cache, keyed by endpoint. That gives
+  // de-duplication for free: the TopBar stays mounted across every route
+  // change, so it used to re-request the count each time the user object was
+  // replaced by a session refresh, and again on every window focus.
+  //
+  // The effect it replaced depended on the whole `user` object, so any
+  // identity change — including a refreshUser() that returned the same
+  // person — re-ran it. Only the role actually selects an endpoint.
+  const role = user?.role;
+  const unreadUrl =
+    initialUnreadCount !== undefined || !role
+      ? null
+      : role === "STUDENT"
+        ? "/api/students/notifications/unread-count"
+        : "/api/teachers/notifications/unread-count";
 
+  const { data: unreadData, mutate: setUnreadData, refetch: refetchUnread } =
+    useJsonResource<{ unreadCount?: number }>(unreadUrl, { staleMs: 15_000 });
+
+  const [eventUnreadCount, setEventUnreadCount] = useState<number | undefined>();
+  const unreadCount = eventUnreadCount ?? unreadData?.unreadCount ?? initialUnreadCount ?? 0;
+
+  // The notifications page announces the count it just computed, so marking
+  // something read updates the badge without another request.
   useEffect(() => {
-    if (initialUnreadCount !== undefined) {
-      return;
-    }
-
-    let isMounted = true;
-    async function checkUnreadNotifications() {
-      try {
-        const endpoint = user?.role === "STUDENT" ? "/api/students/notifications/unread-count" : "/api/teachers/notifications/unread-count";
-        const res = await fetch(endpoint, { credentials: "include" });
-        if (res.ok) {
-          const data = await res.json();
-          if (isMounted && typeof data.unreadCount === "number") {
-            setUnreadCount(data.unreadCount);
-          }
-        }
-      } catch {
-        // Silently handle fetch failures
-      }
-    }
-
-    checkUnreadNotifications();
+    if (!unreadUrl) return;
 
     const handleNotificationsUpdated = (e: Event) => {
       const customEvent = e as CustomEvent<{ unreadCount?: number }>;
       if (customEvent.detail && typeof customEvent.detail.unreadCount === "number") {
-        setUnreadCount(customEvent.detail.unreadCount);
+        setEventUnreadCount(customEvent.detail.unreadCount);
+        setUnreadData({ unreadCount: customEvent.detail.unreadCount });
       } else {
-        checkUnreadNotifications();
+        void refetchUnread();
       }
     };
 
     window.addEventListener("notifications-updated", handleNotificationsUpdated);
-    window.addEventListener("focus", checkUnreadNotifications);
-
-    return () => {
-      isMounted = false;
-      window.removeEventListener("notifications-updated", handleNotificationsUpdated);
-      window.removeEventListener("focus", checkUnreadNotifications);
-    };
-  }, [initialUnreadCount, user?.role]);
+    return () => window.removeEventListener("notifications-updated", handleNotificationsUpdated);
+  }, [unreadUrl, setUnreadData, refetchUnread]);
 
   const toggleTheme = () => {
     setTheme(theme === "light" ? "dark" : "light");
   };
 
   const ThemeIcon = theme === "light" ? Moon : Sun;
+  const bell = (
+    <>
+      <Bell className="h-[17px] w-[17px]" strokeWidth={1.8} />
+      {unreadCount > 0 && (
+        <span className="absolute right-1.5 top-1.5 flex h-2 w-2 rounded-full bg-danger" aria-hidden="true">
+          <span className="absolute inset-0 animate-ping rounded-full bg-danger opacity-60" />
+        </span>
+      )}
+    </>
+  );
   const initials =
     (user?.name ?? "").split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join("") || "U";
 
@@ -137,18 +150,30 @@ export function TopBar({ onMenuClick, user, navItems, unreadCount: initialUnread
           <ThemeIcon className="h-[17px] w-[17px]" strokeWidth={1.8} />
         </button>
 
-        <Link
-          href={notificationsHref}
-          className={iconButton}
-          aria-label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : "Notifications"}
-        >
-          <Bell className="h-[17px] w-[17px]" strokeWidth={1.8} />
-          {unreadCount > 0 && (
-            <span className="absolute right-1.5 top-1.5 flex h-2 w-2 rounded-full bg-danger" aria-hidden="true">
-              <span className="absolute inset-0 animate-ping rounded-full bg-danger opacity-60" />
-            </span>
-          )}
-        </Link>
+        {/* Students get the notifications panel over the current page; teachers keep their page. */}
+        {user?.role === "STUDENT" ? (
+          <button
+            type="button"
+            onClick={() => setNotificationsOpen(true)}
+            className={iconButton}
+            aria-haspopup="dialog"
+            aria-expanded={notificationsOpen}
+            aria-label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : "Notifications"}
+          >
+            {bell}
+          </button>
+        ) : (
+          <Link
+            href={notificationsHref}
+            className={iconButton}
+            aria-label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : "Notifications"}
+          >
+            {bell}
+          </Link>
+        )}
+        {user?.role === "STUDENT" && (
+          <NotificationsPanel open={notificationsOpen} onClose={() => setNotificationsOpen(false)} fetchImpl={panelFetch} />
+        )}
 
         <div className="mx-1 hidden h-7 w-px bg-border md:block" aria-hidden="true" />
 

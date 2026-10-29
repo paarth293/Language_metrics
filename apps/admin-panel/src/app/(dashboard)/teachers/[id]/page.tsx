@@ -4,10 +4,29 @@ import { notFound } from "next/navigation";
 import { CoinWalletCard } from "@/components/coins/CoinWalletCard";
 import { TeacherPayoutCard } from "@/components/payouts/TeacherPayoutCard";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle, XCircle, Clock } from "lucide-react";
+import { ArrowLeft, CheckCircle, XCircle, Clock, GraduationCap, IdCard, Briefcase, ScrollText } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { updateTeacherStatus } from "./actions";
 
 export const dynamic = 'force-dynamic';
+
+const DOC_TYPES = new Map<string, { label: string; icon: LucideIcon }>([
+  ["EDUCATION", { label: "Qualification Certificate", icon: GraduationCap }],
+  ["ID_PROOF", { label: "ID Proof", icon: IdCard }],
+  ["EXPERIENCE_LETTER", { label: "Experience Document", icon: Briefcase }],
+  ["LANGUAGE_CERTIFICATE", { label: "Language Certificate", icon: ScrollText }],
+]);
+
+function DocLabel({ type }: { type: string }) {
+  const meta = DOC_TYPES.get(type);
+  if (!meta) return <>{type}</>;
+  return (
+    <span className="inline-flex items-center gap-2">
+      <meta.icon className="h-4 w-4 text-gray-400" aria-hidden />
+      {meta.label}
+    </span>
+  );
+}
 
 export default async function TeacherProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const admin = await requireAdmin();
@@ -103,11 +122,7 @@ export default async function TeacherProfilePage({ params }: { params: Promise<{
                   <li key={doc.id} className="flex items-center justify-between p-3 bg-gray-800 rounded border border-gray-700">
                     <div>
                       <p className="text-sm font-medium text-white">
-                        {doc.type === "EDUCATION" ? "🎓 Qualification Certificate" :
-                         doc.type === "ID_PROOF" ? "🪪 ID Proof" :
-                         doc.type === "EXPERIENCE_LETTER" ? "💼 Experience Document" :
-                         doc.type === "LANGUAGE_CERTIFICATE" ? "📜 Language Certificate" :
-                         doc.type}
+                        <DocLabel type={doc.type} />
                       </p>
                       <a 
                         href={doc.url.startsWith('http') ? doc.url : `${process.env.NEXT_PUBLIC_APP_URL || ''}${doc.url}`}

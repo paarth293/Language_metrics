@@ -2,10 +2,20 @@
 
 import Image from "next/image";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
+import { chatSendError } from "@repo/ui/chat-send-error";
 import { motion } from "framer-motion";
 import { MessageCircle, Send, Paperclip, AlertCircle, Loader2, Search, FileText, X, Timer } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import {
+  THREAD_POLL_MS,
+  mergeMessages,
+  messagePollDelay,
+  newerMessagesUrl,
+  olderMessagesUrl,
+} from "@/lib/chat-polling";
+import { getEntry, mutateResource } from "@repo/ui/resource-cache";
+import { useStickyState } from "@repo/ui/useStickyState";
 
 interface ChatThread {
   studentId: string;
@@ -26,18 +36,52 @@ interface ChatMessage {
   createdAt: string;
 }
 
+/**
+ * The chat page keeps its own request bookkeeping — versioned requests,
+ * in-flight guards and an idle poll backoff — which is left as it is. What
+ * changed is where the first paint comes from: the thread list and each
+ * conversation are mirrored into the shared cache, so navigating away and
+ * back renders what was on screen instead of a spinner over an empty panel,
+ * and a tab resume checks how old the list actually is before refetching.
+ */
+const THREADS_KEY = "/api/teachers/chat";
+const messagesKey = (id: string) => `/api/teachers/chat/${id}`;
+
+type ThreadsCache = { threads: ChatThread[] };
+type MessagesCache = { messages: ChatMessage[]; hasMore: boolean };
+
 export default function ChatPage() {
-  const [threads, setThreads] = useState<ChatThread[]>([]);
-  const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
+  const [threads, setThreads] = useState<ChatThread[]>(
+    () => getEntry<ThreadsCache>(THREADS_KEY).data?.threads ?? []
+  );
+  // The open conversation outlives a navigation, so coming back to chat
+  // reopens it rather than dropping to the empty-panel state.
+  const [selectedStudent, setSelectedStudent] = useStickyState<string | null>("teacher/chat:selected", null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  const [loading, setLoading] = useState(true);
+  // Only a true first visit has nothing to show.
+  const [loading, setLoading] = useState(
+    () => getEntry<ThreadsCache>(THREADS_KEY).data === undefined
+  );
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
+  // Why the last send failed, shown above the composer (chat follow-up).
+  const [sendError, setSendError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [hasOlder, setHasOlder] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Latest messages for poll URLs, the time of the last activity for the idle
+  // backoff, and scroll bookkeeping so loading older messages keeps the view
+  // still while new ones scroll to the bottom.
+  const messagesRef = useRef<ChatMessage[]>([]);
+  const lastActivityRef = useRef(0); // set when a conversation opens
+  const preserveScrollHeightRef = useRef<number | null>(null);
+  const lastMessageIdRef = useRef<string | null>(null);
 
   const threadRequest = useRef({ version: 0 });
   const threadInFlight = useRef(false);
@@ -61,6 +105,7 @@ export default function ChatPage() {
       const data = await res.json();
       if (request !== threadRequest.current.version) return;
       setThreads(data.threads || []);
+      mutateResource<ThreadsCache>(THREADS_KEY, { threads: data.threads || [] });
       setError(null);
     } catch (err: unknown) {
       if (request === threadRequest.current.version) setError(err instanceof Error ? err.message : "Failed to load chats");
@@ -69,16 +114,51 @@ export default function ChatPage() {
     }
   }, []);
 
+  // The first load (showLoading) fetches the newest page and replaces the
+  // list; a poll fetches only newer messages and merges them in by id.
   const fetchMessages = useCallback(async (studentId: string, showLoading = true) => {
     if (!showLoading && messageInFlight.current) return;
     messageInFlight.current = true;
     const request = ++messageRequest.current.version;
     try {
-      if (showLoading) { setLoadingMessages(true); setMessages([]); }
-      const res = await fetch(`/api/teachers/chat/${studentId}`);
+      if (showLoading) {
+        // Reopening a conversation paints the cached messages first; only a
+        // conversation never opened in this session shows a loading state.
+        const cached = getEntry<MessagesCache>(messagesKey(studentId)).data;
+        setMessages(cached?.messages ?? []);
+        messagesRef.current = cached?.messages ?? [];
+        setHasOlder(cached?.hasMore ?? false);
+        setLoadingMessages(cached === undefined);
+      }
+      const base = `/api/teachers/chat/${studentId}`;
+      const current = messagesRef.current;
+      const res = await fetch(showLoading ? base : newerMessagesUrl(base, current[current.length - 1]));
       if (!res.ok) throw new Error("Failed to load messages");
       const data = await res.json();
-      if (request === messageRequest.current.version) setMessages(data.messages || []);
+      if (request !== messageRequest.current.version) return;
+      const incoming: ChatMessage[] = data.messages || [];
+      if (showLoading) {
+        setMessages(incoming);
+        messagesRef.current = incoming;
+        setHasOlder(Boolean(data.hasMore));
+        mutateResource<MessagesCache>(messagesKey(studentId), {
+          messages: incoming,
+          hasMore: Boolean(data.hasMore),
+        });
+      } else {
+        const merged = mergeMessages(messagesRef.current, incoming);
+        if (merged.length !== messagesRef.current.length) {
+          lastActivityRef.current = Date.now();
+          messagesRef.current = merged;
+          setMessages(merged);
+          // hasMore belongs to the paging state, not this poll, so carry
+          // whatever the cache already recorded for it.
+          mutateResource<MessagesCache>(messagesKey(studentId), {
+            messages: merged,
+            hasMore: getEntry<MessagesCache>(messagesKey(studentId)).data?.hasMore ?? false,
+          });
+        }
+      }
     } catch (err: unknown) {
       if (request === messageRequest.current.version) console.error("Failed to load messages:", err);
     } finally {
@@ -86,44 +166,135 @@ export default function ChatPage() {
     }
   }, []);
 
+  const loadOlderMessages = async () => {
+    const studentId = selectedStudentRef.current;
+    const oldest = messagesRef.current[0];
+    if (!studentId || !oldest || loadingOlder) return;
+    setLoadingOlder(true);
+    try {
+      const res = await fetch(olderMessagesUrl(`/api/teachers/chat/${studentId}`, oldest));
+      if (!res.ok) throw new Error("Failed to load older messages");
+      const data = await res.json();
+      if (selectedStudentRef.current !== studentId) return;
+      preserveScrollHeightRef.current = messagesContainerRef.current?.scrollHeight ?? null;
+      const merged = mergeMessages(messagesRef.current, data.messages || []);
+      messagesRef.current = merged;
+      setMessages(merged);
+      setHasOlder(Boolean(data.hasMore));
+    } catch (err: unknown) {
+      console.error("Failed to load older messages:", err);
+    } finally {
+      setLoadingOlder(false);
+    }
+  };
+
+  // Thread list: every 30 s while the tab is visible; paused while hidden and
+  // refreshed once as soon as it is visible again.
   useEffect(() => {
     const requestState = threadRequest.current;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const tick = async () => {
+      if (document.visibilityState === "hidden") return;
+      await fetchThreads(false);
+      clearTimeout(timer);
+      timer = setTimeout(() => void tick(), THREAD_POLL_MS);
+    };
+    const onVisibility = () => {
+      clearTimeout(timer);
+      if (document.visibilityState === "hidden") return;
+      // Returning to the tab only refetches a list that is genuinely older
+      // than one poll interval; otherwise it just re-arms the timer.
+      const age = Date.now() - getEntry(THREADS_KEY).updatedAt;
+      if (age >= THREAD_POLL_MS) void tick();
+      else timer = setTimeout(() => void tick(), THREAD_POLL_MS - age);
+    };
     const initial = setTimeout(() => void fetchThreads(), 0);
-    const interval = setInterval(() => void fetchThreads(false), 3000);
-    return () => { clearTimeout(initial); clearInterval(interval); requestState.version++; };
+    timer = setTimeout(() => void tick(), THREAD_POLL_MS);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      clearTimeout(initial);
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+      requestState.version++;
+    };
   }, [fetchThreads]);
 
+  // Open conversation: every 10 s, 30 s after 2 minutes with no new
+  // messages; paused while hidden and polled once as soon as it is visible.
   useEffect(() => {
     if (!selectedStudent) return;
     const requestState = messageRequest.current;
+    lastActivityRef.current = Date.now();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const schedule = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => void tick(), messagePollDelay(lastActivityRef.current));
+    };
+    const tick = async () => {
+      if (document.visibilityState === "hidden") return;
+      await fetchMessages(selectedStudent, false);
+      schedule();
+    };
+    const onVisibility = () => {
+      clearTimeout(timer);
+      if (document.visibilityState !== "hidden") {
+        lastActivityRef.current = Date.now();
+        void tick();
+      }
+    };
     const initial = setTimeout(() => void fetchMessages(selectedStudent), 0);
-    const interval = setInterval(() => void fetchMessages(selectedStudent, false), 2000);
-    return () => { clearTimeout(initial); clearInterval(interval); requestState.version++; };
+    schedule();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      clearTimeout(initial);
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+      requestState.version++;
+    };
   }, [selectedStudent, fetchMessages]);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  // Keep the view still when older messages are prepended; scroll to the
+  // bottom only when a new message is appended.
+  useLayoutEffect(() => {
+    const container = messagesContainerRef.current;
+    const previousHeight = preserveScrollHeightRef.current;
+    if (container && previousHeight !== null) {
+      container.scrollTop += container.scrollHeight - previousHeight;
+      preserveScrollHeightRef.current = null;
+      return;
+    }
+    const lastId = messages[messages.length - 1]?.id ?? null;
+    if (lastId !== lastMessageIdRef.current) {
+      lastMessageIdRef.current = lastId;
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
 
   const handleSend = async () => {
     if (!newMessage.trim() || !selectedStudent || sending) return;
     setSending(true);
+    setSendError(null);
     try {
       const res = await fetch(`/api/teachers/chat/${selectedStudent}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: newMessage }),
       });
-      if (!res.ok) throw new Error("Failed to send message");
+      if (!res.ok) {
+        setSendError(await chatSendError(res));
+        return;
+      }
       const data = await res.json();
       if (selectedStudentRef.current === selectedStudent) {
         messageRequest.current.version++;
         messageInFlight.current = false;
-        setMessages((prev) => prev.some((message) => message.id === data.message.id) ? prev : [...prev, data.message]);
+        lastActivityRef.current = Date.now();
+        messagesRef.current = mergeMessages(messagesRef.current, [data.message]);
+        setMessages(messagesRef.current);
         setNewMessage("");
       }
-    } catch (err: unknown) {
-      console.error("Send failed:", err);
+    } catch {
+      setSendError("Message not sent. Please check your connection and try again.");
     } finally {
       setSending(false);
     }
@@ -131,6 +302,7 @@ export default function ChatPage() {
 
   const handleFileUpload = async (file: File) => {
     if (!selectedStudent) return;
+    setSendError(null);
     const formData = new FormData();
     formData.append("file", file);
     formData.append("content", file.name);
@@ -140,15 +312,20 @@ export default function ChatPage() {
         method: "POST",
         body: formData,
       });
-      if (!res.ok) throw new Error("Failed to upload file");
+      if (!res.ok) {
+        setSendError(await chatSendError(res));
+        return;
+      }
       const data = await res.json();
       if (selectedStudentRef.current === selectedStudent) {
         messageRequest.current.version++;
         messageInFlight.current = false;
-        setMessages((prev) => prev.some((message) => message.id === data.message.id) ? prev : [...prev, data.message]);
+        lastActivityRef.current = Date.now();
+        messagesRef.current = mergeMessages(messagesRef.current, [data.message]);
+        setMessages(messagesRef.current);
       }
-    } catch (err: unknown) {
-      console.error("Upload failed:", err);
+    } catch {
+      setSendError("Attachment not sent. Please check your connection and try again.");
     }
   };
 
@@ -200,7 +377,7 @@ export default function ChatPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <AlertCircle className="w-12 h-12 text-red-500" />
-        <p className="text-gray-600">{error}</p>
+        <p className="text-text-secondary">{error}</p>
         <Button onClick={() => fetchThreads()} variant="outline">
           Try Again
         </Button>
@@ -209,23 +386,23 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] bg-white rounded-xl border border-gray-100 overflow-hidden">
+    <div className="flex h-[calc(100vh-8rem)] bg-surface rounded-xl border border-border overflow-hidden">
       {/* Thread List */}
       <div
-        className={`w-80 border-r border-gray-100 flex flex-col ${
+        className={`w-80 border-r border-border flex flex-col ${
           selectedStudent ? "hidden md:flex" : "flex"
         }`}
       >
-        <div className="p-4 border-b border-gray-100">
+        <div className="p-4 border-b border-border">
           <h2 className="text-lg font-bold text-navy-900">Messages</h2>
           <div className="relative mt-3">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-subtle" />
             <input
               type="text"
               placeholder="Search students..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full pl-10 pr-4 py-2 text-sm border border-border rounded-lg focus:outline-none bg-surface text-text placeholder:text-text-subtle focus:ring-2 focus:ring-amber-500"
             />
           </div>
         </div>
@@ -233,8 +410,8 @@ export default function ChatPage() {
         <div className="flex-1 overflow-y-auto">
           {filteredThreads.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 px-4">
-              <MessageCircle className="w-10 h-10 text-gray-300 mb-3" />
-              <p className="text-sm text-gray-500 text-center">
+              <MessageCircle className="w-10 h-10 text-text-subtle mb-3" />
+              <p className="text-sm text-text-muted text-center">
                 No conversations yet. Book a class to start chatting with a
                 teacher.
               </p>
@@ -244,7 +421,7 @@ export default function ChatPage() {
               <button
                 key={thread.studentId}
                 onClick={() => selectStudent(thread.studentId)}
-                className={`w-full p-4 text-left hover:bg-gray-50 transition-colors border-b border-gray-50 ${
+                className={`w-full p-4 text-left hover:bg-surface-inset transition-colors border-b border-border ${
                   selectedStudent === thread.studentId ? "bg-amber-50" : ""
                 }`}
               >
@@ -270,14 +447,14 @@ export default function ChatPage() {
                       <span className="font-semibold text-sm text-navy-900 truncate">
                         {thread.studentName}
                       </span>
-                      <span className="text-xs text-gray-400 flex-shrink-0">
+                      <span className="text-xs text-text-subtle flex-shrink-0">
                         {formatTime(thread.lastMessageTime)}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-0.5">
+                    <p className="text-xs text-text-muted mt-0.5">
                       {thread.language}
                     </p>
-                    <p className="text-sm text-gray-600 truncate mt-1">
+                    <p className="text-sm text-text-secondary truncate mt-1">
                       {thread.lastMessage}
                     </p>
                   </div>
@@ -297,10 +474,10 @@ export default function ChatPage() {
       {selectedStudent ? (
         <div className="flex-1 flex flex-col">
           {/* Chat Header */}
-          <div className="p-4 border-b border-gray-100 flex items-center gap-3">
+          <div className="p-4 border-b border-border flex items-center gap-3">
             <button
               onClick={() => selectStudent(null)}
-              className="md:hidden p-1 hover:bg-gray-100 rounded"
+              className="md:hidden p-1 hover:bg-surface-inset rounded"
             >
               <X className="w-5 h-5" />
             </button>
@@ -316,22 +493,33 @@ export default function ChatPage() {
               <p className="font-semibold text-navy-900 text-sm">
                 {selectedThread?.studentName}
               </p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-text-muted">
                 {selectedThread?.language}
               </p>
             </div>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+            {hasOlder && !loadingMessages && (
+              <div className="flex justify-center">
+                <button
+                  onClick={() => void loadOlderMessages()}
+                  disabled={loadingOlder}
+                  className="text-xs text-amber-700 hover:underline disabled:opacity-50"
+                >
+                  {loadingOlder ? "Loading…" : "Load older messages"}
+                </button>
+              </div>
+            )}
             {loadingMessages ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-6 h-6 text-amber-700 animate-spin" />
               </div>
             ) : messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12">
-                <MessageCircle className="w-10 h-10 text-gray-300 mb-3" />
-                <p className="text-sm text-gray-500">
+                <MessageCircle className="w-10 h-10 text-text-subtle mb-3" />
+                <p className="text-sm text-text-muted">
                   No messages yet. Say hello!
                 </p>
               </div>
@@ -349,18 +537,21 @@ export default function ChatPage() {
                       className={`max-w-[70%] rounded-2xl px-4 py-2 ${
                         isOwn
                           ? "bg-amber-700 text-white rounded-br-md"
-                          : "bg-gray-100 text-gray-900 rounded-bl-md"
+                          : "bg-surface-inset text-text rounded-bl-md"
                       }`}
                     >
                       {msg.attachmentUrl ? (
-                        <div className="flex items-center gap-2">
-                          <FileText className="w-5 h-5 opacity-70" />
-                          <div>
-                            <p className="text-sm font-medium">
-                              {msg.attachmentUrl}
-                            </p>
-                          </div>
-                        </div>
+                        <a
+                          href={msg.attachmentUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 underline hover:no-underline"
+                        >
+                          <FileText className="w-5 h-5 opacity-70 shrink-0" />
+                          <span className="text-sm font-medium break-all">
+                            {msg.content || "Attachment"}
+                          </span>
+                        </a>
                       ) : (
                         <p className="text-sm">{msg.content}</p>
                       )}
@@ -371,7 +562,7 @@ export default function ChatPage() {
                       >
                         <span
                           className={`text-[10px] ${
-                            isOwn ? "text-amber-100" : "text-gray-400"
+                            isOwn ? "text-amber-100" : "text-text-subtle"
                           }`}
                         >
                           {formatTime(msg.createdAt)}
@@ -396,7 +587,23 @@ export default function ChatPage() {
           </div>
 
           {/* Input */}
-          <div className="p-4 border-t border-gray-100">
+          <div className="p-4 border-t border-border">
+              {sendError && (
+                <div
+                  role="alert"
+                  className="flex items-start gap-2 mb-2 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-sm text-red-800"
+                >
+                  <span className="flex-1">{sendError}</span>
+                  <button
+                    type="button"
+                    onClick={() => setSendError(null)}
+                    aria-label="Dismiss"
+                    className="text-red-500 hover:text-red-700 font-medium"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
             <div className="flex items-center gap-2">
               <input
                 type="file"
@@ -410,9 +617,9 @@ export default function ChatPage() {
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-surface-inset rounded-lg transition-colors"
               >
-                <Paperclip className="w-5 h-5 text-gray-500" />
+                <Paperclip className="w-5 h-5 text-text-muted" />
               </button>
               <input
                 type="text"
@@ -420,7 +627,7 @@ export default function ChatPage() {
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
                 placeholder="Type a message..."
-                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
+                className="flex-1 px-4 py-2 border border-border rounded-lg focus:outline-none bg-surface text-text placeholder:text-text-subtle focus:ring-2 focus:ring-amber-500 text-sm"
               />
               <Button
                 onClick={handleSend}
@@ -439,11 +646,11 @@ export default function ChatPage() {
       ) : (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <MessageCircle className="w-16 h-16 text-gray-200 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-700">
+            <MessageCircle className="w-16 h-16 text-text-subtle mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-text">
               Select a conversation
             </h3>
-            <p className="text-gray-500 mt-1 text-sm">
+            <p className="text-text-muted mt-1 text-sm">
               Choose a student from the list to start chatting
             </p>
           </div>

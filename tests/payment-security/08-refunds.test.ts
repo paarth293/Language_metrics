@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { harness, jsonRequest } from "./harness/setup";
+import { harness, jsonRequest, loggedIncidents } from "./harness/setup";
 
 vi.mock("@repo/database", async () => (await import("./harness/setup")).harness.database());
 vi.mock("@/lib/auth", async () => (await import("./harness/setup")).harness.auth());
@@ -123,7 +123,7 @@ describe("8. refunds: correct refunds", () => {
     expect((await harness.db.db.payment.findFirst({ where: { gatewayPaymentId: `refund:rf_${orderId}` } }))?.status).toBe("REFUNDED");
     expect((await harness.db.db.payment.findFirst({ where: { gatewayOrderId: orderId } }))?.status).toBe("REFUNDED");
     // Our own refund is not an incident.
-    expect(errors.mock.calls.filter(([tag, d]) => tag === "[payment-incident]" && (d as { kind: string }).kind === "refund_processed")).toHaveLength(0);
+    expect(loggedIncidents(errors).filter((d) => d.kind === "refund_processed")).toHaveLength(0);
   });
 
   it("a partial refund removes proportional coins and leaves the original payment SUCCESS", async () => {

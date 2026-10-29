@@ -10,11 +10,12 @@
  * by all three is still fulfilled once.
  */
 import { db } from "@repo/database";
-import { fetchCashfreeOrder, fetchCashfreeRefund, fetchSuccessfulPayment, type GatewayPayment } from "./cashfree";
+import { CashfreeOrderNotFoundError, fetchCashfreeOrder, fetchCashfreeRefund, fetchSuccessfulPayment, type GatewayPayment } from "./cashfree";
 import { settlePayment } from "./coin-payments";
 import { flagPaymentForReview, isPermanentPaymentError, reportPaymentIncident } from "./payment-incidents";
 import { transitionOrder } from "./payment-order-status";
 import { completeRefund, refundIdFor } from "./payment-refunds";
+import { SWEEP_BUDGET_MS, sweepInBatches } from "./cron-lock";
 import { settleRecordingPayment } from "./recording-payments";
 
 /** Leave orders this young alone: the student is probably still paying. */
@@ -40,6 +41,10 @@ export interface PaymentReconciliationSummary {
   refunded: string[];
   stuck: string[];
   failed: Array<{ orderId: string; error: string }>;
+  /** Batches of up to BATCH_SIZE processed this run (orders and refunds). */
+  batches: number;
+  /** True when the run stopped at its time budget with rows possibly left. */
+  budgetExhausted: boolean;
 }
 
 /** Order ids are our receipts, so the prefix says which flow owns the payment. */
@@ -48,71 +53,102 @@ export async function settleGatewayPayment(payment: GatewayPayment) {
   else await settlePayment(payment);
 }
 
-export async function reconcilePaymentOrders(now: Date = new Date()): Promise<PaymentReconciliationSummary> {
-  const summary: PaymentReconciliationSummary = { checked: 0, settled: [], flagged: [], expired: [], refunded: [], stuck: [], failed: [] };
+export async function reconcilePaymentOrders(
+  now: Date = new Date(),
+  { budgetMs = SWEEP_BUDGET_MS }: { budgetMs?: number } = {},
+): Promise<PaymentReconciliationSummary> {
+  const summary: PaymentReconciliationSummary = { checked: 0, settled: [], flagged: [], expired: [], refunded: [], stuck: [], failed: [], batches: 0, budgetExhausted: false };
   const newlyStuck: string[] = [];
-  const orders = await db.paymentOrder.findMany({
-    where: {
-      // FAILED orders stay payable, so a later success can be missed too.
-      status: { in: ["CREATED", "FAILED"] },
-      createdAt: { lte: new Date(now.getTime() - MIN_AGE_MS), gte: new Date(now.getTime() - MAX_AGE_MS) },
-    },
-    orderBy: { createdAt: "asc" },
-    take: BATCH_SIZE,
-  });
-
-  for (const order of orders) {
-    summary.checked++;
-    try {
-      const payment = await fetchSuccessfulPayment(order.orderId);
-      if (payment) {
+  const started = Date.now();
+  const unconfirmed = await sweepInBatches({
+    batchSize: BATCH_SIZE,
+    budgetMs,
+    fetchBatch: (excludeIds, take) => db.paymentOrder.findMany({
+      where: {
+        // FAILED orders stay payable, so a later success can be missed too.
+        status: { in: ["CREATED", "FAILED"] },
+        createdAt: { lte: new Date(now.getTime() - MIN_AGE_MS), gte: new Date(now.getTime() - MAX_AGE_MS) },
+        ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}),
+      },
+      orderBy: { createdAt: "asc" },
+      take,
+    }),
+    handle: async (order) => {
+      summary.checked++;
+      try {
+        let payment: GatewayPayment | null;
         try {
-          await settleGatewayPayment(payment);
-          summary.settled.push(order.orderId);
+          payment = await fetchSuccessfulPayment(order.orderId);
         } catch (error) {
-          if (!isPermanentPaymentError(error)) throw error;
-          await flagPaymentForReview(payment, error.message);
-          summary.flagged.push(order.orderId);
+          if (!(error instanceof CashfreeOrderNotFoundError)) throw error;
+          // Our row was saved but its Cashfree order never made (#10): a crash
+          // between the two steps, or Cashfree rejected it. Nothing can be
+          // paid, so it expires quietly. MIN_AGE_MS keeps in-flight requests out.
+          if (await transitionOrder(db, { id: order.id }, "EXPIRED")) summary.expired.push(order.orderId);
+          return;
         }
-        continue;
+        if (payment) {
+          try {
+            await settleGatewayPayment(payment);
+            summary.settled.push(order.orderId);
+          } catch (error) {
+            if (!isPermanentPaymentError(error)) throw error;
+            await flagPaymentForReview(payment, error.message);
+            summary.flagged.push(order.orderId);
+          }
+          return;
+        }
+        const { status } = await fetchCashfreeOrder(order.orderId);
+        if (status === "EXPIRED" || status === "TERMINATED") {
+          // Conditional so a payment settled meanwhile is never overwritten.
+          if (await transitionOrder(db, { id: order.id }, "EXPIRED")) summary.expired.push(order.orderId);
+          return;
+        }
+        const age = now.getTime() - order.createdAt.getTime();
+        if (age > STUCK_AFTER_MS) {
+          summary.stuck.push(order.orderId);
+          if (age <= STUCK_AFTER_MS + STUCK_ALERT_WINDOW_MS) newlyStuck.push(order.orderId);
+        }
+      } catch (error) {
+        summary.failed.push({ orderId: order.orderId, error: error instanceof Error ? error.message : String(error) });
       }
-      const { status } = await fetchCashfreeOrder(order.orderId);
-      if (status === "EXPIRED" || status === "TERMINATED") {
-        // Conditional so a payment settled meanwhile is never overwritten.
-        if (await transitionOrder(db, { id: order.id }, "EXPIRED")) summary.expired.push(order.orderId);
-        continue;
-      }
-      const age = now.getTime() - order.createdAt.getTime();
-      if (age > STUCK_AFTER_MS) {
-        summary.stuck.push(order.orderId);
-        if (age <= STUCK_AFTER_MS + STUCK_ALERT_WINDOW_MS) newlyStuck.push(order.orderId);
-      }
-    } catch (error) {
-      summary.failed.push({ orderId: order.orderId, error: error instanceof Error ? error.message : String(error) });
-    }
-  }
-  const refunds = await db.paymentOrder.findMany({
-    where: { status: "REFUND_PENDING", updatedAt: { lte: new Date(now.getTime() - MIN_AGE_MS) } },
-    orderBy: { updatedAt: "asc" },
-    take: BATCH_SIZE,
+    },
   });
-  for (const order of refunds) {
-    summary.checked++;
-    try {
-      const { status } = await fetchCashfreeRefund(order.orderId, refundIdFor(order.orderId));
-      if (status === "SUCCESS" && (await completeRefund(order.orderId))) summary.refunded.push(order.orderId);
-      else if (status === "CANCELLED") {
-        summary.stuck.push(order.orderId);
-        // Alert once: only the sweep that first marks the refund FAILED reports it.
-        const marked = await db.payment.updateMany({ where: { gatewayPaymentId: `refund:${refundIdFor(order.orderId)}`, status: "PENDING" }, data: { status: "FAILED" } });
-        if (marked.count) {
-          await reportPaymentIncident({ kind: "refund_failed", orderId: order.orderId, refundId: refundIdFor(order.orderId), reason: "Cashfree cancelled this refund after failing to pay the customer back." });
+  // Refunds get whatever budget the orders left.
+  const refunds = unconfirmed.budgetExhausted
+    ? { batches: 0, budgetExhausted: true }
+    : await sweepInBatches({
+      batchSize: BATCH_SIZE,
+      budgetMs: Math.max(0, budgetMs - (Date.now() - started)),
+      fetchBatch: (excludeIds, take) => db.paymentOrder.findMany({
+        where: {
+          status: "REFUND_PENDING",
+          updatedAt: { lte: new Date(now.getTime() - MIN_AGE_MS) },
+          ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}),
+        },
+        orderBy: { updatedAt: "asc" },
+        take,
+      }),
+      handle: async (order) => {
+        summary.checked++;
+        try {
+          const { status } = await fetchCashfreeRefund(order.orderId, refundIdFor(order.orderId));
+          if (status === "SUCCESS" && (await completeRefund(order.orderId))) summary.refunded.push(order.orderId);
+          else if (status === "CANCELLED") {
+            summary.stuck.push(order.orderId);
+            // Alert once: only the sweep that first marks the refund FAILED reports it.
+            const marked = await db.payment.updateMany({ where: { gatewayPaymentId: `refund:${refundIdFor(order.orderId)}`, status: "PENDING" }, data: { status: "FAILED" } });
+            if (marked.count) {
+              await reportPaymentIncident({ kind: "refund_failed", orderId: order.orderId, refundId: refundIdFor(order.orderId), reason: "Cashfree cancelled this refund after failing to pay the customer back." });
+            }
+          }
+        } catch (error) {
+          summary.failed.push({ orderId: order.orderId, error: error instanceof Error ? error.message : String(error) });
         }
-      }
-    } catch (error) {
-      summary.failed.push({ orderId: order.orderId, error: error instanceof Error ? error.message : String(error) });
-    }
-  }
+      },
+    });
+  summary.batches = unconfirmed.batches + refunds.batches;
+  summary.budgetExhausted = unconfirmed.budgetExhausted || refunds.budgetExhausted;
   // One alert per run, so a backlog does not page someone once per order.
   if (newlyStuck.length) {
     await reportPaymentIncident({ kind: "stuck_orders", orderIds: newlyStuck, reason: `${newlyStuck.length} order(s) still open at Cashfree over an hour after checkout; check them in the Cashfree dashboard.` });

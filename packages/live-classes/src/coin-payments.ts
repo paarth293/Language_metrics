@@ -1,10 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { credit, db } from "@repo/database";
-import { createCashfreeOrder, fetchSuccessfulPayment, type GatewayPayment } from "./cashfree";
+import { cashfreeMode, fetchSuccessfulPayment, findCashfreeOrder, type GatewayPayment } from "./cashfree";
+import { mayRetireMissingOrder, openPaymentOrder } from "./open-payment-order";
 import { sourcesOf, transitionOrder, type PaymentOrderStatus } from "./payment-order-status";
 
 // Must match COIN_VALUE_INR in packages/api-contracts/src/wallet.ts (1 coin = ₹1).
 const COIN_VALUE_INR = 1;
+
+/** Cashfree keeps an order payable for 30 minutes (ORDER_TTL_MS in cashfree.ts). */
+const REUSE_WINDOW_MS = 30 * 60_000;
 
 export class PaymentError extends Error {
   constructor(message: string, readonly status: number) { super(message); }
@@ -64,18 +68,41 @@ export async function settlePayment(payment: GatewayPayment, userId?: string) {
  * Open a Cashfree order for a coin pack. The caller resolves the pack from
  * the shared list (resolveCoinPackage), so the price never comes from the
  * browser. The receipt snapshots the coin quantity and doubles as the
- * Cashfree order id.
+ * Cashfree order id. The row is saved before Cashfree is called (#10).
  */
 export async function createCoinPaymentOrder(userId: string, pack: { coins: number; priceInr: number }) {
   // At most 35 characters, so the derived refund id (rf_<orderId>) stays
   // within Cashfree's 40-character limit for any coin quantity.
   const prefix = `coins_${pack.coins}_`;
+  const reused = await reuseOpenCoinOrder(userId, prefix);
+  if (reused) return reused;
   const receipt = `${prefix}${randomUUID().replaceAll("-", "").slice(0, 35 - prefix.length)}`;
-  const order = await createCashfreeOrder({ orderId: receipt, amountInr: pack.priceInr, customerId: userId });
-  await db.paymentOrder.create({
-    data: { orderId: order.orderId, amount: pack.priceInr, currency: "INR", status: "CREATED", receipt, userId },
-  });
+  const order = await openPaymentOrder({ userId, orderId: receipt, amountInr: pack.priceInr });
   return { orderId: order.orderId, paymentSessionId: order.paymentSessionId, mode: order.mode };
+}
+
+/**
+ * A second click or a retry must not open a second chargeable order (#10):
+ * hand back this user's open order for the same pack while Cashfree still
+ * accepts payment for it. One Cashfree has expired, or has no record of, is
+ * marked EXPIRED so it is not looked at again.
+ */
+async function reuseOpenCoinOrder(userId: string, prefix: string) {
+  const open = await db.paymentOrder.findFirst({
+    where: { userId, status: "CREATED", receipt: { startsWith: prefix }, createdAt: { gte: new Date(Date.now() - REUSE_WINDOW_MS) } },
+    orderBy: { createdAt: "desc" },
+  });
+  if (!open) return null;
+  const existing = await findCashfreeOrder(open.orderId);
+  if (existing?.status === "ACTIVE" && existing.paymentSessionId) {
+    return { orderId: open.orderId, paymentSessionId: existing.paymentSessionId, mode: cashfreeMode() };
+  }
+  // A PAID order is settled by the webhook or the reconciler; buying the pack
+  // again is a new purchase.
+  if (existing ? existing.status !== "PAID" : mayRetireMissingOrder(open)) {
+    await transitionOrder(db, { id: open.id }, "EXPIRED");
+  }
+  return null;
 }
 
 /**
