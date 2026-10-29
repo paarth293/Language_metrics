@@ -123,9 +123,14 @@ export default function TeacherRegisterPage() {
       let data: Record<string, unknown> = {};
       try { data = await res.json(); } catch { /* non-JSON response */ }
       if (!res.ok) {
-        if (res.status === 409) {
+        if (res.status === 409 || data.code === "EMAIL_ALREADY_EXISTS") {
           setShowOtp(false);
-          setStep1Errors({ email: (data.message as string) || "This email is already registered." });
+          setStep1Errors((prev) => ({
+            ...prev,
+            email:
+              (data.message as string) ||
+              "This email address is already registered. Please use another email address or sign in to your existing account.",
+          }));
           return;
         }
         setOtpError((data.message as string) || "Failed to send code.");
@@ -315,6 +320,15 @@ export default function TeacherRegisterPage() {
       let data: Record<string, unknown> = {};
       try { data = await res.json(); } catch { /* non-JSON response */ }
       if (!res.ok) {
+        if (res.status === 409 || data.code === "EMAIL_ALREADY_EXISTS") {
+          setStep1Errors((prev) => ({
+            ...prev,
+            email:
+              (data.message as string) ||
+              "This email address is already registered. Please use another email address or sign in to your existing account.",
+          }));
+          setStep(1);
+        }
         setServerError((data.message as string) || "Registration failed");
       } else if (data.verificationRequired) {
         router.push(`/verify-email?email=${encodeURIComponent(email)}`);

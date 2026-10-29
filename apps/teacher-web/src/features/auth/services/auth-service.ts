@@ -53,10 +53,19 @@ export class AuthService {
   }
 
   static async registerStudent(data: RegisterStudentInput, emailVerified: boolean = false): Promise<{ user: User } | null> {
-    const existing = await db.user.findUnique({
-      where: { email: data.email },
-      include: { studentProfile: true }
-    });
+    const normalizedEmail = data.email.toLowerCase().trim();
+    const [existing, existingAdmin] = await Promise.all([
+      db.user.findUnique({
+        where: { email: normalizedEmail },
+        include: { studentProfile: true }
+      }),
+      db.adminUser.findUnique({
+        where: { email: normalizedEmail },
+        select: { userId: true }
+      })
+    ]);
+
+    if (existingAdmin) return null;
 
     const passwordHash = await bcrypt.hash(data.password, 10);
     const otp = generateOtp();
@@ -95,46 +104,65 @@ export class AuthService {
     }
 
     const userId = crypto.randomUUID();
-    const user = await db.user.create({
-      data: {
-        id: userId,
-        email: data.email,
-        passwordHash,
-        role: "STUDENT",
-        emailVerified,
-        studentProfile: {
-          create: {
-            name: data.name,
-            languageToLearn: data.languageToLearn,
-            proficiencyLevel: data.proficiencyLevel === "advanced" ? "ADVANCED" : data.proficiencyLevel === "intermediate" ? "INTERMEDIATE" : "BEGINNER",
-            dateOfBirth: parseDateOfBirth(data.dateOfBirth),
-            onboardingComplete: true,
+    try {
+      const user = await db.user.create({
+        data: {
+          id: userId,
+          email: normalizedEmail,
+          passwordHash,
+          role: "STUDENT",
+          emailVerified,
+          studentProfile: {
+            create: {
+              name: data.name,
+              languageToLearn: data.languageToLearn,
+              proficiencyLevel: data.proficiencyLevel === "advanced" ? "ADVANCED" : data.proficiencyLevel === "intermediate" ? "INTERMEDIATE" : "BEGINNER",
+              dateOfBirth: parseDateOfBirth(data.dateOfBirth),
+              onboardingComplete: true,
+            },
+          },
+          verificationCodes: {
+            create: {
+              codeHash,
+              expiresAt,
+            },
           },
         },
-        verificationCodes: {
-          create: {
-            codeHash,
-            expiresAt,
-          },
-        },
-      },
-      include: { studentProfile: true },
-    });
+        include: { studentProfile: true },
+      });
 
-    if (!emailVerified) {
-      await sendVerificationOTP(user.email, otp);
+      if (!emailVerified) {
+        await sendVerificationOTP(user.email, otp);
+      }
+
+      return {
+        user: { id: user.id, name: user.studentProfile!.name, email: user.email, role: user.role },
+      };
+    } catch (err: unknown) {
+      const isP2002 =
+        (typeof err === "object" && err !== null && (err as { code?: string }).code === "P2002") ||
+        (err instanceof Error && err.message.includes("Unique constraint"));
+      if (isP2002) {
+        return null;
+      }
+      throw err;
     }
-
-    return {
-      user: { id: user.id, name: user.studentProfile!.name, email: user.email, role: user.role },
-    };
   }
 
   static async registerTeacher(data: RegisterTeacherInput, emailVerified: boolean = false): Promise<{ user: User } | null> {
-    const existing = await db.user.findUnique({
-      where: { email: data.email },
-      include: { teacherProfile: true }
-    });
+    const normalizedEmail = data.email.toLowerCase().trim();
+    const [existing, existingAdmin] = await Promise.all([
+      db.user.findUnique({
+        where: { email: normalizedEmail },
+        include: { teacherProfile: true }
+      }),
+      db.adminUser.findUnique({
+        where: { email: normalizedEmail },
+        select: { userId: true }
+      })
+    ]);
+
+    if (existingAdmin) return null;
 
     const passwordHash = await bcrypt.hash(data.password, 10);
     const otp = generateOtp();
@@ -209,45 +237,55 @@ export class AuthService {
     }
 
     const userId = crypto.randomUUID();
-    const user = await db.user.create({
-      data: {
-        id: userId,
-        email: data.email,
-        passwordHash,
-        role: "TEACHER",
-        emailVerified,
-        teacherProfile: {
-          create: {
-            name: data.name,
-            experienceLevel: data.experienceType === "experienced" ? "EXPERIENCED" : "FRESHER",
-            status: "PENDING",
-            language: data.language,
-            languages: data.languages,
-            gender: data.gender,
-            dateOfBirth: parseDateOfBirth(data.dateOfBirth),
-            bio: data.experienceDescription?.trim() || null,
-            onboardingComplete: true,
-            documents: {
-              create: documentsToCreate,
+    try {
+      const user = await db.user.create({
+        data: {
+          id: userId,
+          email: normalizedEmail,
+          passwordHash,
+          role: "TEACHER",
+          emailVerified,
+          teacherProfile: {
+            create: {
+              name: data.name,
+              experienceLevel: data.experienceType === "experienced" ? "EXPERIENCED" : "FRESHER",
+              status: "PENDING",
+              language: data.language,
+              languages: data.languages,
+              gender: data.gender,
+              dateOfBirth: parseDateOfBirth(data.dateOfBirth),
+              bio: data.experienceDescription?.trim() || null,
+              onboardingComplete: true,
+              documents: {
+                create: documentsToCreate,
+              },
+            },
+          },
+          verificationCodes: {
+            create: {
+              codeHash,
+              expiresAt,
             },
           },
         },
-        verificationCodes: {
-          create: {
-            codeHash,
-            expiresAt,
-          },
-        },
-      },
-      include: { teacherProfile: true },
-    });
-    if (!emailVerified) {
-      await sendVerificationOTP(user.email, otp);
-    }
+        include: { teacherProfile: true },
+      });
+      if (!emailVerified) {
+        await sendVerificationOTP(user.email, otp);
+      }
 
-    return {
-      user: { id: user.id, name: user.teacherProfile!.name, email: user.email, role: user.role },
-    };
+      return {
+        user: { id: user.id, name: user.teacherProfile!.name, email: user.email, role: user.role },
+      };
+    } catch (err: unknown) {
+      const isP2002 =
+        (typeof err === "object" && err !== null && (err as { code?: string }).code === "P2002") ||
+        (err instanceof Error && err.message.includes("Unique constraint"));
+      if (isP2002) {
+        return null;
+      }
+      throw err;
+    }
   }
 }
 export default AuthService;

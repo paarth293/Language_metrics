@@ -49,6 +49,7 @@ import { inviteAdminSchema, parseBody } from "@/lib/validators";
 
 export interface InviteAdminState {
   error?: string;
+  code?: string;
   success?: boolean;
   temporaryPassword?: string;
   createdEmail?: string;
@@ -122,40 +123,60 @@ export async function inviteAdminAction(
     return { error: "Only a Super Admin can create another Super Admin account." };
   }
 
-  const existingUser = await db.user.findUnique({ where: { email } });
-  if (existingUser) {
+  const normalizedEmail = email.toLowerCase().trim();
+  const [existingUser, existingAdmin] = await Promise.all([
+    db.user.findUnique({ where: { email: normalizedEmail } }),
+    db.adminUser.findUnique({ where: { email: normalizedEmail } }),
+  ]);
+  if (existingUser || existingAdmin) {
     return {
-      error: "An account with this email already exists. Use a different email address.",
+      error:
+        "This email address is already registered. Please use another email address or sign in to your existing account.",
+      code: "EMAIL_ALREADY_EXISTS",
     };
   }
 
   const temporaryPassword = generateTemporaryPassword();
   const passwordHash = await hashPassword(temporaryPassword);
 
-  const newUser = await db.user.create({
-    data: { id: crypto.randomUUID(), email, role: "ADMIN" },
-  });
+  try {
+    const newUser = await db.user.create({
+      data: { id: crypto.randomUUID(), email: normalizedEmail, role: "ADMIN" },
+    });
 
-  await db.adminUser.create({
-    data: {
-      userId: newUser.id,
-      name,
-      email,
-      passwordHash,
-      roleKey,
-      status: "ACTIVE",
-      isSuperAdmin: roleKey === "SUPER_ADMIN",
-      mustChangePassword: true,
-    },
-  });
+    await db.adminUser.create({
+      data: {
+        userId: newUser.id,
+        name,
+        email: normalizedEmail,
+        passwordHash,
+        roleKey,
+        status: "ACTIVE",
+        isSuperAdmin: roleKey === "SUPER_ADMIN",
+        mustChangePassword: true,
+      },
+    });
 
-  const ip = await getClientIp();
-  await auditLog(
-    { adminId: admin.id, ip },
-    "CREATE_ADMIN_USER",
-    newUser.id,
-    { email, roleKey, invitedBy: admin.email }
-  );
+    const ip = await getClientIp();
+    await auditLog(
+      { adminId: admin.id, ip },
+      "CREATE_ADMIN_USER",
+      newUser.id,
+      { email: normalizedEmail, roleKey, invitedBy: admin.email }
+    );
 
-  return { success: true, temporaryPassword, createdEmail: email };
+    return { success: true, temporaryPassword, createdEmail: normalizedEmail };
+  } catch (err: unknown) {
+    const isP2002 =
+      (typeof err === "object" && err !== null && (err as { code?: string }).code === "P2002") ||
+      (err instanceof Error && err.message.includes("Unique constraint"));
+    if (isP2002) {
+      return {
+        error:
+          "This email address is already registered. Please use another email address or sign in to your existing account.",
+        code: "EMAIL_ALREADY_EXISTS",
+      };
+    }
+    throw err;
+  }
 }

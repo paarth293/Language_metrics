@@ -26,7 +26,7 @@ const nameSchema = z
     "Name may only contain letters, spaces, hyphens, and apostrophes."
   );
 
-const emailSchema = z
+export const emailSchema = z
   .string()
   .trim()
   .toLowerCase()

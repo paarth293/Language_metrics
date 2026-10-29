@@ -71,7 +71,11 @@ export async function POST(request: NextRequest) {
     const authResult = await AuthService.registerTeacher(result.data, emailVerified);
     if (!authResult) {
       return NextResponse.json(
-        { message: "An account with this email already exists." },
+        {
+          code: "EMAIL_ALREADY_EXISTS",
+          message:
+            "This email address is already registered. Please use another email address or sign in to your existing account.",
+        },
         { status: 409 }
       );
     }
@@ -124,7 +128,20 @@ export async function POST(request: NextRequest) {
     });
 
     return response;
-  } catch (err) {
+  } catch (err: unknown) {
+    const isP2002 =
+      (typeof err === "object" && err !== null && (err as { code?: string }).code === "P2002") ||
+      (err instanceof Error && err.message.includes("Unique constraint"));
+    if (isP2002) {
+      return NextResponse.json(
+        {
+          code: "EMAIL_ALREADY_EXISTS",
+          message:
+            "This email address is already registered. Please use another email address or sign in to your existing account.",
+        },
+        { status: 409 }
+      );
+    }
     console.error("[Register Teacher] Unhandled error:", err);
     return NextResponse.json(
       { message: "An unexpected error occurred. Please try again." },
