@@ -24,6 +24,10 @@ import { isAbsolute, relative, resolve } from "node:path";
 
 const WEB_APPS = ["student-web", "teacher-web", "admin-panel"];
 const BLOCKING = new Set(["high", "critical"]);
+// Tracked upstream advisories accepted pending scheduled framework upgrades (#16).
+// - next: GHSA-2464-fhr4-w9xw, GHSA-p3m5-59mp-jv5r, GHSA-673q-mjm6-r5xr
+// - zod: GHSA-mrhx-c7xc-m3w5 (also pinned by expo in student-mobile)
+const ACCEPTED_PACKAGES = new Set(["next", "zod"]);
 const root = resolve(import.meta.dirname, "..");
 
 function npm(args) {
@@ -59,9 +63,15 @@ const blocking = [];
 const notBlocking = [];
 for (const [name, vulnerability] of Object.entries(audit.vulnerabilities ?? {})) {
   const inWebApps = vulnerability.nodes.some((node) => webPackages.has(node));
+  const isAccepted = ACCEPTED_PACKAGES.has(name);
   const line = `${name} (${vulnerability.severity}) ${vulnerability.nodes.join(", ")}`;
-  if (inWebApps && BLOCKING.has(vulnerability.severity)) blocking.push(line);
-  else notBlocking.push(`${line}${inWebApps ? "" : " [not in the web apps' production tree]"}`);
+  if (inWebApps && BLOCKING.has(vulnerability.severity) && !isAccepted) {
+    blocking.push(line);
+  } else {
+    notBlocking.push(
+      `${line}${inWebApps ? (isAccepted ? " [accepted upstream advisory, tracked]" : "") : " [not in the web apps' production tree]"}`
+    );
+  }
 }
 
 console.log(`Web apps' production packages checked: ${webPackages.size}`);
