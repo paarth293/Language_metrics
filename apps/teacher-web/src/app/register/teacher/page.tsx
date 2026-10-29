@@ -57,6 +57,142 @@ export default function TeacherRegisterPage() {
   const [cooldown, setCooldown] = useState(0);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  // Email availability check state
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+  const [emailCheckStatus, setEmailCheckStatus] = useState<{
+    email: string;
+    available: boolean;
+    error?: string;
+  } | null>(null);
+
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const inFlightPromiseRef = useRef<Promise<boolean> | null>(null);
+  const inFlightEmailRef = useRef<string | null>(null);
+  const currentEmailRef = useRef(email);
+
+  useEffect(() => {
+    currentEmailRef.current = email;
+  }, [email]);
+
+  // Clean up timers and abort controller
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+    };
+  }, []);
+
+  // ── Email Availability Check ────────────────────────────────────────────────
+  const checkAvailability = async (emailToCheck: string, force = false): Promise<boolean> => {
+    const normalized = emailToCheck.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!normalized || !emailRegex.test(normalized)) {
+      return false;
+    }
+
+    if (!force && emailCheckStatus?.email === normalized) {
+      return emailCheckStatus.available;
+    }
+
+    if (inFlightEmailRef.current === normalized && inFlightPromiseRef.current) {
+      return inFlightPromiseRef.current;
+    }
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    inFlightEmailRef.current = normalized;
+    setIsCheckingEmail(true);
+
+    const checkPromise = (async () => {
+      try {
+        const res = await fetch(`/api/auth/check-email?email=${encodeURIComponent(normalized)}`, {
+          signal: controller.signal,
+        });
+        let data: Record<string, unknown> = {};
+        try {
+          data = await res.json();
+        } catch {
+          // non-JSON
+        }
+
+        // Guard against stale response if aborted or input email changed
+        if (
+          controller.signal.aborted ||
+          controller !== abortControllerRef.current ||
+          currentEmailRef.current.trim().toLowerCase() !== normalized
+        ) {
+          return false;
+        }
+
+        if (res.ok && data.available === true) {
+          setEmailCheckStatus({ email: normalized, available: true });
+          setStep1Errors((prev) => {
+            if (prev.email && (prev.email.includes("already registered") || prev.email.includes("Unable to verify"))) {
+              return { ...prev, email: undefined };
+            }
+            return prev;
+          });
+          return true;
+        }
+
+        if (res.ok && data.available === false) {
+          const msg =
+            (data.code === "EMAIL_ALREADY_EXISTS"
+              ? "This email address is already registered. Please use another email address or sign in to your existing account."
+              : (data.message as string)) ||
+            "This email address is already registered. Please use another email address or sign in to your existing account.";
+          setEmailCheckStatus({ email: normalized, available: false, error: msg });
+          setStep1Errors((prev) => ({
+            ...prev,
+            email: msg,
+          }));
+          return false;
+        }
+
+        // Server error or non-200 status (e.g. 500, 502, 503)
+        const errorMsg = "Unable to verify email availability. Please check your connection and try again.";
+        setEmailCheckStatus({ email: normalized, available: false, error: errorMsg });
+        setStep1Errors((prev) => ({
+          ...prev,
+          email: errorMsg,
+        }));
+        return false;
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === "AbortError") {
+          return false;
+        }
+        if (
+          controller !== abortControllerRef.current ||
+          currentEmailRef.current.trim().toLowerCase() !== normalized
+        ) {
+          return false;
+        }
+        const errorMsg = "Unable to verify email availability. Please check your connection and try again.";
+        setEmailCheckStatus({ email: normalized, available: false, error: errorMsg });
+        setStep1Errors((prev) => ({
+          ...prev,
+          email: errorMsg,
+        }));
+        return false;
+      } finally {
+        if (abortControllerRef.current === controller) {
+          setIsCheckingEmail(false);
+          inFlightEmailRef.current = null;
+          inFlightPromiseRef.current = null;
+        }
+      }
+    })();
+
+    inFlightPromiseRef.current = checkPromise;
+    return checkPromise;
+  };
+
+
   // Step 2 fields — Languages & Gender
   const [primaryLanguage, setPrimaryLanguage] = useState("");
   const [additionalLanguages, setAdditionalLanguages] = useState<string[]>([]);
@@ -222,6 +358,29 @@ export default function TeacherRegisterPage() {
         return;
       }
       setStep1Errors({});
+
+      // Check email availability BEFORE attempting OTP
+      const normalized = email.trim().toLowerCase();
+      let isAvailable = false;
+
+      if (emailCheckStatus?.email === normalized && emailCheckStatus.available) {
+        isAvailable = true;
+      } else if (emailCheckStatus?.email === normalized && !emailCheckStatus.available) {
+        setStep1Errors((prev) => ({
+          ...prev,
+          email:
+            emailCheckStatus.error ||
+            "This email address is already registered. Please use another email address or sign in to your existing account.",
+        }));
+        return;
+      } else {
+        isAvailable = await checkAvailability(normalized, true);
+      }
+
+      if (!isAvailable) {
+        return;
+      }
+
       if (emailVerified) { setStep(2); return; }
       setShowOtp(true);
       sendOtp();
@@ -436,20 +595,71 @@ export default function TeacherRegisterPage() {
                 {step1Errors.name && <p id="teacher-name-error" role="alert" className="text-xs text-alert mt-1">{step1Errors.name}</p>}
               </div>
               <div className="space-y-1">
-                <label htmlFor="teacher-email" className="text-sm font-medium text-text">
-                  Email address
-                  {emailVerified && (
-                    <span className="ml-2 inline-flex items-center gap-1 text-xs font-medium text-trust">
-                      <Check className="w-3.5 h-3.5" strokeWidth={3} />
-                      Verified
+                <div className="flex items-center justify-between">
+                  <label htmlFor="teacher-email" className="text-sm font-medium text-text">
+                    Email address
+                    {emailVerified && (
+                      <span className="ml-2 inline-flex items-center gap-1 text-xs font-medium text-trust">
+                        <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                        Verified
+                      </span>
+                    )}
+                  </label>
+                  {isCheckingEmail && (
+                    <span
+                      className="inline-flex items-center gap-1 text-xs text-text-muted"
+                      data-testid="email-checking-indicator"
+                    >
+                      <span className="w-3 h-3 border-2 border-brand/30 border-t-brand rounded-full animate-spin" />
+                      Checking availability…
                     </span>
                   )}
-                </label>
-                <Input id="teacher-email" type="email" placeholder="Enter your email" value={email}
-                  onChange={(e) => { setEmail(e.target.value); clearStep1("email"); if (emailVerified) setEmailVerified(false); }}
-                  aria-invalid={!!step1Errors.email} aria-describedby={step1Errors.email ? "teacher-email-error" : undefined}
-                  className={`${step1Errors.email ? "border-alert focus:ring-alert/30" : ""} ${emailVerified ? "border-trust focus:ring-trust/30" : ""}`} />
-                {step1Errors.email && <p id="teacher-email-error" role="alert" className="text-xs text-alert mt-1">{step1Errors.email}</p>}
+                </div>
+                <Input
+                  id="teacher-email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setEmail(val);
+                    currentEmailRef.current = val;
+                    clearStep1("email");
+                    if (emailVerified) setEmailVerified(false);
+                    setEmailCheckStatus(null);
+
+                    if (abortControllerRef.current) {
+                      abortControllerRef.current.abort();
+                      abortControllerRef.current = null;
+                    }
+                    setIsCheckingEmail(false);
+                    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+
+                    const trimmed = val.trim().toLowerCase();
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (emailRegex.test(trimmed)) {
+                      debounceTimerRef.current = setTimeout(() => {
+                        checkAvailability(trimmed);
+                      }, 400);
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+                    const trimmed = (e.target as HTMLInputElement).value.trim().toLowerCase();
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (emailRegex.test(trimmed) && emailCheckStatus?.email !== trimmed) {
+                      checkAvailability(trimmed);
+                    }
+                  }}
+                  aria-invalid={!!step1Errors.email}
+                  aria-describedby={step1Errors.email ? "teacher-email-error" : undefined}
+                  className={`${step1Errors.email ? "border-alert focus:ring-alert/30" : ""} ${emailVerified ? "border-trust focus:ring-trust/30" : ""}`}
+                />
+                {step1Errors.email && (
+                  <p id="teacher-email-error" role="alert" className="text-xs text-alert mt-1">
+                    {step1Errors.email}
+                  </p>
+                )}
               </div>
               <div className="space-y-1">
                 <label htmlFor="teacher-password" className="text-sm font-medium text-text">Password</label>
