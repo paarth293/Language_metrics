@@ -52,11 +52,11 @@ export async function POST(request: NextRequest) {
 
     // ── 1. Check if email is already registered ─────────────────────────────────
     const [existingUser, existingAdmin] = await Promise.all([
-      db.user.findUnique({
+      db.user?.findUnique({
         where: { email: normalizedEmail },
         select: { id: true },
       }),
-      db.adminUser.findUnique({
+      db.adminUser?.findUnique({
         where: { email: normalizedEmail },
         select: { userId: true },
       }),

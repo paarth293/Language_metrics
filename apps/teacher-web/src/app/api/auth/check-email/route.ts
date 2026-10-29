@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { emailSchema } from "@/features/auth/validators/auth";
 import { rateLimit } from "@/lib/rate-limit";
+import { requestLogger } from "@repo/logger";
 
 /**
  * GET /api/auth/check-email?email=...
@@ -45,11 +46,11 @@ export async function GET(request: NextRequest) {
 
     // Check database uniqueness across all accounts
     const [existingUser, existingAdmin] = await Promise.all([
-      db.user.findUnique({
+      db.user?.findUnique({
         where: { email: normalizedEmail },
         select: { id: true },
       }),
-      db.adminUser.findUnique({
+      db.adminUser?.findUnique({
         where: { email: normalizedEmail },
         select: { userId: true },
       }),
@@ -68,7 +69,7 @@ export async function GET(request: NextRequest) {
       available: true,
     });
   } catch (error) {
-    console.error("[Check Email] Unexpected error:", error);
+    requestLogger(request).error("[Check Email] Unexpected error", { error });
     return NextResponse.json(
       { message: "An unexpected error occurred. Please try again." },
       { status: 500 }

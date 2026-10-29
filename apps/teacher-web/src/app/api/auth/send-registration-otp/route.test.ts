@@ -10,7 +10,12 @@ vi.mock("@/lib/redis-client", () => {
     getRedisClient: () => ({ exists: fail, incr: fail, expire: fail, set: fail, del: fail, get: fail }),
   };
 });
-vi.mock("@/lib/db", () => ({ db: { user: { findUnique: async () => null } } }));
+vi.mock("@/lib/db", () => ({
+  db: {
+    user: { findUnique: async () => null },
+    adminUser: { findUnique: async () => null },
+  },
+}));
 vi.mock("@/lib/email", () => ({ sendVerificationOTP: async () => true }));
 vi.mock("@/lib/otp", () => ({ generateOtp: () => "123456", hashOtp: async () => "hash" }));
 
@@ -35,7 +40,6 @@ describe("POST /api/auth/send-registration-otp when Redis commands fail", () => 
 
     const statuses: number[] = [];
     for (let i = 0; i < 3; i++) statuses.push((await POST(request(email))).status);
-    console.info("statuses:", statuses);
 
     expect(statuses[2]).toBe(429);
   });
