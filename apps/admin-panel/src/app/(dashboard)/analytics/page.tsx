@@ -1,6 +1,7 @@
 import { db } from "@repo/database";
+import { log } from "@repo/logger";
 import { requireAdmin } from "@/lib/guards";
-import { ArrowDownToLine, TrendingUp, Users, BookOpen, GraduationCap, XCircle, Star, DollarSign } from "lucide-react";
+import { AlertTriangle, ArrowDownToLine, TrendingUp, Users, BookOpen, GraduationCap, XCircle, Star, DollarSign } from "lucide-react";
 
 export const dynamic = 'force-dynamic';
 
@@ -8,40 +9,82 @@ function inr(paise: number): string {
   return "₹" + (paise / 100).toLocaleString("en-IN", { maximumFractionDigits: 0 });
 }
 
+interface TopTeacherRow {
+  userId: string;
+  name: string;
+  status: string;
+  user: { email: string } | null;
+}
+
+interface PopularLanguageRow {
+  id: string;
+  name: string;
+  flagEmoji: string | null;
+  _count: { courses: number } | null;
+}
+
 export default async function AnalyticsPage() {
   await requireAdmin();
-  const [completed, cancelled, totalRev, newStudents, students, teachers, activeCourses] = await db.$transaction([
-    db.classSession.count({ where: { status: "COMPLETED" } }),
-    db.booking.count({ where: { status: "CANCELLED" } }),
-    db.payment.aggregate({ where: { status: "SUCCESS" }, _sum: { amount: true } }),
-    // eslint-disable-next-line react-hooks/purity
-    db.studentProfile.count({ where: { user: { createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } } } }),
-    db.studentProfile.count(),
-    db.teacherProfile.count(),
-    db.course.count({ where: { published: true } }),
-  ]);
 
-  const avgRating = await db.review.aggregate({ _avg: { rating: true } });
-  const topTeachers = await db.teacherProfile.findMany({
-    orderBy: { reviews: { _count: "desc" } },
-    take: 5,
-    include: { user: true },
-  });
-  const popularLangs = await db.language.findMany({
-    where: { status: "ACTIVE" },
-    include: { _count: { select: { courses: true } } },
-    orderBy: { name: "asc" },
-  });
+  let loadError = false;
+  let completed: number | null = null;
+  let cancelled: number | null = null;
+  let totalRevenuePaise: number | null = null;
+  let newStudents: number | null = null;
+  let students: number | null = null;
+  let teachers: number | null = null;
+  let activeCourses: number | null = null;
+  let avgTeacherRating: number | null = null;
+  let topTeachers: TopTeacherRow[] = [];
+  let popularLangs: PopularLanguageRow[] = [];
+
+  try {
+    completed = await db.classSession.count({ where: { status: "COMPLETED" } });
+    cancelled = await db.booking.count({ where: { status: "CANCELLED" } });
+    const totalRev = await db.payment.aggregate({ where: { status: "SUCCESS" }, _sum: { amount: true } });
+    totalRevenuePaise = totalRev._sum.amount ?? 0;
+
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    newStudents = await db.studentProfile.count({ where: { user: { createdAt: { gte: thirtyDaysAgo } } } });
+    students = await db.studentProfile.count();
+    teachers = await db.teacherProfile.count();
+    activeCourses = await db.course.count({ where: { published: true } });
+
+    const avgRating = await db.review.aggregate({ _avg: { rating: true } });
+    avgTeacherRating = avgRating._avg.rating ?? 0;
+
+    topTeachers = await db.teacherProfile.findMany({
+      orderBy: { reviews: { _count: "desc" } },
+      take: 5,
+      select: {
+        userId: true,
+        name: true,
+        status: true,
+        user: {
+          select: { email: true },
+        },
+      },
+    });
+
+    popularLangs = await db.language.findMany({
+      where: { status: "ACTIVE" },
+      include: { _count: { select: { courses: true } } },
+      orderBy: { name: "asc" },
+    });
+  } catch (error) {
+    loadError = true;
+    log.error("[analytics] Failed to load analytics data", { error });
+  }
 
   const metrics = [
-    { label: "Total Revenue", value: inr(totalRev._sum.amount ?? 0), icon: DollarSign, color: "text-green-600 dark:text-green-400", bg: "bg-green-500/10" },
-    { label: "Classes Completed", value: completed.toLocaleString("en-IN"), icon: TrendingUp, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-500/10" },
-    { label: "Cancellations", value: cancelled.toLocaleString("en-IN"), icon: XCircle, color: "text-red-600 dark:text-red-400", bg: "bg-red-500/10" },
-    { label: "Active Courses", value: activeCourses.toLocaleString("en-IN"), icon: BookOpen, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-500/10" },
-    { label: "Total Students", value: students.toLocaleString("en-IN"), icon: GraduationCap, color: "text-[var(--lm-teal-deep)]", bg: "bg-[var(--lm-teal-soft)]" },
-    { label: "New Students (30d)", value: newStudents.toLocaleString("en-IN"), icon: Users, color: "text-[var(--lm-teal-deep)]", bg: "bg-[var(--lm-teal-soft)]" },
-    { label: "Total Teachers", value: teachers.toLocaleString("en-IN"), icon: Users, color: "text-[var(--lm-amber)]", bg: "bg-[var(--lm-amber-soft)]" },
-    { label: "Avg Teacher Rating", value: (Math.round((avgRating._avg.rating ?? 0) * 10) / 10).toFixed(1), icon: Star, color: "text-[var(--lm-amber)]", bg: "bg-[var(--lm-amber-soft)]" },
+    { label: "Total Revenue", value: totalRevenuePaise !== null ? inr(totalRevenuePaise) : "—", icon: DollarSign, color: "text-green-600 dark:text-green-400", bg: "bg-green-500/10" },
+    { label: "Classes Completed", value: completed !== null ? completed.toLocaleString("en-IN") : "—", icon: TrendingUp, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-500/10" },
+    { label: "Cancellations", value: cancelled !== null ? cancelled.toLocaleString("en-IN") : "—", icon: XCircle, color: "text-red-600 dark:text-red-400", bg: "bg-red-500/10" },
+    { label: "Active Courses", value: activeCourses !== null ? activeCourses.toLocaleString("en-IN") : "—", icon: BookOpen, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-500/10" },
+    { label: "Total Students", value: students !== null ? students.toLocaleString("en-IN") : "—", icon: GraduationCap, color: "text-[var(--lm-teal-deep)]", bg: "bg-[var(--lm-teal-soft)]" },
+    { label: "New Students (30d)", value: newStudents !== null ? newStudents.toLocaleString("en-IN") : "—", icon: Users, color: "text-[var(--lm-teal-deep)]", bg: "bg-[var(--lm-teal-soft)]" },
+    { label: "Total Teachers", value: teachers !== null ? teachers.toLocaleString("en-IN") : "—", icon: Users, color: "text-[var(--lm-amber)]", bg: "bg-[var(--lm-amber-soft)]" },
+    { label: "Avg Teacher Rating", value: avgTeacherRating !== null ? (Math.round(avgTeacherRating * 10) / 10).toFixed(1) : "—", icon: Star, color: "text-[var(--lm-amber)]", bg: "bg-[var(--lm-amber-soft)]" },
   ];
 
   return (
@@ -60,6 +103,21 @@ export default async function AnalyticsPage() {
           </button>
         </div>
       </div>
+
+      {loadError && (
+        <div
+          role="alert"
+          className="mb-6 flex items-start gap-3 rounded-xl border border-[var(--lm-red)]/30 bg-[var(--lm-red-soft)] px-4 py-3 text-[13px] text-[var(--lm-ink-strong)]"
+        >
+          <AlertTriangle size={18} className="mt-0.5 shrink-0 text-[var(--lm-red)]" aria-hidden="true" />
+          <div>
+            <p className="font-semibold">Unable to load analytics data</p>
+            <p className="mt-0.5 text-[12px] text-[var(--lm-muted)]">
+              A database error prevented analytics metrics from loading. Please refresh the page or try again shortly.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {metrics.map((m) => {
@@ -94,7 +152,7 @@ export default async function AnalyticsPage() {
                   </div>
                   <div>
                     <p className="text-[13px] font-bold text-[var(--lm-ink)]">{t.name}</p>
-                    <p className="text-[11px] text-[var(--lm-subtle)] mt-0.5">{t.user.email}</p>
+                    <p className="text-[11px] text-[var(--lm-subtle)] mt-0.5">{t.user?.email ?? "—"}</p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -106,8 +164,12 @@ export default async function AnalyticsPage() {
             ))}
             {topTeachers.length === 0 && (
               <div className="py-12 text-center">
-                <p className="text-[13px] font-bold text-[var(--lm-ink)]">No teachers available</p>
-                <p className="text-[11px] text-[var(--lm-subtle)] mt-1">Once teachers are rated, they will appear here.</p>
+                <p className="text-[13px] font-bold text-[var(--lm-ink)]">
+                  {loadError ? "Teacher rankings unavailable" : "No teachers available"}
+                </p>
+                <p className="text-[11px] text-[var(--lm-subtle)] mt-1">
+                  {loadError ? "Data could not be loaded. Please try refreshing." : "Once teachers are rated, they will appear here."}
+                </p>
               </div>
             )}
           </div>
@@ -119,24 +181,31 @@ export default async function AnalyticsPage() {
             <p className="mt-1 text-[11px] text-[var(--lm-muted)]">Active languages and their total published courses.</p>
           </div>
           <div className="p-2">
-            {popularLangs.map((l) => (
-              <div key={l.id} className="flex items-center justify-between p-4 hover:bg-[var(--lm-hover)] rounded-lg transition-colors border-b border-[var(--lm-line)] last:border-0">
-                <div className="flex items-center gap-3">
-                  <span className="text-xl drop-shadow-sm">{l.flagEmoji}</span>
-                  <span className="text-[13px] font-bold text-[var(--lm-ink)]">{l.name}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="h-1.5 w-20 bg-[var(--lm-line)] rounded-full overflow-hidden">
-                    <div className="h-full bg-[var(--lm-teal)] rounded-full transition-all duration-1000" style={{ width: `${Math.min((l._count.courses / 10) * 100, 100)}%` }} />
+            {popularLangs.map((l) => {
+              const courseCount = l._count?.courses ?? 0;
+              return (
+                <div key={l.id} className="flex items-center justify-between p-4 hover:bg-[var(--lm-hover)] rounded-lg transition-colors border-b border-[var(--lm-line)] last:border-0">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl drop-shadow-sm">{l.flagEmoji ?? "🌐"}</span>
+                    <span className="text-[13px] font-bold text-[var(--lm-ink)]">{l.name}</span>
                   </div>
-                  <span className="text-[11px] font-semibold text-[var(--lm-muted)] w-14 text-right">{l._count.courses} courses</span>
+                  <div className="flex items-center gap-3">
+                    <div className="h-1.5 w-20 bg-[var(--lm-line)] rounded-full overflow-hidden">
+                      <div className="h-full bg-[var(--lm-teal)] rounded-full transition-all duration-1000" style={{ width: `${Math.min((courseCount / 10) * 100, 100)}%` }} />
+                    </div>
+                    <span className="text-[11px] font-semibold text-[var(--lm-muted)] w-14 text-right">{courseCount} courses</span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             {popularLangs.length === 0 && (
               <div className="py-12 text-center">
-                <p className="text-[13px] font-bold text-[var(--lm-ink)]">No languages configured</p>
-                <p className="text-[11px] text-[var(--lm-subtle)] mt-1">Add languages to see their distribution here.</p>
+                <p className="text-[13px] font-bold text-[var(--lm-ink)]">
+                  {loadError ? "Language distribution unavailable" : "No languages configured"}
+                </p>
+                <p className="text-[11px] text-[var(--lm-subtle)] mt-1">
+                  {loadError ? "Data could not be loaded. Please try refreshing." : "Add languages to see their distribution here."}
+                </p>
               </div>
             )}
           </div>
